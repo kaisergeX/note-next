@@ -1,3 +1,5 @@
+[![CI](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml/badge.svg)](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml)
+
 [Next.js](https://nextjs.org/)
 
 ## Environment Variables
