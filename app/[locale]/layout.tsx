@@ -2,6 +2,12 @@ import {type ReactNode} from 'react'
 import {Inter} from 'next/font/google'
 import {useLocale} from 'next-intl'
 import {notFound} from 'next/navigation'
+import '../globals.css'
+
+export const metadata = {
+  title: 'Noteverse',
+  description: 'A minimalistic note-taking app for everyone.',
+}
 
 const inter = Inter({subsets: ['latin']})
 
