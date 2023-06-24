@@ -1,11 +1,12 @@
-import {db} from '~/db/kysely'
 import {timeAgo} from '~/db/utils'
 import Image from 'next/image'
 import RefreshButton from './refresh-button'
+import {db} from '~/db'
+import {UsersTable} from '~/db/schema/users'
 
 export default async function Table() {
   const startTime = Date.now()
-  const users = await db.selectFrom('users').selectAll().execute()
+  const users = await db.select().from(UsersTable)
   const duration = Date.now() - startTime
 
   return (
@@ -26,13 +27,15 @@ export default async function Table() {
             className="flex items-center justify-between py-3"
           >
             <div className="flex items-center space-x-4">
-              <Image
-                src={user.image}
-                alt={user.name}
-                width={48}
-                height={48}
-                className="rounded-full ring-1 ring-gray-900/5"
-              />
+              {user.image && (
+                <Image
+                  src={user.image}
+                  alt={user.name}
+                  width={48}
+                  height={48}
+                  className="rounded-full ring-1 ring-gray-900/5"
+                />
+              )}
 
               <div className="space-y-1">
                 <p className="font-medium leading-none">{user.name}</p>

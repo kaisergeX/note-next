@@ -26,7 +26,7 @@ export default function LocaleLayout({children, params}: Props) {
 
   return (
     <html lang={locale}>
-      <body className={inter.className}>{children}</body>
+      <body className={`${inter.className} h-[100dvh]`}>{children}</body>
     </html>
   )
 }

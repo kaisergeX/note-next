@@ -1,8 +1,13 @@
-import ms from 'ms'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
+dayjs.extend(relativeTime)
 
-export const timeAgo = (timestamp: Date, timeOnly?: boolean): string => {
-  if (!timestamp) return 'never'
-  return `${ms(Date.now() - new Date(timestamp).getTime())}${
-    timeOnly ? '' : ' ago'
-  }`
+export const timeAgo = (
+  timestamp: Date | string | null,
+  timeOnly?: boolean,
+): string => {
+  if (!timestamp) {
+    return 'never'
+  }
+  return dayjs(timestamp).fromNow(timeOnly)
 }
