@@ -12,6 +12,7 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "verbatimModuleSyntax": true,
     "jsx": "preserve",
     "incremental": true,
     "plugins": [
@@ -22,6 +23,14 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./*"]
+    }
+  },
+  "ts-node": {
+    "files": true,
+
+    "compilerOptions": {
+      "module": "CommonJS",
+      "verbatimModuleSyntax": false
     }
   },
   "include": [".eslintrc.cjs", "next-env.d.ts", "*.config.js", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

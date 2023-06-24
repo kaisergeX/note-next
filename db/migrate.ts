@@ -1,47 +1,23 @@
-import * as path from 'path'
-import {promises as fs} from 'fs'
-import {Migrator, FileMigrationProvider, Kysely, PostgresDialect} from 'kysely'
-import {type Database} from './kysely'
 import {createPool} from '@vercel/postgres'
+import {drizzle} from 'drizzle-orm/vercel-postgres'
+import {migrate} from 'drizzle-orm/vercel-postgres/migrator'
 
 async function migrateToLatest() {
-  const db = new Kysely<Database>({
-    dialect: new PostgresDialect({
-      pool: createPool({
-        connectionString: process.env.POSTGRES_URL,
-      }),
-    }),
+  const pool = createPool({
+    connectionString: process.env.POSTGRES_URL,
   })
+  console.log('Connected to Postgres')
+  const db = drizzle(pool)
+  console.log('Migrating...')
 
-  const migrator = new Migrator({
-    db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      // This needs to be an absolute path.
-      migrationFolder: __dirname,
-    }),
-  })
-
-  const {error, results} = await migrator.migrateToLatest()
-
-  results?.forEach((it) => {
-    if (it.status === 'Success') {
-      console.log(`migration "${it.migrationName}" was executed successfully`)
-    }
-
-    if (it.status === 'Error') {
-      console.error(`failed to execute migration "${it.migrationName}"`)
-    }
-  })
-
-  if (error) {
-    console.error('failed to migrate')
-    console.error(error)
+  try {
+    await migrate(db, {migrationsFolder: './drizzle'})
+    console.log('Migration was executed successfully')
+    process.exit(0)
+  } catch (error) {
+    console.error('Migration failed', error)
     process.exit(1)
   }
-
-  await db.destroy()
 }
 
 void migrateToLatest()
