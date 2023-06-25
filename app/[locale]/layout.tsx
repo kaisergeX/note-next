@@ -5,7 +5,7 @@ import {notFound} from 'next/navigation'
 import '../globals.css'
 
 export const metadata = {
-  title: 'Noteverse',
+  title: 'etoN - Kaiverse',
   description: 'A minimalistic note-taking app for everyone.',
 }
 
