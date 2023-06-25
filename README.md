@@ -1,7 +1,7 @@
 [![CI](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml/badge.svg)](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml)
 [![node](https://img.shields.io/node/v/next)](https://github.com/vercel/next.js)
 
-# Noteverse
+# etoN - . - --- -.
 
 [![Next.js](https://img.shields.io/badge/Next.js-000?style=for-the-badge&logo=vercel)](https://nextjs.org/) 
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-fff?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)

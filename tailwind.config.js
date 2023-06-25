@@ -14,5 +14,24 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    ({addComponents}) => {
+      addComponents({
+        '.flex-center-between': {
+          // '@apply flex items-center justify-between gap-4': {},
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          display: 'flex',
+          gap: '1rem',
+        },
+        '.flex-center': {
+          // '@apply flex items-center justify-between gap-4': {},
+          alignItems: 'center',
+          justifyContent: 'center',
+          display: 'flex',
+          gap: '1rem',
+        },
+      })
+    },
+  ],
 }

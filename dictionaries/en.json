@@ -1,5 +1,11 @@
 {
+  "common": {
+    "app": "etoN"
+  },
   "homepage": {
-    "title": "Noteverse"
+    "title": "etoN"
+  },
+  "users": {
+    "title": "User Management"
   }
 }
