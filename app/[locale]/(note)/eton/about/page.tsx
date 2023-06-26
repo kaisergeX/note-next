@@ -5,7 +5,7 @@ export default function About() {
   const t = useTranslations('common')
 
   return (
-    <main className="flex min-h-screen flex-col p-4">
+    <main className="flex h-full flex-col p-4">
       <FancyHeading className="mb-4" title={t('app')} />
     </main>
   )

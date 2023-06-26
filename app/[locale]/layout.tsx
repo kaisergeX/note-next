@@ -3,6 +3,7 @@ import {Inter} from 'next/font/google'
 import {useLocale} from 'next-intl'
 import {notFound} from 'next/navigation'
 import '../globals.css'
+import ProviderWrapper from '~/components/provider-wrapper'
 
 export const metadata = {
   title: 'etoN - Kaiverse',
@@ -26,7 +27,9 @@ export default function LocaleLayout({children, params}: Props) {
 
   return (
     <html lang={locale}>
-      <body className={`${inter.className} h-[100dvh]`}>{children}</body>
+      <body className={`${inter.className} h-[100dvh]`}>
+        <ProviderWrapper>{children}</ProviderWrapper>
+      </body>
     </html>
   )
 }

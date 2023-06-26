@@ -1,4 +1,6 @@
+import {useTranslations} from 'next-intl'
 import {type ReactNode} from 'react'
+import SignOutButton from '~/components/signout-button'
 
 export const metadata = {
   title: 'etoN - Admin Portal',
@@ -11,10 +13,11 @@ type Props = {
 }
 
 export default function LocaleLayout({children}: Props) {
-  // add route protection here
+  const t = useTranslations('auth')
 
   return (
-    <main className="bg-fancy flex min-h-screen flex-col items-center justify-center p-24">
+    <main className="bg-fancy flex min-h-[100dvh] flex-col items-center justify-center p-24">
+      <SignOutButton>{t('signOut')}</SignOutButton>
       {children}
     </main>
   )

@@ -25,7 +25,6 @@ module.exports = {
           gap: '1rem',
         },
         '.flex-center': {
-          // '@apply flex items-center justify-between gap-4': {},
           alignItems: 'center',
           justifyContent: 'center',
           display: 'flex',
