@@ -2,6 +2,13 @@
   "common": {
     "app": "etoN"
   },
+  "auth": {
+    "login": "Login",
+    "signIn": {
+      "withGoogle": "Sign in with Google"
+    },
+    "signOut": "Sign Out"
+  },
   "homepage": {
     "title": "etoN"
   },

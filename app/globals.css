@@ -26,7 +26,7 @@
   }
 
   .button {
-    @apply button-base border-zinc-900 bg-zinc-900 text-white
+    @apply button-base flex-center gap-2 border-zinc-900 bg-zinc-900 text-white
       hover:bg-transparent hover:text-zinc-900 focus-visible:hover:border-transparent
       dark:border-transparent dark:bg-zinc-300 dark:text-black;
   }
@@ -40,8 +40,8 @@
     @apply dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a];
   }
 
-   /* custom scrollbar */
-   ::-webkit-scrollbar {
+  /* custom scrollbar */
+  ::-webkit-scrollbar {
     width: 20px;
   }
 
