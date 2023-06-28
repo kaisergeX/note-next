@@ -7,7 +7,7 @@ type Props = {
   provider?: Parameters<typeof signIn>[0]
 } & ButtonHTMLAttributes<HTMLButtonElement>
 
-export default function SigninButton({
+export default function SignInButton({
   provider = 'google',
   children,
   ...props

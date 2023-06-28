@@ -6,7 +6,7 @@ import type {NextMiddlewareResult} from 'next/dist/server/web/types'
 
 const intlMiddleware = createIntlMiddleware(localeConfig)
 
-const publicPages = ['/', '/login']
+const publicPages = ['/', '/login', '/api(.*)']
 const authMiddleware = withAuth(
   // Note that this callback is only invoked if
   // the `authorized` callback has returned `true`

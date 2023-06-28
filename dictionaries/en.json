@@ -12,7 +12,11 @@
   "homepage": {
     "title": "etoN"
   },
-  "users": {
-    "title": "User Management"
+  "admin": {
+    "title": "Admin Portal",
+    "description": "Admin Portal of {serviceName} - A minimalistic note-taking app for everyone.",
+    "users": {
+      "title": "User Management"
+    }
   }
 }
