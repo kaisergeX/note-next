@@ -2,8 +2,8 @@ import FancyHeading from '~/components/fancy-heading'
 import SignInButton from '~/components/auth/signin-button'
 import {redirect} from 'next/navigation'
 import {getTranslator} from 'next-intl/server'
-import {authOptions} from '~/app/api/auth/[...nextauth]/route'
 import {getServerSession} from 'next-auth'
+import {authOptions} from '~/config/auth'
 
 type Props = {
   params: {locale: string}
