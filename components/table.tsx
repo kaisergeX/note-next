@@ -10,7 +10,7 @@ export default async function Table() {
   const duration = Date.now() - startTime
 
   return (
-    <div className="dark:card-fancy mx-auto w-full max-w-xl rounded-lg bg-white/30 p-12 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg">
+    <div className="mx-auto w-full max-w-xl rounded-lg bg-white/30 p-12 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a]">
       <div className="mb-4 flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Recent Users</h2>

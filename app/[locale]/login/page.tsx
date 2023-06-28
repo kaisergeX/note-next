@@ -1,16 +1,28 @@
-import {useTranslations} from 'next-intl'
 import FancyHeading from '~/components/fancy-heading'
-import SigninButton from '~/components/signin-button'
+import SignInButton from '~/components/auth/signin-button'
+import {redirect} from 'next/navigation'
+import {getTranslator} from 'next-intl/server'
+import {authOptions} from '~/app/api/auth/[...nextauth]/route'
+import {getServerSession} from 'next-auth'
 
-export default function Login() {
-  const t = useTranslations('auth')
+type Props = {
+  params: {locale: string}
+}
+
+export default async function Login({params: {locale}}: Props) {
+  const t = await getTranslator(locale, 'auth')
+  const session = await getServerSession(authOptions)
+
+  if (session) {
+    redirect('/')
+  }
 
   return (
-    <main className="flex h-full flex-col p-4">
+    <main className="bg-fancy flex h-full flex-col p-4">
       <FancyHeading className="mb-4" title={t('login')} />
 
       <div className="flex-center">
-        <SigninButton>
+        <SignInButton>
           <svg
             className="h-4 w-4"
             aria-hidden="true"
@@ -28,7 +40,7 @@ export default function Login() {
           </svg>
 
           {t('signIn.withGoogle')}
-        </SigninButton>
+        </SignInButton>
       </div>
     </main>
   )

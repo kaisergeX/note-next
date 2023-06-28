@@ -1,29 +1,31 @@
+import {IconActivity, IconNotes} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 
 export default function Home() {
-  const t = useTranslations()
+  const t = useTranslations('admin')
 
   return (
-    <main className="flex h-full flex-col p-4">
-      <Link href="/">
-        {/* <span className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-yellow-400">
-          {t('title')}
-        </span> */}
-        <span className="bg-gradient-to-r from-rose-500 to-violet-500 bg-clip-text text-4xl font-bold text-transparent">
-          {t('homepage.title')}
-        </span>
-      </Link>
+    <main className="[&>div]:w-full [&>div]:px-4">
+      <section className="flex-center h-[100dvh] flex-col">
+        <h1 className="mb-8 text-center text-4xl font-extrabold">
+          Imagine a home page here 🏡
+        </h1>
+        <div className="flex-center">
+          <Link href="/users" className="button">
+            {t('title')} <IconActivity size="1.2rem" />
+          </Link>
+          <Link href="/eton" className="button-secondary">
+            Notes <IconNotes size="1.2rem" />
+          </Link>
+        </div>
+      </section>
 
-      <div className="flex-center flex-1">
-        <Link href="/users" className="button">
-          {t('users.title')} <span aria-hidden="true">&rarr;</span>
-        </Link>
-
-        <Link href="/eton" className="button-secondary">
-          Notes <span aria-hidden="true">&rarr;</span>
-        </Link>
-      </div>
+      <section className="bg-reverse flex-center h-[150vh]  w-full">
+        <h1 className="mb-8 text-center text-4xl font-extrabold">
+          Well, nothing here yet ☁️
+        </h1>
+      </section>
     </main>
   )
 }

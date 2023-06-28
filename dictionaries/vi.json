@@ -12,7 +12,11 @@
   "homepage": {
     "title": "etoN"
   },
-  "users": {
-    "title": "Quản lý người dùng"
+  "admin": {
+    "title": "Trang Quản trị",
+    "description": "Trang quản trị của {serviceName} - Ứng dụng ghi chú thông minh dành cho mọi người.",
+    "users": {
+      "title": "Quản lý người dùng"
+    }
   }
 }

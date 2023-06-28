@@ -5,7 +5,7 @@ import Table from '~/components/table'
 import TablePlaceholder from '~/components/table-placeholder'
 
 export default function Users() {
-  const t = useTranslations('users')
+  const t = useTranslations('admin.users')
 
   return (
     <>

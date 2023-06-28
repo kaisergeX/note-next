@@ -1,16 +1,18 @@
 import {type ReactNode} from 'react'
 import {Inter} from 'next/font/google'
-import {useLocale} from 'next-intl'
+import {useLocale, useTranslations} from 'next-intl'
 import {notFound} from 'next/navigation'
+import ProviderWrapper from '~/components/layouts/provider-wrapper'
+import Navbar from '~/components/layouts/navbar'
+import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import '../globals.css'
-import ProviderWrapper from '~/components/provider-wrapper'
 
 export const metadata = {
-  title: 'etoN - Kaiverse',
+  title: process.env.SERVICE_NAME ?? '',
   description: 'A minimalistic note-taking app for everyone.',
 }
 
-const inter = Inter({subsets: ['latin']})
+const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
 type Props = {
   children: ReactNode
@@ -19,6 +21,7 @@ type Props = {
 
 export default function LocaleLayout({children, params}: Props) {
   const locale = useLocale()
+  const t = useTranslations('auth')
 
   // Show a 404 error if the user requests an unknown locale
   if (params.locale !== locale) {
@@ -26,10 +29,11 @@ export default function LocaleLayout({children, params}: Props) {
   }
 
   return (
-    <html lang={locale}>
-      <body className={`${inter.className} h-[100dvh]`}>
-        <ProviderWrapper>{children}</ProviderWrapper>
-      </body>
-    </html>
+    <ThemeWrapper lang={locale} className={inter.variable}>
+      <ProviderWrapper>
+        <Navbar signOutLabel={t('signOut')} />
+        {children}
+      </ProviderWrapper>
+    </ThemeWrapper>
   )
 }
