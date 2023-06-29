@@ -30,18 +30,18 @@
 
 @layer components {
   .button-base {
-    @apply block gap-2 rounded-md border px-3.5 py-2.5 text-sm font-semibold shadow-sm
+    @apply inline-block gap-2 rounded-md border px-3.5 py-2.5 text-sm font-semibold shadow-sm
       transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 
       focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-400;
   }
 
   .button-base:has(:only-child) {
     /* display: flex; if button-base has more than 1 child */
-    @apply flex;
+    @apply inline-flex h-11 items-center;
   }
 
   .button {
-    @apply button-base flex-center border-zinc-900 bg-zinc-900 text-white
+    @apply button-base border-zinc-900 bg-zinc-900 text-white
       hover:bg-transparent hover:text-zinc-900 focus-visible:hover:border-transparent
       dark:border-transparent dark:bg-zinc-300 dark:text-black hover:dark:bg-zinc-100;
   }
@@ -56,11 +56,15 @@
   }
 
   .glass {
-    @apply bg-transparent backdrop-blur-sm dark:border-slate-50/[0.06] dark:bg-transparent;
+    @apply bg-white/40 backdrop-blur-sm transition-all dark:border-slate-50/[0.06] dark:bg-transparent sm:bg-transparent;
   }
 }
 
 @layer utilities {
+  .icon > svg {
+    @apply h-5 w-5;
+  }
+
   .bg-reverse {
     @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
   }

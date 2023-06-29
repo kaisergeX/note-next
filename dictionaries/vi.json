@@ -1,6 +1,13 @@
 {
   "common": {
-    "app": "etoN"
+    "app": "etoN",
+    "navigation": {
+      "home": "Trang chủ",
+      "back": "Quay lại"
+    },
+    "err": {
+      "sthWrong": "Có gì đó sai sai!"
+    }
   },
   "auth": {
     "login": "Đăng nhập",
@@ -10,7 +17,7 @@
     "signOut": "Đăng xuất"
   },
   "homepage": {
-    "title": "etoN"
+    "title": "🏡 Tưởng tượng một trang giới thiệu rất fancy"
   },
   "admin": {
     "title": "Trang Quản trị",
@@ -18,5 +25,8 @@
     "users": {
       "title": "Quản lý người dùng"
     }
+  },
+  "note": {
+    "title": "Ghi chú"
   }
 }

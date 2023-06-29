@@ -5,6 +5,6 @@ export const metadata = {
   description: 'A minimalistic note-taking app for everyone.',
 }
 
-export default function LocaleLayout({children}: PropsWithChildren) {
+export default function LoginLayout({children}: PropsWithChildren) {
   return children
 }
