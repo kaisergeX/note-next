@@ -21,7 +21,7 @@ type Props = {
 
 export default function LocaleLayout({children, params}: Props) {
   const locale = useLocale()
-  const t = useTranslations('auth')
+  const t = useTranslations()
 
   // Show a 404 error if the user requests an unknown locale
   if (params.locale !== locale) {
@@ -31,7 +31,7 @@ export default function LocaleLayout({children, params}: Props) {
   return (
     <ThemeWrapper lang={locale} className={inter.variable}>
       <ProviderWrapper>
-        <Navbar signOutLabel={t('signOut')} />
+        <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
         {children}
       </ProviderWrapper>
     </ThemeWrapper>

@@ -21,7 +21,7 @@ export default async function Login({params: {locale}}: Props) {
     <main className="bg-fancy flex h-full flex-col p-4">
       <FancyHeading className="mb-4" title={t('login')} />
 
-      <div className="flex-center">
+      <div className="flex-center h-full">
         <SignInButton>
           <svg
             className="h-4 w-4"

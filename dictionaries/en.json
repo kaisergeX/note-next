@@ -1,6 +1,13 @@
 {
   "common": {
-    "app": "etoN"
+    "app": "etoN",
+    "navigation": {
+      "home": "Homepage",
+      "back": "Go back"
+    },
+    "err": {
+      "sthWrong": "Something went wrong!"
+    }
   },
   "auth": {
     "login": "Login",
@@ -10,7 +17,7 @@
     "signOut": "Sign Out"
   },
   "homepage": {
-    "title": "etoN"
+    "title": "Imagine a home page here 🏡"
   },
   "admin": {
     "title": "Admin Portal",
@@ -18,5 +25,8 @@
     "users": {
       "title": "User Management"
     }
+  },
+  "note": {
+    "title": "Notes"
   }
 }

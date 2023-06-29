@@ -19,10 +19,8 @@ type Props = {
   children: ReactNode
 }
 
-export default function LocaleLayout({children}: Props) {
+export default function AdminLayout({children}: Props) {
   return (
-    <main className="bg-fancy flex h-full flex-col items-center justify-center p-24">
-      {children}
-    </main>
+    <main className="bg-fancy flex-center h-full flex-col p-4">{children}</main>
   )
 }

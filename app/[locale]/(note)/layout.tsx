@@ -9,8 +9,6 @@ type Props = {
   children: ReactNode
 }
 
-export default function LocaleLayout({children}: Props) {
-  // add route protection here
-
+export default function NoteLayout({children}: Props) {
   return children
 }
