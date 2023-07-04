@@ -1,8 +1,18 @@
+import type {Metadata} from 'next'
+import {getTranslator} from 'next-intl/server'
 import {type ReactNode} from 'react'
 
-export const metadata = {
-  title: 'etoN',
-  description: 'A minimalistic note-taking app for everyone.',
+export async function generateMetadata({
+  params: {locale},
+}: {
+  params: {locale: string}
+}): Promise<Metadata> {
+  const t = await getTranslator(locale, 'common')
+
+  return {
+    title: process.env.SERVICE_NAME ?? t('app'),
+    description: t('slogan'),
+  }
 }
 
 type Props = {

@@ -1,6 +1,7 @@
 {
   "common": {
     "app": "etoN",
+    "slogan": "Ứng dụng ghi chú thông minh dành cho mọi người.",
     "navigation": {
       "home": "Trang chủ",
       "back": "Quay lại"
@@ -21,12 +22,15 @@
   },
   "admin": {
     "title": "Trang Quản trị",
-    "description": "Trang quản trị của {serviceName} - Ứng dụng ghi chú thông minh dành cho mọi người.",
+    "description": "Trang quản trị của {serviceName} - {slogan}",
     "users": {
       "title": "Quản lý người dùng"
     }
   },
   "note": {
-    "title": "Ghi chú"
+    "title": "Ghi chú",
+    "about": {
+      "title": "Thông tin ứng dụng etoN"
+    }
   }
 }

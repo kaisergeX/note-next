@@ -1,6 +1,7 @@
 {
   "common": {
     "app": "etoN",
+    "slogan": "A minimalistic note-taking app for everyone.",
     "navigation": {
       "home": "Homepage",
       "back": "Go back"
@@ -21,12 +22,15 @@
   },
   "admin": {
     "title": "Admin Portal",
-    "description": "Admin Portal of {serviceName} - A minimalistic note-taking app for everyone.",
+    "description": "Admin Portal of {serviceName} - {slogan}",
     "users": {
       "title": "User Management"
     }
   },
   "note": {
-    "title": "Notes"
+    "title": "Notes",
+    "about": {
+      "title": "About etoN"
+    }
   }
 }
