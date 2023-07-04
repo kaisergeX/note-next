@@ -5,6 +5,7 @@ import {notFound} from 'next/navigation'
 import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import Navbar from '~/components/layouts/navbar'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
+import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import '../globals.css'
 
 export const metadata = {
@@ -33,6 +34,8 @@ export default function LocaleLayout({children, params}: Props) {
       <ProviderWrapper>
         <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
         {children}
+
+        <ScrollTopButton />
       </ProviderWrapper>
     </ThemeWrapper>
   )
