@@ -6,11 +6,21 @@ import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import Navbar from '~/components/layouts/navbar'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
+import type {Metadata} from 'next'
+import {getTranslator} from 'next-intl/server'
 import '../globals.css'
 
-export const metadata = {
-  title: process.env.SERVICE_NAME ?? '',
-  description: 'A minimalistic note-taking app for everyone.',
+export async function generateMetadata({
+  params: {locale},
+}: {
+  params: {locale: string}
+}): Promise<Metadata> {
+  const t = await getTranslator(locale, 'common')
+
+  return {
+    title: process.env.SERVICE_NAME ?? t('app'),
+    description: t('slogan'),
+  }
 }
 
 const inter = Inter({subsets: ['latin'], variable: '--font-inter'})

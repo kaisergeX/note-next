@@ -21,6 +21,7 @@ module.exports = {
     },
   },
   plugins: [
+    require('@tailwindcss/typography'),
     ({addComponents}) => {
       addComponents({
         '.flex-center-between': {

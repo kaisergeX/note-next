@@ -8,6 +8,8 @@ import {usePersistStore} from '~/store'
 import {classNames} from '~/util'
 import SignOutButton from '../auth/signout-button'
 import {useSession} from 'next-auth/react'
+import {usePathname} from 'next/navigation'
+import {protectedPathnameRegex} from '~/config/auth'
 
 type NavProps = {
   appName: string
@@ -16,6 +18,7 @@ type NavProps = {
 
 export default function Navbar({appName, signOutLabel}: NavProps) {
   const {status} = useSession()
+  const pathName = usePathname()
   const isAuthenticated = status === 'authenticated'
 
   const {theme, setTheme} = usePersistStore()
@@ -27,7 +30,11 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
     imageUrl:
       'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2&w=256&h=256&q=80',
   }
-  // className=""
+
+  const homepagePath = protectedPathnameRegex.test(pathName)
+    ? `/?utm_source=${pathName}&p_r=true`
+    : '/'
+
   return (
     <Disclosure
       as="nav"
@@ -36,7 +43,10 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
       {({open}) => (
         <>
           <div className="flex h-16 items-center justify-between gap-4 p-4">
-            <Link href="/" className="group text-2xl font-bold md:text-4xl">
+            <Link
+              href={homepagePath}
+              className="group text-2xl font-bold md:text-4xl"
+            >
               <span className="text-gradient inline-block text-inherit transition-colors group-hover:text-transparent dark:hidden">
                 {appName}
               </span>

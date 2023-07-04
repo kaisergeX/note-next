@@ -1,4 +1,3 @@
-import FancyHeading from '~/components/fancy-heading'
 import SignInButton from '~/components/auth/signin-button'
 import {redirect} from 'next/navigation'
 import {getTranslator} from 'next-intl/server'
@@ -14,13 +13,11 @@ export default async function Login({params: {locale}}: Props) {
   const session = await getServerSession(authOptions)
 
   if (session) {
-    redirect('/')
+    redirect('/eton')
   }
 
   return (
     <main className="bg-fancy flex h-full flex-col p-4">
-      <FancyHeading className="mb-4" title={t('login')} />
-
       <div className="flex-center h-full">
         <SignInButton>
           <svg

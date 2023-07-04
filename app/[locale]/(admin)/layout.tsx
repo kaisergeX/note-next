@@ -7,11 +7,16 @@ export async function generateMetadata({
 }: {
   params: {locale: string}
 }): Promise<Metadata> {
-  const t = await getTranslator(locale, 'admin')
+  const t = await getTranslator(locale)
 
   return {
-    title: `${t('title')} | ${process.env.SERVICE_NAME ?? ''}`,
-    description: t('description', {serviceName: process.env.SERVICE_NAME}),
+    title: `${t('admin.title')} | ${
+      process.env.SERVICE_NAME ?? t('common.app')
+    }`,
+    description: t('admin.description', {
+      serviceName: process.env.SERVICE_NAME,
+      slogan: t('common.slogan'),
+    }),
   }
 }
 

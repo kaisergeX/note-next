@@ -1,11 +1,33 @@
 import {IconActivity, IconNotes} from '@tabler/icons-react'
-import {useTranslations} from 'next-intl'
+import {getServerSession} from 'next-auth'
+import {getTranslator, redirect} from 'next-intl/server'
 import Image from 'next/image'
 import Link from 'next/link'
+import {authOptions} from '~/config/auth'
 import SwooshImg from '~/public/swoosh.png'
 
-export default function Home() {
-  const t = useTranslations()
+type HomeProps = {
+  params: {locale: string}
+  searchParams: {
+    utm_source?: string
+    utm_medium?: string
+    utm_campaign?: string
+    utm_content?: string
+    utm_term?: string
+    p_r?: string
+  }
+}
+
+export default async function Home({
+  params: {locale},
+  searchParams: {p_r},
+}: HomeProps) {
+  const t = await getTranslator(locale)
+  const session = await getServerSession(authOptions)
+
+  if (session && !p_r) {
+    redirect('/eton')
+  }
 
   return (
     <main className="[&>section]:h-[100dvh] [&>section]:w-full [&>section]:px-4">
