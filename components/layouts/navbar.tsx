@@ -31,25 +31,23 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
   return (
     <Disclosure
       as="nav"
-      className="glass sticky top-0 z-10 data-[headlessui-state=open]:bg-white dark:data-[headlessui-state=open]:bg-inherit"
+      className="glass sticky top-0 z-10 data-[headlessui-state=open]:bg-white dark:data-[headlessui-state=open]:bg-inherit sm:data-[headlessui-state=open]:bg-inherit"
     >
       {({open}) => (
         <>
           <div className="flex h-16 items-center justify-between gap-4 p-4">
-            <Link href="/">
-              <span className="inline-block bg-gradient-to-r from-rose-500 to-violet-500 bg-clip-text text-2xl font-bold text-transparent dark:hidden md:text-4xl">
+            <Link href="/" className="group text-2xl font-bold md:text-4xl">
+              <span className="text-gradient inline-block text-inherit transition-colors group-hover:text-transparent dark:hidden">
                 {appName}
               </span>
 
-              <span className="hidden text-2xl font-bold dark:inline-block md:text-4xl">
-                {appName}
-              </span>
+              <span className="hidden dark:inline-block">{appName}</span>
             </Link>
 
             <div className="flex items-center gap-4">
               <button
                 type="button"
-                className="button rounded-full p-1"
+                className="button-icon rounded-full p-1"
                 onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
               >
                 <span className="sr-only">Theme Switcher</span>
