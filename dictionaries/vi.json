@@ -6,8 +6,11 @@
       "home": "Trang chủ",
       "back": "Quay lại"
     },
-    "err": {
+    "error": {
       "sthWrong": "Có gì đó sai sai!"
+    },
+    "action": {
+      "tryAgain": "Thử lại"
     }
   },
   "auth": {

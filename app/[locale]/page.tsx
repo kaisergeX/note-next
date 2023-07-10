@@ -30,7 +30,7 @@ export default async function Home({
   }
 
   return (
-    <main className="[&>section]:h-[100dvh] [&>section]:w-full [&>section]:px-4">
+    <main className="[&>section]:h-[100svh] [&>section]:w-full [&>section]:px-4">
       <section className="flex-center flex-col">
         <h2 className="text-center text-2xl font-extrabold md:text-4xl">
           {t('homepage.title')}

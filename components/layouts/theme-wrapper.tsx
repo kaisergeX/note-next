@@ -15,6 +15,7 @@ export default function ThemeWrapper({
 
   useEffect(() => {
     if (!theme && isDarkSystem && setTheme) {
+      // If no theme is set, and system is dark.
       setTheme('dark')
     }
   }, [theme, isDarkSystem, setTheme])
@@ -27,7 +28,13 @@ export default function ThemeWrapper({
 
   return (
     <html {...props} className={`${className}${isDarkMode ? ' dark' : ''}`}>
-      <body className="relative flex h-[100dvh] flex-col font-inter">
+      {/* 
+        Note that dv* will adapts with viewport size (which changes the actual size of element),
+        so we should use with transition for better UX to avoid instant size scaling.
+        eg: scrolling on mobile browsers will hide/show the address bar, which will change the viewport height.
+        ref: https://web.dev/viewport-units/
+      */}
+      <body className="relative flex h-[100dvh] flex-col font-inter transition-[height]">
         {children}
       </body>
     </html>

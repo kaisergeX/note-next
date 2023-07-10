@@ -64,7 +64,7 @@
   }
 
   .glass {
-    @apply bg-white/40 backdrop-blur-sm transition-all dark:border-slate-50/[0.06] dark:bg-transparent sm:bg-transparent;
+    @apply bg-zinc-50/40 backdrop-blur-sm transition-all dark:border-slate-50/[0.06] dark:bg-transparent sm:bg-transparent;
   }
 
   .text-gradient {

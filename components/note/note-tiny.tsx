@@ -25,7 +25,7 @@ export default function NoteTiny({data}: NoteProps) {
         </div>
       )}
       <article
-        className="prose line-clamp-[10] cursor-default"
+        className="prose line-clamp-[10] cursor-default dark:prose-invert"
         dangerouslySetInnerHTML={{__html: content || ''}}
       />
 

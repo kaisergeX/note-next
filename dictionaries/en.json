@@ -6,8 +6,11 @@
       "home": "Homepage",
       "back": "Go back"
     },
-    "err": {
+    "error": {
       "sthWrong": "Something went wrong!"
+    },
+    "action": {
+      "tryAgain": "Try again"
     }
   },
   "auth": {
