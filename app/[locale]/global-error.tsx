@@ -2,21 +2,20 @@
 
 export default function GlobalError({
   reset,
+  params: {locale},
 }: {
   error: Error
   reset: () => void
+  params: {locale: string}
 }) {
   return (
-    <div className="flex-center h-full flex-col">
-      <h2>Something went wrong!</h2>
-      <button
-        onClick={
-          // Attempt to recover by trying to re-render the segment
-          () => reset()
-        }
-      >
-        Try again
-      </button>
-    </div>
+    <html lang={locale}>
+      <body className="flex-center h-[100dvh] flex-col font-inter">
+        <h2>Something went wrong!</h2>
+        <button className="button" onClick={() => reset()}>
+          Try again
+        </button>
+      </body>
+    </html>
   )
 }
