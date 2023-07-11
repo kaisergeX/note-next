@@ -6,17 +6,25 @@
   :root:not(:has(body > main.bg-fancy)) * {
     @apply scrollbar;
   }
+  html {
+    /* 
+      this scroll behavior should be set as important for now,
+      related to this issue https://github.com/vercel/next.js/issues/44295 
+      and PR https://github.com/vercel/next.js/pull/46995
+    */
+    @apply scroll-pt-16 !scroll-smooth;
+  }
 
   /* :root:has(body > main.bg-fancy) {
     @apply scrollbar scrollbar-mac;
   } */
 
   body {
-    @apply scroll-smooth bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
+    @apply bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
   }
 
   body:has(main):has(.bg-fancy) {
-    @apply bg-[#d6dbdc] bg-gradient-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
+    @apply bg-theme;
   }
 
   h1 {
@@ -29,6 +37,10 @@
 
   h3 {
     @apply font-semibold sm:text-lg;
+  }
+
+  a {
+    @apply transition-colors hover:text-blue-400;
   }
 }
 
@@ -75,6 +87,10 @@
 @layer utilities {
   .bg-reverse {
     @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
+  }
+
+  .bg-theme {
+    @apply bg-[#d6dbdc] bg-gradient-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
   }
 
   .scrollbar::-webkit-scrollbar {
