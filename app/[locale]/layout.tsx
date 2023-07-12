@@ -1,4 +1,5 @@
 import {type ReactNode} from 'react'
+import {Analytics} from '@vercel/analytics/react'
 import {Inter} from 'next/font/google'
 import {useLocale, useTranslations} from 'next-intl'
 import {notFound} from 'next/navigation'
@@ -45,6 +46,7 @@ export default function LocaleLayout({children, params}: Props) {
         <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
         {children}
 
+        <Analytics />
         <ScrollTopButton />
       </ProviderWrapper>
     </ThemeWrapper>

@@ -46,18 +46,32 @@ export default function Privacy() {
             for what data is shared when you use Sign in with Google.
           </p>
 
-          <h3>Why do we collect this?</h3>
-          <p>
-            We only collect information that is necessary to fulfill the purpose
-            of your interaction with us.
-          </p>
-
           <h3>Audit logging</h3>
           <p>
             We store an audit log for all user api actions. The access log shows
             who send which API requests to our system (like database creation,
             deletion, etc) and when, and may include the IP address from which
             the action took place.
+          </p>
+
+          <h3>Web analytics</h3>
+          <p>
+            We use{' '}
+            <Link href="https://vercel.com/analytics">
+              Vercel Web Analytics
+            </Link>{' '}
+            to get detailed insights into our website&#39;s visitors. This will
+            help us understand more about our customer base to improve the user
+            experience.
+            <br />
+            Vercel Web Analytics collect information about your device type,
+            device OS, geolocation and requests to our server.
+          </p>
+
+          <h3>Why do we collect this?</h3>
+          <p>
+            We only collect information that is necessary to fulfill the purpose
+            of your interaction with us.
           </p>
 
           <h3 id="what-not-collect">What information etoN does not collect</h3>
@@ -82,20 +96,17 @@ export default function Privacy() {
             We <strong>do not</strong> share, sell, rent, or trade User Personal
             Information with third parties for their commercial purposes.
           </p>
-
           <p>
             We do not disclose User Personal Information outside etoN, except in
             the situations listed in this section or in the section below on{' '}
             <Link href="#compelled-disclosure">Compelled Disclosure</Link>.
           </p>
-
           <p>
             We do share certain aggregated, non-personally identifying
             information with others about how our users, collectively, use etoN,
             or how our users respond to our other offerings. However, we do not
             sell this information to advertisers or marketers.
           </p>
-
           <p>
             We may share User Personal Information if we are involved in a
             merger, sale, or acquisition. If any such change of ownership
