@@ -2,7 +2,7 @@ import type {NextAuthOptions} from 'next-auth'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import {localeConfig} from './localization'
 import {db} from '~/db'
-import {UsersTable} from '~/db/schema/users'
+import {UsersTable, type NewUser} from '~/db/schema/users'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -19,10 +19,10 @@ export const authOptions: NextAuthOptions = {
 
       if (account?.provider === 'google') {
         const googleProfile = profile as GoogleProfile
-        const newUsers = {
-          name: googleProfile.name ?? '',
-          email: googleProfile.email ?? '',
-          image: googleProfile.picture ?? '',
+        const newUsers: NewUser = {
+          name: googleProfile.name,
+          email: googleProfile.email,
+          image: googleProfile.picture,
         }
 
         await db.insert(UsersTable).values(newUsers).onConflictDoNothing()

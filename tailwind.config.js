@@ -33,7 +33,7 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/typography'),
-    ({addComponents}) => {
+    ({addComponents, addVariant}) => {
       addComponents({
         '.flex-center-between': {
           // '@apply flex items-center justify-between gap-4': {},
@@ -49,6 +49,10 @@ module.exports = {
           gap: '1rem',
         },
       })
+      addVariant(
+        'sm-only',
+        "@media screen and (max-width: theme('screens.sm'))",
+      )
     },
   ],
 }

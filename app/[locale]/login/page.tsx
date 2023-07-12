@@ -39,8 +39,8 @@ export default async function Login({params: {locale}}: Props) {
         {t('signIn.withGoogle')}
       </SignInButton>
 
-      <div className="text-sm">
-        By clicking Sign In, you agree to our{' '}
+      <div className="text-center text-sm">
+        By clicking Sign In, you are setting up a etoN account and agree to our{' '}
         <Link
           className="underline "
           href="/trust/privacy"

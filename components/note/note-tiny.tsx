@@ -1,5 +1,6 @@
 'use client'
 import {IconDotsVertical, IconPalette} from '@tabler/icons-react'
+import {useRouter} from 'next/navigation'
 import type {NoteData} from '~/types/note'
 
 type NoteProps = {
@@ -7,10 +8,11 @@ type NoteProps = {
 }
 
 export default function NoteTiny({data}: NoteProps) {
-  const {title, content} = data
+  const {id, title, content} = data
+  const router = useRouter()
 
   const handleOpenNote = () => {
-    console.log(data)
+    router.push(`/eton/${id}`)
   }
 
   return (
