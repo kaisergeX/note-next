@@ -17,8 +17,14 @@ export async function generateMetadata({
 
 type Props = {
   children: ReactNode
+  modal: ReactNode
 }
 
-export default function NoteLayout({children}: Props) {
-  return children
+export default function NoteLayout({children, modal}: Props) {
+  return (
+    <>
+      {children}
+      {modal}
+    </>
+  )
 }

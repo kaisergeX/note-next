@@ -20,11 +20,15 @@
   } */
 
   body {
-    @apply bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
+    @apply bg-default;
   }
 
   body:has(main):has(.bg-fancy) {
     @apply bg-theme;
+  }
+
+  body:has(.prevent-body-scroll) {
+    @apply !overflow-hidden overscroll-contain;
   }
 
   h1 {
@@ -51,6 +55,10 @@
       focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-400;
   }
 
+  .button-base:disabled {
+    @apply pointer-events-none cursor-not-allowed opacity-50;
+  }
+
   .button-base:not(:has(> :only-child)) {
     /* apply styles to .button-base that has more than 1 child */
     @apply h-11;
@@ -63,12 +71,12 @@
   }
 
   .button-secondary {
-    @apply button-base border-zinc-200 bg-transparent text-inherit hover:border-zinc-900 
+    @apply button-base border-zinc-200 bg-transparent text-inherit hover:border-zinc-900 hover:text-inherit 
       dark:border-zinc-600 dark:hover:border-zinc-200;
   }
 
   .button-icon {
-    @apply button !h-fit;
+    @apply button-base !h-fit;
   }
 
   .card-fancy {
@@ -85,12 +93,28 @@
 }
 
 @layer utilities {
+  .ring-reverse {
+    @apply ring-1 ring-zinc-700 dark:ring-zinc-100;
+  }
+
+  .ring-theme {
+    @apply ring-1 ring-zinc-100 dark:ring-zinc-700;
+  }
+
+  .bg-default {
+    @apply bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
+  }
+
   .bg-reverse {
     @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
   }
 
   .bg-theme {
     @apply bg-[#d6dbdc] bg-gradient-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
+  }
+
+  .shadow-theme {
+    @apply shadow-xl shadow-slate-700/10 ring-1 ring-gray-900/5 dark:shadow-slate-400/10 dark:ring-gray-400/5;
   }
 
   .scrollbar::-webkit-scrollbar {
