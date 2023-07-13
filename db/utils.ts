@@ -11,9 +11,9 @@ export const ULIDGenerateFunction = db.execute(sql`
 `)
 
 /**
- * Each time a row data is updated, the `updated_at` column will be updated automatically.
+ * DB Function: Each time a row data is updated, the `updated_at` column will be updated automatically.
  */
-export const UpdatedAtTriggerFunction = db.execute(sql`
+export const UpdatedAtFunction = db.execute(sql`
   CREATE OR REPLACE FUNCTION upd_updated_at_stamp() RETURNS TRIGGER AS $upd_updated_at_stamp$ 
     BEGIN
       IF row(NEW.*) IS DISTINCT FROM row(OLD.*) THEN 
@@ -26,29 +26,33 @@ export const UpdatedAtTriggerFunction = db.execute(sql`
   $upd_updated_at_stamp$ LANGUAGE plpgsql;
 `)
 
-export const UsersTableTrigger = db.execute(sql`
-  CREATE OR REPLACE TRIGGER upd_updated_at_stamp 
-    BEFORE UPDATE 
-    ON users 
-    FOR EACH ROW 
-    EXECUTE FUNCTION upd_updated_at_stamp();
-`)
-
-export const NotesTableTrigger = db.execute(sql`
-  DO $$
-  BEGIN
-    IF EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'notes') THEN
-      EXECUTE '
-        CREATE OR REPLACE TRIGGER upd_updated_at_stamp 
-          BEFORE UPDATE 
-          ON notes 
-          FOR EACH ROW 
-          EXECUTE FUNCTION upd_updated_at_stamp();
-      ';
-    END IF;
-  END;
-  $$;
-`)
+/**
+ * Applied {@link UpdatedAtFunction upd_updated_at_stamp()} to all tables that belong to public schema (default schema)
+ * and have the `updated_at` column.
+ */
+export const AddUpdatedAtTrigger = db.execute(
+  sql.raw(`
+    DO $$
+    DECLARE
+      tbname text;
+    BEGIN
+      FOR tbname IN 
+        SELECT table_name 
+        FROM information_schema.columns
+        WHERE table_schema = 'public' AND column_name = 'updated_at'
+      LOOP
+        EXECUTE format(
+          'CREATE OR REPLACE TRIGGER upd_updated_at_stamp 
+              BEFORE UPDATE 
+              ON %I 
+              FOR EACH ROW 
+              EXECUTE FUNCTION upd_updated_at_stamp()', 
+              tbname);
+      END LOOP;
+    END;
+    $$ LANGUAGE plpgsql;
+  `),
+)
 
 /**
  * This is a one-time migration script to change the "users.id" column type from serial to uuid.
