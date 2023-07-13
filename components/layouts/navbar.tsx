@@ -104,22 +104,20 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                     leaveTo="transform opacity-0 scale-95"
                   >
                     <Menu.Items
-                      className="bg-default shadow-theme ring-theme absolute right-0 z-10 mt-2 w-60
-                        origin-top-right overflow-hidden rounded-md focus:outline-none"
+                      className="bg-default shadow-theme ring-theme absolute right-0 z-10 mt-2 w-48 origin-top-right
+                        overflow-hidden rounded-md text-sm font-semibold focus:outline-none"
                     >
                       <Menu.Item>
-                        {() => (
-                          <Link
-                            href="/users"
-                            className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
-                          >
-                            <IconUsers /> User Management
-                          </Link>
-                        )}
+                        <Link
+                          href="/users"
+                          className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
+                        >
+                          <IconUsers /> User Management
+                        </Link>
                       </Menu.Item>
 
                       <Menu.Item as="div">
-                        <SignOutButton className="hover:bg-reverse flex w-full items-center gap-2 p-4 text-left transition-colors">
+                        <SignOutButton className="hover:bg-reverse flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors">
                           <IconLogout /> {signOutLabel}
                         </SignOutButton>
                       </Menu.Item>

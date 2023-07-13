@@ -1,6 +1,6 @@
 'use client'
 import {IconDotsVertical, IconPalette} from '@tabler/icons-react'
-import {useRouter} from 'next/navigation'
+import Link from 'next/link'
 import type {NoteData} from '~/types/note'
 
 type NoteProps = {
@@ -9,17 +9,12 @@ type NoteProps = {
 
 export default function NoteTiny({data}: NoteProps) {
   const {id, title, content} = data
-  const router = useRouter()
-
-  const handleOpenNote = () => {
-    router.push(`/eton/${id}`)
-  }
 
   return (
-    <div
-      className="group relative max-h-96 rounded-lg border border-solid border-zinc-200 p-4 pb-6 
+    <Link
+      href={`/eton/${id}`}
+      className="group relative max-h-96 cursor-default rounded-lg border border-solid border-zinc-200 p-4 pb-6 
         transition-shadow duration-150 ease-in-out hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
-      onClick={handleOpenNote}
     >
       {title && (
         <div className="mb-4 line-clamp-3 cursor-default font-semibold tracking-tight text-gray-900 dark:text-white">
@@ -37,6 +32,6 @@ export default function NoteTiny({data}: NoteProps) {
       >
         <IconPalette size="1rem" /> <IconDotsVertical size="1rem" />
       </div>
-    </div>
+    </Link>
   )
 }
