@@ -1,4 +1,4 @@
-import {timeAgo} from '~/db/utils'
+import {timeAgo} from '~/util'
 import Image from 'next/image'
 import RefreshButton from './refresh-button'
 import {db} from '~/db'
