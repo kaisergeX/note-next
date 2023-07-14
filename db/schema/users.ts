@@ -28,11 +28,11 @@ export const UsersTable = pgTable('users', {
 })
 
 export type User = InferModel<typeof UsersTable>
-export type NewUser = InferModel<typeof UsersTable, 'insert'>
-export type UpdateUser = Omit<
+export type NewUser = Omit<
   InferModel<typeof UsersTable, 'insert'>,
-  'id' | 'email' | 'createdAt' | 'updatedAt'
+  'id' | 'createdAt' | 'updatedAt'
 >
+export type UpdateUser = Omit<NewUser, 'email'>
 
 // export async function insertUser(user: NewUser[]) {
 //   return await db.insert(UsersTable).values(user).returning()

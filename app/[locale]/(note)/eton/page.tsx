@@ -9,7 +9,7 @@ export default function Notes() {
   ))
 
   return (
-    <main className="h-full p-4">
+    <main className="p-4">
       <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,_1fr))] grid-rows-[masonry] gap-4">
         {renderNoteList}
       </div>

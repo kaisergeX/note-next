@@ -43,7 +43,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
       </div>
       {title && <h1 className="px-8 py-6">{title}</h1>}
 
-      <div className="shadow-theme m-4 h-full rounded-xl p-4">
+      <div className="shadow-theme m-4 flex-1 rounded-xl p-4">
         {content ? (
           <article
             className="prose prose-sm max-w-none dark:prose-invert sm:prose-base"

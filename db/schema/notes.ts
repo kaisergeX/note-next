@@ -20,13 +20,13 @@ export const NotesTable = pgTable('notes', {
 })
 
 export type Note = InferModel<typeof NotesTable>
-export type NewNote = InferModel<typeof NotesTable, 'insert'>
-export type UpdateNote = Omit<
+export type NewNote = Omit<
   InferModel<typeof NotesTable, 'insert'>,
-  'createdAt' | 'id' | 'authorId'
+  'id' | 'createdAt' | 'updatedAt'
 >
+export type UpdateNote = Omit<NewNote, 'authorId'>
 
-export async function updateNote(noteId: string, note: Partial<UpdateNote>) {
+export async function updateNote(noteId: string, note: UpdateNote) {
   return await db
     .update(NotesTable)
     .set(note)
