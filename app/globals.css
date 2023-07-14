@@ -6,6 +6,7 @@
   :root:not(:has(body > main.bg-fancy)) * {
     @apply scrollbar;
   }
+
   html {
     /* 
       this scroll behavior should be set as important for now,
@@ -25,6 +26,10 @@
 
   body:has(main):has(.bg-fancy) {
     @apply bg-theme;
+  }
+
+  body:has(main):has(.bg-fancy) nav.glass {
+    @apply bg-transparent;
   }
 
   body:has(.prevent-body-scroll) {

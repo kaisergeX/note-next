@@ -19,6 +19,8 @@ type DialogProps = {
   open: boolean
   onClose: () => void
   closeIcon?: ReactNode
+
+  disableAnimation?: 'open' | 'close' | true
   hideCloseIcon?: boolean
   fullScreen?: boolean
 }
@@ -32,6 +34,8 @@ export default function DialogCustom({
   open,
   onClose,
   closeIcon,
+
+  disableAnimation,
   hideCloseIcon,
   fullScreen,
   children,
@@ -39,10 +43,20 @@ export default function DialogCustom({
   const inputRef = useRef<HTMLDivElement>(null)
   const [scrolled, setScrolled] = useState(false)
 
+  const dialogEnterAnimation =
+    disableAnimation && disableAnimation !== 'close'
+      ? 'transition-none'
+      : 'ease-out duration-300'
+
+  const dialogLeaveAnimation =
+    disableAnimation && disableAnimation !== 'open'
+      ? 'transition-none'
+      : 'ease-in duration-200'
+
   const renderLoadingPanel = (
-    <div className="flex h-full flex-col gap-4">
+    <div className="flex h-full flex-col gap-4 sm:h-[20rem]">
       <div className="flex gap-4">
-        <div className="h-6 flex-1 animate-pulse rounded-sm bg-zinc-200" />
+        <div className="h-6 flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
         {!hideCloseIcon && (
           <button className="ml-auto h-fit" type="button" onClick={onClose}>
             {closeIcon || <IconX />}
@@ -50,20 +64,23 @@ export default function DialogCustom({
         )}
       </div>
 
-      <div className="w-full flex-1 animate-pulse rounded-sm bg-zinc-200" />
+      <div className="w-full flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
     </div>
   )
 
   return (
     <Transition show={open} as={Fragment}>
-      <Dialog onClose={onClose} className="relative z-50">
+      <Dialog
+        onClose={onClose}
+        className="sm-only:prevent-body-scroll relative z-50"
+      >
         {/* The backdrop, rendered as a fixed sibling to the panel container */}
         <Transition.Child
           as={Fragment}
-          enter="ease-out duration-300"
+          enter={dialogEnterAnimation}
           enterFrom="opacity-0"
           enterTo="opacity-100"
-          leave="ease-in duration-200"
+          leave={dialogLeaveAnimation}
           leaveFrom="opacity-100"
           leaveTo="opacity-0"
         >
@@ -83,10 +100,10 @@ export default function DialogCustom({
             {/* The actual dialog panel  */}
             <Transition.Child
               as={Fragment}
-              enter="ease-out duration-300"
+              enter={dialogEnterAnimation}
               enterFrom="opacity-0 scale-95"
               enterTo="opacity-100 scale-100"
-              leave="ease-in duration-200"
+              leave={dialogLeaveAnimation}
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >

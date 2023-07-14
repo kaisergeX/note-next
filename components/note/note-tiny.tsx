@@ -13,24 +13,30 @@ export default function NoteTiny({data}: NoteProps) {
   return (
     <Link
       href={`/eton/${id}`}
-      className="group relative max-h-96 cursor-default rounded-lg border border-solid border-zinc-200 p-4 pb-6 
+      className="group relative max-h-96 rounded-lg border border-solid border-zinc-200 p-4 pb-8 
         transition-shadow duration-150 ease-in-out hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
     >
       {title && (
-        <div className="mb-4 line-clamp-3 cursor-default font-semibold tracking-tight text-gray-900 dark:text-white">
+        <div className="mb-4 line-clamp-3 font-semibold tracking-tight text-gray-900 dark:text-white">
           {title}
         </div>
       )}
       <article
-        className="prose line-clamp-[10] cursor-default dark:prose-invert"
+        className="prose line-clamp-[10] dark:prose-invert"
         dangerouslySetInnerHTML={{__html: content || ''}}
       />
 
       <div
-        className="absolute inset-x-0 bottom-0 hidden w-full justify-between p-2 text-zinc-500 transition group-focus-within:flex group-hover:flex"
-        onClick={(e) => e.stopPropagation()}
+        className="absolute inset-x-0 bottom-0 hidden w-full cursor-default justify-between p-2 text-zinc-500 transition 
+          sm:group-focus-within:flex sm:group-hover:flex"
+        onClick={(e) => e.preventDefault()}
       >
-        <IconPalette size="1rem" /> <IconDotsVertical size="1rem" />
+        <button type="button">
+          <IconPalette size="1rem" />
+        </button>
+        <button type="button">
+          <IconDotsVertical size="1rem" />
+        </button>
       </div>
     </Link>
   )

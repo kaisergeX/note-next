@@ -1,25 +1,42 @@
 'use client'
 import {Dialog} from '@headlessui/react'
 import {useRouter} from 'next/navigation'
+import {useState, useEffect} from 'react'
 import DialogCustom from '~/components/dialog'
+import {sleep} from '~/util'
 
 type NoteDetailProps = {params: {id: string}}
 
 export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
   const router = useRouter()
+  const [openModal, setOpenModal] = useState(false)
 
   const noteData = fakeData.find((note) => note.id === id)
+
+  // this help open dialog animation can happen
+  useEffect(() => {
+    setOpenModal(true)
+  }, [])
+
   if (!noteData) {
     return router.back()
   }
 
   const {title, content} = noteData
 
+  const handleCloseModal = async () => {
+    setOpenModal(false)
+    // delay routing for close dialog animation
+    await sleep(200)
+    router.back()
+  }
+
   return (
     <DialogCustom
-      open
+      open={openModal}
       title={<Dialog.Title className="sm-only:hidden">{title}</Dialog.Title>}
-      onClose={() => router.back()}
+      onClose={() => void handleCloseModal()}
+      loading
     >
       <div>
         {title && <h1 className="pb-4 sm:hidden">{title}</h1>}
