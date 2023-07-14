@@ -36,7 +36,6 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
       open={openModal}
       title={<Dialog.Title className="sm-only:hidden">{title}</Dialog.Title>}
       onClose={() => void handleCloseModal()}
-      loading
     >
       <div>
         {title && <h1 className="pb-4 sm:hidden">{title}</h1>}
