@@ -15,6 +15,9 @@ export default function NoteTiny({data}: NoteProps) {
       href={`/eton/${id}`}
       className="group relative max-h-96 rounded-lg border border-solid border-zinc-200 p-4 pb-8 
         transition-shadow duration-150 ease-in-out hover:shadow-md dark:border-zinc-700 dark:bg-zinc-800"
+      // @todo Add a option on setting page for user to choose whether to use Dialog or not.
+      // @todo Find a better option such as conditional render for this parallel route instead of open in new tab.
+      // target='_blank' // if user prefers not to use Dialog to view/edit note.
     >
       {title && (
         <div className="mb-4 line-clamp-3 font-semibold tracking-tight text-gray-900 dark:text-white">

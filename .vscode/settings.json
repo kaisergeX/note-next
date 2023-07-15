@@ -6,4 +6,5 @@
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
   "typescript.format.semicolons": "remove",
   "typescript.tsdk": "node_modules\\typescript\\lib"
+  // "prettier.prettierPath": "node_modules\\prettier\\index.js"
 }

@@ -1,16 +1,39 @@
 import createIntlMiddleware from 'next-intl/middleware'
-import type {NextRequest} from 'next/server'
+import {NextResponse, type NextRequest} from 'next/server'
 import {localeConfig} from '~/config/localization'
-import {withAuth} from 'next-auth/middleware'
+import {withAuth, type NextRequestWithAuth} from 'next-auth/middleware'
 import type {NextMiddlewareResult} from 'next/dist/server/web/types'
-import {protectedPathnameRegex} from './config/auth'
+import {archivistPathnameRegex, protectedPathnameRegex} from './config/auth'
+import {getUserRole} from './db/helper/users'
+import {RoleEnum} from './db/schema/users'
+
+const redirectToPermissionsDenied = (req: NextRequestWithAuth) =>
+  NextResponse.redirect(new URL('/denied', req.url))
 
 const intlMiddleware = createIntlMiddleware(localeConfig)
 const authMiddleware = withAuth(
   // Note that this callback is only invoked if
   // the `authorized` callback has returned `true`
   // and not for pages listed in `pages`.
-  function onSuccess(req) {
+  async function middleware(req) {
+    const userEmail = req.nextauth.token?.email
+    if (!userEmail) {
+      return redirectToPermissionsDenied(req)
+    }
+
+    try {
+      const userRole = await getUserRole(userEmail)
+      if (
+        userRole !== RoleEnum.archivist &&
+        archivistPathnameRegex.test(req.nextUrl.pathname)
+      ) {
+        return redirectToPermissionsDenied(req)
+      }
+    } catch (error) {
+      console.error(error)
+      return redirectToPermissionsDenied(req)
+    }
+
     return intlMiddleware(req)
   },
   {

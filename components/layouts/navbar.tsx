@@ -1,6 +1,7 @@
 'use client'
 import {Disclosure, Menu, Transition} from '@headlessui/react'
 import {
+  IconActivity,
   IconLogout,
   IconMenu2,
   IconUser,
@@ -16,6 +17,9 @@ import {useSession} from 'next-auth/react'
 import {usePathname} from 'next/navigation'
 import {protectedPathnameRegex} from '~/config/auth'
 import Image from 'next/image'
+import {IconUserCircle} from '@tabler/icons-react'
+import useSWR from 'swr'
+import type {Role} from '~/db/schema/users'
 
 type NavProps = {
   appName: string
@@ -24,6 +28,15 @@ type NavProps = {
 
 export default function Navbar({appName, signOutLabel}: NavProps) {
   const {status, data} = useSession()
+  const userEmail = data?.user?.email
+
+  // the new `use` hook still not ready so temporarily use `swr` instead
+  // const userRole = use(getUserRole(data?.user?.email ?? ''))
+  const {data: userRole} = useSWR<Role>(
+    userEmail ? `/user/role?email=${userEmail}` : null,
+    (url: string) => fetch(url).then((res) => res.json()),
+  )
+
   const pathName = usePathname()
   const isAuthenticated = status === 'authenticated'
 
@@ -109,12 +122,23 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                     >
                       <Menu.Item>
                         <Link
-                          href="/users"
+                          href="/user"
                           className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
                         >
-                          <IconUsers /> User Management
+                          <IconUserCircle /> Profile
                         </Link>
                       </Menu.Item>
+
+                      {userRole === 'archivist' && (
+                        <Menu.Item>
+                          <Link
+                            href="/admin"
+                            className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
+                          >
+                            <IconActivity /> Admin Portal
+                          </Link>
+                        </Menu.Item>
+                      )}
 
                       <Menu.Item as="div">
                         <SignOutButton className="hover:bg-reverse flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors">
@@ -154,10 +178,10 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 <div>
                   <Disclosure.Button
                     as={Link}
-                    href="/users"
+                    href="/admin"
                     className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
                   >
-                    <IconUsers /> User Management
+                    <IconUsers /> Admin Portal
                   </Disclosure.Button>
                 </div>
 
