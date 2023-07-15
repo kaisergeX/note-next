@@ -7,8 +7,11 @@ import {
   pgEnum,
   uuid,
 } from 'drizzle-orm/pg-core'
+import {enumFromArray} from '~/types'
 
 const roleEnum = pgEnum('role', ['archivist', 'note-taker'])
+export type Role = (typeof roleEnum.enumValues)[number]
+export const RoleEnum = enumFromArray(roleEnum.enumValues)
 
 export const UsersTable = pgTable('users', {
   id: uuid('id')
@@ -33,7 +36,3 @@ export type NewUser = Omit<
   'id' | 'createdAt' | 'updatedAt'
 >
 export type UpdateUser = Omit<NewUser, 'email'>
-
-// export async function insertUser(user: NewUser[]) {
-//   return await db.insert(UsersTable).values(user).returning()
-// }

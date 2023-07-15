@@ -1,9 +1,20 @@
 'use client'
+import type {ServerError} from '~/types'
 
-export default function Error({reset}: {error: Error; reset: () => void}) {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: ServerError
+  reset: () => void
+}) {
   return (
-    <div className="flex-center h-full flex-col">
-      <h1>Something went wrong!</h1>
+    <div className="flex-center h-full flex-col gap-4">
+      <div>
+        <h1>Something went wrong!</h1>
+        <p className="text-center text-sm text-zinc-400">{error.digest}</p>
+      </div>
+
       <button
         className="button"
         onClick={

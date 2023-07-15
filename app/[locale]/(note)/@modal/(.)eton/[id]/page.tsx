@@ -42,7 +42,7 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
 
         {content ? (
           <article
-            className="prose cursor-default dark:prose-invert"
+            className="prose max-w-none cursor-default dark:prose-invert"
             dangerouslySetInnerHTML={{__html: content}}
           />
         ) : (

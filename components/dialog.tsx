@@ -96,7 +96,12 @@ export default function DialogCustom({
         {/* Full-screen scrollable container */}
         <div className="fixed inset-0">
           {/* Container to center the panel */}
-          <div className="flex-center h-full">
+          <div
+            className={classNames(
+              'flex-center h-full',
+              fullScreen ? '' : 'sm:p-4',
+            )}
+          >
             {/* The actual dialog panel  */}
             <Transition.Child
               as={Fragment}
@@ -109,11 +114,11 @@ export default function DialogCustom({
             >
               <Dialog.Panel
                 className={classNames(
-                  `ring-theme overflow-y-auto rounded bg-zinc-50 shadow-xl sm-only:h-[100dvh] sm-only:w-[100dvw]
+                  `ring-theme overflow-y-auto rounded-lg bg-zinc-50 shadow-xl sm-only:h-[100dvh] sm-only:w-[100dvw]
                     dark:bg-zinc-900 sm:min-w-[32rem] [&>div]:p-4`,
                   fullScreen
                     ? 'h-[100dvh] w-[100dvw]'
-                    : 'min-h-[20rem] max-w-screen-lg sm:max-h-[calc(100%-2rem)]',
+                    : 'min-h-[20rem] sm:max-h-full sm:w-1/2 sm:max-w-screen-sm 2xl:max-w-screen-lg',
                   className,
                 )}
                 onScroll={() => {
@@ -137,7 +142,7 @@ export default function DialogCustom({
                       className={classNames(
                         'sticky top-0 flex gap-4 bg-inherit transition-shadow',
                         scrolled
-                          ? 'shadow-[0_8px_5px_-5px] shadow-slate-700/10 dark:shadow-none'
+                          ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
                           : '',
                       )}
                     >

@@ -1,4 +1,4 @@
-import {IconActivity, IconNotes} from '@tabler/icons-react'
+import {IconNotes} from '@tabler/icons-react'
 import {getServerSession} from 'next-auth'
 import {getTranslator, redirect} from 'next-intl/server'
 import Image from 'next/image'
@@ -42,11 +42,6 @@ export default async function Home({
           quia ducimus dicta.
         </p>
         <div className="flex-center">
-          <Link href="/users" className="button">
-            <span>{t('admin.title')}</span>
-            <IconActivity />
-          </Link>
-
           <Link href="/eton" className="button-secondary">
             <span>{t('note.title')}</span>
             <IconNotes />
