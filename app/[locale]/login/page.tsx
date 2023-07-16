@@ -4,6 +4,22 @@ import {getTranslator} from 'next-intl/server'
 import {getServerSession} from 'next-auth'
 import {authOptions} from '~/config/auth'
 import Link from 'next/link'
+import type {Metadata} from 'next'
+
+export async function generateMetadata({
+  params: {locale},
+}: {
+  params: {locale: string}
+}): Promise<Metadata> {
+  const t = await getTranslator(locale)
+
+  return {
+    title: `${t('auth.login')} | ${
+      process.env.SERVICE_NAME ?? t('common.app')
+    }`,
+    description: t('common.slogan'),
+  }
+}
 
 type Props = {
   params: {locale: string}

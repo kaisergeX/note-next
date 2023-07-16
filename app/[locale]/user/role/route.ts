@@ -1,11 +1,12 @@
+import {getServerSession} from 'next-auth'
 import {NextResponse} from 'next/server'
+import {authOptions} from '~/config/auth'
 import {getUserRole} from '~/db/helper/users'
 import type {ServerError} from '~/types'
 
-export async function GET(request: Request) {
-  const {searchParams} = new URL(request.url)
-  const email = searchParams.get('email')
-  console.log('user/role', email)
+export async function GET() {
+  const session = await getServerSession(authOptions)
+  const email = session?.user?.email
 
   if (!email) {
     return NextResponse.json({error: 'Email is required'}, {status: 400})

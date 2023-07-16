@@ -18,8 +18,6 @@ import {usePathname} from 'next/navigation'
 import {protectedPathnameRegex} from '~/config/auth'
 import Image from 'next/image'
 import {IconUserCircle} from '@tabler/icons-react'
-import useSWR from 'swr'
-import type {Role} from '~/db/schema/users'
 
 type NavProps = {
   appName: string
@@ -28,18 +26,13 @@ type NavProps = {
 
 export default function Navbar({appName, signOutLabel}: NavProps) {
   const {status, data} = useSession()
-  const userEmail = data?.user?.email
-
-  // the new `use` hook still not ready so temporarily use `swr` instead
-  // const userRole = use(getUserRole(data?.user?.email ?? ''))
-  const {data: userRole} = useSWR<Role>(
-    userEmail ? `/user/role?email=${userEmail}` : null,
-    (url: string) => fetch(url).then((res) => res.json()),
-  )
-
   const pathName = usePathname()
   const isAuthenticated = status === 'authenticated'
 
+  // the new `use` hook still not ready so temporarily use `swr` if client-side fetching is needed
+  // const userRole = use<Role>(fetcher('/user/role'))
+  // const {data: userRole} = useSWR<Role>('/user/role', fetcher)
+  const userRole = data?.user?.role
   const profileName = data?.user?.name
   const profileAvatar =
     data?.user?.image ??
@@ -72,7 +65,9 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
   return (
     <Disclosure
       as="nav"
-      className="glass sticky inset-x-0 top-0 z-10 w-full data-[headlessui-state=open]:fixed data-[headlessui-state=open]:bg-white dark:data-[headlessui-state=open]:bg-inherit sm:data-[headlessui-state=open]:bg-inherit"
+      className="glass sticky inset-x-0 top-0 z-10 w-full
+        data-[headlessui-state=open]:fixed data-[headlessui-state=open]:bg-white
+        dark:data-[headlessui-state=open]:bg-inherit sm:data-[headlessui-state=open]:bg-inherit"
     >
       {({open}) => (
         <>

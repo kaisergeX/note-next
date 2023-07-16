@@ -84,6 +84,10 @@
     @apply button-base !h-fit;
   }
 
+  .card {
+    @apply rounded-lg border border-solid border-zinc-200 transition-shadow hover:shadow-md dark:border-zinc-700;
+  }
+
   .card-fancy {
     @apply dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a];
   }
