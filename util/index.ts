@@ -6,17 +6,22 @@ export function classNames(...classes: string[]): string {
   return classes.filter(Boolean).join(' ')
 }
 
-export const sleep = (millis = 0) => {
+export function sleep(millis = 0) {
   return new Promise((resolve) => setTimeout(resolve, millis))
 }
 
-export const timeAgo = (
+export function timeAgo(
   timestamp: Date | string | null,
   timeOnly?: boolean,
-): string => {
+): string {
   if (!timestamp) {
     return 'never'
   }
 
   return dayjs(timestamp).fromNow(timeOnly)
+}
+
+export async function fetcher(input: RequestInfo | URL, init?: RequestInit) {
+  const res = await fetch(input, init)
+  return res.json()
 }

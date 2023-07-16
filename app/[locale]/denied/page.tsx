@@ -1,11 +1,21 @@
 import {IconArrowLeft} from '@tabler/icons-react'
+import type {Metadata} from 'next'
 import {useTranslations} from 'next-intl'
+import {getTranslator} from 'next-intl/server'
 import Link from 'next/link'
 import GoBackButton from '~/components/navigation/go-back-button'
 
-export const metadata = {
-  title: '403 - etoN',
-  description: 'A minimalistic note-taking app for everyone.',
+export async function generateMetadata({
+  params: {locale},
+}: {
+  params: {locale: string}
+}): Promise<Metadata> {
+  const t = await getTranslator(locale)
+
+  return {
+    title: `403 | ${process.env.SERVICE_NAME ?? t('common.app')}`,
+    description: t('common.slogan'),
+  }
 }
 
 export default function PermissionDenied() {

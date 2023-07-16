@@ -1,4 +1,6 @@
+import {getServerSession} from 'next-auth'
 import {NextResponse} from 'next/server'
+import {authOptions} from '~/config/auth'
 import {getUser} from '~/db/helper/users'
 import type {ServerError} from '~/types'
 
@@ -6,9 +8,9 @@ import type {ServerError} from '~/types'
 // This API route is protected by middleware
 // All APIs inside /api folder are public
 
-export async function GET(request: Request) {
-  const {searchParams} = new URL(request.url)
-  const email = searchParams.get('email')
+export async function GET() {
+  const session = await getServerSession(authOptions)
+  const email = session?.user?.email
 
   if (!email) {
     return NextResponse.json({error: 'Email is required'}, {status: 400})

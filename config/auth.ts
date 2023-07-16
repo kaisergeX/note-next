@@ -2,7 +2,8 @@ import type {NextAuthOptions} from 'next-auth'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import {localeConfig} from './localization'
 import {db} from '~/db'
-import {UsersTable, type NewUser} from '~/db/schema/users'
+import {UsersTable, type NewUser, RoleEnum} from '~/db/schema/users'
+import {getUserRole} from '~/db/helper/users'
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -12,6 +13,27 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   callbacks: {
+    jwt: async ({token}) => {
+      // @todo force update token when role changes
+      if (token.email) {
+        try {
+          const userRole = await getUserRole(token.email)
+          token.role = userRole
+        } catch (error) {
+          console.log(error)
+          token.role = RoleEnum['note-taker']
+        }
+      }
+
+      return token
+    },
+    session: ({session, token}) => {
+      if (session.user) {
+        session.user.role = token.role
+      }
+
+      return session
+    },
     signIn: async ({account, profile}) => {
       if (!profile) {
         throw new Error('No profile')

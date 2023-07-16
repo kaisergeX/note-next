@@ -4,7 +4,6 @@ import {localeConfig} from '~/config/localization'
 import {withAuth, type NextRequestWithAuth} from 'next-auth/middleware'
 import type {NextMiddlewareResult} from 'next/dist/server/web/types'
 import {archivistPathnameRegex, protectedPathnameRegex} from './config/auth'
-import {getUserRole} from './db/helper/users'
 import {RoleEnum} from './db/schema/users'
 
 const redirectToPermissionsDenied = (req: NextRequestWithAuth) =>
@@ -15,22 +14,12 @@ const authMiddleware = withAuth(
   // Note that this callback is only invoked if
   // the `authorized` callback has returned `true`
   // and not for pages listed in `pages`.
-  async function middleware(req) {
-    const userEmail = req.nextauth.token?.email
-    if (!userEmail) {
-      return redirectToPermissionsDenied(req)
-    }
-
-    try {
-      const userRole = await getUserRole(userEmail)
-      if (
-        userRole !== RoleEnum.archivist &&
-        archivistPathnameRegex.test(req.nextUrl.pathname)
-      ) {
-        return redirectToPermissionsDenied(req)
-      }
-    } catch (error) {
-      console.error(error)
+  function middleware(req) {
+    const userRole = req.nextauth.token?.role
+    if (
+      userRole !== RoleEnum.archivist &&
+      archivistPathnameRegex.test(req.nextUrl.pathname)
+    ) {
       return redirectToPermissionsDenied(req)
     }
 
