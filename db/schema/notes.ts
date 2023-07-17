@@ -1,13 +1,14 @@
-import {eq, sql, type InferModel} from 'drizzle-orm'
+import {sql, type InferModel} from 'drizzle-orm'
 import {pgTable, varchar, text, timestamp, uuid} from 'drizzle-orm/pg-core'
 import {UsersTable} from './users'
-import {db} from '..'
 
 export const NotesTable = pgTable('notes', {
   id: uuid('id')
     .default(sql`generate_ulid()`)
     .primaryKey(),
-  authorId: uuid('author_id').references(() => UsersTable.id),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => UsersTable.id),
   title: varchar('title', {length: 255}),
   content: text('content'),
   pendingDeleteAt: timestamp('pending_deleted_at', {withTimezone: true}),
@@ -25,11 +26,3 @@ export type NewNote = Omit<
   'id' | 'createdAt' | 'updatedAt'
 >
 export type UpdateNote = Omit<NewNote, 'authorId'>
-
-export async function updateNote(noteId: string, note: UpdateNote) {
-  return await db
-    .update(NotesTable)
-    .set(note)
-    .where(eq(NotesTable.id, noteId))
-    .returning()
-}

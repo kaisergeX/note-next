@@ -140,7 +140,7 @@ export default function DialogCustom({
                     <div
                       ref={inputRef}
                       className={classNames(
-                        'sticky top-0 flex gap-4 bg-inherit transition-shadow',
+                        'sticky top-0 flex gap-4 bg-inherit transition-shadow [&>*]:[overflow-wrap:anywhere]',
                         scrolled
                           ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
                           : '',

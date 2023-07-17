@@ -1,10 +1,10 @@
 'use client'
 import {IconDotsVertical, IconPalette} from '@tabler/icons-react'
 import Link from 'next/link'
-import type {NoteData} from '~/types/note'
+import type {Note} from '~/db/schema/notes'
 
 type NoteProps = {
-  data: NoteData
+  data: Note
 }
 
 export default function NoteTiny({data}: NoteProps) {
@@ -19,9 +19,10 @@ export default function NoteTiny({data}: NoteProps) {
       // target='_blank' // if user prefers not to use Dialog to view/edit note.
     >
       {title && (
-        <div className="mb-4 line-clamp-3 font-semibold tracking-tight text-gray-900 dark:text-white">
-          {title}
-        </div>
+        <article
+          className="prose mb-4 line-clamp-3 font-semibold dark:prose-invert sm:prose-lg sm:leading-normal"
+          dangerouslySetInnerHTML={{__html: title || ''}}
+        />
       )}
       <article
         className="prose line-clamp-[10] dark:prose-invert"

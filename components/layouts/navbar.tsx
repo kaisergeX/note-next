@@ -29,9 +29,6 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
   const pathName = usePathname()
   const isAuthenticated = status === 'authenticated'
 
-  // the new `use` hook still not ready so temporarily use `swr` if client-side fetching is needed
-  // const userRole = use<Role>(fetcher('/user/role'))
-  // const {data: userRole} = useSWR<Role>('/user/role', fetcher)
   const userRole = data?.user?.role
   const profileName = data?.user?.name
   const profileAvatar =

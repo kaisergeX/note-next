@@ -17,6 +17,11 @@
   "dependencies": {
     "@headlessui/react": "^1.7.15",
     "@tabler/icons-react": "^2.25.0",
+    "@tiptap/extension-character-count": "^2.0.3",
+    "@tiptap/extension-placeholder": "^2.0.3",
+    "@tiptap/pm": "^2.0.3",
+    "@tiptap/react": "^2.0.3",
+    "@tiptap/starter-kit": "^2.0.3",
     "@vercel/analytics": "^1.0.1",
     "@vercel/postgres": "^0.4.0",
     "dayjs": "^1.11.9",

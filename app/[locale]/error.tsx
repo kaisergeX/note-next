@@ -11,7 +11,7 @@ export default function Error({
   return (
     <div className="flex-center h-full flex-col gap-4">
       <div>
-        <h1>Something went wrong!</h1>
+        <h1>{error.message || 'Something went wrong!'}</h1>
         <p className="text-center text-sm text-zinc-400">{error.digest}</p>
       </div>
 
