@@ -7,7 +7,7 @@ import {
   pgEnum,
   uuid,
 } from 'drizzle-orm/pg-core'
-import {enumFromArray} from '~/types'
+import {enumFromArray} from '../../types'
 
 const roleEnum = pgEnum('role', ['archivist', 'note-taker'])
 export type Role = (typeof roleEnum.enumValues)[number]

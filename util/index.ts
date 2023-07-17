@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import type {ServerError} from '~/types'
 dayjs.extend(relativeTime)
 
 export function classNames(...classes: string[]): string {
@@ -21,7 +22,16 @@ export function timeAgo(
   return dayjs(timestamp).fromNow(timeOnly)
 }
 
-export async function fetcher(input: RequestInfo | URL, init?: RequestInit) {
+export async function fetcher<ResponseData>(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+) {
   const res = await fetch(input, init)
-  return res.json()
+  if (!res.ok) {
+    const error = new Error()
+    error.message = ((await res.json()) as ServerError).message
+    throw error
+  }
+
+  return res.json() as ResponseData
 }

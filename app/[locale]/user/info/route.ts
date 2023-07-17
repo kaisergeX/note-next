@@ -17,8 +17,8 @@ export async function GET() {
   }
 
   try {
-    const role = await getUser(email)
-    return NextResponse.json({role}, {status: 200})
+    const userInfo = await getUser(email)
+    return NextResponse.json(userInfo, {status: 200})
   } catch (error) {
     const serverErr = error as ServerError
     return NextResponse.json({error: serverErr.message}, {status: 500})
