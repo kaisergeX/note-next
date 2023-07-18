@@ -44,7 +44,7 @@ export default function NoteEditor({
       Placeholder.configure({
         placeholder,
         emptyNodeClass:
-          'first:before:text-gray-400 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
+          'first:before:opacity-50 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
       }),
       DisableEnter,
     ],

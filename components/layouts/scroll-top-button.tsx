@@ -17,8 +17,8 @@ export default function ScrollTopButton({
       type="button"
       role="navigation"
       className={classNames(
-        scroll.y > 200 ? 'visible bottom-4' : 'invisible -bottom-16',
-        'button fixed right-4 rounded-full p-1 mix-blend-difference invert transition-all sm-only:hidden dark:invert-0',
+        'button button-affix rounded-full p-1 transition-all sm-only:hidden',
+        scroll.y > 200 ? 'visible' : 'invisible -bottom-16',
       )}
       onClick={() => scrollTo({y: 0})}
       {...props}

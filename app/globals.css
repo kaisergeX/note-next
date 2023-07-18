@@ -80,6 +80,10 @@
       dark:border-zinc-600 dark:hover:border-zinc-200;
   }
 
+  .button-affix {
+    @apply fixed bottom-4 right-4 mix-blend-difference invert dark:invert-0;
+  }
+
   .button-icon {
     @apply button-base !h-fit;
   }
