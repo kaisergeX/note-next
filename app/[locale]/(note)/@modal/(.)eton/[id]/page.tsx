@@ -2,12 +2,10 @@
 import {useRouter} from 'next/navigation'
 import {useState, useEffect, useTransition} from 'react'
 import useSWR from 'swr'
-import DialogCustom from '~/components/dialog'
-import NoteEditor from '~/components/note/note-editor'
 import {type Note} from '~/db/schema/notes'
 import {fetcher, sleep} from '~/util'
 import {mutateNote} from '../../../eton/actions/actions'
-import NoteTitleEditor from '~/components/note/note-title'
+import NoteDialog from '~/components/note/note-dialog'
 
 type NoteDetailProps = {params: {id: string}}
 
@@ -16,14 +14,12 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
   const [openModal, setOpenModal] = useState(false)
   const [_, startTransition] = useTransition()
 
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
-
   // the new `use` hook still not ready so temporarily use `swr` if client-side fetching is needed
-  const {data: noteData = {title: '', content: ''}, isLoading} = useSWR<Note>(
+  const {data: noteData, isLoading} = useSWR<Note>(
     `/eton/actions?id=${id}`,
     fetcher,
   )
-  const {title, content} = noteData
+  const {title, content} = noteData ?? {title: '', content: ''}
   const newNoteData = {title, content}
 
   const handleCloseModal = () => {
@@ -44,38 +40,12 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
   }, [])
 
   return (
-    <DialogCustom
+    <NoteDialog
       open={openModal}
-      title={
-        isMobile ? undefined : (
-          <NoteTitleEditor
-            title={title}
-            onChange={(value) => {
-              newNoteData.title = value
-            }}
-          />
-        )
-      }
-      onClose={() => void handleCloseModal()}
-      loading={isLoading}
-    >
-      <div>
-        {isMobile && (
-          <NoteTitleEditor
-            title={title}
-            onChange={(value) => {
-              newNoteData.title = value
-            }}
-          />
-        )}
-        <NoteEditor
-          initialValue={content}
-          placeholder="No content"
-          onChange={(value) => {
-            newNoteData.content = value
-          }}
-        />
-      </div>
-    </DialogCustom>
+      note={noteData}
+      mutateNote={newNoteData}
+      onClose={handleCloseModal}
+      isLoading={isLoading}
+    />
   )
 }

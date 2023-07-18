@@ -22,6 +22,14 @@ export function timeAgo(
   return dayjs(timestamp).fromNow(timeOnly)
 }
 
+export function genRandom<T>(pool: Array<T>): T | string {
+  if (pool.length === 0) {
+    return ''
+  }
+
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 export async function fetcher<ResponseData>(
   input: RequestInfo | URL,
   init?: RequestInit,
