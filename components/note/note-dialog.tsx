@@ -48,7 +48,10 @@ export default function NoteDialog({
               }}
             />
           )}
+
           <NoteEditor
+            id="note-content"
+            className="min-h-[40dvh]"
             initialValue={note?.content}
             placeholder={genRandom([
               'Nothing here yet 😶‍🌫️',
@@ -56,6 +59,7 @@ export default function NoteDialog({
               "Let's add something inspirational ✨",
               'Tasks to do 📝',
             ])}
+            commandTypes="fixed"
             onChange={(value) => {
               mutateNote.content = value
             }}
@@ -77,6 +81,7 @@ function NoteTitleEditor({
 }) {
   return (
     <NoteEditor
+      id="note-title"
       className={className}
       editorClassName="text-lg font-semibold sm:text-xl"
       initialValue={title}

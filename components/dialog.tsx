@@ -72,7 +72,7 @@ export default function DialogCustom({
     <Transition show={open} as={Fragment}>
       <Dialog
         onClose={onClose}
-        className="sm-only:prevent-body-scroll relative z-50"
+        className="sm-only:prevent-body-scroll relative z-30"
       >
         {/* The backdrop, rendered as a fixed sibling to the panel container */}
         <Transition.Child
@@ -140,7 +140,7 @@ export default function DialogCustom({
                     <div
                       ref={inputRef}
                       className={classNames(
-                        'sticky top-0 flex gap-4 bg-inherit transition-shadow [&>*]:[overflow-wrap:anywhere]',
+                        'sticky top-0 z-40 flex gap-4 bg-inherit transition-shadow [&>*]:[overflow-wrap:anywhere]',
                         scrolled
                           ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
                           : '',

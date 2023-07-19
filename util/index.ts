@@ -43,3 +43,43 @@ export async function fetcher<ResponseData>(
 
   return res.json() as ResponseData
 }
+
+/**
+ * Extract text contents of HTML string that returns from Rich text editor.
+ * ___
+ * DO NOT use this function on Server component/Server Actions
+ * since it uses DOM API such as
+ * {@link https://developer.mozilla.org/en-US/docs/Web/API/DOMParser/parseFromString DOMParser().parseFromString()}.
+ */
+export function extractRawContentsHTML(
+  html: string,
+  keepNodesSpace?: boolean,
+): string | null {
+  const parsedDoc = new DOMParser().parseFromString(html, 'text/html')
+
+  if (keepNodesSpace) {
+    // add a space between content of each and only block elements from Rich text editor.
+
+    // @todo since list (ol, ul, li) are nested block elements.
+    // check if its contents be duplicated with below logic
+    const nodes = parsedDoc.body.querySelectorAll(
+      'p, h1, h2, h3, h4, h5, h6, hr, blockquote, pre, li',
+    )
+    // Elements in HTML string that return from Rich text editor component won't
+    // and shouldn't have any styles. Can't use below selector for now.
+    // const nodes = parsedDoc.body.querySelectorAll("*[style*=display\\:block]")
+
+    let content = ''
+    for (const node of nodes) {
+      if (!node.textContent) {
+        continue
+      }
+
+      content += node.textContent + ' '
+    }
+
+    return content.trim()
+  }
+
+  return parsedDoc.documentElement.textContent
+}

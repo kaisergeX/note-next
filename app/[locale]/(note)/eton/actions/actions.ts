@@ -6,8 +6,6 @@ import {updateNote} from '~/db/helper/notes'
 import {NotesTable, type NewNote, type UpdateNote} from '~/db/schema/notes'
 
 export async function createNote(noteData: NewNote) {
-  console.log('createNote', noteData)
-
   await db.insert(NotesTable).values(noteData)
   revalidatePath('/eton')
 }
