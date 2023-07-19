@@ -10,11 +10,9 @@ export default function Error({
 }) {
   return (
     <div className="flex-center h-full flex-col gap-4">
-      <div>
-        <h1 className="capitalize">
-          {error.message || 'Something went wrong!'}
-        </h1>
-        <p className="text-center text-sm text-zinc-400">{error.digest}</p>
+      <div className="text-center">
+        <h1 className="mb-4 capitalize">Something went wrong!</h1>
+        <p className="text-sm text-zinc-400">{error.digest || error.message}</p>
       </div>
 
       <button

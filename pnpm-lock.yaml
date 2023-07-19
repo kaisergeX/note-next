@@ -1195,8 +1195,8 @@ packages:
       '@tiptap/pm': 2.0.3
     dev: false
 
-  /@tiptap/extension-blockquote/2.0.3_@tiptap+core@2.0.3:
-    resolution: {integrity: sha512-rkUcFv2iL6f86DBBHoa4XdKNG2StvkJ7tfY9GoMpT46k3nxOaMTqak9/qZOo79TWxMLYtXzoxtKIkmWsbbcj4A==}
+  /@tiptap/extension-blockquote/2.0.4_@tiptap+core@2.0.3:
+    resolution: {integrity: sha512-z5qfuLi04OgCBI6/odzB2vhulT/wpjymYOnON65vLXGZZbUw4cbPloykhqgWvQp+LzKH+HBhl4fz53d5CgnbOA==}
     peerDependencies:
       '@tiptap/core': ^2.0.0
     dependencies:
@@ -1433,7 +1433,7 @@ packages:
     resolution: {integrity: sha512-t4WG4w93zTpL2VxhVyJJvl3kdLF001ZrhpOuEiZqEMBMUMbM56Uiigv1CnUQpTFrjDAh3IM8hkqzAh20TYw2iQ==}
     dependencies:
       '@tiptap/core': 2.0.3_@tiptap+pm@2.0.3
-      '@tiptap/extension-blockquote': 2.0.3_@tiptap+core@2.0.3
+      '@tiptap/extension-blockquote': 2.0.4_@tiptap+core@2.0.3
       '@tiptap/extension-bold': 2.0.3_@tiptap+core@2.0.3
       '@tiptap/extension-bullet-list': 2.0.3_@tiptap+core@2.0.3
       '@tiptap/extension-code': 2.0.3_@tiptap+core@2.0.3
