@@ -4,11 +4,27 @@ import {authOptions} from '~/config/auth'
 import {getUser} from '~/db/helper/users'
 import type {ServerError} from '~/types'
 
+// export const config = {
+//   runtime: 'edge'
+// };
+
 // Note:
-// This API route is protected by middleware
-// All APIs inside /api folder are public
+// This API route is protected by auth middleware
+// Same as all APIs inside /api folder (except /api/auth/*)
+//
+// The diff is we need to manually opt-in rate limit the APIs that are outside of `/api` (see commented code below).
 
 export async function GET() {
+  /**
+   * ⚠️ Avoid it if possible, because its not cached and makes a remote call to Redis with each request.
+   * Waste money and slow down the response time.
+   * if you really need to rate limit the API route, move it inside `api` folder.
+   */
+  // const isRateLimit = await rateLimit(request)
+  // if (isRateLimit) {
+  //   return rateLimitErrResponse()
+  // }
+
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
 

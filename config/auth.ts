@@ -57,16 +57,24 @@ export const authOptions: NextAuthOptions = {
 // @todo need to add not-found and error pages here, still couldn't find a way to do it
 // temporarily use logic opposite to it with protectedRoutes instead
 // const publicPages = ['/', '/login', '/trust(.*)']
+// const publicPathnameRegex = pathNameRegex(publicPages)
 
 // /eton(/(.*))*
 // OK: /eton, /eton/, /eton/abc, /eton/abc/def...
 // NG: /etonabc, /etonabc/def
 const archivistRoutes = ['/admin(/(.*))*']
-const protectedRoutes = [...archivistRoutes, '/eton(/(.*))*', '/user(/(.*))*']
-// const publicPathnameRegex = RegExp(
-//   `^(/(${localeConfig.locales.join('|')}))?(${publicPages.join('|')})?/?$`,
-//   'i',
-// )
+
+// /^\/api(?!\/auth\/.*)(\/(.*))*$/
+// OK: /api, /api/auth, /api/authenblabla, /api/abc, /api/abc/def...
+// NG: /api/auth/, /api/auth/session...
+const protectedAPIRoutes = ['/api(?!/auth/.*)(/(.*))*']
+
+const protectedRoutes = [
+  ...archivistRoutes,
+  ...protectedAPIRoutes,
+  '/eton(/(.*))*',
+  '/user(/(.*))*',
+]
 
 /**
  * @example
@@ -81,3 +89,4 @@ const pathNameRegex = (routes: string[]) =>
 
 export const protectedPathnameRegex = pathNameRegex(protectedRoutes)
 export const archivistPathnameRegex = pathNameRegex(archivistRoutes)
+export const protectedApiRegex = pathNameRegex(protectedAPIRoutes)

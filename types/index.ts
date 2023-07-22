@@ -1,5 +1,5 @@
 export type ServerError = {
-  digest: string
+  digest: string | number
 } & Error
 
 export function enumFromArray<T extends string>(

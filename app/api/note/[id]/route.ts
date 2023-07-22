@@ -1,26 +1,27 @@
 import {getServerSession} from 'next-auth'
-import {NextResponse} from 'next/server'
+import {type NextRequest, NextResponse} from 'next/server'
 import {authOptions} from '~/config/auth'
 import {getNote} from '~/db/helper/notes'
 import type {ServerError} from '~/types'
 
-export async function GET(request: Request) {
-  const {searchParams} = new URL(request.url)
-  const noteId = searchParams.get('id')
+type NoteDetailCtx = {
+  params: {id: string}
+}
+
+export async function GET(_: NextRequest, {params}: NoteDetailCtx) {
+  const noteId = params.id
 
   if (!noteId) {
-    return NextResponse.json({error: 'Note id is required'}, {status: 400})
+    return NextResponse.json({message: 'Note id is required'}, {status: 400})
   }
 
+  // protected by middleware, no need to check auth here,
+  // session's email is always available and valid
   const session = await getServerSession(authOptions)
   const email = session?.user?.email
 
-  if (!email) {
-    return NextResponse.json({error: 'Permission Denied'}, {status: 403})
-  }
-
   try {
-    const notes = await getNote(noteId, email)
+    const notes = await getNote(noteId, email!)
     return NextResponse.json(notes, {status: 200})
   } catch (error) {
     const serverErr = error as ServerError

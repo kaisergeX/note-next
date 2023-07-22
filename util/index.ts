@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import {redirect} from 'next/navigation'
 import type {ServerError} from '~/types'
 dayjs.extend(relativeTime)
 
@@ -35,10 +36,23 @@ export async function fetcher<ResponseData>(
   init?: RequestInit,
 ) {
   const res = await fetch(input, init)
+
+  const contentType = res.headers.get('content-type')
+  if (!contentType?.includes('application/json')) {
+    if (res.status === 404) {
+      throw new Error(res.statusText)
+    }
+
+    throw new Error('Response data is not supported')
+  }
+
   if (!res.ok) {
-    const error = new Error()
-    error.message = ((await res.json()) as ServerError).message
-    throw error
+    if (res.status === 429) {
+      redirect('/denied/rate-limit')
+    }
+
+    const serverErr = (await res.json()) as ServerError
+    throw serverErr
   }
 
   return res.json() as ResponseData

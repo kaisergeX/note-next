@@ -14,10 +14,12 @@ export default async function MyProfile() {
   const userEmail = session?.user?.email
 
   if (!userEmail) {
-    redirect('/denied')
+    redirect('/denied/permission')
   }
 
   const userInfo = await getUser(userEmail)
+
+  // @todo store user preferences/settings, KV or Postgres?
 
   const renderSettings = settings.map(({id, name, href}, index) => (
     <Link
@@ -52,6 +54,7 @@ export default async function MyProfile() {
             alt="your-profile-avatar"
             width={80}
             height={80}
+            priority
           />
         ) : (
           <IconUserCircle className="opacity-70" size="4rem" />
@@ -88,18 +91,18 @@ export default async function MyProfile() {
 const settings = [
   {
     id: 1,
-    href: '',
+    href: '#',
     name: 'Account Info',
     image: <IconBrush size="full" />,
   },
   {
     id: 2,
-    href: '',
+    href: '#',
     name: 'Theme',
   },
   {
     id: 3,
-    href: '',
+    href: '#',
     name: 'Notes',
   },
 ]

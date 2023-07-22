@@ -3,9 +3,10 @@ import {useRouter} from 'next/navigation'
 import {useState, useEffect, useTransition} from 'react'
 import useSWR from 'swr'
 import {type Note} from '~/db/schema/notes'
-import {fetcher, sleep} from '~/util'
-import {mutateNote} from '../../../eton/actions/actions'
+import {fetcher} from '~/util'
 import NoteDialog from '~/components/note/note-dialog'
+import {mutateNote} from '../../../eton/actions'
+import type {ServerError} from '~/types'
 
 type NoteDetailProps = {params: {id: string}}
 
@@ -15,10 +16,16 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
   const [_, startTransition] = useTransition()
 
   // the new `use` hook still not ready so temporarily use `swr` if client-side fetching is needed
-  const {data: noteData, isLoading} = useSWR<Note>(
-    `/eton/actions?id=${id}`,
-    fetcher,
-  )
+  const {
+    data: noteData,
+    isLoading,
+    error,
+  } = useSWR<Note, ServerError>(`/api/note/${id}`, fetcher)
+
+  if (error) {
+    throw error
+  }
+
   const {title, content} = noteData ?? {title: '', content: ''}
   const newNoteData = {title, content}
 
@@ -27,8 +34,6 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
       await mutateNote(id, newNoteData)
 
       setOpenModal(false)
-      // delay routing for close dialog animation
-      await sleep(200)
       router.back()
     })
   }

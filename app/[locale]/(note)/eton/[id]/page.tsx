@@ -4,13 +4,14 @@ import {useRouter} from 'next/navigation'
 import {fetcher} from '~/util'
 import useSWR from 'swr'
 import type {Note} from '~/db/schema/notes'
+import type {ServerError} from '~/types'
 
 type NoteDetailProps = {params: {id: string}}
 
 export default function NoteDetail({params: {id}}: NoteDetailProps) {
   const router = useRouter()
-  const {data: noteData, error} = useSWR<Note, Error>(
-    `/eton/actions?id=${id}`,
+  const {data: noteData, error} = useSWR<Note, ServerError>(
+    `/api/note/${id}`,
     fetcher,
   )
 

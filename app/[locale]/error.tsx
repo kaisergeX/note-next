@@ -9,10 +9,12 @@ export default function Error({
   reset: () => void
 }) {
   return (
-    <div className="flex-center h-full flex-col gap-4">
+    <div className="flex-center h-full flex-col gap-8">
       <div className="text-center">
-        <h1 className="mb-4 capitalize">Something went wrong!</h1>
-        <p className="text-sm text-zinc-400">{error.digest || error.message}</p>
+        <h1>Something went wrong!</h1>
+        <p className="mt-4 text-sm text-zinc-400">
+          {error.digest} {error.message}
+        </p>
       </div>
 
       <button
