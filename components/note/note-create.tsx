@@ -3,7 +3,7 @@
 import {useState, useTransition} from 'react'
 import NoteDialog from './note-dialog'
 import type {NewNote} from '~/db/schema/notes'
-import {createNote} from '~/app/[locale]/(note)/eton/actions/actions'
+import {createNote} from '~/app/[locale]/(note)/eton/actions'
 import {IconPencilPlus} from '@tabler/icons-react'
 import {IconSparkles} from '@tabler/icons-react'
 import {genRandom} from '~/util'

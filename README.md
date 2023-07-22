@@ -26,6 +26,8 @@ pnpm i
 
 Follow [@vercel/postgres docs](https://vercel.com/docs/storage/vercel-postgres/quickstart) but read section **Populate your database** below instead.
 
+Then follow step 1 & 2 from [@vercel/kv docs](https://vercel.com/docs/storage/vercel-kv/quickstart#quickstart).
+
 ### Migration
 
 Generate migrations based on schema.

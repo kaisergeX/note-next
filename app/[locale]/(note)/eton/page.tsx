@@ -11,7 +11,7 @@ export default async function Notes() {
   const session = await getServerSession(authOptions)
   const userEmail = session?.user?.email
   if (!userEmail) {
-    redirect('/denied')
+    redirect('/denied/permission')
   }
 
   const userInfo = await getUser(userEmail)
