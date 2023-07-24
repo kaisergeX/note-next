@@ -13,19 +13,19 @@ export default function NoteTiny({data}: NoteProps) {
   return (
     <Link
       href={`/eton/${id}`}
-      className="card group relative max-h-96 p-4 pb-8 "
+      className="card group relative max-h-96 p-4 pb-8"
       // @todo Add a option on setting page for user to choose whether to use Dialog or not.
       // @todo Find a better option such as conditional render for this parallel route instead of open in new tab.
       // target='_blank' // if user prefers not to use Dialog to view/edit note.
     >
       {title && (
         <article
-          className="prose mb-4 line-clamp-3 font-semibold dark:prose-invert sm:prose-lg sm:leading-normal"
+          className="prose mb-4 line-clamp-3 font-semibold [overflow-wrap:anywhere] dark:prose-invert sm:prose-lg sm:leading-normal"
           dangerouslySetInnerHTML={{__html: title || ''}}
         />
       )}
       <article
-        className="prose line-clamp-[10] dark:prose-invert"
+        className="prose line-clamp-[10] [overflow-wrap:anywhere] dark:prose-invert"
         dangerouslySetInnerHTML={{__html: content || ''}}
       />
 

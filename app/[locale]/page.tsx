@@ -65,9 +65,7 @@ export default async function Home({
       </section>
 
       <section className="flex-center relative">
-        <h2 className="mb-8 text-center text-4xl font-extrabold">
-          Told you 🤷‍♂️...
-        </h2>
+        <h2 className="mb-8 text-center text-4xl font-extrabold">😶‍🌫️</h2>
 
         <Image
           className="absolute bottom-0 left-0 -z-10 dark:hidden"

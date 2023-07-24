@@ -2,8 +2,8 @@
 import {useRouter} from 'next/navigation'
 import {useState, useEffect, useTransition} from 'react'
 import useSWR from 'swr'
-import {type Note} from '~/db/schema/notes'
-import {fetcher} from '~/util'
+import {type Note, type UpdateNote} from '~/db/schema/notes'
+import {fetcher, sleep} from '~/util'
 import NoteDialog from '~/components/note/note-dialog'
 import {mutateNote} from '../../../eton/actions'
 import type {ServerError} from '~/types'
@@ -26,15 +26,28 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
     throw error
   }
 
-  const {title, content} = noteData ?? {title: '', content: ''}
-  const newNoteData = {title, content}
+  const initNoteData: UpdateNote = {
+    title: noteData?.title || '',
+    content: noteData?.content || '',
+  }
+  const newNoteData: UpdateNote = {...initNoteData}
 
-  const handleCloseModal = () => {
-    startTransition(async () => {
+  const handleCloseModal = async () => {
+    setOpenModal(false)
+    await sleep(200)
+    router.back()
+  }
+
+  const handleSubmit = async () => {
+    // As long as the ORDER of the properties is the same, it fine to deep compare obj like this
+    if (JSON.stringify(initNoteData) === JSON.stringify(newNoteData)) {
+      await handleCloseModal()
+      return
+    }
+
+    startTransition(async function () {
       await mutateNote(id, newNoteData)
-
-      setOpenModal(false)
-      router.back()
+      await handleCloseModal()
     })
   }
 
@@ -49,7 +62,7 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
       open={openModal}
       note={noteData}
       mutateNote={newNoteData}
-      onClose={handleCloseModal}
+      onClose={() => void handleSubmit()}
       isLoading={isLoading}
     />
   )
