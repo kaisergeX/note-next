@@ -14,8 +14,9 @@ import CharacterCount, {
 } from '@tiptap/extension-character-count'
 import {classNames} from '~/util'
 import {DB_TEXT_LIMIT} from '~/db'
-import RTECommands, {type RTECommandsProps} from '../ui/rte-commands'
+import RTECommands from '../ui/rte-commands'
 import {PluginKey} from '@tiptap/pm/state'
+import Highlight from '@tiptap/extension-highlight'
 
 type NoteEditorProps = {
   id: string
@@ -23,11 +24,16 @@ type NoteEditorProps = {
   onChange?: (value: string, rawText?: string) => void
 
   className?: string
+  menuClassNames?: {
+    fixedMenu?: string
+    bubbleMenu?: string
+    floatingMenu?: string
+  }
   editorClassName?: string
   placeholder?: string
   limitCharacter?: number
 
-  commandTypes?: RTECommandsProps['menuType']
+  commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
   showCount?: boolean
   disableEnter?: boolean
 }
@@ -39,6 +45,7 @@ export default function NoteEditor({
 
   placeholder,
   className = '',
+  menuClassNames,
   editorClassName = '',
   limitCharacter = DB_TEXT_LIMIT,
 
@@ -51,79 +58,112 @@ export default function NoteEditor({
     addKeyboardShortcuts: () => ({Enter: () => disableEnter}),
   })
 
-  const textEditor = useEditor({
-    extensions: [
-      StarterKit,
-      CharacterCount.configure({limit: limitCharacter}),
-      Placeholder.configure({
-        placeholder,
-        emptyNodeClass:
-          'first:before:opacity-50 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
-      }),
-      DisableEnter,
-    ],
-    editorProps: {
-      attributes: {
-        class: classNames(
-          'focus:outline-none prose max-w-none dark:prose-invert',
-          editorClassName,
-        ),
+  const textEditor = useEditor(
+    {
+      extensions: [
+        StarterKit,
+        CharacterCount.configure({limit: limitCharacter}),
+        Placeholder.configure({
+          placeholder,
+          emptyNodeClass:
+            'first:before:opacity-50 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
+        }),
+        Highlight,
+        DisableEnter,
+      ],
+      editorProps: {
+        attributes: {
+          class: classNames(
+            'focus:outline-none prose max-w-none dark:prose-invert',
+            editorClassName,
+          ),
+        },
+      },
+      content: initialValue || '',
+      onUpdate({editor}) {
+        if (!onChange) {
+          return
+        }
+
+        const rawText = editor.getText()
+        if (!rawText) {
+          onChange('')
+          return
+        }
+
+        onChange(editor.getHTML(), rawText)
       },
     },
-    content: initialValue || '',
-    onUpdate({editor}) {
-      if (!onChange) {
-        return
-      }
-
-      const rawText = editor.getText()
-      if (!rawText) {
-        onChange('')
-        return
-      }
-
-      onChange(editor.getHTML(), rawText)
-    },
-  })
+    [id, initialValue],
+  )
 
   if (!textEditor) {
     return <></>
   }
 
+  const renderFixedMenu = (
+    <RTECommands
+      className={classNames(
+        'sticky inset-x-0 z-40 -mx-4 p-4',
+        commandTypes === 'always-fixed'
+          ? 'bg-default top-16'
+          : 'glass invisible top-14 bg-inherit group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4',
+        menuClassNames?.fixedMenu || '',
+      )}
+      editor={textEditor}
+      menuType="fixed"
+    />
+  )
+
+  const renderBubbleFloatingMenu = (
+    <>
+      <BubbleMenu
+        pluginKey={new PluginKey(id)}
+        className={classNames(
+          'bg-default shadow-theme rounded-lg p-2',
+          menuClassNames?.bubbleMenu || '',
+        )}
+        editor={textEditor}
+        tippyOptions={{duration: 100}}
+      >
+        <RTECommands className="!mb-0" editor={textEditor} menuType="bubble" />
+      </BubbleMenu>
+
+      <FloatingMenu
+        pluginKey={new PluginKey(id)}
+        className={classNames(
+          'bg-default rounded-lg',
+          menuClassNames?.floatingMenu || '',
+        )}
+        editor={textEditor}
+        tippyOptions={{duration: 100}}
+      >
+        <RTECommands
+          className="!mb-0"
+          editor={textEditor}
+          menuType="floating"
+        />
+      </FloatingMenu>
+    </>
+  )
+
   const renderCommands = () => {
     switch (commandTypes) {
       case 'fixed':
-        return (
-          <RTECommands
-            className="glass invisible sticky inset-x-0 top-16 z-40 -mx-4 -mt-8 bg-inherit px-4 
-            group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4"
-            editor={textEditor}
-            menuType={commandTypes}
-          />
-        )
+        return renderFixedMenu
 
-      case 'bubble':
-        return (
-          <BubbleMenu
-            pluginKey={new PluginKey(id)}
-            className="glass rounded-lg px-2"
-            editor={textEditor}
-            tippyOptions={{duration: 100}}
-          >
-            <RTECommands editor={textEditor} menuType={commandTypes} />
-          </BubbleMenu>
-        )
+      case 'always-fixed':
+        return renderFixedMenu
 
-      case 'floating':
+      case 'bubble-floating':
+        return renderBubbleFloatingMenu
+
+      case 'all':
         return (
-          <FloatingMenu
-            pluginKey={new PluginKey(id)}
-            className="bg-default rounded-lg"
-            editor={textEditor}
-            tippyOptions={{duration: 100}}
-          >
-            <RTECommands editor={textEditor} menuType={commandTypes} />
-          </FloatingMenu>
+          <>
+            {renderFixedMenu}
+            {renderBubbleFloatingMenu}
+          </>
         )
 
       default:

@@ -5,6 +5,7 @@ specifiers:
   '@tabler/icons-react': ^2.28.0
   '@tailwindcss/typography': ^0.5.9
   '@tiptap/extension-character-count': ^2.0.4
+  '@tiptap/extension-highlight': ^2.0.4
   '@tiptap/extension-placeholder': ^2.0.4
   '@tiptap/pm': ^2.0.4
   '@tiptap/react': ^2.0.4
@@ -45,6 +46,7 @@ dependencies:
   '@headlessui/react': 1.7.15_biqbaboplfbrettd7655fr4n2y
   '@tabler/icons-react': 2.28.0_react@18.2.0
   '@tiptap/extension-character-count': 2.0.4_@tiptap+pm@2.0.4
+  '@tiptap/extension-highlight': 2.0.4
   '@tiptap/extension-placeholder': 2.0.4_@tiptap+pm@2.0.4
   '@tiptap/pm': 2.0.4
   '@tiptap/react': 2.0.4_ouwzpehrlxqxv2o3w2zfuomqge
@@ -1312,6 +1314,12 @@ packages:
       '@tiptap/core': ^2.0.0
     dependencies:
       '@tiptap/core': 2.0.4_@tiptap+pm@2.0.4
+    dev: false
+
+  /@tiptap/extension-highlight/2.0.4:
+    resolution: {integrity: sha512-z1hcpf0eHHdaBE0pewXiNIu+QBodw4IAbZykTXMaY1xCsbYWfOJxeIb5o+CEG5HBsmaoJrCYenQw71xzgV0hKA==}
+    peerDependencies:
+      '@tiptap/core': ^2.0.0
     dev: false
 
   /@tiptap/extension-history/2.0.4_ozxolzntlvhtmjfnvk74opbffe:

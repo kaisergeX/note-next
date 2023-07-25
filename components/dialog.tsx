@@ -28,6 +28,7 @@ type DialogProps = {
 export default function DialogCustom({
   className = '',
   backdropClassName = '',
+  titleClassName = '',
 
   title,
   loading,
@@ -144,6 +145,7 @@ export default function DialogCustom({
                         scrolled
                           ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
                           : '',
+                        titleClassName,
                       )}
                     >
                       {typeof title === 'string' ? (
