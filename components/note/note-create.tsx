@@ -28,7 +28,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
 
   return (
     <>
-      <div className="my-4 text-right">
+      <div className="mb-4 text-right">
         <button
           className="button-secondary sm-only:button sm-only:button-affix sm-only:button-icon group
             z-20 gap-0 transition-all sm-only:rounded-full sm-only:!p-3 sm:hover:gap-2"

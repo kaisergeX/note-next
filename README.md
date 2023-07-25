@@ -1,5 +1,4 @@
 [![CI](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml/badge.svg)](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml)
-[![node](https://img.shields.io/node/v/next)](https://github.com/vercel/next.js)
 
 # etoN - . - --- -.
 
@@ -33,6 +32,12 @@
   - [ ] Integrate/Link with other apps in the ecosystems.
   - [ ] Replace the old version.
 </details>
+
+## Engines Requirements
+
+`node@17.0.0` or later
+
+`pnpm@6.34.0` or later
 
 ## Environment Variables
 

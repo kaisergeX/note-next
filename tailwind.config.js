@@ -21,6 +21,11 @@ module.exports = {
       typography: (theme) => ({
         DEFAULT: {
           css: {
+            code: {
+              '&::before, &::after': {
+                display: 'none',
+              },
+            },
             a: {
               '&:hover': {
                 color: theme('colors.blue.400'),

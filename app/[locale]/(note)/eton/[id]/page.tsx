@@ -1,12 +1,8 @@
 'use client'
-import {
-  IconArrowLeft,
-  IconCheck,
-  IconLoader2,
-  IconTrash,
-} from '@tabler/icons-react'
+
+import {IconArrowLeft, IconTrash} from '@tabler/icons-react'
 import {useRouter} from 'next/navigation'
-import {classNames, fetcher, genRandom, sleep} from '~/util'
+import {classNames, fetcher, genRandom} from '~/util'
 import useSWR from 'swr'
 import {NotesTable, type Note, type UpdateNote} from '~/db/schema/notes'
 import type {ServerError} from '~/types'
@@ -14,6 +10,7 @@ import NoteEditor from '~/components/note/note-editor'
 import {useWindowScroll} from '~/util/hooks/use-window-scroll'
 import {useTransition} from 'react'
 import {mutateNote} from '../actions'
+import NoteCustomize from '~/components/note/note-customize'
 
 type NoteDetailProps = {params: {id: string}}
 
@@ -36,7 +33,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
     title: noteData?.title || '',
     content: noteData?.content || '',
   }
-  const newNoteData: UpdateNote = {...initNoteData}
+  const newNoteData: UpdateNote = structuredClone(initNoteData)
 
   const handleSubmit = () => {
     if (JSON.stringify(initNoteData) === JSON.stringify(newNoteData)) {
@@ -46,7 +43,6 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
 
     startTransition(async function () {
       await mutateNote(id, newNoteData)
-      await sleep(200)
       router.push('/eton')
     })
   }
@@ -84,6 +80,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         limitCharacter={NotesTable.title.length}
         showCount
         disableEnter
+        autofocus="end"
       />
 
       {isLoading ? (
@@ -115,28 +112,15 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         />
       )}
 
-      <div
+      <NoteCustomize
         className={classNames(
-          'bg-default flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
           scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button
           viewY < maxViewY - 16
             ? 'shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
             : '',
         )}
-      >
-        <div>Note customize menu</div>
-        <div className="flex items-center gap-1 text-xs font-medium">
-          {isPending || isLoading ? (
-            <>
-              <IconLoader2 className="animate-spin" size="1.2rem" /> Syncing
-            </>
-          ) : (
-            <>
-              <IconCheck className="text-green-600" size="1.2rem" /> Synced
-            </>
-          )}
-        </div>
-      </div>
+        loading={isPending || isLoading}
+      />
     </main>
   )
 }
