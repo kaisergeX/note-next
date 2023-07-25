@@ -4,6 +4,7 @@ import {
   IconArrowBackUp,
   IconClearFormatting,
   IconCode,
+  IconHighlight,
   IconItalic,
   IconStrikethrough,
 } from '@tabler/icons-react'
@@ -20,6 +21,7 @@ type RTEMenuItem =
   | {
       Icon?: ReactNode
       title: string
+      shortcut?: string
       action: () => boolean
       actived?: boolean
       disabled?: boolean
@@ -28,6 +30,7 @@ type RTEMenuItem =
   | {
       Icon?: ReactNode
       title?: string
+      shortcut?: string
       action?: () => boolean
       actived?: boolean
       disabled?: boolean
@@ -49,6 +52,7 @@ export default function RTECommands({
     return <></>
   }
 
+  const modifierKey = navigator.userAgent.includes('Mac OS') ? 'Cmd' : 'Ctrl'
   const iconSize = '1.2rem'
   const Divider = <div className="mx-0.5 h-4 w-0.5 bg-zinc-300" />
 
@@ -86,13 +90,15 @@ export default function RTECommands({
     {
       Icon: <IconBold size={iconSize} />,
       title: 'Bold',
+      shortcut: `(${modifierKey} B)`,
       action: () => editor.chain().focus().toggleBold().run(),
       actived: editor.isActive('bold'),
       disabled: !editor.can().chain().focus().toggleBold().run(),
     },
     {
       Icon: <IconItalic size={iconSize} />,
-      title: 'Italic',
+      title: 'Italicize',
+      shortcut: `(${modifierKey} I)`,
       action: () => editor.chain().focus().toggleItalic().run(),
       actived: editor.isActive('italic'),
       disabled: !editor.can().chain().focus().toggleItalic().run(),
@@ -100,9 +106,18 @@ export default function RTECommands({
     {
       Icon: <IconStrikethrough size={iconSize} />,
       title: 'Strike',
+      shortcut: `(${modifierKey} Shift X)`,
       action: () => editor.chain().focus().toggleStrike().run(),
       actived: editor.isActive('strike'),
       disabled: !editor.can().chain().focus().toggleStrike().run(),
+    },
+    {
+      Icon: <IconHighlight size={iconSize} />,
+      title: 'Highlight',
+      shortcut: `(${modifierKey} Shift H)`,
+      action: () => editor.chain().focus().toggleHighlight().run(),
+      actived: editor.isActive('highlight'),
+      disabled: !editor.can().chain().focus().toggleHighlight().run(),
     },
     {
       Icon: <IconClearFormatting size={iconSize} />,
@@ -156,11 +171,17 @@ export default function RTECommands({
 
   return (
     <div
-      className={classNames('mb-2 flex items-center gap-2', className)}
+      className={classNames(
+        'mb-2 flex flex-wrap items-center gap-2',
+        className,
+      )}
       role="menubar"
     >
       {renderMenu().map(
-        ({Icon, title, action, actived, disabled, customItem}, index) =>
+        (
+          {Icon, title, shortcut = '', action, actived, disabled, customItem},
+          index,
+        ) =>
           customItem ? (
             <Fragment key={index.toString()}>{customItem}</Fragment>
           ) : (
@@ -170,7 +191,7 @@ export default function RTECommands({
                 actived ? 'button' : 'button-secondary',
                 Icon ? 'button-icon p-1' : '',
               )}
-              title={title}
+              title={`${title} ${shortcut}`}
               type="button"
               role="menuitem"
               onClick={action}

@@ -29,6 +29,17 @@ function scrollTo({x, y}: Partial<ScrollPosition>) {
   }
 }
 
+function getViewInfo(): {viewY: number; maxViewY: number} {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return {viewY: 0, maxViewY: 0}
+  }
+
+  return {
+    viewY: window.innerHeight + window.scrollY,
+    maxViewY: document.documentElement.scrollHeight,
+  }
+}
+
 export function useWindowScroll() {
   const [position, setPosition] = useState<ScrollPosition>({x: 0, y: 0})
 
@@ -39,5 +50,5 @@ export function useWindowScroll() {
     setPosition(getScrollPosition())
   }, [])
 
-  return [position, scrollTo] as const
+  return [position, scrollTo, getViewInfo()] as const
 }

@@ -21,52 +21,49 @@ export default function NoteDialog({
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
 
   return (
-    <div>
-      <DialogCustom
-        open={open}
-        title={
-          // we need it actually disappear from DOM instead of just display: none
-          !isMobile && (
-            <NoteTitleEditor
-              title={note?.title}
-              onChange={(value) => {
-                mutateNote.title = value
-              }}
-            />
-          )
-        }
-        onClose={onClose}
-        loading={isLoading}
-      >
-        <div>
-          {isMobile && (
-            <NoteTitleEditor
-              className="mb-8"
-              title={note?.title}
-              onChange={(value) => {
-                mutateNote.title = value
-              }}
-            />
-          )}
-
-          <NoteEditor
-            id="note-content"
-            className="min-h-[40dvh]"
-            initialValue={note?.content}
-            placeholder={genRandom([
-              'Nothing here yet 😶‍🌫️',
-              'New💡',
-              "Let's add something inspirational ✨",
-              'Tasks to do 📝',
-            ])}
-            commandTypes="fixed"
+    <DialogCustom
+      open={open}
+      title={
+        // we need it actually disappear from DOM instead of just display: none
+        !isMobile && (
+          <NoteTitleEditor
+            title={note?.title}
             onChange={(value) => {
-              mutateNote.content = value
+              mutateNote.title = value
             }}
           />
-        </div>
-      </DialogCustom>
-    </div>
+        )
+      }
+      onClose={onClose}
+      loading={isLoading}
+    >
+      <div>
+        {isMobile && (
+          <NoteTitleEditor
+            title={note?.title}
+            onChange={(value) => {
+              mutateNote.title = value
+            }}
+          />
+        )}
+
+        <NoteEditor
+          id="note-content"
+          editorClassName="min-h-[40dvh]"
+          initialValue={note?.content}
+          placeholder={genRandom([
+            'Nothing here yet 😶‍🌫️',
+            'New💡',
+            "Let's add something inspirational ✨",
+            'Tasks to do 📝',
+          ])}
+          commandTypes="bubble-floating"
+          onChange={(value) => {
+            mutateNote.content = value
+          }}
+        />
+      </div>
+    </DialogCustom>
   )
 }
 
