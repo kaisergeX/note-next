@@ -2,6 +2,7 @@ import {sql, type InferModel} from 'drizzle-orm'
 import {pgTable, varchar, text, timestamp, uuid} from 'drizzle-orm/pg-core'
 import {UsersTable} from './users'
 
+export const NOTE_TITLE_MAX_LENGTH = 255
 export const NotesTable = pgTable('notes', {
   id: uuid('id')
     .default(sql`generate_ulid()`)
@@ -9,7 +10,8 @@ export const NotesTable = pgTable('notes', {
   authorId: uuid('author_id')
     .notNull()
     .references(() => UsersTable.id),
-  title: varchar('title', {length: 255}),
+  // 255 * 3 | content max length is 255, assuming that html tags are twice the length of the content
+  title: varchar('title', {length: NOTE_TITLE_MAX_LENGTH * 3}),
   content: text('content'),
   pendingDeleteAt: timestamp('pending_deleted_at', {withTimezone: true}),
   updatedAt: timestamp('updated_at', {withTimezone: true})

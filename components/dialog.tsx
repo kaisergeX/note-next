@@ -18,10 +18,10 @@ type DialogProps = {
   loading?: boolean
   open: boolean
   onClose: () => void
-  closeIcon?: ReactNode
+  closeButton?: ReactNode
 
   disableAnimation?: 'open' | 'close' | true
-  hideCloseIcon?: boolean
+  hideCloseButton?: boolean
   fullScreen?: boolean
 }
 
@@ -34,10 +34,10 @@ export default function DialogCustom({
   loading,
   open,
   onClose,
-  closeIcon,
+  closeButton,
 
   disableAnimation,
-  hideCloseIcon,
+  hideCloseButton,
   fullScreen,
   children,
 }: PropsWithChildren<DialogProps>) {
@@ -54,15 +54,21 @@ export default function DialogCustom({
       ? 'transition-none'
       : 'ease-in duration-200'
 
+  const renderCloseButton = hideCloseButton ? (
+    <></>
+  ) : (
+    closeButton || (
+      <button className="ml-auto h-fit" type="button" onClick={onClose}>
+        {<IconX />}
+      </button>
+    )
+  )
+
   const renderLoadingPanel = (
     <div className="flex h-full flex-col gap-4 sm:h-[20rem]">
-      <div className="flex gap-4">
+      <div className={classNames('flex gap-4', titleClassName)}>
         <div className="h-6 flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
-        {!hideCloseIcon && (
-          <button className="ml-auto h-fit" type="button" onClick={onClose}>
-            {closeIcon || <IconX />}
-          </button>
-        )}
+        {renderCloseButton}
       </div>
 
       <div className="w-full flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
@@ -153,15 +159,8 @@ export default function DialogCustom({
                       ) : (
                         title
                       )}
-                      {!hideCloseIcon && (
-                        <button
-                          className="ml-auto h-fit"
-                          type="button"
-                          onClick={onClose}
-                        >
-                          {closeIcon || <IconX />}
-                        </button>
-                      )}
+
+                      {renderCloseButton}
                     </div>
 
                     {children}

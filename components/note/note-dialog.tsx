@@ -1,7 +1,13 @@
 import DialogCustom from '../dialog'
-import {NotesTable, type Note, type UpdateNote} from '~/db/schema/notes'
+import {
+  type Note,
+  type UpdateNote,
+  NOTE_TITLE_MAX_LENGTH,
+} from '~/db/schema/notes'
 import NoteEditor from './note-editor'
 import {genRandom} from '~/util'
+import {IconArrowLeft} from '@tabler/icons-react'
+import NoteCustomize from './note-customize'
 
 type NoteDialogProps = {
   isLoading?: boolean
@@ -18,75 +24,53 @@ export default function NoteDialog({
   mutateNote,
   onClose,
 }: NoteDialogProps) {
-  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
-
   return (
     <DialogCustom
+      titleClassName="flex-row-reverse"
       open={open}
-      title={
-        // we need it actually disappear from DOM instead of just display: none
-        !isMobile && (
-          <NoteTitleEditor
-            title={note?.title}
-            onChange={(value) => {
-              mutateNote.title = value
-            }}
-          />
-        )
+      closeButton={
+        <button className="mr-auto h-fit" type="button" onClick={onClose}>
+          <IconArrowLeft />
+        </button>
       }
       onClose={onClose}
       loading={isLoading}
     >
-      <div>
-        {isMobile && (
-          <NoteTitleEditor
-            title={note?.title}
-            onChange={(value) => {
-              mutateNote.title = value
-            }}
-          />
-        )}
+      <NoteEditor
+        id="dialog-note-title"
+        className="mb-2"
+        editorClassName="text-lg font-semibold sm:text-xl"
+        initialValue={note?.title}
+        onChange={(value) => {
+          mutateNote.title = value
+        }}
+        placeholder="Title"
+        limitCharacter={NOTE_TITLE_MAX_LENGTH}
+        showCount
+        disableEnter
+        autofocus="end"
+      />
 
-        <NoteEditor
-          id="note-content"
-          editorClassName="min-h-[40dvh]"
-          initialValue={note?.content}
-          placeholder={genRandom([
-            'Nothing here yet 😶‍🌫️',
-            'New💡',
-            "Let's add something inspirational ✨",
-            'Tasks to do 📝',
-          ])}
-          commandTypes="bubble-floating"
-          onChange={(value) => {
-            mutateNote.content = value
-          }}
-        />
-      </div>
+      <NoteEditor
+        id="dialog-note-content"
+        editorClassName="min-h-[40dvh]"
+        initialValue={note?.content}
+        placeholder={genRandom([
+          'Nothing here yet 😶‍🌫️',
+          'New💡',
+          "Let's add something inspirational ✨",
+          'Tasks to do 📝',
+        ])}
+        commandTypes="bubble-floating"
+        onChange={(value) => {
+          mutateNote.content = value
+        }}
+      />
+
+      <NoteCustomize
+        className="shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10"
+        loading={isLoading}
+      />
     </DialogCustom>
-  )
-}
-
-function NoteTitleEditor({
-  className,
-  title,
-  onChange,
-}: {
-  className?: string
-  title?: string | null
-  onChange: (value: string) => void
-}) {
-  return (
-    <NoteEditor
-      id="note-title"
-      className={className}
-      editorClassName="text-lg font-semibold sm:text-xl"
-      initialValue={title}
-      onChange={onChange}
-      placeholder={'Title'}
-      limitCharacter={NotesTable.title.length}
-      showCount
-      disableEnter
-    />
   )
 }

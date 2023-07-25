@@ -6,6 +6,7 @@ import {
   EditorContent,
   BubbleMenu,
   FloatingMenu,
+  type FocusPosition,
 } from '@tiptap/react'
 import Placeholder from '@tiptap/extension-placeholder'
 import StarterKit from '@tiptap/starter-kit'
@@ -36,6 +37,8 @@ type NoteEditorProps = {
   commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
   showCount?: boolean
   disableEnter?: boolean
+  tabIndex?: string
+  autofocus?: FocusPosition
 }
 
 export default function NoteEditor({
@@ -47,11 +50,13 @@ export default function NoteEditor({
   className = '',
   menuClassNames,
   editorClassName = '',
-  limitCharacter = DB_TEXT_LIMIT,
+  limitCharacter = Math.floor(DB_TEXT_LIMIT / 3),
 
   commandTypes,
   showCount = false,
   disableEnter = false,
+  tabIndex = '',
+  autofocus = false,
 }: NoteEditorProps) {
   const DisableEnter = Extension.create({
     name: 'disableEnter',
@@ -74,9 +79,10 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: classNames(
-            'focus:outline-none prose max-w-none dark:prose-invert',
+            'focus:outline-none prose max-w-none dark:prose-invert [overflow-wrap:anywhere]',
             editorClassName,
           ),
+          tabindex: tabIndex,
         },
       },
       content: initialValue || '',
@@ -93,6 +99,8 @@ export default function NoteEditor({
 
         onChange(editor.getHTML(), rawText)
       },
+      injectCSS: false,
+      autofocus: autofocus,
     },
     [id, initialValue],
   )
@@ -174,10 +182,7 @@ export default function NoteEditor({
   return (
     <div
       id={id}
-      className={classNames(
-        'group/rteditor relative w-full [overflow-wrap:anywhere]',
-        className,
-      )}
+      className={classNames('group/rteditor relative w-full', className)}
     >
       {renderCommands()}
       <EditorContent editor={textEditor} />
@@ -186,7 +191,7 @@ export default function NoteEditor({
           {(
             textEditor.storage.characterCount as CharacterCountStorage
           ).characters()}{' '}
-          / 255
+          / {limitCharacter}
         </div>
       )}
     </div>

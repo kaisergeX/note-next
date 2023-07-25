@@ -51,6 +51,10 @@
   a {
     @apply transition-colors hover:text-blue-400;
   }
+
+  code {
+    @apply rounded bg-gray-200 px-1 py-0.5 dark:bg-gray-700;
+  }
 }
 
 @layer components {

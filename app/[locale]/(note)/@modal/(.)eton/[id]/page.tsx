@@ -30,7 +30,7 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
     title: noteData?.title || '',
     content: noteData?.content || '',
   }
-  const newNoteData: UpdateNote = {...initNoteData}
+  const newNoteData: UpdateNote = structuredClone(initNoteData)
 
   const handleCloseModal = async () => {
     setOpenModal(false)
