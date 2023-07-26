@@ -12,7 +12,9 @@ export default function Error({
     <div className="flex-center h-full flex-col gap-8">
       <div className="text-center">
         <h1>Something went wrong!</h1>
-        <p className="mt-4 text-sm text-zinc-400">{error.digest}</p>
+        <p className="mt-4 text-sm text-zinc-400">
+          {error.digest} {error.digest ? '' : error.message}
+        </p>
       </div>
 
       <button

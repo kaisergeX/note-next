@@ -5,14 +5,12 @@ import type {ServerError} from '~/types'
 export default function GlobalError({
   error,
   reset,
-  params: {locale},
 }: {
   error: ServerError
   reset: () => void
-  params: {locale: string}
 }) {
   return (
-    <html lang={locale}>
+    <html lang="en">
       <body className="flex-center h-[100dvh] flex-col gap-4 font-inter">
         <div className="text-center">
           <h1>Something went wrong!</h1>
