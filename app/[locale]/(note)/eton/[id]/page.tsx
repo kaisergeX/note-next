@@ -20,6 +20,7 @@ import {useTransition} from 'react'
 import {mutateNoteAction} from '../actions'
 import NoteCustomize from '~/components/note/note-customize'
 import {useFullscreen} from '~/util/hooks/use-fullscreen'
+import {usePersistStore} from '~/store'
 
 type NoteDetailProps = {params: {id: string}}
 
@@ -28,6 +29,11 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
   const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
   const [isPending, startTransition] = useTransition()
   const {isFullscreen, toggleFullscreen, error: fullscreenErr} = useFullscreen()
+  const editorCharCount = usePersistStore((state) => state.editorCharCount)
+  const contentCount = {
+    words: editorCharCount['note-content']?.words || 0,
+    characters: editorCharCount['note-content']?.characters || 0,
+  }
 
   const {
     data: noteData,
@@ -67,11 +73,20 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         >
           <IconArrowLeft />
         </button>
+
         <div className="flex items-center gap-4">
+          {contentCount.words > 1 && (
+            <div className="group cursor-default text-right text-xs sm:flex sm:text-sm">
+              <div className="transition-opacity group-hover:opacity-100 sm:opacity-0">
+                {contentCount.characters} characters,
+              </div>
+              <div>&nbsp;{contentCount.words} words</div>
+            </div>
+          )}
           <button
             type="button"
             title="Toggle fullscreen"
-            className="button-secondary button-icon rounded-full p-1"
+            className="button-secondary button-icon rounded-full p-1 sm-only:hidden"
             onClick={() => void toggleFullscreen()}
             disabled={fullscreenErr}
           >
@@ -123,6 +138,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
             newNoteData.content = value
           }}
           loading={isPending}
+          exposeStorage
         />
       )}
 

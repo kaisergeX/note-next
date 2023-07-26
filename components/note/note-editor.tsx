@@ -18,6 +18,9 @@ import {DB_TEXT_LIMIT} from '~/db'
 import RTECommands from '../ui/rte-commands'
 import {PluginKey} from '@tiptap/pm/state'
 import Highlight from '@tiptap/extension-highlight'
+import {usePersistStore} from '~/store'
+import {useEffect} from 'react'
+import {useDebounced} from '~/util/hooks/use-debounced'
 
 type NoteEditorProps = {
   id: string
@@ -32,15 +35,19 @@ type NoteEditorProps = {
   }
   editorClassName?: string
   placeholder?: string
+
+  showCount?: boolean
+  countClassName?: string
   limitCharacter?: number
 
   commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
-  showCount?: boolean
   disableEnter?: boolean
   tabIndex?: string
   autofocus?: FocusPosition
   loading?: boolean
   disabled?: boolean
+
+  exposeStorage?: boolean
 }
 
 export default function NoteEditor({
@@ -52,16 +59,24 @@ export default function NoteEditor({
   className = '',
   menuClassNames,
   editorClassName = '',
-  limitCharacter = Math.floor(DB_TEXT_LIMIT / 3),
+
+  showCount = false,
+  countClassName = '',
+  limitCharacter,
 
   commandTypes,
-  showCount = false,
   disableEnter = false,
   tabIndex = '',
   autofocus = false,
   loading,
   disabled,
+
+  exposeStorage,
 }: NoteEditorProps) {
+  const setEditorCharCount = usePersistStore(
+    (state) => state.setEditorCharCount,
+  )
+
   const DisableEnter = Extension.create({
     name: 'disableEnter',
     addKeyboardShortcuts: () => ({Enter: () => disableEnter}),
@@ -71,7 +86,9 @@ export default function NoteEditor({
     {
       extensions: [
         StarterKit,
-        CharacterCount.configure({limit: limitCharacter}),
+        CharacterCount.configure({
+          limit: limitCharacter || Math.floor(DB_TEXT_LIMIT / 3),
+        }),
         Placeholder.configure({
           placeholder,
           emptyNodeClass:
@@ -110,6 +127,25 @@ export default function NoteEditor({
     },
     [id, initialValue],
   )
+
+  const charCountStorage = textEditor?.storage?.characterCount as
+    | CharacterCountStorage
+    | undefined
+
+  const characterCount = charCountStorage?.characters() || 0
+  const wordCount = charCountStorage?.words() || 0
+  const [characterCountDebounced] = useDebounced(characterCount, 400)
+  const [wordCountDebounced] = useDebounced(wordCount, 400)
+
+  useEffect(() => {
+    if (exposeStorage) {
+      setEditorCharCount(id, {
+        characters: characterCountDebounced,
+        words: wordCountDebounced,
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [characterCountDebounced, wordCountDebounced])
 
   if (!textEditor) {
     return <></>
@@ -193,11 +229,14 @@ export default function NoteEditor({
       {renderCommands()}
       <EditorContent editor={textEditor} />
       {showCount && (
-        <div className="invisible absolute -bottom-4 right-4 border-gray-100 text-right text-xs opacity-50 group-focus-within/rteditor:visible">
-          {(
-            textEditor.storage.characterCount as CharacterCountStorage
-          ).characters()}{' '}
-          / {limitCharacter}
+        <div
+          className={classNames(
+            'invisible absolute -bottom-4 right-4 border-gray-100 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
+            countClassName,
+          )}
+        >
+          {characterCount}
+          {limitCharacter ? ` / ${limitCharacter}` : ''}
         </div>
       )}
     </div>

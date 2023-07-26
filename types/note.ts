@@ -13,3 +13,15 @@ export type NoteData = {
   isEncrypted?: boolean
   isArchived?: boolean
 } & NoteFormValues
+
+export type NoteStoreState = {
+  editorCharCount: Record<string, {words: number; characters: number}>
+}
+
+export type NoteStore = {
+  setEditorCharCount: (
+    editorId: string,
+    charCount: NoteStoreState['editorCharCount'][string],
+  ) => void
+  resetNoteStore: () => void
+} & NoteStoreState

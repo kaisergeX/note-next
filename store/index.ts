@@ -2,6 +2,7 @@ import {create} from 'zustand'
 import {persist} from 'zustand/middleware'
 import type {PersistedStore} from '~/types/store'
 import {createSystemSlice} from './system'
+import {createNoteSlice} from './note'
 
 // Listen Storage changes and rehydrate store
 export const withStorageDOMEvents = (store: typeof usePersistStore) => {
@@ -23,6 +24,7 @@ export const usePersistStore = create<PersistedStore>()(
   persist(
     (...store) => ({
       ...createSystemSlice(...store),
+      ...createNoteSlice(...store),
     }),
     {
       name: process.env.SERVICE_NAME ?? 'etoN-app',

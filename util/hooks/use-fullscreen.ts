@@ -39,6 +39,8 @@ function addEvents(
  *
  * By default hook will target `document.documentElement`, same as press `F11` in browser.
  * ___
+ * ⚠️ Mobile devices are NOT supported.
+ * ___
  * @returns (optional) `ref` function that can be passed to an element to act as root
  * @example with `ref`
  * ```tsx
@@ -58,6 +60,7 @@ function addEvents(
  * ```
  */
 export function useFullscreen<T extends HTMLElement>() {
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 640
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
   const [error, setError] = useState(false)
 
@@ -71,17 +74,21 @@ export function useFullscreen<T extends HTMLElement>() {
   )
 
   const handleFullscreenError = useCallback(() => {
-    setIsFullscreen(false)
-    setError(true)
     console.error('Could not switch to fullscreen mode')
+    setError(true)
+    setIsFullscreen(false)
   }, [setIsFullscreen])
 
   const toggleFullscreen = useCallback(async () => {
-    if (!getFullscreenElement()) {
-      await enterFullScreen(elementRef.current)
-    } else {
-      await exitFullscreen()
+    if (isMobile) {
+      return
     }
+
+    if (!getFullscreenElement()) {
+      return await enterFullScreen(elementRef.current)
+    }
+
+    await exitFullscreen()
   }, [])
 
   const ref = useCallback((element: T | null) => {
@@ -93,16 +100,21 @@ export function useFullscreen<T extends HTMLElement>() {
   }, [])
 
   useEffect(() => {
-    if (!elementRef.current && window.document) {
-      elementRef.current = window.document.documentElement as T
+    if (isMobile) {
+      setError(true)
+      return undefined
+    }
 
+    if (elementRef.current) {
       return addEvents(elementRef.current, {
         onFullScreen: handleFullscreenChange,
         onError: handleFullscreenError,
       })
     }
 
-    if (elementRef.current) {
+    if (window.document) {
+      elementRef.current = window.document.documentElement as T
+
       return addEvents(elementRef.current, {
         onFullScreen: handleFullscreenChange,
         onError: handleFullscreenError,

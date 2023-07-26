@@ -1,3 +1,5 @@
+import type {NoteStore} from './note'
+
 export type SystemState = {
   hasHydrated: boolean
   theme?: 'light' | 'dark'
@@ -9,4 +11,4 @@ export type SystemStore = {
   resetSystemStore: () => void
 } & SystemState
 
-export type PersistedStore = SystemStore
+export type PersistedStore = SystemStore & NoteStore
