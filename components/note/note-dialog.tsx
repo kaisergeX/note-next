@@ -7,25 +7,30 @@ import {
 import NoteEditor from './note-editor'
 import {genRandom} from '~/util'
 import {IconArrowLeft} from '@tabler/icons-react'
-import NoteCustomize from './note-customize'
+import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
 
 type NoteDialogProps = {
-  isLoading?: boolean
+  type?: NoteCustomizeProps['type']
+  loading?: boolean
   open?: boolean
   note?: Note
   mutateNote: UpdateNote
   onClose: () => void
+  onDeleteSuccess?: () => void
 }
 
 export default function NoteDialog({
-  isLoading,
+  type = 'update',
+  loading,
   open = false,
   note,
   mutateNote,
   onClose,
+  onDeleteSuccess,
 }: NoteDialogProps) {
   return (
     <DialogCustom
+      className="sm-only:flex sm-only:flex-col"
       titleClassName="flex-row-reverse"
       open={open}
       closeButton={
@@ -34,7 +39,7 @@ export default function NoteDialog({
         </button>
       }
       onClose={onClose}
-      loading={isLoading}
+      loading={loading}
     >
       <NoteEditor
         id="dialog-note-title"
@@ -53,7 +58,8 @@ export default function NoteDialog({
 
       <NoteEditor
         id="dialog-note-content"
-        editorClassName="min-h-[40dvh]"
+        className="flex flex-1 flex-col [&>div:has(.ProseMirror)]:flex-1"
+        editorClassName="h-full sm:min-h-[40dvh]"
         initialValue={note?.content}
         placeholder={genRandom([
           'Nothing here yet 😶‍🌫️',
@@ -68,8 +74,10 @@ export default function NoteDialog({
       />
 
       <NoteCustomize
+        note={note}
         className="shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10"
-        loading={isLoading}
+        type={type}
+        onDeleteSuccess={onDeleteSuccess}
       />
     </DialogCustom>
   )

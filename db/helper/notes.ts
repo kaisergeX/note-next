@@ -32,3 +32,7 @@ export async function updateNote(noteId: string, note: UpdateNote) {
     .where(eq(NotesTable.id, noteId))
     .returning()
 }
+
+export async function deleteNote(noteId: string) {
+  return await db.delete(NotesTable).where(eq(NotesTable.id, noteId))
+}

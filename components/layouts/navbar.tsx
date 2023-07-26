@@ -1,16 +1,14 @@
 'use client'
-import {Disclosure, Menu, Transition} from '@headlessui/react'
+import {Disclosure} from '@headlessui/react'
 import {
   IconActivity,
   IconLogout,
   IconMenu2,
   IconUser,
-  IconUsers,
   IconX,
 } from '@tabler/icons-react'
 import {IconMoonStars, IconSun} from '@tabler/icons-react'
 import Link from 'next/link'
-import {Fragment} from 'react'
 import {usePersistStore} from '~/store'
 import SignOutButton from '../auth/signout-button'
 import {useSession} from 'next-auth/react'
@@ -18,6 +16,7 @@ import {usePathname} from 'next/navigation'
 import {protectedPathnameRegex} from '~/config/auth'
 import Image from 'next/image'
 import {IconUserCircle} from '@tabler/icons-react'
+import MenuCustom, {type MenuItem} from '../ui/menu'
 
 type NavProps = {
   appName: string
@@ -44,6 +43,36 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
     ? `/?utm_source=${pathName}&p_r=true`
     : '/'
 
+  const desktopMenuItems: MenuItem[] = [
+    {
+      type: 'link',
+      url: '/user',
+      label: (
+        <>
+          <IconUserCircle /> Profile
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: '/admin',
+      label: (
+        <>
+          <IconActivity /> Admin Portal
+        </>
+      ),
+      hidden: userRole !== 'archivist',
+    },
+    {
+      containerAs: 'div',
+      component: (
+        <SignOutButton className="ui-active:bg-reverse hover:bg-reverse flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors ui-disabled:disabled">
+          <IconLogout /> {signOutLabel}
+        </SignOutButton>
+      ),
+    },
+  ]
+
   const renderAvatar = profileAvatar
     ? {
         container: '',
@@ -63,8 +92,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
     <Disclosure
       as="nav"
       className="glass sticky inset-x-0 top-0 z-10 w-full
-        data-[headlessui-state=open]:fixed data-[headlessui-state=open]:bg-white
-        dark:data-[headlessui-state=open]:bg-inherit sm:data-[headlessui-state=open]:bg-inherit"
+        ui-open:fixed ui-open:bg-white dark:ui-open:bg-inherit sm:ui-open:bg-inherit"
     >
       {({open}) => (
         <>
@@ -92,54 +120,16 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
 
               <div className={isAuthenticated ? '' : 'hidden'}>
                 {/* Profile dropdown */}
-                <Menu as="div" className="relative hidden md:block">
-                  <Menu.Button
-                    className={`flex items-center rounded-full ${renderAvatar.container}`}
-                  >
-                    <span className="sr-only">Open user menu</span>
-                    {renderAvatar.avatar}
-                  </Menu.Button>
-                  <Transition
-                    as={Fragment}
-                    enter="transition ease-out duration-100"
-                    enterFrom="transform opacity-0 scale-95"
-                    enterTo="transform opacity-100 scale-100"
-                    leave="transition ease-in duration-75"
-                    leaveFrom="transform opacity-100 scale-100"
-                    leaveTo="transform opacity-0 scale-95"
-                  >
-                    <Menu.Items
-                      className="bg-default shadow-theme ring-theme absolute right-0 z-10 mt-2 w-48 origin-top-right
-                        overflow-hidden rounded-md text-sm font-semibold focus:outline-none"
-                    >
-                      <Menu.Item>
-                        <Link
-                          href="/user"
-                          className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
-                        >
-                          <IconUserCircle /> Profile
-                        </Link>
-                      </Menu.Item>
-
-                      {userRole === 'archivist' && (
-                        <Menu.Item>
-                          <Link
-                            href="/admin"
-                            className="hover:bg-reverse flex items-center gap-2 p-4 transition-colors"
-                          >
-                            <IconActivity /> Admin Portal
-                          </Link>
-                        </Menu.Item>
-                      )}
-
-                      <Menu.Item as="div">
-                        <SignOutButton className="hover:bg-reverse flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors">
-                          <IconLogout /> {signOutLabel}
-                        </SignOutButton>
-                      </Menu.Item>
-                    </Menu.Items>
-                  </Transition>
-                </Menu>
+                <MenuCustom
+                  as="div"
+                  className={`flex items-center rounded-full ${renderAvatar.container}`}
+                  menuClassName="hidden md:block"
+                  itemsClassName="z-10 w-48"
+                  items={desktopMenuItems}
+                >
+                  <span className="sr-only">Open user menu</span>
+                  {renderAvatar.avatar}
+                </MenuCustom>
 
                 {/* Mobile menu button */}
                 <Disclosure.Button className="button-secondary button-icon flex-center p-1 md:hidden">
@@ -170,11 +160,21 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 <div>
                   <Disclosure.Button
                     as={Link}
-                    href="/admin"
+                    href="/user"
                     className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
                   >
-                    <IconUsers /> Admin Portal
+                    <IconUserCircle /> Profile
                   </Disclosure.Button>
+
+                  {userRole === 'archivist' && (
+                    <Disclosure.Button
+                      as={Link}
+                      href="/admin"
+                      className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
+                    >
+                      <IconActivity /> Admin Portal
+                    </Disclosure.Button>
+                  )}
                 </div>
 
                 <Disclosure.Button

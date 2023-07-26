@@ -39,6 +39,8 @@ type NoteEditorProps = {
   disableEnter?: boolean
   tabIndex?: string
   autofocus?: FocusPosition
+  loading?: boolean
+  disabled?: boolean
 }
 
 export default function NoteEditor({
@@ -57,6 +59,8 @@ export default function NoteEditor({
   disableEnter = false,
   tabIndex = '',
   autofocus = false,
+  loading,
+  disabled,
 }: NoteEditorProps) {
   const DisableEnter = Extension.create({
     name: 'disableEnter',
@@ -80,6 +84,7 @@ export default function NoteEditor({
         attributes: {
           class: classNames(
             'focus:outline-none prose max-w-none dark:prose-invert [overflow-wrap:anywhere]',
+            loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
           ),
           tabindex: tabIndex,
@@ -99,10 +104,11 @@ export default function NoteEditor({
 
         onChange(editor.getHTML(), rawText)
       },
+      editable: !disabled && !loading,
       injectCSS: false,
       autofocus: autofocus,
     },
-    [id, initialValue],
+    [id, initialValue, disabled],
   )
 
   if (!textEditor) {
@@ -112,7 +118,7 @@ export default function NoteEditor({
   const renderFixedMenu = (
     <RTECommands
       className={classNames(
-        'sticky inset-x-0 z-40 -mx-4 p-4',
+        'sticky inset-x-0 z-10 -mx-4 p-4',
         commandTypes === 'always-fixed'
           ? 'bg-default top-16'
           : 'glass invisible top-14 bg-inherit group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4',
