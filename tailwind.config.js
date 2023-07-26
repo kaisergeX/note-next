@@ -1,4 +1,5 @@
 // import defaultTheme from 'tailwindcss/defaultTheme'
+import {tailwindcssOriginSafelist} from '@headlessui-float/react'
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -38,6 +39,7 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/typography'),
+    require('@headlessui/tailwindcss'),
     ({addComponents, addVariant}) => {
       addComponents({
         '.flex-center-between': {
@@ -53,6 +55,9 @@ module.exports = {
           display: 'flex',
           gap: '1rem',
         },
+        '.disabled': {
+          '@apply pointer-events-none cursor-not-allowed opacity-50': {},
+        },
       })
       addVariant(
         'sm-only',
@@ -60,4 +65,5 @@ module.exports = {
       )
     },
   ],
+  safelist: [...tailwindcssOriginSafelist],
 }

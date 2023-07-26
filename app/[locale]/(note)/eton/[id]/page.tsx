@@ -1,16 +1,25 @@
 'use client'
 
-import {IconArrowLeft, IconTrash} from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconWindowMaximize,
+  IconWindowMinimize,
+} from '@tabler/icons-react'
 import {useRouter} from 'next/navigation'
 import {classNames, fetcher, genRandom} from '~/util'
 import useSWR from 'swr'
-import {NotesTable, type Note, type UpdateNote} from '~/db/schema/notes'
+import {
+  type Note,
+  type UpdateNote,
+  NOTE_TITLE_MAX_LENGTH,
+} from '~/db/schema/notes'
 import type {ServerError} from '~/types'
 import NoteEditor from '~/components/note/note-editor'
 import {useWindowScroll} from '~/util/hooks/use-window-scroll'
 import {useTransition} from 'react'
-import {mutateNote} from '../actions'
+import {mutateNoteAction} from '../actions'
 import NoteCustomize from '~/components/note/note-customize'
+import {useFullscreen} from '~/util/hooks/use-fullscreen'
 
 type NoteDetailProps = {params: {id: string}}
 
@@ -18,6 +27,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
   const router = useRouter()
   const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
   const [isPending, startTransition] = useTransition()
+  const {isFullscreen, toggleFullscreen, error: fullscreenErr} = useFullscreen()
 
   const {
     data: noteData,
@@ -42,7 +52,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
     }
 
     startTransition(async function () {
-      await mutateNote(id, newNoteData)
+      await mutateNoteAction(id, newNoteData)
       router.push('/eton')
     })
   }
@@ -60,10 +70,12 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         <div className="flex items-center gap-4">
           <button
             type="button"
+            title="Toggle fullscreen"
             className="button-secondary button-icon rounded-full p-1"
-            disabled
+            onClick={() => void toggleFullscreen()}
+            disabled={fullscreenErr}
           >
-            <IconTrash />
+            {isFullscreen ? <IconWindowMinimize /> : <IconWindowMaximize />}
           </button>
         </div>
       </div>
@@ -76,11 +88,12 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         onChange={(value) => {
           newNoteData.title = value
         }}
-        placeholder={isLoading ? 'Syncing...' : 'Title'}
-        limitCharacter={NotesTable.title.length}
+        placeholder="Title"
+        limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
         disableEnter
         autofocus="end"
+        loading={isPending || isLoading}
       />
 
       {isLoading ? (
@@ -109,17 +122,22 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
           onChange={(value) => {
             newNoteData.content = value
           }}
+          loading={isPending}
         />
       )}
 
       <NoteCustomize
+        note={noteData}
+        mutatedNote={newNoteData}
+        type="update"
         className={classNames(
           scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button
           viewY < maxViewY - 16
             ? 'shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
             : '',
         )}
-        loading={isPending || isLoading}
+        loading={isPending}
+        onDeleteSuccess={() => router.push('/eton')}
       />
     </main>
   )

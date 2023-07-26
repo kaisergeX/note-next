@@ -5,7 +5,7 @@ import useSWR from 'swr'
 import {type Note, type UpdateNote} from '~/db/schema/notes'
 import {fetcher, sleep} from '~/util'
 import NoteDialog from '~/components/note/note-dialog'
-import {mutateNote} from '../../../eton/actions'
+import {mutateNoteAction} from '../../../eton/actions'
 import type {ServerError} from '~/types'
 
 type NoteDetailProps = {params: {id: string}}
@@ -46,7 +46,7 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
     }
 
     startTransition(async function () {
-      await mutateNote(id, newNoteData)
+      await mutateNoteAction(id, newNoteData)
       await handleCloseModal()
     })
   }
@@ -63,7 +63,8 @@ export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
       note={noteData}
       mutateNote={newNoteData}
       onClose={() => void handleSubmit()}
-      isLoading={isLoading}
+      loading={isLoading}
+      onDeleteSuccess={() => router.back()}
     />
   )
 }

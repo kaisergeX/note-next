@@ -65,7 +65,7 @@
   }
 
   .button-base:disabled {
-    @apply pointer-events-none cursor-not-allowed opacity-50;
+    @apply disabled;
   }
 
   .button-base:not(:has(> :only-child)) {
