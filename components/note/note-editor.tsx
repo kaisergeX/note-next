@@ -108,7 +108,7 @@ export default function NoteEditor({
       injectCSS: false,
       autofocus: autofocus,
     },
-    [id, initialValue, disabled],
+    [id, initialValue],
   )
 
   if (!textEditor) {

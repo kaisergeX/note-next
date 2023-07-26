@@ -43,6 +43,10 @@ export async function fetcher<ResponseData>(
       throw new Error(res.statusText)
     }
 
+    if (res.redirected) {
+      redirect(res.url)
+    }
+
     throw new Error('Response data is not supported')
   }
 

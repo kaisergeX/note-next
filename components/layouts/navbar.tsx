@@ -124,8 +124,9 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                   as="div"
                   className={`flex items-center rounded-full ${renderAvatar.container}`}
                   menuClassName="hidden md:block"
-                  itemsClassName="z-10 w-48"
+                  itemsClassName="w-48"
                   items={desktopMenuItems}
+                  floatOptions={{portal: true}}
                 >
                   <span className="sr-only">Open user menu</span>
                   {renderAvatar.avatar}

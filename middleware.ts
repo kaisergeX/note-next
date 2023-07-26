@@ -29,7 +29,7 @@ const authMiddleware = withAuth(
       return redirectToPermissionsDenied(req)
     }
 
-    return intlMiddleware(req)
+    return NextResponse.next()
   },
   {
     callbacks: {
@@ -46,13 +46,6 @@ const apiMiddleware = async (req: NextRequest) => {
     return rateLimitErrResponse()
   }
 
-  // @todo check if there is a proper way to verify permission here
-  // instead of calling authMiddleware(req)
-  const authenticatedRes = await authMiddleware(req)
-  if (!authenticatedRes?.ok) {
-    return redirectToPermissionsDenied(req)
-  }
-
   return NextResponse.next()
 }
 
@@ -63,13 +56,23 @@ export default async function middleware(req: NextRequest) {
     return intlMiddleware(req)
   }
 
+  const authenticatedRes = await authMiddleware(req)
+
   if (protectedApiRegex.test(req.nextUrl.pathname)) {
     // Middleware for all API routes except /api/auth/* route.
     // Need authenticated to request.
+    if (!authenticatedRes?.ok) {
+      return redirectToPermissionsDenied(req)
+    }
+
     return apiMiddleware(req)
   }
 
-  return authMiddleware(req)
+  if (!authenticatedRes?.ok) {
+    return authenticatedRes
+  }
+
+  return intlMiddleware(req)
 }
 
 export const config = {
