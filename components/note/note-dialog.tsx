@@ -1,4 +1,4 @@
-import DialogCustom from '../dialog'
+import DialogCustom from '../ui/dialog'
 import {
   type Note,
   type UpdateNote,

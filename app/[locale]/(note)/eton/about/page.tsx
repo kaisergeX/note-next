@@ -1,5 +1,5 @@
 import {useTranslations} from 'next-intl'
-import FancyHeading from '~/components/fancy-heading'
+import FancyHeading from '~/components/ui/fancy-heading'
 
 export default function About() {
   const t = useTranslations('note')

@@ -1,6 +1,6 @@
 import {useTranslations} from 'next-intl'
 import {Suspense} from 'react'
-import FancyHeading from '~/components/fancy-heading'
+import FancyHeading from '~/components/ui/fancy-heading'
 import Table from '~/components/table'
 import TablePlaceholder from '~/components/table-placeholder'
 
