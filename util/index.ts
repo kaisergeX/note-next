@@ -101,3 +101,39 @@ export function extractRawContentsHTML(
 
   return parsedDoc.documentElement.textContent
 }
+
+/**
+ * Note: Consider using [`useDebounced`](./hooks/use-debounced.ts) hook instead if can.
+ * ___
+ *
+ * @example
+ * ```tsx
+ * 'use client'
+ *
+ * const setValueDebounced = useMemo(() =>
+ *   debounce((newValue: number) => {
+ *      console.log(newValue)
+ *      setValue(newValue)
+ *   }, 200),
+ * [])
+ *
+ * // usage
+ * useEffect(() => {
+ *    setValueDebounced(newValue)
+ * }, [newValue])
+ *
+ * // or
+ *
+ * <input type='text' onChange={e => setValueDebounced(e.target.value)} />
+ * ```
+ */
+export function debounce<T = unknown>(func: (arg: T) => void, wait = 200) {
+  let timeout: ReturnType<typeof setTimeout> | null
+
+  return function (arg: T) {
+    if (timeout) {
+      clearTimeout(timeout)
+    }
+    timeout = setTimeout(() => func(arg), wait)
+  }
+}

@@ -23,7 +23,7 @@ export default function PermissionDenied() {
     <main className="flex-center h-full flex-col p-4">
       <div className="mb-8 items-center gap-4 divide-slate-400 sm-only:text-center sm:flex sm:divide-x">
         <h1>429</h1>
-        <div className="py-4 pl-4">
+        <div className="py-4 sm:pl-4">
           <h2>Rate limit exceeded</h2>
           <p className="mt-4 text-sm">
             We detected too many requests from your IP address in a short

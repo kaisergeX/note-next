@@ -25,7 +25,7 @@ export default function PermissionDenied() {
     <main className="flex-center h-full flex-col p-4">
       <div className="mb-8 items-center gap-4 divide-slate-400 sm-only:text-center sm:flex sm:divide-x">
         <h1>403</h1>
-        <div className="py-4 pl-4">
+        <div className="py-4 sm:pl-4">
           <h2>Permission Denied</h2>
           <p className="mt-4 text-sm">
             You do not have permission to access this page.
