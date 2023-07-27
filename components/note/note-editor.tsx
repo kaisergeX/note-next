@@ -14,13 +14,13 @@ import CharacterCount, {
   type CharacterCountStorage,
 } from '@tiptap/extension-character-count'
 import {classNames} from '~/util'
-import {DB_TEXT_LIMIT} from '~/db'
 import RTECommands from '../ui/rte-commands'
 import {PluginKey} from '@tiptap/pm/state'
 import Highlight from '@tiptap/extension-highlight'
 import {usePersistStore} from '~/store'
 import {useEffect} from 'react'
 import {useDebounced} from '~/util/hooks/use-debounced'
+import {EDITOR_CONTENT_LIMIT} from '~/config/note'
 
 type NoteEditorProps = {
   id: string
@@ -87,7 +87,7 @@ export default function NoteEditor({
       extensions: [
         StarterKit,
         CharacterCount.configure({
-          limit: limitCharacter || Math.floor(DB_TEXT_LIMIT / 3),
+          limit: limitCharacter || EDITOR_CONTENT_LIMIT,
         }),
         Placeholder.configure({
           placeholder,

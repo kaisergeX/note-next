@@ -65,7 +65,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
 
   return (
     <main className="relative flex flex-1 flex-col">
-      <div className="bg-default flex-center-between sticky inset-x-0 top-0 z-10 gap-4 p-4">
+      <div className="bg-default flex-center-between sticky inset-x-0 top-0 z-20 gap-4 p-4">
         <button
           type="button"
           className="button button-icon rounded-full p-1"
@@ -76,11 +76,11 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
 
         <div className="flex items-center gap-4">
           {contentCount.words > 1 && (
-            <div className="group cursor-default text-right text-xs sm:flex sm:text-sm">
-              <div className="transition-opacity group-hover:opacity-100 sm:opacity-0">
+            <div className="group cursor-default text-xs sm:text-sm">
+              <span className="opacity-0 transition-opacity group-hover:opacity-100 sm-only:hidden">
                 {contentCount.characters} characters,
-              </div>
-              <div>&nbsp;{contentCount.words} words</div>
+              </span>
+              &nbsp;{contentCount.words} words
             </div>
           )}
           <button
