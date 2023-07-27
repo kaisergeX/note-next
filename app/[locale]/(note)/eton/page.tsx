@@ -22,7 +22,7 @@ export default async function Notes() {
   ))
 
   return (
-    <main className="h-full p-4">
+    <main className="h-full p-4 sm-only:pt-0">
       <NoteCreateEditor authorId={userInfo.id} />
       {renderNoteList.length === 0 ? (
         <h3 className="mt-40 text-center opacity-50">

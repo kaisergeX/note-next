@@ -91,7 +91,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
   return (
     <Disclosure
       as="nav"
-      className="glass sticky inset-x-0 top-0 z-10 w-full
+      className="glass sticky inset-x-0 top-0 z-20 w-full
         ui-open:fixed ui-open:bg-white dark:ui-open:bg-inherit sm:ui-open:bg-inherit"
     >
       {({open}) => (
@@ -126,7 +126,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                   menuClassName="hidden md:block"
                   itemsClassName="w-48"
                   items={desktopMenuItems}
-                  floatOptions={{portal: true}}
+                  floatOptions={{portal: true, zIndex: 20}}
                 >
                   <span className="sr-only">Open user menu</span>
                   {renderAvatar.avatar}
