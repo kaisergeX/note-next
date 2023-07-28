@@ -7,9 +7,11 @@ import {
   type ReactNode,
   useState,
 } from 'react'
+import type {NoteTheme} from '~/db/schema/notes'
 import {classNames} from '~/util'
 
 type DialogProps = {
+  theme?: NoteTheme | null
   className?: string
   backdropClassName?: string
   titleClassName?: string
@@ -26,6 +28,7 @@ type DialogProps = {
 }
 
 export default function DialogCustom({
+  theme,
   className = '',
   backdropClassName = '',
   titleClassName = '',
@@ -121,11 +124,12 @@ export default function DialogCustom({
             >
               <Dialog.Panel
                 className={classNames(
-                  `ring-theme overflow-y-auto rounded-lg bg-zinc-50 shadow-xl sm-only:h-[100dvh] sm-only:w-[100dvw]
-                    dark:bg-zinc-900 sm:min-w-[32rem] [&>div]:p-4`,
+                  `ring-theme overflow-y-auto shadow-xl sm-only:h-[100dvh] sm-only:w-[100dvw] sm:min-w-[32rem]
+                    sm:rounded-lg [&>div]:p-4`,
                   fullScreen
                     ? 'h-[100dvh] w-[100dvw]'
                     : 'min-h-[20rem] sm:max-h-full sm:w-1/2 sm:max-w-screen-sm 2xl:max-w-screen-lg',
+                  theme ? `dialog-${theme}` : 'bg-zinc-50 dark:bg-zinc-900',
                   className,
                 )}
                 onScroll={() => {

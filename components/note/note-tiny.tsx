@@ -2,30 +2,45 @@
 import {IconDotsVertical, IconPalette} from '@tabler/icons-react'
 import Link from 'next/link'
 import type {Note} from '~/db/schema/notes'
+import {usePersistStore} from '~/store'
+import {classNames} from '~/util'
 
 type NoteProps = {
   data: Note
 }
 
 export default function NoteTiny({data}: NoteProps) {
-  const {id, title, content} = data
+  const {id, title, content, theme} = data
+  const setMutateNoteData = usePersistStore((state) => state.setMutateNoteData)
 
   return (
     <Link
       href={`/eton/${id}`}
-      className="card group relative p-4 pb-8"
+      className={classNames(
+        'card group relative p-4 pb-8',
+        theme ? `dialog-${theme} border-none` : '',
+      )}
+      onClick={() => {
+        theme && setMutateNoteData({theme})
+      }}
       // @todo Add a option on setting page for user to choose whether to use Dialog or not.
       // @todo Find a better option such as conditional render for this parallel route instead of open in new tab.
       // target='_blank' // if user prefers not to use Dialog to view/edit note.
     >
       {title && (
         <article
-          className="prose mb-4 line-clamp-3 font-semibold [overflow-wrap:anywhere] dark:prose-invert sm:prose-lg sm:leading-normal"
+          className={classNames(
+            'prose mb-4 line-clamp-3 font-semibold [overflow-wrap:anywhere] sm:prose-lg sm:leading-normal',
+            theme ? `prose-${theme}` : 'dark:prose-invert',
+          )}
           dangerouslySetInnerHTML={{__html: title || ''}}
         />
       )}
       <article
-        className="prose line-clamp-[10] [overflow-wrap:anywhere] dark:prose-invert"
+        className={classNames(
+          'prose line-clamp-[10] [overflow-wrap:anywhere]',
+          theme ? `prose-${theme}` : 'dark:prose-invert',
+        )}
         dangerouslySetInnerHTML={{__html: content || ''}}
       />
 

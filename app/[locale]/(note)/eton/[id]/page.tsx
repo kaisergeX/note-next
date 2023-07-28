@@ -6,7 +6,7 @@ import {
   IconWindowMinimize,
 } from '@tabler/icons-react'
 import {useRouter} from 'next/navigation'
-import {classNames, fetcher, genRandom} from '~/util'
+import {classNames, fetcher, genRandom, isEqualNonNestedObj} from '~/util'
 import useSWR from 'swr'
 import {
   type Note,
@@ -29,7 +29,9 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
   const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
   const [isPending, startTransition] = useTransition()
   const {isFullscreen, toggleFullscreen, error: fullscreenErr} = useFullscreen()
-  const editorCharCount = usePersistStore((state) => state.editorCharCount)
+  const {mutateNoteData, setMutateNoteData, editorCharCount} = usePersistStore()
+  const theme = mutateNoteData?.theme
+
   const contentCount = {
     words: editorCharCount['note-content']?.words || 0,
     characters: editorCharCount['note-content']?.characters || 0,
@@ -39,7 +41,14 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
     data: noteData,
     isLoading,
     error,
-  } = useSWR<Note, ServerError>(`/api/note/${id}`, fetcher)
+  } = useSWR<Note, ServerError>(`/api/note/${id}`, fetcher, {
+    onSuccess: (data) =>
+      setMutateNoteData({
+        title: data?.title || '',
+        content: data?.content || '',
+        theme: data?.theme,
+      }),
+  })
 
   if (error) {
     throw error
@@ -48,17 +57,19 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
   const initNoteData: UpdateNote = {
     title: noteData?.title || '',
     content: noteData?.content || '',
+    theme: noteData?.theme,
   }
-  const newNoteData: UpdateNote = structuredClone(initNoteData)
 
   const handleSubmit = () => {
-    if (JSON.stringify(initNoteData) === JSON.stringify(newNoteData)) {
+    if (!mutateNoteData || isEqualNonNestedObj(initNoteData, mutateNoteData)) {
+      setMutateNoteData(undefined)
       router.push('/eton')
       return
     }
 
     startTransition(async function () {
-      await mutateNoteAction(id, newNoteData)
+      await mutateNoteAction(id, mutateNoteData)
+      setMutateNoteData(undefined)
       router.push('/eton')
     })
   }
@@ -99,10 +110,9 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         id="note-title"
         className="my-4 px-4"
         editorClassName="text-lg font-semibold sm:text-xl"
-        initialValue={noteData?.title}
-        onChange={(value) => {
-          newNoteData.title = value
-        }}
+        initialValue={mutateNoteData?.title}
+        defaultTheme
+        onChange={(value) => setMutateNoteData({title: value})}
         placeholder="Title"
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
@@ -116,17 +126,22 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
       ) : (
         <NoteEditor
           id="note-content"
-          className="sm:shadow-theme flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:!w-auto sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1"
+          className={classNames(
+            'flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:!w-auto sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1',
+            theme
+              ? `dialog-${theme} shadow-xl shadow-theme-${theme}`
+              : 'sm:shadow-theme',
+          )}
           editorClassName="h-full"
           menuClassNames={{
             fixedMenu: classNames(
-              'transition-shadow',
+              'transition-shadow mb-4',
               scroll.y < 240
                 ? ''
-                : 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10',
+                : 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10 rounded-b-xl',
             ),
           }}
-          initialValue={noteData?.content}
+          initialValue={mutateNoteData?.content}
           placeholder={genRandom([
             'Nothing here yet 😶‍🌫️',
             'New💡',
@@ -134,9 +149,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
             'Tasks to do 📝',
           ])}
           commandTypes="always-fixed"
-          onChange={(value) => {
-            newNoteData.content = value
-          }}
+          onChange={(value) => setMutateNoteData({content: value})}
           loading={isPending}
           exposeStorage
         />
@@ -144,13 +157,13 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
 
       <NoteCustomize
         note={noteData}
-        mutatedNote={newNoteData}
         type="update"
         className={classNames(
           scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button
           viewY < maxViewY - 16
             ? 'shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
-            : '',
+            : 'dark:bg-zinc-900 dark:backdrop-blur-none',
+          theme && viewY < maxViewY - 16 ? 'dark:text-black' : '',
         )}
         loading={isPending}
         onDeleteSuccess={() => router.push('/eton')}

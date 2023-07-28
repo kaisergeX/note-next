@@ -5,8 +5,15 @@ export const initNoteState: NoteStoreState = {
   editorCharCount: {},
 }
 
-export const createNoteSlice: StateCreator<NoteStore> = (set) => ({
+export const createNoteSlice: StateCreator<NoteStore> = (set, get) => ({
   ...initNoteState,
+  setNoteData: (noteData) => set(() => ({noteData})),
+  setMutateNoteData: (newData) =>
+    set({
+      mutateNoteData: newData
+        ? {...get().mutateNoteData, ...newData}
+        : undefined,
+    }),
   setEditorCharCount: (editorId, charCount) =>
     set(({editorCharCount}) => {
       const newCountPool = structuredClone(editorCharCount)

@@ -12,25 +12,27 @@
 <details>
 <summary>Replace the old version</summary>
 
-  <sup>List in order of priority</sup>
-  - [ ] Note: Recover notes that scheduled for deletion.
-  - [ ] Note: Encrypt contents.
-  - [ ] Preferences: Account
-    - [ ] Delete account.
-    - [ ] Delete all notes.
-  - [ ] Preferences: Note
-    - [ ] Autosave interval.
-    - [ ] Commands Menu type (fixed, or bubble & floating).
-  - [ ] Note: Drawable Mode,
-  - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.
-  - [ ] Note: Link to others.
-  - [ ] Landing page.
-  - [ ] Preferences: Note - Disable tiny view (dialog) and always view full-size notes.[^1]
-  - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
-  - [ ] Preferences: Theme.[^3]
-    - [ ] Theme editor & preview - Constantly update new themes.
-  - [ ] Integrate/Link with other apps in the ecosystems.
-  - [ ] Replace the old version.
+<sup>List in order of priority</sup>
+
+- [ ] Note: Recover notes that scheduled for deletion.
+- [ ] Note: Encrypt contents.
+- [ ] Preferences: Account
+  - [ ] Delete account.
+  - [ ] Delete all notes.
+- [ ] Preferences: Note
+  - [ ] Autosave interval.
+  - [x] Commands Menu type (fixed, or bubble & floating).
+  - [x] Theme.
+- [ ] Note: Drawable Mode,
+- [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.
+- [ ] Note: Link to others.
+- [ ] Landing page.
+- [ ] Preferences: Note - Disable tiny view (dialog) and always view full-size notes.[^1]
+- [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
+- [ ] Preferences: Theme.[^3]
+  - [ ] Theme editor & preview - Constantly update new themes.
+- [ ] Integrate/Link with other apps in the ecosystems.
+- [ ] Replace the old version.
 </details>
 
 ## Engines Requirements

@@ -55,6 +55,10 @@
   code {
     @apply rounded bg-gray-200 px-1 py-0.5 dark:bg-gray-700;
   }
+
+  .prose code {
+    @apply bg-[--tw-prose-code-pg,theme(colors.gray[200])] dark:bg-[--tw-prose-code-pg,theme(colors.gray[700])];
+  }
 }
 
 @layer components {
@@ -64,7 +68,7 @@
       focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-400;
   }
 
-  .button-base:disabled {
+  button:disabled {
     @apply disabled;
   }
 

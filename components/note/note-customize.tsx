@@ -6,17 +6,19 @@ import {
   IconDotsVertical,
   IconTrash,
   IconTexture,
+  IconPaletteOff,
 } from '@tabler/icons-react'
 import {classNames} from '~/util'
 import MenuCustom, {type MenuItem} from '../ui/menu'
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import type {Note, UpdateNote} from '~/db/schema/notes'
+import {type Note} from '~/db/schema/notes'
 import {IconPalette} from '@tabler/icons-react'
+import {twNoteThemeConfig} from '~/config/tailwindTheme'
+import {usePersistStore} from '~/store'
 
 export type NoteCustomizeProps = {
   note?: Note
-  mutatedNote?: UpdateNote
 
   className?: string
   loading?: boolean
@@ -33,6 +35,8 @@ export default function NoteCustomize({
   onDeleteSuccess,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
+  const {mutateNoteData, setMutateNoteData} = usePersistStore()
+  const theme = mutateNoteData?.theme
 
   const handleDeleteNote = () => {
     if (!note) {
@@ -60,22 +64,65 @@ export default function NoteCustomize({
     },
   ]
 
+  const customMenuColors: MenuItem[] = twNoteThemeConfig.map(
+    ({theme: themeName}) => ({
+      component: (
+        <button
+          className={classNames(
+            'block h-8 w-8 rounded-full transition-shadow',
+            `picker-${themeName}`,
+            theme && theme === themeName
+              ? 'ring-2 ring-offset-2'
+              : 'ring-offset-1 hover:ring-2',
+          )}
+          title={themeName}
+          type="button"
+          onClick={() => setMutateNoteData({theme: themeName})}
+          disabled={theme === themeName}
+        />
+      ),
+    }),
+  )
+
+  const menuColors: MenuItem[] = [
+    {
+      component: (
+        <button
+          className="button-secondary button-icon rounded-full p-1"
+          title="Default"
+          type="button"
+          onClick={() => setMutateNoteData({theme: null})}
+          disabled={!theme}
+        >
+          <IconPaletteOff />
+        </button>
+      ),
+    },
+    ...customMenuColors,
+  ]
+
   return (
     <div
       className={classNames(
-        'bg-default flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
+        'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
+        theme ? 'glass bg-inherit backdrop-blur-md' : 'bg-default',
         className,
       )}
     >
       <div className="flex items-center gap-2">
-        <button
+        <MenuCustom
+          items={menuColors}
           className="button-icon rounded-full p-1"
-          title="Background color"
-          type="button"
-          disabled
+          itemsClassName="w-48 grid grid-cols-4 gap-2 p-4"
+          floatOptions={{
+            portal: true,
+            flip: true,
+            placement: 'bottom-start',
+          }}
         >
           <IconPalette size="1.2rem" />
-        </button>
+        </MenuCustom>
+
         <button
           className="button-icon rounded-full p-1"
           title="Illustration, Texture"

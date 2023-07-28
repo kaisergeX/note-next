@@ -171,10 +171,7 @@ export default function RTECommands({
 
   return (
     <div
-      className={classNames(
-        'mb-2 flex flex-wrap items-center gap-2',
-        className,
-      )}
+      className={classNames('flex flex-wrap items-center gap-2', className)}
       role="menubar"
     >
       {renderMenu().map(

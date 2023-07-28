@@ -1,20 +1,16 @@
 import DialogCustom from '../ui/dialog'
-import {
-  type Note,
-  type UpdateNote,
-  NOTE_TITLE_MAX_LENGTH,
-} from '~/db/schema/notes'
+import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import NoteEditor from './note-editor'
 import {genRandom} from '~/util'
 import {IconArrowLeft} from '@tabler/icons-react'
 import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
+import {usePersistStore} from '~/store'
 
 type NoteDialogProps = {
   type?: NoteCustomizeProps['type']
   loading?: boolean
   open?: boolean
   note?: Note
-  mutateNote: UpdateNote
   onClose: () => void
   onDeleteSuccess?: () => void
 }
@@ -24,13 +20,16 @@ export default function NoteDialog({
   loading,
   open = false,
   note,
-  mutateNote,
   onClose,
   onDeleteSuccess,
 }: NoteDialogProps) {
+  const {mutateNoteData, setMutateNoteData} = usePersistStore()
+  const theme = mutateNoteData?.theme
+
   return (
     <DialogCustom
       className="sm-only:flex sm-only:flex-col"
+      theme={theme}
       titleClassName="flex-row-reverse"
       open={open}
       closeButton={
@@ -45,10 +44,8 @@ export default function NoteDialog({
         id="dialog-note-title"
         className="mb-2"
         editorClassName="text-lg font-semibold sm:text-xl"
-        initialValue={note?.title}
-        onChange={(value) => {
-          mutateNote.title = value
-        }}
+        initialValue={mutateNoteData?.title}
+        onChange={(value) => setMutateNoteData({title: value})}
         placeholder="Title"
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
@@ -60,7 +57,7 @@ export default function NoteDialog({
         id="dialog-note-content"
         className="flex flex-1 flex-col [&>div:has(.ProseMirror)]:flex-1"
         editorClassName="h-full sm:min-h-[40dvh]"
-        initialValue={note?.content}
+        initialValue={mutateNoteData?.content}
         placeholder={genRandom([
           'Nothing here yet 😶‍🌫️',
           'New💡',
@@ -68,9 +65,7 @@ export default function NoteDialog({
           'Tasks to do 📝',
         ])}
         commandTypes="bubble-floating"
-        onChange={(value) => {
-          mutateNote.content = value
-        }}
+        onChange={(value) => setMutateNoteData({content: value})}
       />
 
       <NoteCustomize

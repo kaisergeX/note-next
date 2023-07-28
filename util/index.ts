@@ -137,3 +137,38 @@ export function debounce<T = unknown>(func: (arg: T) => void, wait = 200) {
     timeout = setTimeout(() => func(arg), wait)
   }
 }
+
+/**
+ * Remove Object properties based on its value or/and key.
+ * ___
+ * @param passCondition keys & values condition can be customized, properties that do **NOT** pass this condition will be removed.
+ *
+ * @returns new object, original one will not be mutated.
+ * ___
+ * @default passCondition Remove all falsy value properties.
+ */
+export const objectRemoveProperties = <T = unknown>(
+  input: {[key: string]: T},
+  passCondition: ([key, value]: [string, T]) => boolean = ([, v]) => !!v,
+): {[key: string]: T} =>
+  Object.fromEntries(
+    Object.entries(input).filter((item) => passCondition(item)),
+  )
+
+export function isEqualNonNestedObj(
+  obj1: Record<string, unknown>,
+  obj2: Record<string, unknown>,
+): boolean {
+  const obj1Keys = Object.keys(obj1)
+  if (!obj1Keys.every((key: string) => Object.keys(obj2).includes(key))) {
+    return false
+  }
+
+  for (const key of obj1Keys) {
+    if (obj1[key] !== obj2[key]) {
+      return false
+    }
+  }
+
+  return true
+}
