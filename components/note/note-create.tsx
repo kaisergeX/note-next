@@ -2,25 +2,25 @@
 
 import {useState, useTransition} from 'react'
 import NoteDialog from './note-dialog'
-import type {NewNote} from '~/db/schema/notes'
 import {createNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {IconPencilPlus} from '@tabler/icons-react'
 import {IconSparkles} from '@tabler/icons-react'
 import {genRandom} from '~/util'
+import {usePersistStore} from '~/store'
 
 export default function NoteCreateEditor({authorId}: {authorId: string}) {
   const [_, startTransition] = useTransition()
   const [openModal, setOpenModal] = useState(false)
-  const newNoteData: NewNote = {authorId}
+  const mutateNoteData = usePersistStore((state) => state.mutateNoteData)
 
   const handleCloseModal = () => {
-    if (!newNoteData.title && !newNoteData.content) {
+    if (!mutateNoteData || (!mutateNoteData.title && !mutateNoteData.content)) {
       setOpenModal(false)
       return
     }
 
     startTransition(async () => {
-      await createNoteAction(newNoteData)
+      await createNoteAction({...mutateNoteData, authorId})
       setOpenModal(false)
     })
   }
@@ -50,12 +50,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
         </button>
       </div>
 
-      <NoteDialog
-        open={openModal}
-        mutateNote={newNoteData}
-        type="create"
-        onClose={handleCloseModal}
-      />
+      <NoteDialog open={openModal} type="create" onClose={handleCloseModal} />
     </>
   )
 }

@@ -18,7 +18,8 @@ export async function GET() {
   /**
    * ⚠️ Avoid it if possible, because its not cached and makes a remote call to Redis with each request.
    * Waste money and slow down the response time.
-   * if you really need to rate limit the API route, move it inside `api` folder.
+   * if you really need to rate limit the API route, move it inside `api` folder
+   * or manually add ur routes to `protectedAPIRoutes` arr then middleware will handle the rest for you.
    */
   // const isRateLimit = await rateLimit(request)
   // if (isRateLimit) {

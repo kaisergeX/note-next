@@ -34,8 +34,9 @@ type NoteEditorProps = {
     floatingMenu?: string
   }
   editorClassName?: string
-  placeholder?: string
+  defaultTheme?: boolean
 
+  placeholder?: string
   showCount?: boolean
   countClassName?: string
   limitCharacter?: number
@@ -55,11 +56,12 @@ export default function NoteEditor({
   initialValue = '',
   onChange,
 
-  placeholder,
   className = '',
   menuClassNames,
   editorClassName = '',
+  defaultTheme = false,
 
+  placeholder,
   showCount = false,
   countClassName = '',
   limitCharacter,
@@ -73,9 +75,11 @@ export default function NoteEditor({
 
   exposeStorage,
 }: NoteEditorProps) {
-  const setEditorCharCount = usePersistStore(
-    (state) => state.setEditorCharCount,
-  )
+  const [setEditorCharCount, mutateNoteData] = usePersistStore((state) => [
+    state.setEditorCharCount,
+    state.mutateNoteData,
+  ])
+  const theme = defaultTheme ? undefined : mutateNoteData?.theme
 
   const DisableEnter = Extension.create({
     name: 'disableEnter',
@@ -100,7 +104,8 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: classNames(
-            'focus:outline-none prose max-w-none dark:prose-invert [overflow-wrap:anywhere]',
+            'focus:outline-none prose max-w-none [overflow-wrap:anywhere]',
+            theme ? `prose-${theme}` : 'dark:prose-invert',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
           ),
@@ -125,7 +130,7 @@ export default function NoteEditor({
       injectCSS: false,
       autofocus: autofocus,
     },
-    [id, initialValue],
+    [id, theme, loading, disabled],
   )
 
   const charCountStorage = textEditor?.storage?.characterCount as
@@ -176,23 +181,19 @@ export default function NoteEditor({
         editor={textEditor}
         tippyOptions={{duration: 100}}
       >
-        <RTECommands className="!mb-0" editor={textEditor} menuType="bubble" />
+        <RTECommands editor={textEditor} menuType="bubble" />
       </BubbleMenu>
 
       <FloatingMenu
         pluginKey={new PluginKey(id)}
         className={classNames(
-          'bg-default rounded-lg',
+          'bg-default ml-4 rounded-lg',
           menuClassNames?.floatingMenu || '',
         )}
         editor={textEditor}
         tippyOptions={{duration: 100}}
       >
-        <RTECommands
-          className="!mb-0"
-          editor={textEditor}
-          menuType="floating"
-        />
+        <RTECommands editor={textEditor} menuType="floating" />
       </FloatingMenu>
     </>
   )

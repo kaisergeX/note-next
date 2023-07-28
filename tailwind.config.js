@@ -1,5 +1,10 @@
 // import defaultTheme from 'tailwindcss/defaultTheme'
 import {tailwindcssOriginSafelist} from '@headlessui-float/react'
+import {
+  typographyThemeBuilder,
+  twNoteThemeBuilder,
+  safelistClasses,
+} from './config/tailwindTheme'
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -34,6 +39,7 @@ module.exports = {
             },
           },
         },
+        ...typographyThemeBuilder(theme),
       }),
     },
   },
@@ -58,6 +64,7 @@ module.exports = {
         '.disabled': {
           '@apply pointer-events-none cursor-not-allowed opacity-50': {},
         },
+        ...twNoteThemeBuilder,
       })
       addVariant(
         'sm-only',
@@ -65,5 +72,5 @@ module.exports = {
       )
     },
   ],
-  safelist: [...tailwindcssOriginSafelist],
+  safelist: [...tailwindcssOriginSafelist, ...safelistClasses],
 }
