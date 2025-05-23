@@ -1,36 +1,37 @@
 import {IconNotes} from '@tabler/icons-react'
-import {getServerSession} from 'next-auth'
-import {getTranslator, redirect} from 'next-intl/server'
+import {getTranslations} from 'next-intl/server'
 import Image from 'next/image'
 import Link from 'next/link'
-import {authOptions} from '~/config/auth'
+import {redirect} from 'next/navigation'
+import FancyHeading from '~/components/ui/fancy-heading'
+import {auth} from '~/config/auth'
 import SwooshImg from '~/public/swoosh.png'
+import type {PropsWithLocale} from '~/types'
 
-type HomeProps = {
-  params: {locale: string}
-  searchParams: {
+type HomeProps = PropsWithLocale<{
+  searchParams: Promise<{
     utm_source?: string
     utm_medium?: string
     utm_campaign?: string
     utm_content?: string
     utm_term?: string
     p_r?: string
-  }
-}
+  }>
+}>
 
-export default async function Home({
-  params: {locale},
-  searchParams: {p_r},
-}: HomeProps) {
-  const t = await getTranslator(locale)
-  const session = await getServerSession(authOptions)
+export default async function Home(props: HomeProps) {
+  const searchParams = await props.searchParams
+  const {p_r} = searchParams
+  const locale = (await props.params).locale
+  const t = await getTranslations({locale})
+  const session = await auth()
 
   if (session && !p_r) {
     redirect('/eton')
   }
 
   return (
-    <main className="[&>section]:h-[100svh] [&>section]:w-full [&>section]:px-4">
+    <main className="[&>section]:h-svh [&>section]:w-full [&>section]:px-4">
       <section className="flex-center flex-col">
         <h2 className="text-center text-2xl font-extrabold md:text-4xl">
           {t('homepage.title')}

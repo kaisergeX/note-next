@@ -1,4 +1,5 @@
-import {type NextRequest} from 'next/server'
+import { type NextRequest } from "next/server";
+import { ipAddress } from "@vercel/functions";
 import {Ratelimit} from '@upstash/ratelimit'
 import {kv} from '@vercel/kv'
 import {API_RATE_LIMIT, API_RATE_LIMIT_DURATION} from '~/config/system'
@@ -20,7 +21,7 @@ const ratelimit = new Ratelimit({
  * @returns `true` if the request's rate limit exceeded.
  */
 export default async function rateLimit(request: NextRequest) {
-  const ip = request.ip ?? '127.0.0.1'
+  const ip = ipAddress(request) ?? '127.0.0.1'
   const {limit, reset, remaining, success} = await ratelimit.limit(ip)
 
   request.headers.set('X-RateLimit-Limit', limit.toString())

@@ -1,6 +1,6 @@
 'use client'
-import {signOut} from 'next-auth/react'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
+import {signOut} from '~/config/auth'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement>
 
@@ -12,7 +12,7 @@ export default function SignOutButton({
     <button
       type="button"
       className="button"
-      onClick={() => void signOut({redirect: true, callbackUrl: '/'})}
+      onClick={() => void signOut({redirect: true, redirectTo: '/'})}
       {...props}
     >
       {children}

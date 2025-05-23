@@ -1,8 +1,8 @@
 'use client'
-import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
+import {classNames} from '@kaiverse/k/utils'
 import {IconArrowUp} from '@tabler/icons-react'
+import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
 import {useWindowScroll} from '~/util/hooks/use-window-scroll'
-import {classNames} from '~/util'
 
 export default function ScrollTopButton({
   children,
@@ -17,7 +17,7 @@ export default function ScrollTopButton({
       type="button"
       role="navigation"
       className={classNames(
-        'button button-affix rounded-full p-1 transition-all sm-only:hidden',
+        'button button-affix rounded-full p-1 transition-all max-sm:hidden',
         scroll.y > 200 ? 'visible' : 'invisible -bottom-16',
       )}
       onClick={() => scrollTo({y: 0})}

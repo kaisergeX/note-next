@@ -1,20 +1,20 @@
 import type {Metadata} from 'next'
-import {getTranslator} from 'next-intl/server'
+import {getTranslations} from 'next-intl/server'
 import {type ReactNode} from 'react'
+import type {PropsWithLocale} from '~/types'
 
-export async function generateMetadata({
-  params: {locale},
-}: {
-  params: {locale: string}
-}): Promise<Metadata> {
-  const t = await getTranslator(locale)
+export async function generateMetadata(
+  props: PropsWithLocale,
+): Promise<Metadata> {
+  const locale = (await props.params).locale
+  const t = await getTranslations({locale})
 
   return {
     title: `${t('admin.title')} | ${
       process.env.SERVICE_NAME ?? t('common.app')
     }`,
     description: t('admin.description', {
-      serviceName: process.env.SERVICE_NAME,
+      serviceName: process.env.SERVICE_NAME ?? t('common.app'),
       slogan: t('common.slogan'),
     }),
   }

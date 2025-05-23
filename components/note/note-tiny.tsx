@@ -1,9 +1,9 @@
 'use client'
+import {classNames} from '@kaiverse/k/utils'
 import {IconDotsVertical, IconPalette} from '@tabler/icons-react'
 import Link from 'next/link'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
-import {classNames} from '~/util'
 
 type NoteProps = {
   data: Note
@@ -30,7 +30,7 @@ export default function NoteTiny({data}: NoteProps) {
       {title && (
         <article
           className={classNames(
-            'prose mb-4 line-clamp-3 font-semibold [overflow-wrap:anywhere] sm:prose-lg sm:leading-normal',
+            'prose sm:prose-lg mb-4 line-clamp-3 font-semibold wrap-anywhere sm:leading-normal',
             theme ? `prose-${theme}` : 'dark:prose-invert',
           )}
           dangerouslySetInnerHTML={{__html: title || ''}}
@@ -38,15 +38,14 @@ export default function NoteTiny({data}: NoteProps) {
       )}
       <article
         className={classNames(
-          'prose line-clamp-[10] [overflow-wrap:anywhere]',
+          'prose line-clamp-10 wrap-anywhere',
           theme ? `prose-${theme}` : 'dark:prose-invert',
         )}
         dangerouslySetInnerHTML={{__html: content || ''}}
       />
 
       <div
-        className="absolute inset-x-0 bottom-0 hidden w-full cursor-default justify-between p-2 text-zinc-500 transition 
-          sm:group-focus-within:flex sm:group-hover:flex"
+        className="absolute inset-x-0 bottom-0 hidden w-full cursor-default justify-between p-2 text-zinc-500 transition sm:group-focus-within:flex sm:group-hover:flex"
         onClick={(e) => e.preventDefault()}
       >
         <button type="button">

@@ -1,14 +1,19 @@
-import {Dialog, Transition} from '@headlessui/react'
+import {
+  Dialog,
+  DialogPanel,
+  Transition,
+  TransitionChild,
+} from '@headlessui/react'
+import {classNames} from '@kaiverse/k/utils'
 import {IconX} from '@tabler/icons-react'
 import {
   Fragment,
   useRef,
+  useState,
   type PropsWithChildren,
   type ReactNode,
-  useState,
 } from 'react'
 import type {NoteTheme} from '~/db/schema/notes'
-import {classNames} from '~/util'
 
 type DialogProps = {
   theme?: NoteTheme | null
@@ -68,7 +73,7 @@ export default function DialogCustom({
   )
 
   const renderLoadingPanel = (
-    <div className="flex h-full flex-col gap-4 sm:h-[20rem]">
+    <div className="flex h-full flex-col gap-4 sm:h-80">
       <div className={classNames('flex gap-4', titleClassName)}>
         <div className="h-6 flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
         {renderCloseButton}
@@ -79,13 +84,13 @@ export default function DialogCustom({
   )
 
   return (
-    <Transition show={open} as={Fragment}>
+    <Transition show={open}>
       <Dialog
         onClose={onClose}
-        className="sm-only:prevent-body-scroll relative z-30"
+        className="max-sm:prevent-body-scroll relative z-30"
       >
         {/* The backdrop, rendered as a fixed sibling to the panel container */}
-        <Transition.Child
+        <TransitionChild
           as={Fragment}
           enter={dialogEnterAnimation}
           enterFrom="opacity-0"
@@ -101,7 +106,7 @@ export default function DialogCustom({
             )}
             aria-hidden="true"
           />
-        </Transition.Child>
+        </TransitionChild>
 
         {/* Full-screen scrollable container */}
         <div className="fixed inset-0">
@@ -113,7 +118,7 @@ export default function DialogCustom({
             )}
           >
             {/* The actual dialog panel  */}
-            <Transition.Child
+            <TransitionChild
               as={Fragment}
               enter={dialogEnterAnimation}
               enterFrom="opacity-0 scale-95"
@@ -122,13 +127,12 @@ export default function DialogCustom({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel
+              <DialogPanel
                 className={classNames(
-                  `ring-theme overflow-y-auto shadow-xl sm-only:h-[100dvh] sm-only:w-[100dvw] sm:min-w-[32rem]
-                    sm:rounded-lg [&>div]:p-4`,
+                  `ring-theme overflow-y-auto shadow-xl max-sm:h-dvh max-sm:w-[100dvw] sm:min-w-lg sm:rounded-lg [&>div]:p-4`,
                   fullScreen
-                    ? 'h-[100dvh] w-[100dvw]'
-                    : 'min-h-[20rem] sm:max-h-full sm:w-1/2 sm:max-w-screen-sm 2xl:max-w-screen-lg',
+                    ? 'h-dvh w-dvw'
+                    : 'min-h-80 sm:max-h-full sm:w-1/2 sm:max-w-(--breakpoint-sm) 2xl:max-w-(--breakpoint-lg)',
                   theme ? `dialog-${theme}` : 'bg-zinc-50 dark:bg-zinc-900',
                   className,
                 )}
@@ -151,7 +155,7 @@ export default function DialogCustom({
                     <div
                       ref={inputRef}
                       className={classNames(
-                        'sticky top-0 z-40 flex gap-4 bg-inherit transition-shadow [&>*]:[overflow-wrap:anywhere]',
+                        'sticky top-0 z-40 flex gap-4 bg-inherit transition-shadow *:wrap-anywhere',
                         scrolled
                           ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
                           : '',
@@ -170,8 +174,8 @@ export default function DialogCustom({
                     {children}
                   </>
                 )}
-              </Dialog.Panel>
-            </Transition.Child>
+              </DialogPanel>
+            </TransitionChild>
           </div>
         </div>
       </Dialog>

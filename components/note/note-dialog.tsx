@@ -28,7 +28,7 @@ export default function NoteDialog({
 
   return (
     <DialogCustom
-      className="sm-only:flex sm-only:flex-col"
+      className="max-sm:flex max-sm:flex-col"
       theme={theme}
       titleClassName="flex-row-reverse"
       open={open}

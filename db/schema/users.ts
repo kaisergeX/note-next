@@ -1,13 +1,13 @@
 import {sql, type InferModel} from 'drizzle-orm'
 import {
+  pgEnum,
   pgTable,
   text,
-  varchar,
   timestamp,
-  pgEnum,
   uuid,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import {enumFromArray} from '../../types'
+import {enumFromArray} from '../../util'
 
 export const rolePgEnum = pgEnum('role', ['archivist', 'note-taker'])
 export type Role = (typeof rolePgEnum.enumValues)[number]

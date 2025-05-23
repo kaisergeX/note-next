@@ -10,7 +10,7 @@ export default async function Table() {
   const duration = Date.now() - startTime
 
   return (
-    <div className="mx-auto w-full max-w-xl rounded-lg bg-white/30 p-4 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a] sm:p-12">
+    <div className="mx-auto w-full max-w-xl rounded-lg bg-white/30 p-4 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg sm:p-12 dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a]">
       <div className="mb-4 flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Recent Users</h2>
@@ -38,7 +38,7 @@ export default async function Table() {
               )}
 
               <div className="space-y-1">
-                <p className="font-medium leading-none">{user.name}</p>
+                <p className="leading-none font-medium">{user.name}</p>
                 <p className="text-sm text-gray-500">{user.email}</p>
               </div>
             </div>

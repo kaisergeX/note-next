@@ -1,13 +1,19 @@
+import {hasLocale, type AppConfig} from 'next-intl'
 import {getRequestConfig} from 'next-intl/server'
-import {localeConfig} from './config/localization'
+import {localeRouting} from './config/localization'
 
-export default getRequestConfig(async ({locale}) => {
-  const localeFile = localeConfig.locales.includes(locale)
-    ? locale
-    : localeConfig.defaultLocale
+export default getRequestConfig(async ({requestLocale}) => {
+  const requested = await requestLocale
+  const locale = hasLocale(localeRouting.locales, requested)
+    ? requested
+    : localeRouting.defaultLocale
 
   return {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    messages: (await import(`./dictionaries/${localeFile}.json`)).default,
+    locale,
+    messages: (
+      (await import(`./dictionaries/${locale}.json`)) as {
+        default: AppConfig['Messages']
+      }
+    ).default,
   }
 })

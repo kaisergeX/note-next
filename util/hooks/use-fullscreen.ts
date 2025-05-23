@@ -64,7 +64,7 @@ export function useFullscreen<T extends HTMLElement>() {
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false)
   const [error, setError] = useState(false)
 
-  const elementRef = useRef<T>()
+  const elementRef = useRef<T>(undefined)
 
   const handleFullscreenChange = useCallback(
     (event: Event) => {

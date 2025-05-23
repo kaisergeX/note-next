@@ -1,6 +1,113 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+@plugin "@tailwindcss/typography";
+@config "../tailwind.config.mjs";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@utility font-inter {
+  @apply font-(family-name:--font-inter);
+}
+
+@utility flex-center {
+  @apply flex items-center justify-center gap-4;
+}
+
+@utility flex-center-between {
+  @apply flex items-center justify-between gap-4;
+}
+
+@utility disabled {
+  @apply pointer-events-none cursor-not-allowed opacity-50;
+}
+
+@utility ring-reverse {
+  @apply ring-1 ring-zinc-700 dark:ring-zinc-100;
+}
+
+@utility ring-theme {
+  @apply ring-1 ring-zinc-100 dark:ring-zinc-700;
+}
+
+@utility bg-default {
+  @apply bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
+}
+
+@utility bg-reverse {
+  @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
+}
+
+@utility bg-theme {
+  @apply bg-[#d6dbdc] bg-linear-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
+}
+
+@utility shadow-theme {
+  @apply shadow-xl ring-1 shadow-slate-700/10 ring-gray-900/5 dark:shadow-slate-400/10 dark:ring-gray-400/5;
+}
+
+@utility scrollbar {
+  &::-webkit-scrollbar {
+    @apply w-4;
+  }
+
+  &::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    @apply rounded-2xl border-4 border-solid border-transparent bg-[#d6dee1] bg-clip-content hover:bg-[#a8bbbf];
+  }
+
+  &::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+}
+
+@utility scrollbar-mac {
+  &::-webkit-scrollbar-thumb {
+    @apply bg-[#babac0];
+  }
+}
+
+@utility button-base {
+  @apply inline-flex items-center gap-2 rounded-md border px-3.5 py-2.5 align-top text-sm leading-normal font-semibold shadow-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-400;
+
+  &:not(:has(> :only-child)) {
+    /* apply styles to .button-base that has more than 1 child */
+    @apply h-11;
+  }
+}
+
+@utility button {
+  @apply button-base border-zinc-900 bg-zinc-900 text-white hover:bg-transparent hover:text-zinc-900 focus-visible:hover:border-transparent dark:border-transparent dark:bg-zinc-300 dark:text-black hover:dark:bg-zinc-100;
+}
+
+@utility button-secondary {
+  @apply button-base border-zinc-200 bg-transparent text-inherit hover:border-zinc-900 hover:text-inherit dark:border-zinc-600 dark:hover:border-zinc-200;
+}
+
+@utility button-affix {
+  @apply fixed right-4 bottom-4 mix-blend-difference invert dark:invert-0;
+}
+
+@utility button-icon {
+  @apply button-base h-fit!;
+}
+
+@utility card {
+  @apply rounded-lg border border-solid border-zinc-200 transition-shadow hover:shadow-md dark:border-zinc-700;
+}
+
+@utility card-fancy {
+  @apply dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a];
+}
+
+@utility glass {
+  @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/[0.06] dark:bg-transparent;
+}
+
+@utility text-gradient {
+  @apply bg-linear-to-r from-rose-500 to-violet-500 bg-clip-text text-transparent;
+}
 
 @layer base {
   :root:not(:has(body > main.bg-fancy)) * {
@@ -13,12 +120,12 @@
       related to this issue https://github.com/vercel/next.js/issues/44295 
       and PR https://github.com/vercel/next.js/pull/46995
     */
-    @apply scroll-pt-16 !scroll-smooth;
+    @apply scroll-pt-16 scroll-smooth!;
   }
 
-  /* :root:has(body > main.bg-fancy) {
+  :root:has(body > main.bg-fancy) {
     @apply scrollbar scrollbar-mac;
-  } */
+  }
 
   body {
     @apply bg-default;
@@ -33,7 +140,7 @@
   }
 
   body:has(.prevent-body-scroll) {
-    @apply !overflow-hidden overscroll-contain;
+    @apply overflow-hidden! overscroll-contain;
   }
 
   h1 {
@@ -48,6 +155,15 @@
     @apply font-semibold sm:text-lg;
   }
 
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    @apply disabled;
+  }
+
   a {
     @apply transition-colors hover:text-blue-400;
   }
@@ -57,107 +173,6 @@
   }
 
   .prose code {
-    @apply bg-[--tw-prose-code-pg,theme(colors.gray[200])] dark:bg-[--tw-prose-code-pg,theme(colors.gray[700])];
-  }
-}
-
-@layer components {
-  .button-base {
-    @apply inline-flex items-center gap-2 rounded-md border px-3.5 py-2.5 align-top text-sm font-semibold leading-normal 
-      shadow-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 
-      focus-visible:outline-zinc-900 dark:focus-visible:outline-zinc-400;
-  }
-
-  button:disabled {
-    @apply disabled;
-  }
-
-  .button-base:not(:has(> :only-child)) {
-    /* apply styles to .button-base that has more than 1 child */
-    @apply h-11;
-  }
-
-  .button {
-    @apply button-base border-zinc-900 bg-zinc-900 text-white
-      hover:bg-transparent hover:text-zinc-900 focus-visible:hover:border-transparent
-      dark:border-transparent dark:bg-zinc-300 dark:text-black hover:dark:bg-zinc-100;
-  }
-
-  .button-secondary {
-    @apply button-base border-zinc-200 bg-transparent text-inherit hover:border-zinc-900 hover:text-inherit 
-      dark:border-zinc-600 dark:hover:border-zinc-200;
-  }
-
-  .button-affix {
-    @apply fixed bottom-4 right-4 mix-blend-difference invert dark:invert-0;
-  }
-
-  .button-icon {
-    @apply button-base !h-fit;
-  }
-
-  .card {
-    @apply rounded-lg border border-solid border-zinc-200 transition-shadow hover:shadow-md dark:border-zinc-700;
-  }
-
-  .card-fancy {
-    @apply dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a];
-  }
-
-  .glass {
-    @apply bg-zinc-50/40 backdrop-blur-sm transition-all dark:border-slate-50/[0.06] dark:bg-transparent sm:bg-transparent;
-  }
-
-  .text-gradient {
-    @apply bg-gradient-to-r from-rose-500 to-violet-500 bg-clip-text text-transparent;
-  }
-}
-
-@layer utilities {
-  .ring-reverse {
-    @apply ring-1 ring-zinc-700 dark:ring-zinc-100;
-  }
-
-  .ring-theme {
-    @apply ring-1 ring-zinc-100 dark:ring-zinc-700;
-  }
-
-  .bg-default {
-    @apply bg-zinc-50 text-black antialiased dark:bg-zinc-900 dark:text-zinc-200;
-  }
-
-  .bg-reverse {
-    @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
-  }
-
-  .bg-theme {
-    @apply bg-[#d6dbdc] bg-gradient-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
-  }
-
-  .shadow-theme {
-    @apply shadow-xl shadow-slate-700/10 ring-1 ring-gray-900/5 dark:shadow-slate-400/10 dark:ring-gray-400/5;
-  }
-
-  .scrollbar::-webkit-scrollbar {
-    width: 16px;
-  }
-
-  .scrollbar::-webkit-scrollbar-track {
-    background-color: transparent;
-  }
-
-  .scrollbar::-webkit-scrollbar-thumb {
-    background-color: #d6dee1;
-    border-radius: 16px;
-    border: 4px solid transparent;
-    background-clip: content-box;
-  }
-
-  .scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: #a8bbbf;
-  }
-
-  .scrollbar-mac::-webkit-scrollbar-thumb {
-    background-color: #babac0;
+    @apply bg-[--tw-prose-code-pg,var(--color-gray-200)] dark:bg-[--tw-prose-code-pg,var(--color-gray-700)];
   }
 }

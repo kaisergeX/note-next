@@ -3,6 +3,8 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
+  
+  // "tailwindCSS.experimental.configFile": "app\\globals.css",
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
   "typescript.format.semicolons": "remove",
   "typescript.tsdk": "node_modules\\typescript\\lib"
