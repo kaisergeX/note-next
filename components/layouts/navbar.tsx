@@ -4,19 +4,21 @@ import {
   IconActivity,
   IconLogout,
   IconMenu2,
+  IconMoonStars,
+  IconSun,
   IconUser,
+  IconUserCircle,
   IconX,
 } from '@tabler/icons-react'
-import {IconMoonStars, IconSun} from '@tabler/icons-react'
-import Link from 'next/link'
-import {usePersistStore} from '~/store'
-import SignOutButton from '../auth/signout-button'
 import {useSession} from 'next-auth/react'
+import Image from 'next/image'
+import Link from 'next/link'
 import {usePathname} from 'next/navigation'
 import {protectedPathnameRegex} from '~/config/auth'
-import Image from 'next/image'
-import {IconUserCircle} from '@tabler/icons-react'
+import {usePersistStore} from '~/store'
+import SignOutButton from '../auth/signout-button'
 import MenuCustom, {type MenuItem} from '../ui/menu'
+import {classNames} from '@kaiverse/k/utils'
 
 type NavProps = {
   appName: string
@@ -66,7 +68,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
     {
       containerAs: 'div',
       component: (
-        <SignOutButton className="ui-active:bg-reverse hover:bg-reverse flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors ui-disabled:disabled">
+        <SignOutButton className="data-[active]:bg-reverse hover:bg-reverse data-[disabled]:disabled flex w-full items-center gap-2 p-4 text-left text-red-500 transition-colors">
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
@@ -91,8 +93,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
   return (
     <Disclosure
       as="nav"
-      className="glass sticky inset-x-0 top-0 z-20 w-full
-        ui-open:fixed ui-open:bg-white dark:ui-open:bg-inherit sm:ui-open:bg-inherit"
+      className="glass sticky inset-x-0 top-0 z-20 w-full data-[open]:fixed data-[open]:bg-white sm:data-[open]:bg-inherit dark:data-[open]:bg-inherit"
     >
       {({open}) => (
         <>
@@ -122,11 +123,14 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 {/* Profile dropdown */}
                 <MenuCustom
                   as="div"
-                  className={`flex items-center rounded-full ${renderAvatar.container}`}
+                  className={classNames(
+                    'flex items-center rounded-full',
+                    renderAvatar.container,
+                  )}
                   menuClassName="hidden md:block"
                   itemsClassName="w-48"
                   items={desktopMenuItems}
-                  floatOptions={{portal: true, zIndex: 20}}
+                  // floatOptions={{portal: true, zIndex: 20}}
                 >
                   <span className="sr-only">Open user menu</span>
                   {renderAvatar.avatar}
@@ -141,7 +145,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
             </div>
           </div>
 
-          <Disclosure.Panel className="sm-only:prevent-body-scroll absolute w-full bg-white shadow-[0_8px_5px_-5px] shadow-slate-100 dark:bg-inherit dark:shadow-slate-700 md:hidden">
+          <Disclosure.Panel className="max-sm:prevent-body-scroll absolute w-full bg-white shadow-[0_8px_5px_-5px] shadow-slate-100 md:hidden dark:bg-inherit dark:shadow-slate-700">
             <div className="flex h-[calc(100dvh-4rem)] flex-col border-t border-gray-700">
               <div className="flex gap-4 border-b border-zinc-200 px-4 py-8 dark:border-zinc-700">
                 <div className={renderAvatar.container}>
@@ -150,7 +154,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 <div>
                   <div className="leading-none">{profileName}</div>
                   {data?.user?.email && (
-                    <div className="mt-2 text-sm font-medium leading-none text-zinc-400">
+                    <div className="mt-2 text-sm leading-none font-medium text-zinc-400">
                       {data.user.email}
                     </div>
                   )}

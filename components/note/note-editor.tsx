@@ -1,26 +1,26 @@
 'use client'
 
-import {
-  Extension,
-  useEditor,
-  EditorContent,
-  BubbleMenu,
-  FloatingMenu,
-  type FocusPosition,
-} from '@tiptap/react'
-import Placeholder from '@tiptap/extension-placeholder'
-import StarterKit from '@tiptap/starter-kit'
+import {classNames} from '@kaiverse/k/utils'
 import CharacterCount, {
   type CharacterCountStorage,
 } from '@tiptap/extension-character-count'
-import {classNames} from '~/util'
-import RTECommands from '../ui/rte-commands'
-import {PluginKey} from '@tiptap/pm/state'
 import Highlight from '@tiptap/extension-highlight'
-import {usePersistStore} from '~/store'
+import Placeholder from '@tiptap/extension-placeholder'
+import {PluginKey} from '@tiptap/pm/state'
+import {
+  BubbleMenu,
+  EditorContent,
+  Extension,
+  FloatingMenu,
+  useEditor,
+  type FocusPosition,
+} from '@tiptap/react'
+import StarterKit from '@tiptap/starter-kit'
 import {useEffect} from 'react'
-import {useDebounced} from '~/util/hooks/use-debounced'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
+import {usePersistStore} from '~/store'
+import {useDebounced} from '~/util/hooks/use-debounced'
+import RTECommands from '../ui/rte-commands'
 
 type NoteEditorProps = {
   id: string
@@ -104,7 +104,7 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: classNames(
-            'focus:outline-none prose max-w-none [overflow-wrap:anywhere]',
+            'focus:outline-none prose max-w-none wrap-anywhere',
             theme ? `prose-${theme}` : 'dark:prose-invert',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
@@ -149,7 +149,6 @@ export default function NoteEditor({
         words: wordCountDebounced,
       })
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterCountDebounced, wordCountDebounced])
 
   if (!textEditor) {
@@ -232,7 +231,7 @@ export default function NoteEditor({
       {showCount && (
         <div
           className={classNames(
-            'invisible absolute -bottom-4 right-4 border-gray-100 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
+            'invisible absolute right-4 -bottom-4 border-gray-100 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
             countClassName,
           )}
         >

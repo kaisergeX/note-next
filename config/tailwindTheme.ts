@@ -35,7 +35,7 @@ export const twNoteThemeConfig: {
   theme,
   picker: `bg-${theme}-400`,
   dialog: `bg-${theme}-100 text-${theme}-800`,
-  themeShadow: `!shadow-${theme}-500/20`,
+  themeShadow: `shadow-${theme}-500/20!`,
 }))
 
 type TypographyThemeProps = Partial<

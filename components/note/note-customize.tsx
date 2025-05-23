@@ -1,21 +1,21 @@
 'use client'
 
+import {classNames} from '@kaiverse/k/utils'
 import {
-  IconLoader2,
   IconCheck,
   IconDotsVertical,
-  IconTrash,
-  IconTexture,
+  IconLoader2,
+  IconPalette,
   IconPaletteOff,
+  IconTexture,
+  IconTrash,
 } from '@tabler/icons-react'
-import {classNames} from '~/util'
-import MenuCustom, {type MenuItem} from '../ui/menu'
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import {type Note} from '~/db/schema/notes'
-import {IconPalette} from '@tabler/icons-react'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
+import {type Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
+import MenuCustom, {type MenuItem} from '../ui/menu'
 
 export type NoteCustomizeProps = {
   note?: Note
@@ -114,11 +114,11 @@ export default function NoteCustomize({
           items={menuColors}
           className="button-icon rounded-full p-1"
           itemsClassName="w-48 grid grid-cols-4 gap-2 p-4"
-          floatOptions={{
-            portal: true,
-            flip: true,
-            placement: 'bottom-start',
-          }}
+          // floatOptions={{
+          //   portal: true,
+          //   flip: true,
+          //   placement: 'bottom-start',
+          // }}
         >
           <IconPalette size="1.2rem" />
         </MenuCustom>
@@ -153,10 +153,10 @@ export default function NoteCustomize({
             items={menuItems}
             className="block"
             itemsClassName="w-48"
-            floatOptions={{
-              portal: true,
-              flip: true,
-            }}
+            // floatOptions={{
+            //   portal: true,
+            //   flip: true,
+            // }}
           >
             <IconDotsVertical size="1.2rem" />
           </MenuCustom>

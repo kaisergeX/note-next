@@ -1,4 +1,4 @@
-import {type DefaultSession, type DefaultUser} from 'next-auth'
+import type {DefaultSession, User as DefaultUser} from 'next-auth'
 import type {DefaultJWT} from 'next-auth/jwt'
 import type {Role} from '~/db/schema/users'
 

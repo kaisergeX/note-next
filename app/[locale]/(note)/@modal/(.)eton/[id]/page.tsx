@@ -1,17 +1,18 @@
 'use client'
 import {useRouter} from 'next/navigation'
-import {useState, useEffect, useTransition} from 'react'
+import {use, useEffect, useState, useTransition} from 'react'
 import useSWR from 'swr'
-import {type Note, type UpdateNote} from '~/db/schema/notes'
-import {fetcher, isEqualNonNestedObj, sleep} from '~/util'
 import NoteDialog from '~/components/note/note-dialog'
-import {mutateNoteAction} from '../../../eton/actions'
-import type {ServerError} from '~/types'
+import {type Note, type UpdateNote} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
+import type {PropsWithLocale, ServerError} from '~/types'
+import {fetcher, isEqualNonNestedObj, sleep} from '~/util'
+import {mutateNoteAction} from '../../../eton/actions'
 
-type NoteDetailProps = {params: {id: string}}
+type NoteDetailProps = PropsWithLocale<unknown, {id: string}>
 
-export default function NoteDetailModal({params: {id}}: NoteDetailProps) {
+export default function NoteDetailModal(props: NoteDetailProps) {
+  const id = use(props.params).id
   const router = useRouter()
   const [openModal, setOpenModal] = useState(false)
   const [_, startTransition] = useTransition()

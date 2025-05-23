@@ -1,47 +1,52 @@
 import createIntlMiddleware from 'next-intl/middleware'
-import {NextResponse, type NextRequest} from 'next/server'
-import {localeConfig} from '~/config/localization'
-import {withAuth, type NextRequestWithAuth} from 'next-auth/middleware'
-import type {NextMiddlewareResult} from 'next/dist/server/web/types'
+import {
+  NextResponse,
+  type MiddlewareConfig,
+  type NextMiddleware,
+  type NextRequest,
+} from 'next/server'
+import {localeRouting} from '~/config/localization'
 import {
   archivistPathnameRegex,
+  auth,
   protectedApiRegex,
   protectedPathnameRegex,
 } from './config/auth'
-import {RoleEnum} from './db/schema/users'
-import rateLimit from './db/helper/rateLimit'
 import {rateLimitErrResponse} from './config/exceptions'
+import rateLimit from './db/helper/rateLimit'
+import {isArchivist} from './util'
 
-const redirectToPermissionsDenied = (req: NextRequestWithAuth | NextRequest) =>
+const redirectToPermissionsDenied = (req: NextRequest) =>
   NextResponse.redirect(new URL('/denied/permission', req.url))
 
-const intlMiddleware = createIntlMiddleware(localeConfig)
-const authMiddleware = withAuth(
-  // Note that this callback is only invoked if
-  // the `authorized` callback has returned `true`
-  // and not for pages listed in `pages`.
-  function middleware(req) {
-    const userRole = req.nextauth.token?.role
-    if (
-      userRole !== RoleEnum.archivist &&
-      archivistPathnameRegex.test(req.nextUrl.pathname)
-    ) {
-      return redirectToPermissionsDenied(req)
-    }
+const intlMiddleware = createIntlMiddleware(localeRouting)
 
-    return NextResponse.next()
-  },
-  {
-    callbacks: {
-      authorized: ({token}) => token != null,
-    },
-    pages: {
-      signIn: '/login',
-    },
-  },
-) as (request: NextRequest) => Promise<NextMiddlewareResult>
+// const authMiddleware = withAuth(
+//   // Note that this callback is only invoked if
+//   // the `authorized` callback has returned `true`
+//   // and not for pages listed in `pages`.
+//   function middleware(req) {
+//     const userRole = req.nextauth.token?.role
+//     if (
+//       userRole !== RoleEnum.archivist &&
+//       archivistPathnameRegex.test(req.nextUrl.pathname)
+//     ) {
+//       return redirectToPermissionsDenied(req)
+//     }
 
-const apiMiddleware = async (req: NextRequest) => {
+//     return NextResponse.next()
+//   },
+//   {
+//     callbacks: {
+//       authorized: ({token}) => token != null,
+//     },
+//     pages: {
+//       signIn: '/login',
+//     },
+//   },
+// ) as (request: NextRequest) => Promise<NextMiddlewareResult>
+
+const apiMiddleware: NextMiddleware = async (req) => {
   if (await rateLimit(req)) {
     return rateLimitErrResponse()
   }
@@ -49,33 +54,40 @@ const apiMiddleware = async (req: NextRequest) => {
   return NextResponse.next()
 }
 
-export default async function middleware(req: NextRequest) {
-  // const isPublicPage = publicPathnameRegex.test(req.nextUrl.pathname)
-  const isProtectedRoutes = protectedPathnameRegex.test(req.nextUrl.pathname)
+const middleware: NextMiddleware = async (req, e) => {
+  const {pathname} = req.nextUrl
+
+  // const isPublicPage = publicPathnameRegex.test(pathname)
+  const isProtectedRoutes = protectedPathnameRegex.test(pathname)
   if (!isProtectedRoutes) {
     return intlMiddleware(req)
   }
 
-  const authenticatedRes = await authMiddleware(req)
+  const session = await auth()
+  if (!isArchivist(session) && archivistPathnameRegex.test(pathname)) {
+    return redirectToPermissionsDenied(req)
+  }
 
-  if (protectedApiRegex.test(req.nextUrl.pathname)) {
+  if (protectedApiRegex.test(pathname)) {
     // Middleware for all API routes except /api/auth/* route.
     // Need authenticated to request.
-    if (!authenticatedRes?.ok) {
+    if (!session) {
       return redirectToPermissionsDenied(req)
     }
 
-    return apiMiddleware(req)
+    return apiMiddleware(req, e)
   }
 
-  if (!authenticatedRes?.ok) {
-    return authenticatedRes
+  if (!session) {
+    return redirectToPermissionsDenied(req)
   }
 
   return intlMiddleware(req)
 }
 
-export const config = {
+export const config: MiddlewareConfig = {
   // Skip all paths that should not be internationalized and authenticated
   matcher: ['/((?!api/auth/.*|_next|.*\\..*).*)'],
 }
+
+export default middleware

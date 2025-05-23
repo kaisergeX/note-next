@@ -1,12 +1,10 @@
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import type {Session} from 'next-auth'
 import {redirect} from 'next/navigation'
 import type {ServerError} from '~/types'
+import {RoleEnum} from '../db/schema/users'
 dayjs.extend(relativeTime)
-
-export function classNames(...classes: string[]): string {
-  return classes.filter(Boolean).join(' ')
-}
 
 export function sleep(millis = 0) {
   return new Promise((resolve) => setTimeout(resolve, millis))
@@ -171,4 +169,28 @@ export function isEqualNonNestedObj(
   }
 
   return true
+}
+
+/**
+ * @example
+ * ```ts
+ * const themePgEnum = pgEnum('theme', ['red', 'pink', 'orange'])
+ * enumFromArray(themeEnum.enumValues) // {red: 'red', pink: 'pink', orange: 'orange'}
+ *
+ * const themeEnum = ['red', 'pink', 'orange'] as const
+ * enumFromArray(themeEnum) // {red: 'red', pink: 'pink', orange: 'orange'}
+ * ```
+ */
+export function enumFromArray<T extends string>(
+  inputArr: Readonly<Array<T>>,
+): {[K in T]: K} {
+  const result = {} as {[K in T]: K}
+  for (const key of inputArr) {
+    result[key] = key
+  }
+  return result
+}
+
+export function isArchivist(session: Session | null): boolean {
+  return session?.user?.role === RoleEnum.archivist
 }

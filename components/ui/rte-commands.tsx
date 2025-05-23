@@ -1,21 +1,21 @@
 'use client'
 
+import {classNames} from '@kaiverse/k/utils'
 import {
   IconArrowBackUp,
+  IconArrowForwardUp,
+  IconBlockquote,
+  IconBold,
+  IconClearAll,
   IconClearFormatting,
   IconCode,
+  IconH1,
   IconHighlight,
   IconItalic,
   IconStrikethrough,
 } from '@tabler/icons-react'
-import {IconBlockquote} from '@tabler/icons-react'
-import {IconH1} from '@tabler/icons-react'
-import {IconArrowForwardUp} from '@tabler/icons-react'
-import {IconClearAll} from '@tabler/icons-react'
-import {IconBold} from '@tabler/icons-react'
 import type {Editor} from '@tiptap/react'
 import {Fragment, type ReactNode} from 'react'
-import {classNames} from '~/util'
 
 type RTEMenuItem =
   | {

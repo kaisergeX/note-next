@@ -1,11 +1,11 @@
-import type {NextAuthOptions} from 'next-auth'
+import NextAuth, {type NextAuthConfig} from 'next-auth'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
-import {localeConfig} from './localization'
 import {db} from '~/db'
-import {UsersTable, type NewUser, RoleEnum} from '~/db/schema/users'
 import {getUserRole} from '~/db/helper/users'
+import {RoleEnum, UsersTable, type NewUser} from '~/db/schema/users'
+import {localeRouting} from './localization'
 
-export const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthConfig = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
@@ -51,6 +51,10 @@ export const authOptions: NextAuthOptions = {
       }
       return true
     },
+    authorized: ({auth}) => !!auth?.user?.email,
+  },
+  pages: {
+    signIn: '/login',
   },
 }
 
@@ -83,10 +87,11 @@ const protectedRoutes = [
  */
 const pathNameRegex = (routes: string[]) =>
   new RegExp(
-    `^(/(${localeConfig.locales.join('|')}))?(${routes.join('|')})+/?$`,
+    `^(/(${localeRouting.locales.join('|')}))?(${routes.join('|')})+/?$`,
     'i',
   )
 
 export const protectedPathnameRegex = pathNameRegex(protectedRoutes)
 export const archivistPathnameRegex = pathNameRegex(archivistRoutes)
 export const protectedApiRegex = pathNameRegex(protectedAPIRoutes)
+export const {auth, handlers, signIn, signOut} = NextAuth(authOptions)

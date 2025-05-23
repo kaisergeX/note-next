@@ -1,16 +1,19 @@
-import {IconNoteOff} from '@tabler/icons-react'
-import {IconBrush, IconUserCircle, IconUserOff} from '@tabler/icons-react'
-import {getServerSession} from 'next-auth'
+import {classNames} from '@kaiverse/k/utils'
+import {
+  IconBrush,
+  IconNoteOff,
+  IconUserCircle,
+  IconUserOff,
+} from '@tabler/icons-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
 import Badge from '~/components/ui/badge'
-import {authOptions} from '~/config/auth'
+import {auth} from '~/config/auth'
 import {getUser} from '~/db/helper/users'
-import {classNames} from '~/util'
 
 export default async function MyProfile() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const userEmail = session?.user?.email
 
   if (!userEmail) {
@@ -25,7 +28,7 @@ export default async function MyProfile() {
     <Link
       key={id}
       className={classNames(
-        'card group relative flex min-h-[20rem] flex-col-reverse overflow-hidden transition-colors hover:text-inherit',
+        'card group relative flex min-h-80 flex-col-reverse overflow-hidden transition-colors hover:text-inherit',
         index % 2 === 0
           ? 'bg-default hover:bg-theme duration-500'
           : 'bg-reverse',
@@ -70,7 +73,7 @@ export default async function MyProfile() {
       </div>
       <hr />
       <h2>Setting</h2>
-      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(16rem,_1fr))] gap-4">
+      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
         {renderSettings}
       </div>
       <hr />

@@ -1,5 +1,5 @@
+import {classNames} from '@kaiverse/k/utils'
 import type {PropsWithChildren} from 'react'
-import {classNames} from '~/util'
 
 type BadgeProps = {
   className?: string
@@ -16,7 +16,7 @@ export default function Badge({
   const renderPing = withPing ? (
     <span
       className={classNames(
-        'absolute right-0 top-0 -mr-1 -mt-1 flex h-3 w-3',
+        'absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3',
         pingClassName,
       )}
     >

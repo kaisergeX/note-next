@@ -1,17 +1,18 @@
-import SignInButton from '~/components/auth/signin-button'
-import {redirect} from 'next/navigation'
-import {getTranslator} from 'next-intl/server'
-import {getServerSession} from 'next-auth'
-import {authOptions} from '~/config/auth'
-import Link from 'next/link'
 import type {Metadata} from 'next'
+import {getTranslations} from 'next-intl/server'
+import Link from 'next/link'
+import {redirect} from 'next/navigation'
+import SignInButton from '~/components/auth/signin-button'
+import {auth} from '~/config/auth'
+import type {PropsWithLocale} from '~/types'
 
-export async function generateMetadata({
-  params: {locale},
-}: {
-  params: {locale: string}
-}): Promise<Metadata> {
-  const t = await getTranslator(locale)
+export async function generateMetadata(
+  props: PropsWithLocale,
+): Promise<Metadata> {
+  const params = await props.params
+  const {locale} = params
+
+  const t = await getTranslations({locale})
 
   return {
     title: `${t('auth.login')} | ${
@@ -21,13 +22,10 @@ export async function generateMetadata({
   }
 }
 
-type Props = {
-  params: {locale: string}
-}
-
-export default async function Login({params: {locale}}: Props) {
-  const t = await getTranslator(locale, 'auth')
-  const session = await getServerSession(authOptions)
+export default async function Login(props: PropsWithLocale) {
+  const locale = (await props.params).locale
+  const t = await getTranslations({locale, namespace: 'auth'})
+  const session = await auth()
 
   if (session) {
     redirect('/eton')
@@ -58,7 +56,7 @@ export default async function Login({params: {locale}}: Props) {
       <div className="text-center text-sm">
         By clicking Sign In, you are setting up a etoN account and agree to our{' '}
         <Link
-          className="underline "
+          className="underline"
           href="/trust/privacy"
           rel="noopener noreferrer nofollow"
           target="_blank"

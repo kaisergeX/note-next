@@ -1,30 +1,32 @@
 'use client'
 
+import {classNames} from '@kaiverse/k/utils'
 import {
   IconArrowLeft,
   IconWindowMaximize,
   IconWindowMinimize,
 } from '@tabler/icons-react'
 import {useRouter} from 'next/navigation'
-import {classNames, fetcher, genRandom, isEqualNonNestedObj} from '~/util'
+import {use, useTransition} from 'react'
 import useSWR from 'swr'
+import NoteCustomize from '~/components/note/note-customize'
+import NoteEditor from '~/components/note/note-editor'
 import {
   type Note,
   type UpdateNote,
   NOTE_TITLE_MAX_LENGTH,
 } from '~/db/schema/notes'
-import type {ServerError} from '~/types'
-import NoteEditor from '~/components/note/note-editor'
-import {useWindowScroll} from '~/util/hooks/use-window-scroll'
-import {useTransition} from 'react'
-import {mutateNoteAction} from '../actions'
-import NoteCustomize from '~/components/note/note-customize'
-import {useFullscreen} from '~/util/hooks/use-fullscreen'
 import {usePersistStore} from '~/store'
+import type {PropsWithLocale, ServerError} from '~/types'
+import {fetcher, genRandom, isEqualNonNestedObj} from '~/util'
+import {useFullscreen} from '~/util/hooks/use-fullscreen'
+import {useWindowScroll} from '~/util/hooks/use-window-scroll'
+import {mutateNoteAction} from '../actions'
 
-type NoteDetailProps = {params: {id: string}}
+type NoteDetailProps = PropsWithLocale<unknown, {id: string}>
 
-export default function NoteDetail({params: {id}}: NoteDetailProps) {
+export default function NoteDetail(props: NoteDetailProps) {
+  const id = use(props.params).id
   const router = useRouter()
   const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
   const [isPending, startTransition] = useTransition()
@@ -88,7 +90,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         <div className="flex items-center gap-4">
           {contentCount.words > 1 && (
             <div className="group cursor-default text-xs sm:text-sm">
-              <span className="opacity-0 transition-opacity group-hover:opacity-100 sm-only:hidden">
+              <span className="opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden">
                 {contentCount.characters} characters,
               </span>
               &nbsp;{contentCount.words} words
@@ -97,7 +99,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
           <button
             type="button"
             title="Toggle fullscreen"
-            className="button-secondary button-icon rounded-full p-1 sm-only:hidden"
+            className="button-secondary button-icon rounded-full p-1 max-sm:hidden"
             onClick={() => void toggleFullscreen()}
             disabled={fullscreenErr}
           >
@@ -127,7 +129,7 @@ export default function NoteDetail({params: {id}}: NoteDetailProps) {
         <NoteEditor
           id="note-content"
           className={classNames(
-            'flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:!w-auto sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1',
+            'flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:w-auto! sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1',
             theme
               ? `dialog-${theme} shadow-xl shadow-theme-${theme}`
               : 'sm:shadow-theme',

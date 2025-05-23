@@ -1,14 +1,13 @@
-import {getServerSession} from 'next-auth'
 import {redirect} from 'next/navigation'
 import NoteCreateEditor from '~/components/note/note-create'
 import NoteTiny from '~/components/note/note-tiny'
-import {authOptions} from '~/config/auth'
+import {auth} from '~/config/auth'
 import {getListNote} from '~/db/helper/notes'
 import {getUser} from '~/db/helper/users'
 import {genRandom} from '~/util'
 
 export default async function Notes() {
-  const session = await getServerSession(authOptions)
+  const session = await auth()
   const userEmail = session?.user?.email
   if (!userEmail) {
     redirect('/denied/permission')
@@ -22,7 +21,7 @@ export default async function Notes() {
   ))
 
   return (
-    <main className="h-full p-4 sm-only:pt-0">
+    <main className="h-full p-4 max-sm:pt-0">
       <NoteCreateEditor authorId={userInfo.id} />
       {renderNoteList.length === 0 ? (
         <h3 className="mt-40 text-center opacity-50">
@@ -34,7 +33,7 @@ export default async function Notes() {
           ])}
         </h3>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,_1fr))] grid-rows-[masonry] gap-4 pb-8">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] grid-rows-[masonry] gap-4 pb-8">
           {renderNoteList}
         </div>
       )}

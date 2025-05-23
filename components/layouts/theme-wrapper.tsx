@@ -1,4 +1,5 @@
 'use client'
+import {classNames} from '@kaiverse/k/utils'
 import {type HtmlHTMLAttributes, type PropsWithChildren, useEffect} from 'react'
 import {usePersistStore, withStorageDOMEvents} from '~/store'
 
@@ -27,14 +28,17 @@ export default function ThemeWrapper({
   }, [])
 
   return (
-    <html {...props} className={`${className}${isDarkMode ? ' dark' : ''}`}>
+    <html
+      {...props}
+      className={classNames(className, isDarkMode ? 'dark' : '')}
+    >
       {/* 
         Note that dv* will adapts with viewport size (which changes the actual size of element),
         so we should use with transition for better UX to avoid instant size scaling.
         eg: scrolling on mobile browsers will hide/show the address bar, which will change the viewport height.
         ref: https://web.dev/viewport-units/
       */}
-      <body className="relative flex h-[100dvh] flex-col font-inter transition-[height]">
+      <body className="font-inter relative flex h-dvh flex-col transition-[height]">
         {children}
       </body>
     </html>
