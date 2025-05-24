@@ -9,7 +9,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
 import Badge from '~/components/ui/badge'
-import {auth} from '~/config/auth'
+import {auth} from '~/auth'
 import {getUser} from '~/db/helper/users'
 
 export default async function MyProfile() {

@@ -1,4 +1,4 @@
-import {sql, type InferModel} from 'drizzle-orm'
+import {sql, type InferInsertModel, type InferSelectModel} from 'drizzle-orm'
 import {
   pgEnum,
   pgTable,
@@ -13,7 +13,7 @@ export const rolePgEnum = pgEnum('role', ['archivist', 'note-taker'])
 export type Role = (typeof rolePgEnum.enumValues)[number]
 export const RoleEnum = enumFromArray(rolePgEnum.enumValues)
 
-export const UsersTable = pgTable('users', {
+export const usersTable = pgTable('users', {
   id: uuid('id')
     .default(sql`generate_ulid()`)
     .primaryKey(),
@@ -30,9 +30,9 @@ export const UsersTable = pgTable('users', {
     .notNull(),
 })
 
-export type User = InferModel<typeof UsersTable>
+export type User = InferSelectModel<typeof usersTable>
 export type NewUser = Omit<
-  InferModel<typeof UsersTable, 'insert'>,
+  InferInsertModel<typeof usersTable>,
   'id' | 'createdAt' | 'updatedAt'
 >
 export type UpdateUser = Omit<NewUser, 'email'>

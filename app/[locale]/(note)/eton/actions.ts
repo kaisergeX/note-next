@@ -3,10 +3,10 @@
 import {revalidatePath} from 'next/cache'
 import {db} from '~/db'
 import {deleteNote, updateNote} from '~/db/helper/notes'
-import {NotesTable, type NewNote, type UpdateNote} from '~/db/schema/notes'
+import {notesTable, type NewNote, type UpdateNote} from '~/db/schema/notes'
 
 export async function createNoteAction(noteData: NewNote) {
-  await db.insert(NotesTable).values(noteData)
+  await db.insert(notesTable).values(noteData)
   revalidatePath('/eton')
 }
 

@@ -1,7 +1,26 @@
-import {sql} from '@vercel/postgres'
-import {drizzle} from 'drizzle-orm/vercel-postgres'
+import {neon} from '@neondatabase/serverless'
+import {drizzle} from 'drizzle-orm/neon-http'
 
-export const db = drizzle(sql)
+let dbInstance: ReturnType<typeof drizzle> | null = null
+
+function getDb() {
+  if (!process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL is not set')
+  }
+  const sql = neon(process.env.DATABASE_URL)
+  dbInstance = drizzle({client: sql})
+  return dbInstance
+}
+
+// a getter alias named `db` to minimize boilerplace & changes.
+export const db = new Proxy(
+  {},
+  {
+    get(_, prop) {
+      return Reflect.get(dbInstance || getDb(), prop)
+    },
+  },
+) as ReturnType<typeof drizzle>
 
 /**
  * Even if Postgres `TEXT` data type can store up to 268.435.456 UTF-8 characters

@@ -1,7 +1,7 @@
 'use client'
+import {signIn} from 'next-auth/react'
 import {useSearchParams} from 'next/navigation'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
-import {signIn} from '~/config/auth'
 
 type Props = {
   provider?: Parameters<typeof signIn>[0]

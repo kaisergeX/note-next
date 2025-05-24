@@ -1,22 +1,22 @@
 import {and, desc, eq} from 'drizzle-orm'
 import {db} from '..'
-import {type UpdateNote, NotesTable} from '../schema/notes'
-import {UsersTable} from '../schema/users'
+import {type UpdateNote, notesTable} from '../schema/notes'
+import {usersTable} from '../schema/users'
 
 export async function getListNote(userId: string) {
   return await db
     .select()
-    .from(NotesTable)
-    .where(eq(NotesTable.authorId, userId))
-    .orderBy(desc(NotesTable.createdAt))
+    .from(notesTable)
+    .where(eq(notesTable.authorId, userId))
+    .orderBy(desc(notesTable.createdAt))
 }
 
 export async function getNote(noteId: string, email: string) {
   const result = await db
     .select()
-    .from(NotesTable)
-    .innerJoin(UsersTable, eq(NotesTable.authorId, UsersTable.id))
-    .where(and(eq(NotesTable.id, noteId), eq(UsersTable.email, email)))
+    .from(notesTable)
+    .innerJoin(usersTable, eq(notesTable.authorId, usersTable.id))
+    .where(and(eq(notesTable.id, noteId), eq(usersTable.email, email)))
 
   if (result.length === 0) {
     throw new Error('Note not found')
@@ -27,12 +27,12 @@ export async function getNote(noteId: string, email: string) {
 
 export async function updateNote(noteId: string, note: UpdateNote) {
   return await db
-    .update(NotesTable)
+    .update(notesTable)
     .set(note)
-    .where(eq(NotesTable.id, noteId))
+    .where(eq(notesTable.id, noteId))
     .returning()
 }
 
 export async function deleteNote(noteId: string) {
-  return await db.delete(NotesTable).where(eq(NotesTable.id, noteId))
+  return await db.delete(notesTable).where(eq(notesTable.id, noteId))
 }

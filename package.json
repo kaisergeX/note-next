@@ -2,6 +2,7 @@
   "name": "note-next",
   "version": "0.2.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
@@ -18,6 +19,7 @@
   "dependencies": {
     "@headlessui/react": "^2.2.3",
     "@kaiverse/k": "^0.6.0",
+    "@neondatabase/serverless": "^1.0.0",
     "@tabler/icons-react": "^3.33.0",
     "@tiptap/extension-character-count": "^2.0.4",
     "@tiptap/extension-highlight": "^2.0.4",
@@ -25,13 +27,12 @@
     "@tiptap/pm": "^2.0.4",
     "@tiptap/react": "^2.0.4",
     "@tiptap/starter-kit": "^2.0.4",
-    "@upstash/ratelimit": "^0.4.3",
-    "@vercel/analytics": "^1.0.1",
+    "@upstash/ratelimit": "^2.0.5",
+    "@vercel/analytics": "^1.5.0",
     "@vercel/functions": "^2.1.0",
-    "@vercel/kv": "^0.2.2",
-    "@vercel/postgres": "^0.4.0",
+    "@vercel/speed-insights": "^1.2.0",
     "dayjs": "^1.11.9",
-    "drizzle-orm": "^0.27.2",
+    "drizzle-orm": "^0.43.1",
     "next": "15.3.2",
     "next-auth": "5.0.0-beta.28",
     "next-intl": "4.1.0",
@@ -47,13 +48,13 @@
     "@tailwindcss/postcss": "^4.1.7",
     "@tailwindcss/typography": "^0.5.9",
     "@types/eslint": "^9.6.1",
-    "@types/node": "22.15.19",
-    "@types/react": "19.1.4",
+    "@types/node": "22.15.21",
+    "@types/react": "19.1.5",
     "@types/react-dom": "19.1.5",
     "@typescript-eslint/eslint-plugin": "^8.32.1",
     "@typescript-eslint/parser": "^8.32.1",
     "dotenv-cli": "^7.2.1",
-    "drizzle-kit": "^0.19.5",
+    "drizzle-kit": "^0.31.1",
     "eslint": "9.27.0",
     "eslint-config-next": "15.3.2",
     "eslint-config-prettier": "^10.1.5",
@@ -74,7 +75,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@types/react": "19.1.4",
+      "@types/react": "19.1.5",
       "@types/react-dom": "19.1.5"
     }
   }

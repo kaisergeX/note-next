@@ -6,18 +6,10 @@ import {
   type NextRequest,
 } from 'next/server'
 import {localeRouting} from '~/config/localization'
-import {
-  archivistPathnameRegex,
-  auth,
-  protectedApiRegex,
-  protectedPathnameRegex,
-} from './config/auth'
-import {rateLimitErrResponse} from './config/exceptions'
-import rateLimit from './db/helper/rateLimit'
-import {isArchivist} from './util'
+import {protectedApiRegex, protectedPathnameRegex} from './config/auth'
 
-const redirectToPermissionsDenied = (req: NextRequest) =>
-  NextResponse.redirect(new URL('/denied/permission', req.url))
+// import {rateLimitErrResponse} from './config/exceptions'
+// import rateLimit from './db/helper/rateLimit'
 
 const intlMiddleware = createIntlMiddleware(localeRouting)
 
@@ -46,10 +38,10 @@ const intlMiddleware = createIntlMiddleware(localeRouting)
 //   },
 // ) as (request: NextRequest) => Promise<NextMiddlewareResult>
 
-const apiMiddleware: NextMiddleware = async (req) => {
-  if (await rateLimit(req)) {
-    return rateLimitErrResponse()
-  }
+async function apiMiddleware(req: NextRequest) {
+  // if (await rateLimit(req)) {
+  //   return rateLimitErrResponse()
+  // }
 
   return NextResponse.next()
 }
@@ -63,23 +55,8 @@ const middleware: NextMiddleware = async (req, e) => {
     return intlMiddleware(req)
   }
 
-  const session = await auth()
-  if (!isArchivist(session) && archivistPathnameRegex.test(pathname)) {
-    return redirectToPermissionsDenied(req)
-  }
-
   if (protectedApiRegex.test(pathname)) {
-    // Middleware for all API routes except /api/auth/* route.
-    // Need authenticated to request.
-    if (!session) {
-      return redirectToPermissionsDenied(req)
-    }
-
-    return apiMiddleware(req, e)
-  }
-
-  if (!session) {
-    return redirectToPermissionsDenied(req)
+    return apiMiddleware(req)
   }
 
   return intlMiddleware(req)

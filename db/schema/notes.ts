@@ -2,17 +2,17 @@
  * Import paths must not use alias, otherwise it will cause error.
  */
 
-import {sql, type InferModel} from 'drizzle-orm'
+import {sql, type InferInsertModel, type InferSelectModel} from 'drizzle-orm'
 import {
+  boolean,
+  pgEnum,
   pgTable,
-  varchar,
   text,
   timestamp,
   uuid,
-  pgEnum,
-  boolean,
+  varchar,
 } from 'drizzle-orm/pg-core'
-import {UsersTable} from './users'
+import {usersTable} from './users'
 
 export const NOTE_TITLE_MAX_LENGTH = 255
 
@@ -34,13 +34,13 @@ export const themePgEnum = pgEnum('theme', [
 
 export type NoteTheme = (typeof themePgEnum.enumValues)[number]
 
-export const NotesTable = pgTable('notes', {
+export const notesTable = pgTable('notes', {
   id: uuid('id')
     .default(sql`generate_ulid()`)
     .primaryKey(),
   authorId: uuid('author_id')
     .notNull()
-    .references(() => UsersTable.id),
+    .references(() => usersTable.id),
   // 255 * 3 | content max length is 255, assuming that html tags are twice the length of the content
   title: varchar('title', {length: NOTE_TITLE_MAX_LENGTH * 3}),
   content: text('content'),
@@ -59,9 +59,9 @@ export const NotesTable = pgTable('notes', {
     .notNull(),
 })
 
-export type Note = InferModel<typeof NotesTable>
+export type Note = InferSelectModel<typeof notesTable>
 export type NewNote = Omit<
-  InferModel<typeof NotesTable, 'insert'>,
+  InferInsertModel<typeof notesTable>,
   'id' | 'createdAt' | 'updatedAt'
 >
 export type UpdateNote = Omit<NewNote, 'authorId'>

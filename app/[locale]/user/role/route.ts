@@ -1,21 +1,9 @@
 import {NextResponse} from 'next/server'
-import {auth} from '~/config/auth'
 import {getUserRole} from '~/db/helper/users'
-import type {ServerError} from '~/types'
+import {defineAuthRoute} from '~/util'
 
-export async function GET() {
-  const session = await auth()
-  const email = session?.user?.email
-
-  if (!email) {
-    return NextResponse.json({error: 'Email is required'}, {status: 400})
-  }
-
-  try {
-    const role = await getUserRole(email)
-    return NextResponse.json(role, {status: 200})
-  } catch (error) {
-    const serverErr = error as ServerError
-    return NextResponse.json({error: serverErr.message}, {status: 500})
-  }
-}
+export const GET = defineAuthRoute(async ({session}) => {
+  const email = session.user.email
+  const role = await getUserRole(email)
+  return NextResponse.json(role, {status: 200})
+})

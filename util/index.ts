@@ -6,6 +6,8 @@ import type {ServerError} from '~/types'
 import {RoleEnum} from '../db/schema/users'
 dayjs.extend(relativeTime)
 
+export * from './api-handler'
+
 export function sleep(millis = 0) {
   return new Promise((resolve) => setTimeout(resolve, millis))
 }
@@ -192,5 +194,5 @@ export function enumFromArray<T extends string>(
 }
 
 export function isArchivist(session: Session | null): boolean {
-  return session?.user?.role === RoleEnum.archivist
+  return session?.user.role === RoleEnum.archivist
 }

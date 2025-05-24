@@ -1,6 +1,6 @@
 'use client'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
-import {signOut} from '~/config/auth'
+import {signOut} from 'next-auth/react'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement>
 

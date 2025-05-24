@@ -1,4 +1,5 @@
 import {Analytics} from '@vercel/analytics/react'
+import {SpeedInsights} from '@vercel/speed-insights/next'
 import type {Metadata} from 'next'
 import {useLocale, useTranslations} from 'next-intl'
 import {getTranslations} from 'next-intl/server'
@@ -46,6 +47,7 @@ export default function LocaleLayout({
         {children}
 
         <Analytics />
+        <SpeedInsights />
         <ScrollTopButton />
       </ProviderWrapper>
     </ThemeWrapper>
