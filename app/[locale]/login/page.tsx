@@ -3,7 +3,7 @@ import {getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
 import SignInButton from '~/components/auth/signin-button'
-import {auth} from '~/config/auth'
+import {auth} from '~/auth'
 import type {PropsWithLocale} from '~/types'
 
 export async function generateMetadata(

@@ -2,11 +2,11 @@ import {timeAgo} from '~/util'
 import Image from 'next/image'
 import RefreshButton from './refresh-button'
 import {db} from '~/db'
-import {UsersTable} from '~/db/schema/users'
+import {usersTable} from '~/db/schema/users'
 
 export default async function Table() {
   const startTime = Date.now()
-  const users = await db.select().from(UsersTable)
+  const users = await db.select().from(usersTable)
   const duration = Date.now() - startTime
 
   return (

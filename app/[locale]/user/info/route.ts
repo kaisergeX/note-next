@@ -1,19 +1,14 @@
 import {NextResponse} from 'next/server'
-import {auth} from '~/config/auth'
 import {getUser} from '~/db/helper/users'
-import type {ServerError} from '~/types'
+import {defineAuthRoute} from '~/util'
 
 // export const config = {
 //   runtime: 'edge'
 // };
 
-// Note:
-// This API route is protected by auth middleware
-// Same as all APIs inside /api folder (except /api/auth/*)
-//
-// The diff is we need to manually opt-in rate limit the APIs that are outside of `/api` (see commented code below).
+// We need to manually opt-in rate limit the APIs that are outside of `/api` (see commented code below).
 
-export async function GET() {
+export const GET = defineAuthRoute(async ({session}) => {
   /**
    * ⚠️ Avoid it if possible, because its not cached and makes a remote call to Redis with each request.
    * Waste money and slow down the response time.
@@ -25,18 +20,7 @@ export async function GET() {
   //   return rateLimitErrResponse()
   // }
 
-  const session = await auth()
-  const email = session?.user?.email
-
-  if (!email) {
-    return NextResponse.json({error: 'Email is required'}, {status: 400})
-  }
-
-  try {
-    const userInfo = await getUser(email)
-    return NextResponse.json(userInfo, {status: 200})
-  } catch (error) {
-    const serverErr = error as ServerError
-    return NextResponse.json({error: serverErr.message}, {status: 500})
-  }
-}
+  const email = session.user.email
+  const userInfo = await getUser(email)
+  return NextResponse.json(userInfo, {status: 200})
+})

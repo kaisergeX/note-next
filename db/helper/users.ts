@@ -1,12 +1,12 @@
 import {eq} from 'drizzle-orm'
 import {db} from '..'
-import {UsersTable, type UpdateUser} from '../schema/users'
+import {usersTable, type UpdateUser} from '../schema/users'
 
 export async function getUserRole(email: string) {
   const result = await db
-    .select({role: UsersTable.role})
-    .from(UsersTable)
-    .where(eq(UsersTable.email, email))
+    .select({role: usersTable.role})
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
 
   if (result.length === 0) {
     throw new Error(`User with email ${email} not found`)
@@ -18,8 +18,8 @@ export async function getUserRole(email: string) {
 export async function getUser(email: string) {
   const result = await db
     .select()
-    .from(UsersTable)
-    .where(eq(UsersTable.email, email))
+    .from(usersTable)
+    .where(eq(usersTable.email, email))
 
   if (result.length === 0) {
     throw new Error(`User with email ${email} not found`)
@@ -30,8 +30,8 @@ export async function getUser(email: string) {
 
 export async function updateUser(data: UpdateUser) {
   return await db
-    .update(UsersTable)
+    .update(usersTable)
     .set(data)
-    .where(eq(UsersTable.email, 'khaivd98@gmail.com'))
+    .where(eq(usersTable.email, 'khaivd98@gmail.com'))
     .returning()
 }

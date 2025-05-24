@@ -3,10 +3,9 @@ import {getTranslations} from 'next-intl/server'
 import Image from 'next/image'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
-import FancyHeading from '~/components/ui/fancy-heading'
-import {auth} from '~/config/auth'
 import SwooshImg from '~/public/swoosh.png'
 import type {PropsWithLocale} from '~/types'
+import {auth} from '~/auth'
 
 type HomeProps = PropsWithLocale<{
   searchParams: Promise<{

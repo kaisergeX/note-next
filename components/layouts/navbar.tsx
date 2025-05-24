@@ -1,5 +1,6 @@
 'use client'
-import {Disclosure} from '@headlessui/react'
+import {Disclosure, DisclosureButton, DisclosurePanel} from '@headlessui/react'
+import {classNames} from '@kaiverse/k/utils'
 import {
   IconActivity,
   IconLogout,
@@ -18,7 +19,6 @@ import {protectedPathnameRegex} from '~/config/auth'
 import {usePersistStore} from '~/store'
 import SignOutButton from '../auth/signout-button'
 import MenuCustom, {type MenuItem} from '../ui/menu'
-import {classNames} from '@kaiverse/k/utils'
 
 type NavProps = {
   appName: string
@@ -26,14 +26,14 @@ type NavProps = {
 }
 
 export default function Navbar({appName, signOutLabel}: NavProps) {
-  const {status, data} = useSession()
+  const {status, data: sessionData} = useSession()
   const pathName = usePathname()
   const isAuthenticated = status === 'authenticated'
 
-  const userRole = data?.user?.role
-  const profileName = data?.user?.name
+  const userRole = sessionData?.user.role
+  const profileName = sessionData?.user.name
   const profileAvatar =
-    data?.user?.image ??
+    sessionData?.user.image ??
     (profileName
       ? `https://ui-avatars.com/api/?name=${profileName}`
       : undefined)
@@ -81,7 +81,7 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
         avatar: (
           <Image
             src={profileAvatar}
-            alt={profileName || data?.user?.email || 'profile-avatar'}
+            alt={profileName || sessionData?.user.email || 'profile-avatar'}
             width={34}
             height={34}
             className="rounded-full ring-1 ring-gray-900/5"
@@ -137,15 +137,15 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 </MenuCustom>
 
                 {/* Mobile menu button */}
-                <Disclosure.Button className="button-secondary button-icon flex-center p-1 md:hidden">
+                <DisclosureButton className="button-secondary button-icon flex-center p-1 md:hidden">
                   <span className="sr-only">Open main menu</span>
                   {open ? <IconX size="1.5rem" /> : <IconMenu2 size="1.5rem" />}
-                </Disclosure.Button>
+                </DisclosureButton>
               </div>
             </div>
           </div>
 
-          <Disclosure.Panel className="max-sm:prevent-body-scroll absolute w-full bg-white shadow-[0_8px_5px_-5px] shadow-slate-100 md:hidden dark:bg-inherit dark:shadow-slate-700">
+          <DisclosurePanel className="max-sm:prevent-body-scroll absolute w-full bg-white shadow-[0_8px_5px_-5px] shadow-slate-100 md:hidden dark:bg-inherit dark:shadow-slate-700">
             <div className="flex h-[calc(100dvh-4rem)] flex-col border-t border-gray-700">
               <div className="flex gap-4 border-b border-zinc-200 px-4 py-8 dark:border-zinc-700">
                 <div className={renderAvatar.container}>
@@ -153,9 +153,9 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                 </div>
                 <div>
                   <div className="leading-none">{profileName}</div>
-                  {data?.user?.email && (
+                  {sessionData?.user.email && (
                     <div className="mt-2 text-sm leading-none font-medium text-zinc-400">
-                      {data.user.email}
+                      {sessionData.user.email}
                     </div>
                   )}
                 </div>
@@ -163,36 +163,36 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
 
               <div className="flex h-full flex-col justify-between space-y-1">
                 <div>
-                  <Disclosure.Button
+                  <DisclosureButton
                     as={Link}
                     href="/user"
                     className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
                   >
                     <IconUserCircle /> Profile
-                  </Disclosure.Button>
+                  </DisclosureButton>
 
                   {userRole === 'archivist' && (
-                    <Disclosure.Button
+                    <DisclosureButton
                       as={Link}
                       href="/admin"
                       className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
                     >
                       <IconActivity /> Admin Portal
-                    </Disclosure.Button>
+                    </DisclosureButton>
                   )}
                 </div>
 
-                <Disclosure.Button
+                <DisclosureButton
                   as="div"
                   className="border-t border-zinc-200 dark:border-zinc-700"
                 >
                   <SignOutButton className="flex w-full items-center gap-2 rounded-md p-4 text-left text-base font-medium">
                     <IconLogout /> {signOutLabel}
                   </SignOutButton>
-                </Disclosure.Button>
+                </DisclosureButton>
               </div>
             </div>
-          </Disclosure.Panel>
+          </DisclosurePanel>
         </>
       )}
     </Disclosure>

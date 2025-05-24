@@ -1,6 +1,6 @@
 import {db} from '.'
-import {NotesTable, type NewNote, type Note} from './schema/notes'
-import {UsersTable, type NewUser, type User} from './schema/users'
+import {notesTable, type NewNote, type Note} from './schema/notes'
+import {usersTable, type NewUser, type User} from './schema/users'
 
 const newUsers: NewUser[] = [
   {
@@ -41,10 +41,10 @@ const newNotes: NewNote[] = [
 ]
 
 async function handleSeedUsers() {
-  const users = await db.select().from(UsersTable)
+  const users = await db.select().from(usersTable)
   if (users.length === 0) {
     const insertedUsers: User[] = await db
-      .insert(UsersTable)
+      .insert(usersTable)
       .values(newUsers)
       .returning()
     console.log(`Seeded ${insertedUsers.length} users`)
@@ -59,7 +59,7 @@ async function seed() {
     await handleSeedUsers()
 
     const insertedNotes: Note[] = await db
-      .insert(NotesTable)
+      .insert(notesTable)
       .values(newNotes)
       .returning()
     console.log(
