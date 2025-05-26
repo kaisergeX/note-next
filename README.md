@@ -4,7 +4,7 @@
 
 [![Next.js](https://img.shields.io/badge/Next.js-000?style=for-the-badge&logo=vercel)](https://nextjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-fff?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![@vercel/postgres](https://img.shields.io/badge/@vercel/postgres-000?style=for-the-badge&logo=postgresql&logoColor=white)](https://vercel.com/storage/postgres)
+[![@neondatabase](https://img.shields.io/badge/@neondatabase-000?style=for-the-badge&logo=postgresql&logoColor=white)](https://vercel.com/marketplace/neon)
 [![Drizzle](https://img.shields.io/badge/drizzile-fff?style=for-the-badge&logo=drizzile&logoColor=4bb74a)](https://orm.drizzle.team/)
 
 ## Roadmap
@@ -20,7 +20,7 @@
   - [ ] Delete account.
   - [ ] Delete all notes.
 - [ ] Preferences: Note
-  - [ ] Autosave interval.
+  - [ ] Autosave (interval).
   - [x] Commands Menu type (fixed, or bubble & floating).
   - [x] Theme.
 - [ ] Note: Drawable Mode,
@@ -37,9 +37,9 @@
 
 ## Engines Requirements
 
-`node@17.0.0` or later
+`node@20` or later
 
-`pnpm@6.34.0` or later
+`pnpm@9` or later
 
 ## Environment Variables
 
@@ -55,7 +55,7 @@ cp .env.example .env.development
 pnpm i
 ```
 
-## Database
+<!-- ## Database
 
 Follow [@vercel/postgres docs](https://vercel.com/docs/storage/vercel-postgres/quickstart) but read section **Populate your database** below instead.
 
@@ -79,7 +79,7 @@ pnpm db:migrate
 
 ```bash
 pnpm db:seed
-```
+``` -->
 
 ## Development server
 
@@ -100,5 +100,7 @@ pnpm lint
 ```
 
 [^1]: Currently using [parallel routes](https://nextjs.org/docs/app/building-your-application/routing/parallel-routes) to show 2 types of view on the same route for the purpose of fast previewing, editing, and jumping between notes (tiny view); can sharing URL, and focusing on edit contents like a document (full-size view). Still haven't found a way to opt-out the dialog view if user prefers full-size mode only. A possible solution is always open the note on a new tab.
+
 [^2]: Unlock theme materials and games via the achievement system.
+
 [^3]: Free and allow customizing fonts, theme colors, illustrations, icons, or just choose a seasonal theme. Retro and 2D platforming game theme in progress.

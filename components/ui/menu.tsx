@@ -1,4 +1,10 @@
-import {Menu, MenuButton, MenuItem, MenuItems} from '@headlessui/react'
+import {
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+  type MenuItemsProps,
+} from '@headlessui/react'
 import {classNames} from '@kaiverse/k/utils'
 import Link from 'next/link'
 import type {ElementType, PropsWithChildren, ReactNode} from 'react'
@@ -18,7 +24,7 @@ type MenuCustomProps = {
   menuClassName?: string
   itemsClassName?: string
   items?: MenuItem[]
-  // floatOptions?: Omit<FloatProps, 'as' | 'children'>
+  anchor?: MenuItemsProps['anchor']
 }
 
 export default function MenuCustom({
@@ -27,7 +33,7 @@ export default function MenuCustom({
   menuClassName = '',
   itemsClassName = '',
   items = [],
-  // floatOptions,
+  anchor = 'bottom end',
   children,
 }: PropsWithChildren<MenuCustomProps>) {
   const renderMenuItems = items.map((item, index) => (
@@ -50,26 +56,19 @@ export default function MenuCustom({
 
   return (
     <Menu as={as} className={classNames('relative', menuClassName)}>
-      {/* <Float
-        as={Fragment}
-        offset={8}
-        enter="transition ease-out duration-100"
-        enterFrom="transform opacity-0 scale-95"
-        enterTo="transform opacity-100 scale-100"
-        leave="transition ease-in duration-75"
-        leaveFrom="transform opacity-100 scale-100"
-        leaveTo="transform opacity-0 scale-95"
-        tailwindcssOriginClass
-        placement="bottom-end"
-        {...floatOptions}
-      > */}
       <MenuButton className={className}>{children}</MenuButton>
 
       <MenuItems
         className={classNames(
           'bg-default shadow-theme ring-theme overflow-hidden rounded-md text-sm font-semibold focus:outline-none',
+          'transform transition',
+          'data-closed:scale-95 data-closed:opacity-0',
+          'data-enter:opacity-100 data-enter:duration-100 data-enter:ease-out',
+          'data-leave:opacity-0 data-leave:duration-75 data-leave:ease-in',
           itemsClassName,
         )}
+        transition
+        anchor={anchor}
       >
         {renderMenuItems}
       </MenuItems>

@@ -18,7 +18,7 @@ export default function NoteTiny({data}: NoteProps) {
       href={`/eton/${id}`}
       className={classNames(
         'card group relative p-4 pb-8',
-        theme ? `dialog-${theme} border-none` : '',
+        theme ? `dialog-${theme} shadow-theme-${theme} border-none` : '',
       )}
       onClick={() => {
         theme && setMutateNoteData({theme})

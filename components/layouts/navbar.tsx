@@ -128,9 +128,8 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
                     renderAvatar.container,
                   )}
                   menuClassName="hidden md:block"
-                  itemsClassName="w-48"
+                  itemsClassName="w-48 [--anchor-gap:0.5rem] sm:[--anchor-gap:1rem]"
                   items={desktopMenuItems}
-                  // floatOptions={{portal: true, zIndex: 20}}
                 >
                   <span className="sr-only">Open user menu</span>
                   {renderAvatar.avatar}

@@ -129,6 +129,7 @@ export default function NoteEditor({
       editable: !disabled && !loading,
       injectCSS: false,
       autofocus: autofocus,
+      immediatelyRender: false,
     },
     [id, theme, loading, disabled],
   )

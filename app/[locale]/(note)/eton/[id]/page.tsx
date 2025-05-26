@@ -78,7 +78,7 @@ export default function NoteDetail(props: NoteDetailProps) {
 
   return (
     <main className="relative flex flex-1 flex-col">
-      <div className="bg-default flex-center-between sticky inset-x-0 top-0 z-20 gap-4 p-4">
+      <section className="bg-default flex-center-between sticky inset-x-0 top-0 z-20 gap-4 p-4">
         <button
           type="button"
           className="button button-icon rounded-full p-1"
@@ -106,7 +106,7 @@ export default function NoteDetail(props: NoteDetailProps) {
             {isFullscreen ? <IconWindowMinimize /> : <IconWindowMaximize />}
           </button>
         </div>
-      </div>
+      </section>
 
       <NoteEditor
         id="note-title"

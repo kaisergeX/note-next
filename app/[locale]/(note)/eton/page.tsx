@@ -33,7 +33,7 @@ export default async function Notes() {
           ])}
         </h3>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] grid-rows-[masonry] gap-4 pb-8">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] grid-rows-[masonry] gap-4 pb-16">
           {renderNoteList}
         </div>
       )}

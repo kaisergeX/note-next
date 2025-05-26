@@ -1,10 +1,5 @@
 // import defaultTheme from 'tailwindcss/defaultTheme'
-import plugin from 'tailwindcss/plugin'
-import {
-  safelistClasses,
-  twNoteThemeBuilder,
-  typographyThemeBuilder,
-} from './config/tailwindTheme'
+import {customThemePlugin, customTypographyPlugin} from './config/tailwindTheme'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -14,32 +9,7 @@ export default {
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  theme: {
-    extend: {
-      typography: (theme) => ({
-        DEFAULT: {
-          css: {
-            code: {
-              '&::before, &::after': {
-                display: 'none',
-              },
-            },
-            a: {
-              '&:hover': {
-                color: 'var(--color-blue-400)',
-              },
-            },
-          },
-        },
-        ...typographyThemeBuilder(theme),
-      }),
-    },
-  },
-  plugins: [
-    plugin((pluginApi) => {
-      pluginApi.addComponents(twNoteThemeBuilder)
-    }),
-  ],
+  plugins: [customTypographyPlugin, customThemePlugin],
   safelist: [
     // https://github.com/ycs77/headlessui-float/blob/main/packages/react/src/class-resolvers/tailwindcss.ts
     'origin-bottom',
@@ -50,6 +20,5 @@ export default {
     'origin-bottom-right',
     'origin-top-left',
     'origin-top-right',
-    ...safelistClasses,
   ],
 }
