@@ -2,10 +2,26 @@
 @plugin "@tailwindcss/typography";
 @config "../tailwind.config.mjs";
 
+@source inline("{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}");
 @custom-variant dark (&:where(.dark, .dark *));
 
 @utility font-inter {
   @apply font-(family-name:--font-inter);
+}
+
+@utility prose {
+  code {
+    @apply bg-[var(--tw-prose-code-pg,var(--color-gray-200))] dark:bg-[var(--tw-prose-code-pg,var(--color-gray-700))];
+
+    &::before,
+    &::after {
+      display: none;
+    }
+  }
+
+  a:hover {
+    color: var(--color-blue-400);
+  }
 }
 
 @utility flex-center {
@@ -104,6 +120,18 @@
 @utility glass {
   @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/[0.06] dark:bg-transparent;
 }
+@utility btn-light-sweep {
+  @apply relative overflow-clip;
+
+  &::before {
+    @apply pointer-events-none absolute top-0 -left-1/2 h-full w-1/2 skew-x-[-20deg] opacity-0 content-[''];
+    @apply bg-[linear-gradient(120deg,transparent_0%,rgba(0,200,255,0.4),rgba(140,82,255,0.5),transparent_100%)];
+  }
+
+  &:hover::before {
+    animation: light-sweep 1.2s ease-out forwards;
+  }
+}
 
 @utility text-gradient {
   @apply bg-linear-to-r from-rose-500 to-violet-500 bg-clip-text text-transparent;
@@ -171,8 +199,18 @@
   code {
     @apply rounded bg-gray-200 px-1 py-0.5 dark:bg-gray-700;
   }
+}
 
-  .prose code {
-    @apply bg-[--tw-prose-code-pg,var(--color-gray-200)] dark:bg-[--tw-prose-code-pg,var(--color-gray-700)];
+@keyframes light-sweep {
+  0% {
+    left: -50%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  80% {
+    left: 100%;
+    opacity: 0;
   }
 }

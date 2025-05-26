@@ -1,3 +1,4 @@
+import type {ObjectAny} from '@kaiverse/k/types'
 import type {Session} from 'next-auth'
 import {redirect} from 'next/navigation'
 import {type NextRequest, NextResponse} from 'next/server'
@@ -24,18 +25,18 @@ export async function requireAuth(redirectUrl = '/login') {
   return session
 }
 
-type NextApiHandlerContext<TParams = Record<string, string>> = {
+type NextApiHandlerContext<TParams = Promise<Record<string, string>>> = {
   params: TParams
 }
 
-type ApiHandlerContext<TParams = Record<string, string>> =
+type ApiHandlerContext<TParams = Promise<Record<string, string>>> =
   NextApiHandlerContext<TParams> & {
     request: NextRequest
   }
 
-export function defineApiRoute<TParams = Record<string, string>>(
-  handler: (ctx: ApiHandlerContext<TParams>) => Promise<Response>,
-) {
+export function defineApiRoute<
+  TParams extends Promise<ObjectAny> = Promise<Record<string, string>>,
+>(handler: (ctx: ApiHandlerContext<TParams>) => Promise<Response>) {
   return async (
     request: NextRequest,
     context: NextApiHandlerContext<TParams>,
@@ -56,12 +57,12 @@ export function defineApiRoute<TParams = Record<string, string>>(
   }
 }
 
-type AuthHandlerContext<TParams = Record<string, string>> =
+type AuthHandlerContext<TParams = Promise<Record<string, string>>> =
   ApiHandlerContext<TParams> & {session: Session}
 
-export function defineAuthRoute<TParams = Record<string, string>>(
-  handler: (params: AuthHandlerContext<TParams>) => Promise<Response>,
-) {
+export function defineAuthRoute<
+  TParams extends Promise<ObjectAny> = Promise<Record<string, string>>,
+>(handler: (params: AuthHandlerContext<TParams>) => Promise<Response>) {
   return defineApiRoute<TParams>(async (ctx) => {
     const session = await auth()
     if (!session) {

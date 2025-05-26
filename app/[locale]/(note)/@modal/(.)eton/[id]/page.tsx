@@ -44,8 +44,8 @@ export default function NoteDetailModal(props: NoteDetailProps) {
 
   const handleCloseModal = async () => {
     setOpenModal(false)
-    setMutateNoteData(undefined)
     await sleep(200)
+    setMutateNoteData(undefined)
     router.back()
   }
 

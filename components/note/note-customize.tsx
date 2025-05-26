@@ -113,12 +113,8 @@ export default function NoteCustomize({
         <MenuCustom
           items={menuColors}
           className="button-icon rounded-full p-1"
-          itemsClassName="w-48 grid grid-cols-4 gap-2 p-4"
-          // floatOptions={{
-          //   portal: true,
-          //   flip: true,
-          //   placement: 'bottom-start',
-          // }}
+          itemsClassName="w-48 grid grid-cols-4 gap-2 p-4 [--anchor-gap:0.5rem]"
+          anchor="bottom start"
         >
           <IconPalette size="1.2rem" />
         </MenuCustom>
@@ -152,11 +148,7 @@ export default function NoteCustomize({
           <MenuCustom
             items={menuItems}
             className="block"
-            itemsClassName="w-48"
-            // floatOptions={{
-            //   portal: true,
-            //   flip: true,
-            // }}
+            itemsClassName="w-48 [--anchor-gap:0.5rem]"
           >
             <IconDotsVertical size="1.2rem" />
           </MenuCustom>

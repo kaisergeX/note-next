@@ -38,7 +38,7 @@ export default function ThemeWrapper({
         eg: scrolling on mobile browsers will hide/show the address bar, which will change the viewport height.
         ref: https://web.dev/viewport-units/
       */}
-      <body className="font-inter relative flex h-dvh flex-col transition-[height]">
+      <body className="font-inter relative flex h-dvh flex-col transition-[height] [scrollbar-gutter:stable]">
         {children}
       </body>
     </html>

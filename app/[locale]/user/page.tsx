@@ -73,7 +73,7 @@ export default async function MyProfile() {
       </div>
       <hr />
       <h2>Setting</h2>
-      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-4">
+      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(min(16rem,100%),1fr))] gap-4">
         {renderSettings}
       </div>
       <hr />

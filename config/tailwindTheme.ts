@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Import paths must not use alias, otherwise it will cause error.
  */
 
+import createPlugin from 'tailwindcss/plugin'
 import {themePgEnum, type NoteTheme} from '../db/schema/notes'
 
 const customizableThemes = themePgEnum.enumValues.filter(
@@ -34,36 +36,55 @@ export const twNoteThemeConfig: {
 }[] = customizableThemes.map((theme) => ({
   theme,
   picker: `bg-${theme}-400`,
-  dialog: `bg-${theme}-100 text-${theme}-800`,
+  dialog: `bg-${theme}-100 text-${theme}-800 dark:bg-${theme}-100/80`,
   themeShadow: `shadow-${theme}-500/20!`,
 }))
 
-type TypographyThemeProps = Partial<
-  Record<
-    NoteTheme,
-    {
-      css: Record<string, string>
-    }
-  >
->
-export const typographyThemeBuilder = (
-  theme: (theme: string) => string,
-): TypographyThemeProps => {
-  const typoTheme: TypographyThemeProps = {}
-  for (const themeName of customizableThemes) {
+// type TypographyThemeProps = Partial<
+//   Record<
+//     NoteTheme,
+//     {
+//       css: Record<string, string>
+//     }
+//   >
+// >
+// export const typographyThemeBuilder = (
+//   utils: PluginAPI,
+// ): TypographyThemeProps => {
+//   const typoTheme: TypographyThemeProps = {}
+//   for (const themeName of customizableThemes) {
+//     const css: Record<string, string> = {}
+//     for (const {element, pallete} of typographyThemePalette) {
+//       css[`--tw-prose-${element}`] = utils.theme(
+//         `colors.${themeName}[${pallete}]`,
+//       ) as string
+//     }
+
+//     typoTheme[themeName] = {css}
+//   }
+
+//   return typoTheme
+// }
+
+export const customTypographyPlugin = createPlugin((pluginApi) => {
+  const components: Record<string, any> = {}
+
+  for (const color of customizableThemes) {
     const css: Record<string, string> = {}
     for (const {element, pallete} of typographyThemePalette) {
-      css[`--tw-prose-${element}`] = theme(`colors.${themeName}[${pallete}]`)
+      css[`--tw-prose-${element}`] = pluginApi.theme(
+        `colors.${color}.${pallete}`,
+      ) as string
     }
 
-    typoTheme[themeName] = {css}
+    components[`.prose-${color}`] = css
   }
 
-  return typoTheme
-}
+  pluginApi.addComponents(components)
+})
 
-export const twNoteThemeBuilder = twNoteThemeConfig.reduce(
-  (acc: Record<string, Record<string, unknown>>, config) => {
+const twNoteThemeBuilder = twNoteThemeConfig.reduce(
+  (acc: Record<string, Record<string, any>>, config) => {
     acc[`.dialog-${config.theme}`] = {
       [`@apply ${config.dialog}`]: {},
     }
@@ -80,10 +101,9 @@ export const twNoteThemeBuilder = twNoteThemeConfig.reduce(
   {},
 )
 
-// https://tailwindcss.com/docs/content-configuration#safelisting-classes
-export const safelistClasses = twNoteThemeConfig.flatMap(({theme}) => [
-  `prose-${theme}`,
-  `dialog-${theme}`,
-  `picker-${theme}`,
-  `shadow-theme-${theme}`,
-])
+export const customThemePlugin = createPlugin((pluginApi) => {
+  pluginApi.addComponents(twNoteThemeBuilder)
+})
+
+const prefixes = ['prose', 'dialog', 'picker', 'shadow-theme']
+export const tailwindSourceInline = `@source inline("{${prefixes.join('-,')}}{${customizableThemes.join(',')}}");\n`
