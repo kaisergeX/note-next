@@ -38,7 +38,7 @@ const intlMiddleware = createIntlMiddleware(localeRouting)
 //   },
 // ) as (request: NextRequest) => Promise<NextMiddlewareResult>
 
-async function apiMiddleware(req: NextRequest) {
+function apiMiddleware(req: NextRequest) {
   // if (await rateLimit(req)) {
   //   return rateLimitErrResponse()
   // }
@@ -46,7 +46,7 @@ async function apiMiddleware(req: NextRequest) {
   return NextResponse.next()
 }
 
-const middleware: NextMiddleware = async (req, e) => {
+const middleware: NextMiddleware = (req) => {
   const {pathname} = req.nextUrl
 
   // const isPublicPage = publicPathnameRegex.test(pathname)

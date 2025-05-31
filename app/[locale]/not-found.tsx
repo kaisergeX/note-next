@@ -8,9 +8,9 @@ export default function NotFound() {
 
   return (
     <main className="flex-center h-full flex-col p-4">
-      <div className="mb-8 flex items-center gap-4 divide-x divide-slate-400">
-        <h1>404</h1>
-        <h2 className="py-4 pl-4">This page could not be found.</h2>
+      <div className="mb-8 items-stretch gap-4 divide-slate-400 max-sm:text-center sm:flex sm:divide-x">
+        <h1 className="content-center sm:pr-4">404</h1>
+        <h2 className="sm:py-2">This page could not be found.</h2>
       </div>
 
       <div className="flex gap-4">
