@@ -4,6 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const nextConfig: NextConfig = {
   transpilePackages: ['@kaiverse/k'],
   experimental: {
+    // ppr: true,
     optimizePackageImports: ['@kaiverse/k'],
   },
   images: {

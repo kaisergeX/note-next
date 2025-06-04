@@ -7,19 +7,13 @@ import {
 } from '@tabler/icons-react'
 import Image from 'next/image'
 import Link from 'next/link'
-import {redirect} from 'next/navigation'
 import Badge from '~/components/ui/badge'
-import {auth} from '~/auth'
 import {getUser} from '~/db/helper/users'
+import {requireAuth} from '~/util'
 
 export default async function MyProfile() {
-  const session = await auth()
-  const userEmail = session?.user?.email
-
-  if (!userEmail) {
-    redirect('/denied/permission')
-  }
-
+  const session = await requireAuth()
+  const userEmail = session.user.email
   const userInfo = await getUser(userEmail)
 
   // @todo store user preferences/settings, KV or Postgres?
