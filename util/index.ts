@@ -2,6 +2,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type {Session} from 'next-auth'
 import {redirect} from 'next/navigation'
+import {auth} from '../auth'
 import type {ServerError} from '~/types'
 import {RoleEnum} from '../db/schema/users'
 dayjs.extend(relativeTime)
@@ -195,4 +196,19 @@ export function enumFromArray<T extends string>(
 
 export function isArchivist(session: Session | null): boolean {
   return session?.user.role === RoleEnum.archivist
+}
+
+/**
+ * This is `next-auth`'s {@link auth} function with auto-redirect if not authenticated.
+ * As a result, the returned `session` is non-nullable.
+ * ___
+ * **DO NOT** use this function in client components.
+ * ___
+ * @param redirectUrl redirect url for unauthenticated users
+ * @default '/login'
+ */
+export async function requireAuth(redirectUrl = '/login') {
+  const session = await auth()
+  if (!session) redirect(redirectUrl)
+  return session
 }

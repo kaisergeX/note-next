@@ -1,7 +1,7 @@
 import NextAuth, {type NextAuthConfig} from 'next-auth'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import {db} from './db'
-import {getUserRole} from './db/helper/users'
+import {getCachedUserRole} from './db/helper/users'
 import {RoleEnum, usersTable, type NewUser} from './db/schema/users'
 
 const authOptions: NextAuthConfig = {
@@ -19,7 +19,7 @@ const authOptions: NextAuthConfig = {
 
       if (token.email) {
         try {
-          const userRole = await getUserRole(token.email)
+          const userRole = await getCachedUserRole(token.email)
           token.role = userRole
         } catch (error) {
           console.log(error)

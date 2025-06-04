@@ -32,7 +32,7 @@
     "@vercel/functions": "^2.1.0",
     "@vercel/speed-insights": "^1.2.0",
     "dayjs": "^1.11.9",
-    "drizzle-orm": "^0.44.1",
+    "drizzle-orm": "^0.44.2",
     "next": "15.3.3",
     "next-auth": "5.0.0-beta.28",
     "next-intl": "4.1.0",
@@ -45,6 +45,7 @@
   "devDependencies": {
     "@eslint/js": "^9.27.0",
     "@next/eslint-plugin-next": "^15.3.3",
+    "@opentelemetry/api": "^1.9.0",
     "@tailwindcss/postcss": "^4.1.8",
     "@tailwindcss/typography": "^0.5.9",
     "@types/eslint": "^9.6.1",

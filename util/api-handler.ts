@@ -1,6 +1,5 @@
 import type {ObjectAny} from '@kaiverse/k/types'
 import type {Session} from 'next-auth'
-import {redirect} from 'next/navigation'
 import {type NextRequest, NextResponse} from 'next/server'
 import type {ServerError} from '~/types'
 import {auth} from '../auth'
@@ -10,19 +9,6 @@ export class ApiAuthError extends Error {
     super(message)
     this.name = 'ApiAuthError'
   }
-}
-
-/**
- * This is `next-auth`'s {@link auth} function with auto-redirect if not authenticated.
- * As a result, the returned `session` is non-nullable.
- *
- * @param redirectUrl redirect url for unauthenticated users
- * @default '/login'
- */
-export async function requireAuth(redirectUrl = '/login') {
-  const session = await auth()
-  if (!session) redirect(redirectUrl)
-  return session
 }
 
 type NextApiHandlerContext<TParams = Promise<Record<string, string>>> = {
