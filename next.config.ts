@@ -1,5 +1,6 @@
 import type {NextConfig} from 'next'
 import createNextIntlPlugin from 'next-intl/plugin'
+import withSerwistInit from '@serwist/next'
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@kaiverse/k'],
@@ -23,4 +24,12 @@ const nextConfig: NextConfig = {
 }
 
 const withNextIntl = createNextIntlPlugin('./i18n.ts')
-export default withNextIntl(nextConfig)
+
+// PWA & Service Worker support
+const withSerwist = withSerwistInit({
+  swSrc: 'app/sw.ts',
+  swDest: 'public/sw.js',
+  // disable: process.env.NODE_ENV === 'development',
+})
+
+export default withNextIntl(withSerwist(nextConfig))

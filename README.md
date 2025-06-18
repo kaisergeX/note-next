@@ -14,8 +14,9 @@
 
 <sup>List in order of priority</sup>
 
-- [ ] Note: Recover notes that scheduled for deletion.
 - [ ] Note: Encrypt contents.
+- [ ] Note: Recover notes that scheduled for deletion.
+- [x] System: PWA supported.
 - [ ] Preferences: Account
   - [ ] Delete account.
   - [ ] Delete all notes.

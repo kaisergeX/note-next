@@ -19,10 +19,23 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const locale = (await props.params).locale
   const t = await getTranslations({locale, namespace: 'common'})
+  const title = process.env.SERVICE_NAME ?? t('app')
 
   return {
-    title: process.env.SERVICE_NAME ?? t('app'),
+    title,
     description: t('slogan'),
+    applicationName: title,
+    appleWebApp: {
+      title,
+      capable: true,
+      statusBarStyle: 'default',
+    },
+    openGraph: {
+      title,
+      siteName: title,
+      description: t('slogan'),
+      type: 'website',
+    },
   }
 }
 
