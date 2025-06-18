@@ -28,9 +28,12 @@ export default function ClientNoteModal({data: noteData}: NoteDetailProps) {
 
   const handleCloseModal = async () => {
     setOpenModal(false)
-    await sleep(200)
-    // setMutateNoteData(undefined)
-    router.back()
+    try {
+      await sleep(200)
+      router.back()
+    } finally {
+      setMutateNoteData(undefined)
+    }
   }
 
   const handleSubmit = async () => {
