@@ -100,13 +100,23 @@ export default function Navbar({appName, signOutLabel}: NavProps) {
           <div className="flex h-16 items-center justify-between gap-4 p-4">
             <Link
               href={homepagePath}
-              className="group text-2xl font-bold md:text-4xl"
+              className="group text-2xl font-bold max-lg:hidden md:text-4xl"
             >
               <span className="text-gradient inline-block text-inherit transition-colors group-hover:text-transparent dark:hidden">
                 {appName}
               </span>
 
               <span className="hidden dark:inline-block">{appName}</span>
+            </Link>
+
+            <Link href={homepagePath} className="lg:hidden">
+              <Image
+                className="dark:invert-100"
+                src="/favicon.svg"
+                alt={appName}
+                width={48}
+                height={48}
+              />
             </Link>
 
             <div className="flex items-center gap-4">
