@@ -4,12 +4,12 @@ export default function manifest(): MetadataRoute.Manifest {
   const defaultAppName = process.env.SERVICE_SHORTNAME || 'etoN'
 
   return {
-    name: `${process.env.SERVICE_NAME || defaultAppName} | PWA`,
+    name: `${defaultAppName} | PWA`,
     short_name: defaultAppName,
     description: 'A minimalistic note-taking app for everyone.',
     start_url: '/',
-    theme_color: '#ffffff',
-    background_color: '#ffffff',
+    theme_color: '#fafafa',
+    background_color: '#fafafa',
     display: 'standalone',
     display_override: ['window-controls-overlay', 'minimal-ui', 'standalone'],
     icons: [

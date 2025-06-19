@@ -1,6 +1,6 @@
 import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
-import type {Metadata} from 'next'
+import type {Metadata, Viewport} from 'next'
 import {hasLocale} from 'next-intl'
 import {getTranslations, setRequestLocale} from 'next-intl/server'
 import {Inter} from 'next/font/google'
@@ -10,6 +10,7 @@ import Navbar from '~/components/layouts/navbar'
 import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
+import IosSplashLinks from '~/components/ui/ios-splash-screen'
 import {localeRouting} from '~/config/localization'
 import type {PropsWithLocale} from '~/types'
 import '../globals.css'
@@ -39,6 +40,14 @@ export async function generateMetadata(
   }
 }
 
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  themeColor: [
+    {media: '(prefers-color-scheme: light)', color: '#fafafa'},
+    {media: '(prefers-color-scheme: dark)', color: '#1b1718'},
+  ],
+}
+
 export function generateStaticParams() {
   return localeRouting.locales.map((locale) => ({locale}))
 }
@@ -64,6 +73,7 @@ export default async function LocaleLayout({
   return (
     <ThemeWrapper lang={locale} className={inter.variable}>
       <ProviderWrapper>
+        <IosSplashLinks />
         <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
         {children}
 
