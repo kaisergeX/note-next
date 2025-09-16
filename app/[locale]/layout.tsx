@@ -5,20 +5,20 @@ import {hasLocale} from 'next-intl'
 import {getTranslations, setRequestLocale} from 'next-intl/server'
 import {Inter} from 'next/font/google'
 import {notFound} from 'next/navigation'
-import {type PropsWithChildren} from 'react'
+import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
 import Navbar from '~/components/layouts/navbar'
 import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import IosSplashLinks from '~/components/ui/ios-splash-screen'
 import {localeRouting} from '~/config/localization'
-import type {PropsWithLocale} from '~/types'
+import type {Locales} from '~/types'
 import '../globals.css'
 
 export async function generateMetadata(
-  props: PropsWithLocale,
+  props: LayoutProps<'/[locale]'>,
 ): Promise<Metadata> {
-  const locale = (await props.params).locale
+  const locale = (await props.params).locale as Locales
   const t = await getTranslations({locale, namespace: 'common'})
   const title = process.env.SERVICE_NAME ?? t('app')
 
@@ -57,7 +57,7 @@ const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 export default async function LocaleLayout({
   children,
   params,
-}: PropsWithChildren<PropsWithLocale>) {
+}: LayoutProps<'/[locale]'>) {
   const locale = (await params).locale
 
   // Show a 404 error if the user requests an unknown locale
@@ -71,15 +71,28 @@ export default async function LocaleLayout({
   const t = await getTranslations({locale})
 
   return (
-    <ThemeWrapper lang={locale} className={inter.variable}>
+    <ThemeWrapper
+      lang={locale}
+      className={inter.variable}
+      data-scroll-behavior="smooth"
+    >
       <ProviderWrapper>
-        <IosSplashLinks />
-        <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
-        {children}
+        <DevtoolsWarnWrapper
+          message={
+            <>
+              <h1>{t('common.devtools.warn')}</h1>
+              <p>{t('common.devtools.description')}</p>
+            </>
+          }
+        >
+          <IosSplashLinks />
+          <Navbar appName={t('common.app')} signOutLabel={t('auth.signOut')} />
+          {children}
+          <ScrollTopButton />
 
-        <Analytics />
-        <SpeedInsights />
-        <ScrollTopButton />
+          <Analytics />
+          <SpeedInsights />
+        </DevtoolsWarnWrapper>
       </ProviderWrapper>
     </ThemeWrapper>
   )

@@ -21,7 +21,7 @@ export async function getNote(noteId: string, email: string) {
     .innerJoin(usersTable, eq(notesTable.authorId, usersTable.id))
     .where(and(eq(notesTable.id, noteId), eq(usersTable.email, email)))
 
-  if (result.length === 0) {
+  if (!Array.isArray(result) || !result[0]?.notes) {
     throw new Error('Note not found')
   }
 

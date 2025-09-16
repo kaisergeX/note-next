@@ -1,11 +1,10 @@
 import {getCachedNote} from '~/db/helper/notes'
-import type {PropsWithLocale} from '~/types'
-import ClientNoteModal from './ClientNote'
+import NoteDetailModal from './note-detail-modal'
 
-export default async function NoteDetailModal(
-  props: PropsWithLocale<unknown, {id: string}>,
+export default async function NoteDetailModalPage(
+  props: PageProps<'/[locale]/eton/[id]'>,
 ) {
   const noteId = (await props.params).id
-  const data = await getCachedNote(noteId)
-  return <ClientNoteModal data={data} />
+  const noteData = await getCachedNote(noteId)
+  return <NoteDetailModal noteData={noteData} />
 }

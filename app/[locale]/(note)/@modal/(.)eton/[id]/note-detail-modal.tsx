@@ -3,15 +3,14 @@
 import {useRouter} from 'next/navigation'
 import {useEffect, useState, useTransition} from 'react'
 import NoteDialog from '~/components/note/note-dialog'
-import {type Note, type UpdateNote} from '~/db/schema/notes'
+import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import {isEqualNonNestedObj, sleep} from '~/util'
 import {mutateNoteAction} from '../../../eton/actions'
 
-type NoteDetailProps = {data: Note}
+type NoteDetailProps = {noteData: Note}
 
-export default function ClientNoteModal({data: noteData}: NoteDetailProps) {
-  const id = noteData.id
+export default function NoteDetailModal({noteData}: NoteDetailProps) {
   const router = useRouter()
   const [openModal, setOpenModal] = useState(false)
   const [isPendingTransition, startTransition] = useTransition()
@@ -20,30 +19,27 @@ export default function ClientNoteModal({data: noteData}: NoteDetailProps) {
     s.setMutateNoteData,
   ])
 
-  const initNoteData: UpdateNote = {
-    title: noteData?.title || '',
-    content: noteData?.content || '',
-    theme: noteData?.theme,
-  }
-
   const handleCloseModal = async () => {
     setOpenModal(false)
-    try {
-      await sleep(200)
-      router.back()
-    } finally {
-      setMutateNoteData(undefined)
-    }
+    await sleep(200)
+    router.back()
   }
 
   const handleSubmit = async () => {
-    if (!mutateNoteData || isEqualNonNestedObj(initNoteData, mutateNoteData)) {
+    if (
+      !mutateNoteData ||
+      isEqualNonNestedObj(noteData, mutateNoteData, [
+        'createdAt',
+        'updatedAt',
+        'pendingDeleteAt',
+      ])
+    ) {
       await handleCloseModal()
       return
     }
 
-    startTransition(async function () {
-      await mutateNoteAction(id, mutateNoteData)
+    startTransition(async () => {
+      await mutateNoteAction(noteData.id, mutateNoteData)
       await handleCloseModal()
     })
   }
@@ -53,6 +49,10 @@ export default function ClientNoteModal({data: noteData}: NoteDetailProps) {
 
     setMutateNoteData(noteData)
     setOpenModal(true) // this help open dialog animation can happen
+
+    return () => {
+      setMutateNoteData(undefined)
+    }
   }, [])
 
   return (

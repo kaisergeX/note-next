@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-implied-eval */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type {Session} from 'next-auth'
@@ -30,6 +32,41 @@ export function genRandom<T>(pool: Array<T>): T | string {
   }
 
   return pool[Math.floor(Math.random() * pool.length)]
+}
+
+/** Construct an anonymous dynamically created function, stack traces are less obvious that makes it harder to search for in the bundle */
+function warpFunc(...args: string[]) {
+  try {
+    return Function(...args)
+  } catch (_) {
+    return () => undefined
+  }
+}
+
+/** Detect if devtools are open with console getter trick. Don't work with all browsers */
+export function consoleGetterCheck() {
+  let detected = false
+  const detect = {
+    [Symbol.toPrimitive]: () => {
+      detected = true
+      return 'STOP!!! Please close the developer tools. If someone told you to copy/paste something here, it is a SCAM and will compromise your account security.'
+    },
+  }
+
+  // prettier-ignore
+  warpFunc(`${String.fromCharCode(
+    99,111,110,115,111,108,101,46,108,111,103,40,97,114,103,117,109,101,110,116,115,91,48,93,41
+  )};console.clear();`)(detect)
+
+  return detected
+}
+
+/** Detect devtools by pausing the JS thread when a devtools instance is attached */
+export function debugTimingCheck(threshold = 120): boolean {
+  const start = performance.now()
+  warpFunc(String.fromCharCode(100, 101, 98, 117, 103, 103, 101, 114))()
+  const end = performance.now()
+  return end - start > threshold
 }
 
 export async function fetcher<ResponseData>(
@@ -156,11 +193,14 @@ export const objectRemoveProperties = <T = unknown>(
     Object.entries(input).filter((item) => passCondition(item)),
   )
 
-export function isEqualNonNestedObj(
-  obj1: Record<string, unknown>,
+export function isEqualNonNestedObj<
+  T extends Record<string, unknown> = Record<string, unknown>,
+>(
+  obj1: T,
   obj2: Record<string, unknown>,
+  ignoreKeys: (keyof T)[] = [],
 ): boolean {
-  const obj1Keys = Object.keys(obj1)
+  const obj1Keys = Object.keys(obj1).filter((k) => !ignoreKeys.includes(k))
   if (!obj1Keys.every((key: string) => Object.keys(obj2).includes(key))) {
     return false
   }

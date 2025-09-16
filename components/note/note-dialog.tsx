@@ -38,7 +38,6 @@ export default function NoteDialog({
         </button>
       }
       onClose={onClose}
-      loading={loading}
     >
       <NoteEditor
         id="dialog-note-title"
@@ -51,6 +50,7 @@ export default function NoteDialog({
         showCount
         disableEnter
         autofocus="end"
+        loading={loading}
       />
 
       <NoteEditor
@@ -66,6 +66,7 @@ export default function NoteDialog({
         ])}
         commandTypes="bubble-floating"
         onChange={(value) => setMutateNoteData({content: value})}
+        loading={loading}
       />
 
       <NoteCustomize
@@ -73,6 +74,7 @@ export default function NoteDialog({
         className="shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10"
         type={type}
         onDeleteSuccess={onDeleteSuccess}
+        loading={loading}
       />
     </DialogCustom>
   )

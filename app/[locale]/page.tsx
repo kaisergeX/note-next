@@ -59,7 +59,6 @@ export default async function Home(props: HomeProps) {
           className="absolute bottom-0 left-0 hidden dark:block"
           src={SwooshImg}
           alt="fancy wave background"
-          quality={100}
           placeholder="blur"
         />
       </section>
@@ -71,7 +70,6 @@ export default async function Home(props: HomeProps) {
           className="absolute bottom-0 left-0 -z-10 dark:hidden"
           src={SwooshImg}
           alt="a fancy wave background"
-          quality={100}
           placeholder="blur"
         />
       </section>

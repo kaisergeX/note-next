@@ -11,6 +11,10 @@
     },
     "action": {
       "tryAgain": "Try again"
+    },
+    "devtools": {
+      "warn": "⚠️ Developer tools detected",
+      "description": "Please close the developer tools!\nIf someone told you to copy/paste something, it is a SCAM and will compromise your account security."
     }
   },
   "auth": {
