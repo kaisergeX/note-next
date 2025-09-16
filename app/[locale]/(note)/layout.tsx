@@ -1,16 +1,10 @@
 import type {Metadata} from 'next'
 import {getTranslations} from 'next-intl/server'
-import type {ReactNode} from 'react'
 import type {PropsWithLocale} from '~/types'
 import {requireAuth} from '~/util'
 
-type Props = {
-  children: ReactNode
-  modal: ReactNode
-}
-
 export async function generateMetadata(
-  props: PropsWithLocale<Props>,
+  props: PropsWithLocale<LayoutProps<'/[locale]'>>,
 ): Promise<Metadata> {
   const locale = (await props.params).locale
   const t = await getTranslations({locale})
@@ -22,7 +16,10 @@ export async function generateMetadata(
   }
 }
 
-export default async function NoteLayout({children, modal}: Props) {
+export default async function NoteLayout({
+  children,
+  modal,
+}: LayoutProps<'/[locale]'>) {
   await requireAuth()
 
   return (

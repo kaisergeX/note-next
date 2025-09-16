@@ -2,7 +2,7 @@
 import {classNames} from '@kaiverse/k/utils'
 import {IconArrowUp} from '@tabler/icons-react'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
-import {useWindowScroll} from '~/util/hooks/use-window-scroll'
+import {useWindowScroll} from '~/util/hooks'
 
 export default function ScrollTopButton({
   children,

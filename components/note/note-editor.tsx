@@ -19,7 +19,7 @@ import StarterKit from '@tiptap/starter-kit'
 import {useEffect} from 'react'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
 import {usePersistStore} from '~/store'
-import {useDebounced} from '~/util/hooks/use-debounced'
+import {useDebounced} from '~/util/hooks'
 import RTECommands from '../ui/rte-commands'
 
 type NoteEditorProps = {
@@ -104,7 +104,7 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: classNames(
-            'focus:outline-none prose max-w-none wrap-anywhere',
+            'focus:outline-none prose max-w-none',
             theme ? `prose-${theme}` : 'dark:prose-invert',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
@@ -127,7 +127,6 @@ export default function NoteEditor({
         onChange(editor.getHTML(), rawText)
       },
       editable: !disabled && !loading,
-      injectCSS: false,
       autofocus: autofocus,
       immediatelyRender: false,
     },
@@ -137,7 +136,6 @@ export default function NoteEditor({
   const charCountStorage = textEditor?.storage?.characterCount as
     | CharacterCountStorage
     | undefined
-
   const characterCount = charCountStorage?.characters() || 0
   const wordCount = charCountStorage?.words() || 0
   const [characterCountDebounced] = useDebounced(characterCount, 400)

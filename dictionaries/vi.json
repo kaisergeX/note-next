@@ -11,6 +11,10 @@
     },
     "action": {
       "tryAgain": "Thử lại"
+    },
+    "devtools": {
+      "warn": "⚠️ Cảnh báo!!!",
+      "description": "Xin hãy đóng công cụ dành cho nhà phát triển để tiếp tục sử dụng trang web.\nNếu ai đó bảo bạn sao chép hoặc dán bất kì thứ gì vào đây, đó là lừa đảo để đánh cắp thông tin của bạn."
     }
   },
   "auth": {
