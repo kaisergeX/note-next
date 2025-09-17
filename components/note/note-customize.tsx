@@ -13,13 +13,10 @@ import {
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
-import {type Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import MenuCustom, {type MenuItem} from '../ui/menu'
 
 export type NoteCustomizeProps = {
-  note?: Note
-
   className?: string
   loading?: boolean
   type: 'update' | 'create'
@@ -27,24 +24,25 @@ export type NoteCustomizeProps = {
 }
 
 export default function NoteCustomize({
-  note,
-
   className = '',
   loading,
   type,
   onDeleteSuccess,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
-  const {mutateNoteData, setMutateNoteData} = usePersistStore()
-  const theme = mutateNoteData?.theme
+  const {noteId, theme, setMutateNoteData} = usePersistStore((s) => ({
+    noteId: s.mutateNoteData?.id,
+    theme: s.mutateNoteData?.theme,
+    setMutateNoteData: s.setMutateNoteData,
+  }))
 
   const handleDeleteNote = () => {
-    if (!note) {
+    if (!noteId) {
       return
     }
 
     startTransition(async () => {
-      await deleteNoteAction(note.id)
+      await deleteNoteAction(noteId)
       onDeleteSuccess?.()
     })
   }
@@ -56,11 +54,12 @@ export default function NoteCustomize({
           className="button-secondary w-full text-red-500"
           type="button"
           onClick={handleDeleteNote}
+          disabled={loading || pendingTransition}
         >
           <IconTrash size="1.2rem" /> Delete note
         </button>
       ),
-      hidden: type !== 'update' || !note,
+      hidden: type !== 'update' || !noteId,
     },
   ]
 

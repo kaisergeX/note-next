@@ -7,11 +7,10 @@ export const initNoteState: NoteStoreState = {
 
 export const createNoteSlice: StateCreator<NoteStore> = (set, get) => ({
   ...initNoteState,
-  setNoteData: (noteData) => set(() => ({noteData})),
   setMutateNoteData: (newData) =>
     set({
       mutateNoteData: newData
-        ? {...get().mutateNoteData, ...newData}
+        ? Object.assign({}, get().mutateNoteData, newData)
         : undefined,
     }),
   setEditorCharCount: (editorId, charCount) =>

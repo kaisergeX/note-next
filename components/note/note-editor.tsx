@@ -75,11 +75,11 @@ export default function NoteEditor({
 
   exposeStorage,
 }: NoteEditorProps) {
-  const [setEditorCharCount, mutateNoteData] = usePersistStore((state) => [
+  const [setEditorCharCount, noteTheme] = usePersistStore((state) => [
     state.setEditorCharCount,
-    state.mutateNoteData,
+    state.mutateNoteData?.theme,
   ])
-  const theme = defaultTheme ? undefined : mutateNoteData?.theme
+  const theme = defaultTheme ? undefined : noteTheme
 
   const DisableEnter = Extension.create({
     name: 'disableEnter',

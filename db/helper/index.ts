@@ -13,3 +13,7 @@ export const NOTE_CACHE_KEY_PART = 'note'
 export function getNoteCacheKey(noteId: string): string {
   return `${NOTE_CACHE_KEY_PART}-${noteId}`
 }
+
+export function getNoteListCacheKey(email: string): string {
+  return `${NOTE_CACHE_KEY_PART}-list-${email}`
+}

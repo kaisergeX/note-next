@@ -1,4 +1,4 @@
-import type {Note, UpdateNote} from '~/db/schema/notes'
+import type {Note} from '~/db/schema/notes'
 
 export type NoteFormValues = {
   customize?: {bgImage: string; color: string}
@@ -17,14 +17,12 @@ export type NoteData = {
 } & NoteFormValues
 
 export type NoteStoreState = {
-  noteData?: Note
-  mutateNoteData?: UpdateNote
+  mutateNoteData?: Note
   editorCharCount: Record<string, {words: number; characters: number}>
 }
 
 export type NoteStore = {
-  setNoteData: (noteData: Note) => void
-  setMutateNoteData: (mutateNoteData?: Partial<UpdateNote>) => void
+  setMutateNoteData: (mutateNoteData?: Partial<Note>) => void
   setEditorCharCount: (
     editorId: string,
     charCount: NoteStoreState['editorCharCount'][string],

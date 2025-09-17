@@ -1,4 +1,5 @@
 import type {Metadata} from 'next'
+import {unstable_ViewTransition as ViewTransition} from 'react'
 import {getTranslations} from 'next-intl/server'
 import type {PropsWithLocale} from '~/types'
 import {requireAuth} from '~/util'
@@ -23,9 +24,9 @@ export default async function NoteLayout({
   await requireAuth()
 
   return (
-    <>
+    <ViewTransition>
       {children}
       {modal}
-    </>
+    </ViewTransition>
   )
 }
