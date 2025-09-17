@@ -1,7 +1,7 @@
 'use client'
 
 import {useRouter} from 'next/navigation'
-import {useEffect, useState, useTransition} from 'react'
+import {useEffect, useLayoutEffect, useState, useTransition} from 'react'
 import NoteDialog from '~/components/note/note-dialog'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
@@ -14,10 +14,10 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   const router = useRouter()
   const [openModal, setOpenModal] = useState(false)
   const [isPendingTransition, startTransition] = useTransition()
-  const [mutateNoteData, setMutateNoteData] = usePersistStore((s) => [
-    s.mutateNoteData,
-    s.setMutateNoteData,
-  ])
+  const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
+    mutateNoteData: s.mutateNoteData,
+    setMutateNoteData: s.setMutateNoteData,
+  }))
 
   const handleCloseModal = async () => {
     setOpenModal(false)
@@ -25,7 +25,7 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
     router.back()
   }
 
-  const handleSubmit = async () => {
+  const handleSubmit = () => {
     if (
       !mutateNoteData ||
       isEqualNonNestedObj(noteData, mutateNoteData, [
@@ -34,7 +34,7 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
         'pendingDeleteAt',
       ])
     ) {
-      await handleCloseModal()
+      void handleCloseModal()
       return
     }
 
@@ -45,9 +45,6 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   }
 
   useEffect(() => {
-    // void screen.orientation.lock('landscape') // lock rotate on mobile, not fully supported yet
-
-    setMutateNoteData(noteData)
     setOpenModal(true) // this help open dialog animation can happen
 
     return () => {
@@ -55,13 +52,18 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
     }
   }, [])
 
+  useLayoutEffect(() => {
+    // void screen.orientation.lock('landscape') // lock rotate on mobile, not fully supported yet
+
+    setMutateNoteData(noteData)
+  }, [])
+
   return (
     <NoteDialog
       open={openModal}
-      note={noteData}
-      onClose={() => void handleSubmit()}
+      onClose={handleSubmit}
       loading={isPendingTransition}
-      onDeleteSuccess={() => router.back()}
+      onDeleteSuccess={handleCloseModal}
     />
   )
 }

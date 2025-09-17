@@ -7,7 +7,7 @@ import {
   IconWindowMinimize,
 } from '@tabler/icons-react'
 import {useRouter} from 'next/navigation'
-import {useEffect, useTransition} from 'react'
+import {useEffect, useLayoutEffect, useTransition} from 'react'
 import NoteCustomize from '~/components/note/note-customize'
 import NoteEditor from '~/components/note/note-editor'
 import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
@@ -51,11 +51,11 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
   }
 
   useEffect(() => {
-    setMutateNoteData(noteData)
+    return () => setMutateNoteData(undefined)
+  }, [])
 
-    return () => {
-      setMutateNoteData(undefined)
-    }
+  useLayoutEffect(() => {
+    setMutateNoteData(noteData)
   }, [])
 
   return (
@@ -65,6 +65,7 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           type="button"
           className="button button-icon rounded-full p-1"
           onClick={handleSubmit}
+          disabled={isPending}
         >
           <IconArrowLeft />
         </button>
@@ -135,7 +136,6 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
       />
 
       <NoteCustomize
-        note={noteData}
         type="update"
         className={classNames(
           scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button

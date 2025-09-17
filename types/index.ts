@@ -30,3 +30,8 @@ export type ExcludeFromTuple<T extends readonly unknown[], E> = T extends [
     ? ExcludeFromTuple<R, E>
     : [F, ...ExcludeFromTuple<R, E>]
   : []
+
+/** Utility to enforce exact object types (no excess props) */
+export type Exact<T, Shape extends T> = T & {
+  [K in keyof Shape]: K extends keyof T ? Shape[K] : never
+}

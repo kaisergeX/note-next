@@ -65,3 +65,4 @@ export type NewNote = Omit<
   'id' | 'createdAt' | 'updatedAt'
 >
 export type UpdateNote = Omit<NewNote, 'authorId'>
+export type DisallowedUpdateNoteKeys = Exclude<keyof Note, keyof UpdateNote>

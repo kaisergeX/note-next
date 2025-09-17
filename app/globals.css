@@ -1,4 +1,4 @@
-@layer theme, base, components, k-default, k-variant, k-keyframes, utilities; 
+@layer theme, base, components, k-default, k-variant, k-keyframes, utilities;
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 @config "../tailwind.config.mjs";
@@ -214,4 +214,9 @@
     left: 100%;
     opacity: 0;
   }
+}
+
+@view-transition {
+  navigation: auto;
+  types: slide, forwards;
 }

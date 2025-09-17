@@ -1,7 +1,8 @@
 import {redirect} from 'next/navigation'
+import {unstable_ViewTransition as ViewTransition} from 'react'
+import {auth} from '~/auth'
 import NoteCreateEditor from '~/components/note/note-create'
 import NoteTiny from '~/components/note/note-tiny'
-import {auth} from '~/auth'
 import {getListNote} from '~/db/helper/notes'
 import {getUser} from '~/db/helper/users'
 import {genRandom} from '~/util'
@@ -17,7 +18,9 @@ export default async function Notes() {
   const notes = await getListNote(userInfo.id)
 
   const renderNoteList = notes.map((noteData) => (
-    <NoteTiny key={noteData.id} data={noteData} />
+    <ViewTransition key={`tiny-note-${noteData.id}`}>
+      <NoteTiny data={noteData} />
+    </ViewTransition>
   ))
 
   return (

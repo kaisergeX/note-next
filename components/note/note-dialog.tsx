@@ -1,39 +1,46 @@
-import DialogCustom from '../ui/dialog'
-import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
-import NoteEditor from './note-editor'
-import {genRandom} from '~/util'
 import {IconArrowLeft} from '@tabler/icons-react'
-import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
+import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
+import {genRandom} from '~/util'
+import DialogCustom from '../ui/dialog'
+import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
+import NoteEditor from './note-editor'
 
 type NoteDialogProps = {
   type?: NoteCustomizeProps['type']
   loading?: boolean
   open?: boolean
-  note?: Note
   onClose: () => void
-  onDeleteSuccess?: () => void
+  onDeleteSuccess?: () => unknown
 }
 
 export default function NoteDialog({
   type = 'update',
   loading,
   open = false,
-  note,
   onClose,
   onDeleteSuccess,
 }: NoteDialogProps) {
-  const {mutateNoteData, setMutateNoteData} = usePersistStore()
-  const theme = mutateNoteData?.theme
+  const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
+    mutateNoteData: s.mutateNoteData,
+    setMutateNoteData: s.setMutateNoteData,
+  }))
+  const noteTheme = mutateNoteData?.theme
 
   return (
     <DialogCustom
       className="max-sm:flex max-sm:flex-col"
-      theme={theme}
+      theme={noteTheme}
       titleClassName="flex-row-reverse"
       open={open}
       closeButton={
-        <button className="mr-auto h-fit" type="button" onClick={onClose}>
+        <button
+          className="mr-auto h-fit"
+          type="button"
+          onClick={onClose}
+          disabled={loading}
+          aria-label="Close dialog"
+        >
           <IconArrowLeft />
         </button>
       }
@@ -70,7 +77,6 @@ export default function NoteDialog({
       />
 
       <NoteCustomize
-        note={note}
         className="shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10"
         type={type}
         onDeleteSuccess={onDeleteSuccess}
