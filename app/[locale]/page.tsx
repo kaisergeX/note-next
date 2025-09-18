@@ -3,9 +3,10 @@ import {getTranslations} from 'next-intl/server'
 import Image from 'next/image'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
-import SwooshImg from '~/public/swoosh.png'
-import type {PropsWithLocale} from '~/types'
 import {auth} from '~/auth'
+import SwooshImg from '~/public/swoosh.png'
+import {isValidSession} from '~/server-utils'
+import type {PropsWithLocale} from '~/types'
 
 type HomeProps = PropsWithLocale<{
   searchParams: Promise<{
@@ -25,7 +26,7 @@ export default async function Home(props: HomeProps) {
   const t = await getTranslations({locale})
   const session = await auth()
 
-  if (session && !p_r) {
+  if (isValidSession(session) && !p_r) {
     redirect('/eton')
   }
 

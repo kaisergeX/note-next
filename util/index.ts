@@ -2,14 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import type {Session} from 'next-auth'
 import {redirect} from 'next/navigation'
-import {auth} from '../auth'
 import type {ServerError} from '~/types'
-import {RoleEnum} from '../db/schema/users'
 dayjs.extend(relativeTime)
 
-export * from './api-handler'
+export * from './convert'
 
 export function sleep(millis = 0) {
   return new Promise((resolve) => setTimeout(resolve, millis))
@@ -212,43 +209,4 @@ export function isEqualNonNestedObj<
   }
 
   return true
-}
-
-/**
- * @example
- * ```ts
- * const themePgEnum = pgEnum('theme', ['red', 'pink', 'orange'])
- * enumFromArray(themeEnum.enumValues) // {red: 'red', pink: 'pink', orange: 'orange'}
- *
- * const themeEnum = ['red', 'pink', 'orange'] as const
- * enumFromArray(themeEnum) // {red: 'red', pink: 'pink', orange: 'orange'}
- * ```
- */
-export function enumFromArray<T extends string>(
-  inputArr: Readonly<Array<T>>,
-): {[K in T]: K} {
-  const result = {} as {[K in T]: K}
-  for (const key of inputArr) {
-    result[key] = key
-  }
-  return result
-}
-
-export function isArchivist(session: Session | null): boolean {
-  return session?.user.role === RoleEnum.archivist
-}
-
-/**
- * This is `next-auth`'s {@link auth} function with auto-redirect if not authenticated.
- * As a result, the returned `session` is non-nullable.
- * ___
- * **DO NOT** use this function in client components.
- * ___
- * @param redirectUrl redirect url for unauthenticated users
- * @default '/login'
- */
-export async function requireAuth(redirectUrl = '/login') {
-  const session = await auth()
-  if (!session) redirect(redirectUrl)
-  return session
 }

@@ -4,6 +4,10 @@ export function getUserCacheKey(email: string): string {
   return `${USER_CACHE_KEY_PART}-${email}`
 }
 
+export function getUserRoleCacheKey(email: string): string {
+  return `${USER_CACHE_KEY_PART}-${email}-role`
+}
+
 export const NOTE_CACHE_KEY_PART = 'note'
 // const NOTE_CACHE_REVALIDATE_TIME = safeAnyToNumber(
 //   process.env.NOTE_CACHE_REVALIDATE_TIME,

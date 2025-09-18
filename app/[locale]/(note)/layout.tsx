@@ -1,8 +1,8 @@
 import type {Metadata} from 'next'
-import {unstable_ViewTransition as ViewTransition} from 'react'
 import {getTranslations} from 'next-intl/server'
+import {unstable_ViewTransition as ViewTransition} from 'react'
+import {requireAuth} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
-import {requireAuth} from '~/util'
 
 export async function generateMetadata(
   props: PropsWithLocale<LayoutProps<'/[locale]'>>,

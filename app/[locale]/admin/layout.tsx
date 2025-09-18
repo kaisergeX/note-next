@@ -1,8 +1,8 @@
 import type {Metadata} from 'next'
 import {getTranslations} from 'next-intl/server'
 import {redirect} from 'next/navigation'
+import {requireAuth} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
-import {isArchivist, requireAuth} from '~/util'
 
 export async function generateMetadata(
   props: PropsWithLocale,
@@ -24,8 +24,8 @@ export async function generateMetadata(
 export default async function AdminLayout({
   children,
 }: LayoutProps<'/[locale]/admin'>) {
-  const session = await requireAuth()
-  if (!isArchivist(session)) {
+  const {isArchivist} = await requireAuth()
+  if (!isArchivist) {
     return redirect('/denied/permission')
   }
 

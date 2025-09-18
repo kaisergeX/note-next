@@ -1,8 +1,10 @@
+import 'server-only'
+
 import NextAuth, {type NextAuthConfig} from 'next-auth'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
-import {db} from './db'
-import {getCachedUserRole} from './db/helper/users'
-import {RoleEnum, usersTable, type NewUser} from './db/schema/users'
+import {AUTH_ERROR_CODE} from './constants'
+import {addUser, getCachedUser} from './db/helper/users'
+import {RoleEnum, type NewUser} from './db/schema/users'
 
 const authOptions: NextAuthConfig = {
   providers: [
@@ -19,10 +21,21 @@ const authOptions: NextAuthConfig = {
 
       if (token.email) {
         try {
-          const userRole = await getCachedUserRole(token.email)
-          token.role = userRole
+          const userInfo = await getCachedUser(token.email)
+          if (!userInfo) {
+            token.error = AUTH_ERROR_CODE.USER_NOT_FOUND
+            return token
+          }
+
+          if (!userInfo.role) {
+            console.error(
+              `[auth callbacks] User with email ${token.email} not found`,
+            )
+          }
+
+          token.role = userInfo.role || RoleEnum['note-taker']
         } catch (error) {
-          console.log(error)
+          console.log('[auth callbacks]', error)
           token.role = RoleEnum['note-taker']
         }
       }
@@ -30,7 +43,15 @@ const authOptions: NextAuthConfig = {
       return token
     },
     session: ({session, token}) => {
-      if (!token.email) throw new Error('Email is required')
+      if (token.error) {
+        session.error = token.error
+        return session
+      }
+
+      if (!token.email) {
+        session.error = AUTH_ERROR_CODE.EMAIL_NOT_FOUND
+        return session
+      }
 
       if (session.user) {
         session.user.role = token.role
@@ -41,11 +62,11 @@ const authOptions: NextAuthConfig = {
     },
     signIn: async ({account, profile}) => {
       if (!profile) {
-        throw new Error('No profile')
+        throw new Error(AUTH_ERROR_CODE.NO_PROFILE)
       }
 
       if (!profile.email_verified) {
-        throw new Error('Email is not verified')
+        throw new Error(AUTH_ERROR_CODE.EMAIL_NOT_VERIFIED)
       }
 
       if (!profile.email) {
@@ -60,7 +81,7 @@ const authOptions: NextAuthConfig = {
           image: googleProfile.picture,
         }
 
-        await db.insert(usersTable).values(newUsers).onConflictDoNothing()
+        return await addUser(newUsers)
       }
       return true
     },
@@ -68,7 +89,8 @@ const authOptions: NextAuthConfig = {
   },
   pages: {
     signIn: '/login',
+    error: '/denied/permission',
   },
 }
 
-export const {auth, handlers, signIn, signOut} = NextAuth(authOptions)
+export const {auth, handlers} = NextAuth(authOptions)

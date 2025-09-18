@@ -11,7 +11,7 @@ import {
   type Note,
   type UpdateNote,
 } from '~/db/schema/notes'
-import {requireAuth} from '~/util'
+import {requireAuth} from '~/server-utils'
 
 const FILTER_NOTE_KEYS = Object.freeze([
   'id',
@@ -21,14 +21,14 @@ const FILTER_NOTE_KEYS = Object.freeze([
 ] satisfies DisallowedUpdateNoteKeys[])
 
 export async function createNoteAction(noteData: NewNote) {
-  const session = await requireAuth()
+  const {session} = await requireAuth()
   const email = session.user.email
   await db.insert(notesTable).values(noteData)
   revalidateTag(getNoteListCacheKey(email))
 }
 
 export async function mutateNoteAction(noteId: string, noteData: Note) {
-  const session = await requireAuth()
+  const {session} = await requireAuth()
   const email = session.user.email
 
   const updateData: UpdateNote = Object.fromEntries(
@@ -48,7 +48,7 @@ export async function mutateNoteAction(noteId: string, noteData: Note) {
 }
 
 export async function deleteNoteAction(noteId: string) {
-  const session = await requireAuth()
+  const {session} = await requireAuth()
   const email = session.user.email
   await deleteNote(noteId)
   revalidateTag(getNoteListCacheKey(email))

@@ -1,8 +1,8 @@
 import {eq} from 'drizzle-orm'
 import {unstable_cache} from 'next/cache'
-import {getUserCacheKey} from '.'
+import {getUserCacheKey, getUserRoleCacheKey} from '.'
 import {db} from '..'
-import {usersTable, type UpdateUser} from '../schema/users'
+import {usersTable, type NewUser, type UpdateUser} from '../schema/users'
 
 export async function getUserRole(email: string) {
   const result = await db
@@ -11,14 +11,14 @@ export async function getUserRole(email: string) {
     .where(eq(usersTable.email, email))
 
   if (result.length === 0) {
-    throw new Error(`User with email ${email} not found`)
+    return null
   }
 
   return result[0].role
 }
 
 export async function getCachedUserRole(email: string) {
-  const cacheKey = [getUserCacheKey(email)]
+  const cacheKey = [getUserRoleCacheKey(email)]
   return unstable_cache(async () => getUserRole(email), cacheKey, {
     tags: cacheKey,
   })()
@@ -31,10 +31,28 @@ export async function getUser(email: string) {
     .where(eq(usersTable.email, email))
 
   if (result.length === 0) {
-    throw new Error(`User with email ${email} not found`)
+    console.error(`User with email ${email} not found`)
+    return null
   }
 
   return result[0]
+}
+
+export async function getCachedUser(email: string) {
+  const cacheKey = [getUserCacheKey(email)]
+  return unstable_cache(async () => getUser(email), cacheKey, {
+    tags: cacheKey,
+  })()
+}
+
+export async function addUser(newUsers: NewUser) {
+  try {
+    await db.insert(usersTable).values(newUsers).onConflictDoNothing()
+    return true
+  } catch (error) {
+    console.log('Create user error:', error)
+    return false
+  }
 }
 
 /** Remember to revalidateTag(getUserCacheKey(updatedData[0].email)) after updateUser */

@@ -36,23 +36,27 @@ export default function MenuCustom({
   anchor = 'bottom end',
   children,
 }: PropsWithChildren<MenuCustomProps>) {
-  const renderMenuItems = items.map((item, index) => (
-    <MenuItem key={index} as={item.containerAs} disabled={item.disabled}>
-      {item.type === 'link' ? (
-        <Link
-          href={item.url}
-          className={classNames(
-            'hover:bg-reverse data-[active]:bg-reverse data-[disabled]:disabled flex items-center gap-2 p-4 transition-colors',
-            item.className || '',
-          )}
-        >
-          {item.label}
-        </Link>
-      ) : (
-        item.component
-      )}
-    </MenuItem>
-  ))
+  const renderMenuItems = items.flatMap((item, index) =>
+    item.hidden ? (
+      []
+    ) : (
+      <MenuItem key={index} as={item.containerAs} disabled={item.disabled}>
+        {item.type === 'link' ? (
+          <Link
+            href={item.url}
+            className={classNames(
+              'hover:bg-reverse data-[active]:bg-reverse data-[disabled]:disabled flex items-center gap-2 p-4 transition-colors',
+              item.className || '',
+            )}
+          >
+            {item.label}
+          </Link>
+        ) : (
+          item.component
+        )}
+      </MenuItem>
+    ),
+  )
 
   return (
     <Menu as={as} className={classNames('relative', menuClassName)}>
