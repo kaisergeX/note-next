@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server'
-import {getUser} from '~/db/helper/users'
-import {defineAuthRoute} from '~/util'
+import {getCachedUser} from '~/db/helper/users'
+import {defineAuthRoute} from '~/server-utils'
 
 // export const config = {
 //   runtime: 'edge'
@@ -21,6 +21,6 @@ export const GET = defineAuthRoute(async ({session}) => {
   // }
 
   const email = session.user.email
-  const userInfo = await getUser(email)
+  const userInfo = await getCachedUser(email)
   return NextResponse.json(userInfo, {status: 200})
 })

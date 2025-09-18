@@ -1,4 +1,4 @@
-import {DB_TEXT_LIMIT} from '~/db'
+import {DB_TEXT_LIMIT} from './system'
 
 /**
  * Assume that the characters for the HTML tag are double the content.

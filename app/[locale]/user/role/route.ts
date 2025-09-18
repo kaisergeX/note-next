@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server'
 import {getCachedUserRole} from '~/db/helper/users'
-import {defineAuthRoute} from '~/util'
+import {defineAuthRoute} from '~/server-utils'
 
 export const GET = defineAuthRoute(async ({session}) => {
   const email = session.user.email

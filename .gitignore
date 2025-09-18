@@ -37,7 +37,7 @@ yarn-error.log*
 next-env.d.ts
 
 # DB migrations
-drizzle
+drizzle/local
 
 # Serwist
 public/sw*

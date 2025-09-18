@@ -1,6 +1,6 @@
 import {NextResponse} from 'next/server'
 import {getNote} from '~/db/helper/notes'
-import {defineAuthRoute} from '~/util'
+import {defineAuthRoute} from '~/server-utils'
 
 export const GET = defineAuthRoute<RouteContext<'/api/note/[id]'>['params']>(
   async ({params, session}) => {

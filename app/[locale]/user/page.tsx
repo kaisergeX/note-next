@@ -8,13 +8,10 @@ import {
 import Image from 'next/image'
 import Link from 'next/link'
 import Badge from '~/components/ui/badge'
-import {getUser} from '~/db/helper/users'
-import {requireAuth} from '~/util'
+import {requireAuth} from '~/server-utils'
 
 export default async function MyProfile() {
-  const session = await requireAuth()
-  const userEmail = session.user.email
-  const userInfo = await getUser(userEmail)
+  const {userInfo} = await requireAuth()
 
   // @todo store user preferences/settings, KV or Postgres?
 

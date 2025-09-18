@@ -1,7 +1,7 @@
 'use client'
 
 import {useEffect, useState} from 'react'
-import {consoleGetterCheck, debugTimingCheck} from '..'
+import {debugTimingCheck} from '..'
 import {useWindowEvent} from './use-window-event'
 
 type UseDevtoolsDetectOptions = {
@@ -16,7 +16,7 @@ export function useDevtoolsDetect({
 
   function checkOnce() {
     if (process.env.NODE_ENV !== 'production') return
-    setIsOpen(consoleGetterCheck() || debugTimingCheck())
+    setIsOpen(debugTimingCheck(300))
   }
 
   useEffect(() => {

@@ -1,10 +1,14 @@
 import type {localeRouting} from '~/config/localization'
+import type {AUTH_ERROR_CODE} from '~/constants'
 
 export type ServerError = {
   digest: string | number
 } & Error
 
 export type Locales = (typeof localeRouting.locales)[number]
+
+type AuthErrorCode = typeof AUTH_ERROR_CODE
+export type AuthServerError = AuthErrorCode[keyof AuthErrorCode]
 
 export type PropsWithLocale<T = unknown, TParams = unknown> = T & {
   params: Promise<TParams & {locale: Locales}>

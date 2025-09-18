@@ -1,7 +1,10 @@
+'use server'
+
 import {and, desc, eq} from 'drizzle-orm'
 import {unstable_cache} from 'next/cache'
+import {requireAuth} from '~/server-utils'
 import type {Exact} from '~/types'
-import {objectRemoveProperties, requireAuth} from '~/util'
+import {objectRemoveProperties} from '~/util'
 import {getNoteCacheKey, getNoteListCacheKey} from '.'
 import {db} from '..'
 import {type UpdateNote, notesTable} from '../schema/notes'
@@ -16,7 +19,7 @@ export async function getListNote(userId: string) {
 }
 
 export async function getCachedListNote() {
-  const session = await requireAuth()
+  const {session} = await requireAuth()
   const email = session.user.email,
     cacheKey = [getNoteListCacheKey(email)]
   return unstable_cache(async () => getListNote(email), cacheKey, {
@@ -39,7 +42,7 @@ export async function getNote(noteId: string, email: string) {
 }
 
 export async function getCachedNote(noteId: string) {
-  const session = await requireAuth()
+  const {session} = await requireAuth()
   const email = session.user.email,
     cacheKey = [getNoteCacheKey(noteId)]
   return unstable_cache(

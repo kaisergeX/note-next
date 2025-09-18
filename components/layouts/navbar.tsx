@@ -28,7 +28,7 @@ type NavProps = {
 export default function Navbar({appName, signOutLabel}: NavProps) {
   const {status, data: sessionData} = useSession()
   const pathName = usePathname()
-  const isAuthenticated = status === 'authenticated'
+  const isAuthenticated = status === 'authenticated' && !sessionData?.error
 
   const userRole = sessionData?.user.role
   const profileName = sessionData?.user.name

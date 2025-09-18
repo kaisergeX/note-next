@@ -1,9 +1,7 @@
-import {IconArrowLeft} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import {useTranslations} from 'next-intl'
 import {getTranslations} from 'next-intl/server'
 import Link from 'next/link'
-import GoBackButton from '~/components/navigation/go-back-button'
 import type {PropsWithLocale} from '~/types'
 
 export async function generateMetadata(
@@ -35,14 +33,9 @@ export default function PermissionDenied() {
         </div>
       </div>
 
-      <div className="flex gap-4">
-        <GoBackButton className="button">
-          <IconArrowLeft /> {t('back')}
-        </GoBackButton>
-        <Link href="/" className="button-secondary icon">
-          🏡 {t('home')}
-        </Link>
-      </div>
+      <Link href="/" className="button-secondary icon">
+        🏡 {t('home')}
+      </Link>
     </main>
   )
 }

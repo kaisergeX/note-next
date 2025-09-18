@@ -1,3 +1,5 @@
+import 'server-only'
+
 import type {ObjectAny} from '@kaiverse/k/types'
 import type {Session} from 'next-auth'
 import {type NextRequest, NextResponse} from 'next/server'

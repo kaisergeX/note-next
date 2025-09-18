@@ -2,8 +2,9 @@ import type {Metadata} from 'next'
 import {getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
-import SignInButton from '~/components/auth/signin-button'
 import {auth} from '~/auth'
+import SignInButton from '~/components/auth/signin-button'
+import {isValidSession} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
 
 export async function generateMetadata(
@@ -27,7 +28,7 @@ export default async function Login(props: PropsWithLocale) {
   const t = await getTranslations({locale, namespace: 'auth'})
   const session = await auth()
 
-  if (session) {
+  if (isValidSession(session)) {
     redirect('/eton')
   }
 
