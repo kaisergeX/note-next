@@ -1,7 +1,7 @@
 import {getCachedNote} from '~/db/helper/notes'
 import NoteDetail from './note-detail'
 
-export default async function NoteDetailModal(
+export default async function NoteDetailFullPage(
   props: PageProps<'/[locale]/eton/[id]'>,
 ) {
   const noteId = (await props.params).id

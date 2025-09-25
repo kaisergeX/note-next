@@ -6,6 +6,26 @@
 @source inline("{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}");
 @custom-variant dark (&:where(.dark, .dark *));
 
+@utility animate-ease-* {
+  animation-timing-function: --value([*]);
+}
+
+@utility animate-fill-both {
+  animation-fill-mode: both;
+}
+
+@utility animate-scroll {
+  @apply animate-ease-[linear] animate-fill-both [animation-timeline:scroll()];
+}
+
+@utility animate-scroll-shadow {
+  @apply animate-scroll animate-[add-shadow];
+}
+
+@utility animate-affix-appear {
+  @apply animate-scroll animate-[affix-appear];
+}
+
 @utility font-inter {
   @apply font-(family-name:--font-inter);
 }
@@ -143,6 +163,10 @@
     @apply scrollbar;
   }
 
+  :root:has(body > main.bg-fancy) {
+    @apply scrollbar scrollbar-mac;
+  }
+
   html {
     /* 
       this scroll behavior should be set as important for now,
@@ -150,10 +174,6 @@
       and PR https://github.com/vercel/next.js/pull/46995
     */
     @apply scroll-pt-16 scroll-smooth!;
-  }
-
-  :root:has(body > main.bg-fancy) {
-    @apply scrollbar scrollbar-mac;
   }
 
   body {
@@ -213,6 +233,31 @@
   80% {
     left: 100%;
     opacity: 0;
+  }
+}
+
+@keyframes add-shadow {
+  to {
+    box-shadow: 0 8px 5px -5px var(--tw-shadow-color, currentcolor);
+  }
+}
+
+@keyframes affix-appear {
+  from {
+    bottom: calc(var(--spacing) * var(--affix-bot-from, -16));
+    visibility: hidden;
+  }
+  to {
+    bottom: calc(
+      var(--spacing) * var(--affix-bot-to, 4) + env(safe-area-inset-bottom)
+    );
+    visibility: visible;
+  }
+}
+
+@keyframes pr {
+  to {
+    padding-right: var(--pr-to, 1rem);
   }
 }
 

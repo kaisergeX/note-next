@@ -17,16 +17,8 @@ export async function generateMetadata(
   }
 }
 
-export default async function NoteLayout({
-  children,
-  modal,
-}: LayoutProps<'/[locale]'>) {
+export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
   await requireAuth()
 
-  return (
-    <ViewTransition>
-      {children}
-      {modal}
-    </ViewTransition>
-  )
+  return <ViewTransition>{children}</ViewTransition>
 }

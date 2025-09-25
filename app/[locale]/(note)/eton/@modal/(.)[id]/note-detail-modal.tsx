@@ -6,7 +6,7 @@ import NoteDialog from '~/components/note/note-dialog'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import {isEqualNonNestedObj, sleep} from '~/util'
-import {mutateNoteAction} from '../../../eton/actions'
+import {mutateNoteAction} from '../../actions'
 
 type NoteDetailProps = {noteData: Note}
 
@@ -22,7 +22,7 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   const handleCloseModal = async () => {
     setOpenModal(false)
     await sleep(200)
-    router.back()
+    window.history.length > 1 ? router.back() : router.push('/')
   }
 
   const handleSubmit = () => {

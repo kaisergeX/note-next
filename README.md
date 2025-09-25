@@ -1,10 +1,8 @@
-[![CI](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml/badge.svg)](https://github.com/kaisergeX/note-next/actions/workflows/ci.yml)
-
-# etoN - . - --- -.
+# . - --- -.
 
 [![Next.js](https://img.shields.io/badge/Next.js-000?style=for-the-badge&logo=vercel)](https://nextjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-fff?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
-[![@neondatabase](https://img.shields.io/badge/@neondatabase-000?style=for-the-badge&logo=postgresql&logoColor=white)](https://vercel.com/marketplace/neon)
+[![neon](https://img.shields.io/badge/neon-000?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.com/)
 [![Drizzle](https://img.shields.io/badge/drizzile-fff?style=for-the-badge&logo=drizzile&logoColor=4bb74a)](https://orm.drizzle.team/)
 
 ## Roadmap
@@ -47,7 +45,7 @@
 Generate env file.
 
 ```bash
-cp .env.example .env.development
+cp .env.example .env.local
 ```
 
 ## Installation
@@ -56,11 +54,7 @@ cp .env.example .env.development
 pnpm i
 ```
 
-<!-- ## Database
-
-Follow [@vercel/postgres docs](https://vercel.com/docs/storage/vercel-postgres/quickstart) but read section **Populate your database** below instead.
-
-Then follow step 1 & 2 from [@vercel/kv docs](https://vercel.com/docs/storage/vercel-kv/quickstart#quickstart).
+## Database
 
 ### Migration
 
@@ -80,7 +74,7 @@ pnpm db:migrate
 
 ```bash
 pnpm db:seed
-``` -->
+```
 
 ## Development server
 
@@ -90,7 +84,7 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load custom Google Font.
+This project uses [`next/font`](https://nextjs.org/docs/app/getting-started/fonts) to automatically optimize and load custom Google Font.
 
 ## Coding convention
 
@@ -100,7 +94,7 @@ Check lint and format.
 pnpm lint
 ```
 
-[^1]: Currently using [parallel routes](https://nextjs.org/docs/app/building-your-application/routing/parallel-routes) to show 2 types of view on the same route for the purpose of fast previewing, editing, and jumping between notes (tiny view); can sharing URL, and focusing on edit contents like a document (full-size view). Still haven't found a way to opt-out the dialog view if user prefers full-size mode only. A possible solution is always open the note on a new tab.
+[^1]: Currently using [parallel routes](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes) to show 2 types of view on the same route for the purpose of fast previewing, editing, and jumping between notes (tiny view); can sharing URL, and focusing on edit contents like a document (full-size view). Still haven't found a way to opt-out the dialog view if user prefers full-size mode only. A possible solution is always open the note on a new tab.
 
 [^2]: Unlock theme materials and games via the achievement system.
 

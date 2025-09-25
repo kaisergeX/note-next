@@ -6,22 +6,16 @@ import {
 } from '@headlessui/react'
 import {classNames} from '@kaiverse/k/utils'
 import {IconX} from '@tabler/icons-react'
-import {
-  Fragment,
-  useRef,
-  useState,
-  type PropsWithChildren,
-  type ReactNode,
-} from 'react'
+import {Fragment, type PropsWithChildren, type ReactNode} from 'react'
 import type {NoteTheme} from '~/db/schema/notes'
 
 type DialogProps = {
   theme?: NoteTheme | null
   className?: string
   backdropClassName?: string
-  titleClassName?: string
+  headerClassName?: string
 
-  title?: ReactNode
+  header?: ReactNode
   loading?: boolean
   open: boolean
   onClose: () => void
@@ -36,9 +30,9 @@ export default function DialogCustom({
   theme,
   className = '',
   backdropClassName = '',
-  titleClassName = '',
+  headerClassName = '',
 
-  title,
+  header,
   loading,
   open,
   onClose,
@@ -49,9 +43,6 @@ export default function DialogCustom({
   fullScreen,
   children,
 }: PropsWithChildren<DialogProps>) {
-  const inputRef = useRef<HTMLDivElement>(null)
-  const [scrolled, setScrolled] = useState(false)
-
   const dialogEnterAnimation =
     disableAnimation && disableAnimation !== 'close'
       ? 'transition-none'
@@ -74,7 +65,7 @@ export default function DialogCustom({
 
   const renderLoadingPanel = (
     <div className="flex h-full flex-col gap-4 sm:h-80">
-      <div className={classNames('flex gap-4', titleClassName)}>
+      <div className={classNames('flex gap-4', headerClassName)}>
         <div className="h-6 flex-1 animate-pulse rounded-sm bg-zinc-200 dark:bg-zinc-800" />
         {renderCloseButton}
       </div>
@@ -136,39 +127,20 @@ export default function DialogCustom({
                   theme ? `dialog-${theme}` : 'bg-zinc-50 dark:bg-zinc-900',
                   className,
                 )}
-                onScroll={() => {
-                  const stickyOffSetTop = inputRef.current?.offsetTop ?? 0
-                  if (stickyOffSetTop <= 24) {
-                    setScrolled(false)
-                    return
-                  }
-
-                  if (!scrolled) {
-                    setScrolled(true)
-                  }
-                }}
               >
                 {loading ? (
                   renderLoadingPanel
                 ) : (
                   <>
                     <div
-                      ref={inputRef}
                       className={classNames(
                         'sticky top-0 z-40 flex gap-4 bg-inherit transition-shadow *:wrap-anywhere',
-                        scrolled
-                          ? 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
-                          : '',
-                        titleClassName,
+                        'animate-scroll-shadow shadow-zinc-600/10 [animation-range-end:8rem] dark:shadow-zinc-400/10',
+                        headerClassName,
                       )}
                     >
-                      {typeof title === 'string' ? (
-                        <Dialog.Title>{title}</Dialog.Title>
-                      ) : (
-                        title
-                      )}
-
                       {renderCloseButton}
+                      {header}
                     </div>
 
                     {children}

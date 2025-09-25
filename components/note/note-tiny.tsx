@@ -12,10 +12,11 @@ type NoteProps = {
 export default function NoteTiny({data}: NoteProps) {
   const {id, title, content, theme} = data
   const setMutateNoteData = usePersistStore((state) => state.setMutateNoteData)
+  const isPreferFullView = false // @todo get from user settings
 
   return (
     <Link
-      href={`/eton/${id}`}
+      href={`${isPreferFullView ? '/full' : ''}/eton/${id}`}
       className={classNames(
         'card group relative p-4 pb-8',
         theme ? `dialog-${theme} shadow-theme-${theme} border-none` : '',
@@ -23,9 +24,6 @@ export default function NoteTiny({data}: NoteProps) {
       onClick={() => {
         theme && setMutateNoteData({theme})
       }}
-      // @todo Add a option on setting page for user to choose whether to use Dialog or not.
-      // @todo Find a better option such as conditional render for this parallel route instead of open in new tab.
-      // target='_blank' // if user prefers not to use Dialog to view/edit note.
     >
       {title && (
         <article
