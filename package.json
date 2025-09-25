@@ -18,7 +18,7 @@
     "db:studio": "dotenv -e .env.local -- drizzle-kit studio --port 5555 --verbose --config drizzle-local.config.ts",
     "db:prod:check": "drizzle-kit check",
     "db:prod:gen": "drizzle-kit generate",
-    "db:prod:migrate": "drizzle-kit migrate"
+    "db:prod:migrate": "dotenv -e .env.production -- drizzle-kit migrate"
   },
   "dependencies": {
     "@headlessui/react": "^2.2.8",

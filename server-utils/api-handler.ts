@@ -57,6 +57,10 @@ export function defineAuthRoute<
       return NextResponse.json({error: 'Unauthorized'}, {status: 401})
     }
 
+    if (session.error) {
+      return NextResponse.json({error: session.error}, {status: 403})
+    }
+
     return handler({...ctx, session})
   })
 }

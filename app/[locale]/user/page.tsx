@@ -14,6 +14,7 @@ export default async function MyProfile() {
   const {userInfo} = await requireAuth()
 
   // @todo store user preferences/settings, KV or Postgres?
+  // @todo Add a option on setting page for user to choose whether to use Dialog or not.
 
   const renderSettings = settings.map(({id, name, href}, index) => (
     <Link

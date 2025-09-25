@@ -1,4 +1,5 @@
-import {IconArrowLeft} from '@tabler/icons-react'
+import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
+import Link from 'next/link'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import {genRandom} from '~/util'
@@ -31,7 +32,18 @@ export default function NoteDialog({
     <DialogCustom
       className="max-sm:flex max-sm:flex-col"
       theme={noteTheme}
-      titleClassName="flex-row-reverse"
+      header={
+        mutateNoteData?.id ? (
+          <Link
+            href={`/full/eton/${mutateNoteData.id}`}
+            className="max-sm:hidden"
+            aria-label="Full page view"
+            replace
+          >
+            <IconMaximize />
+          </Link>
+        ) : null
+      }
       open={open}
       closeButton={
         <button
@@ -81,6 +93,7 @@ export default function NoteDialog({
         type={type}
         onDeleteSuccess={onDeleteSuccess}
         loading={loading}
+        scrollTopCtrl
       />
     </DialogCustom>
   )

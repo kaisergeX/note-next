@@ -2,6 +2,7 @@
 
 import {classNames} from '@kaiverse/k/utils'
 import {
+  IconArrowUp,
   IconCheck,
   IconDotsVertical,
   IconLoader2,
@@ -21,6 +22,7 @@ export type NoteCustomizeProps = {
   loading?: boolean
   type: 'update' | 'create'
   onDeleteSuccess?: () => void
+  scrollTopCtrl?: boolean
 }
 
 export default function NoteCustomize({
@@ -28,6 +30,7 @@ export default function NoteCustomize({
   loading,
   type,
   onDeleteSuccess,
+  scrollTopCtrl = false,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
   const {noteId, theme, setMutateNoteData} = usePersistStore((s) => ({
@@ -105,13 +108,16 @@ export default function NoteCustomize({
       className={classNames(
         'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
         theme ? 'glass bg-inherit backdrop-blur-md' : 'bg-default',
+        scrollTopCtrl
+          ? 'animate-scroll animate-[pr] [--pr-to:4rem] [animation-range-end:5rem]'
+          : '',
         className,
       )}
     >
       <div className="flex items-center gap-2">
         <MenuCustom
           items={menuColors}
-          className="button-icon rounded-full p-1"
+          className="button-secondary button-icon rounded-full p-1"
           itemsClassName="w-48 grid grid-cols-4 gap-2 p-4 [--anchor-gap:0.5rem]"
           anchor="bottom start"
         >
@@ -119,7 +125,7 @@ export default function NoteCustomize({
         </MenuCustom>
 
         <button
-          className="button-icon rounded-full p-1"
+          className="button-secondary button-icon rounded-full p-1"
           title="Illustration, Texture"
           type="button"
           disabled
@@ -153,6 +159,24 @@ export default function NoteCustomize({
           </MenuCustom>
         )}
       </div>
+
+      {scrollTopCtrl && (
+        <button
+          type="button"
+          className={classNames(
+            'button button-icon absolute right-4 rounded-full p-1 transition-all',
+            'animate-affix-appear [--affix-bot-from:-8] [animation-range-end:5rem]',
+          )}
+          onClick={(e) =>
+            e.currentTarget.parentElement?.parentElement?.scrollTo({
+              top: 0,
+              behavior: 'smooth',
+            })
+          }
+        >
+          <IconArrowUp />
+        </button>
+      )}
     </div>
   )
 }

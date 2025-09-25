@@ -24,13 +24,14 @@ const authOptions: NextAuthConfig = {
           const userInfo = await getCachedUser(token.email)
           if (!userInfo) {
             token.error = AUTH_ERROR_CODE.USER_NOT_FOUND
+            console.error(
+              `[auth callbacks] User with email ${token.email} not found`,
+            )
             return token
           }
 
           if (!userInfo.role) {
-            console.error(
-              `[auth callbacks] User with email ${token.email} not found`,
-            )
+            console.error(`[auth callbacks] User ${token.email} role not found`)
           }
 
           token.role = userInfo.role || RoleEnum['note-taker']
@@ -85,7 +86,7 @@ const authOptions: NextAuthConfig = {
       }
       return true
     },
-    authorized: ({auth}) => !!auth?.user?.email,
+    authorized: ({auth}) => !!auth?.user?.email && !auth.error,
   },
   pages: {
     signIn: '/login',
