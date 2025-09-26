@@ -6,14 +6,15 @@ import {
   IconWindowMaximize,
   IconWindowMinimize,
 } from '@tabler/icons-react'
+import {useMessages, useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {useEffect, useLayoutEffect, useTransition} from 'react'
 import NoteCustomize from '~/components/note/note-customize'
 import NoteEditor from '~/components/note/note-editor'
 import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
-import {genRandom, isEqualNonNestedObj} from '~/util'
-import {useFullscreen, useWindowScroll} from '~/util/hooks'
+import {isEqualNonNestedObj} from '~/util'
+import {useFullscreen, useRandomString, useWindowScroll} from '~/util/hooks'
 import {mutateNoteAction} from '../actions'
 
 type NoteDetailProps = {noteData: Note}
@@ -24,6 +25,12 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
   const [isPending, startTransition] = useTransition()
   const {isFullscreen, toggleFullscreen, error: fullscreenErr} = useFullscreen()
   const {mutateNoteData, setMutateNoteData, editorCharCount} = usePersistStore()
+  const t = useTranslations('note')
+  const messages = useMessages()
+  const emptyPlaceholders = useRandomString(
+    messages.note.editor.emptyPlaceholder,
+  )
+
   const theme = mutateNoteData?.theme
 
   const contentCount = {
@@ -74,9 +81,9 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           {contentCount.words > 1 && (
             <div className="group cursor-default text-xs sm:text-sm">
               <span className="opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden">
-                {contentCount.characters} characters,
+                {t('count.characters', {count: contentCount.characters})},
               </span>
-              &nbsp;{contentCount.words} words
+              &nbsp;{t('count.words', {count: contentCount.words})}
             </div>
           )}
           <button
@@ -123,12 +130,7 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           ),
         }}
         initialValue={mutateNoteData?.content || noteData?.content || ''}
-        placeholder={genRandom([
-          'Nothing here yet 😶‍🌫️',
-          'New💡',
-          "Let's add something inspirational ✨",
-          'Tasks to do 📝',
-        ])}
+        placeholder={emptyPlaceholders}
         commandTypes="always-fixed"
         onChange={(value) => setMutateNoteData({content: value})}
         loading={isPending}

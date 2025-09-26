@@ -6,6 +6,16 @@
 @source inline("{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}");
 @custom-variant dark (&:where(.dark, .dark *));
 
+@utility position-anchor-* {
+  position-anchor: --value([*]);
+  position-visibility: anchors-visible;
+}
+
+@utility position-try-y-* {
+  position-area: --value([*]);
+  position-try: most-block-size flip-block;
+}
+
 @utility animate-ease-* {
   animation-timing-function: --value([*]);
 }
@@ -131,7 +141,7 @@
 }
 
 @utility card {
-  @apply rounded-lg border border-solid border-zinc-200 transition-shadow hover:shadow-md dark:border-zinc-700;
+  @apply rounded-lg border border-solid border-zinc-200 transition-shadow focus-within:shadow-md hover:shadow-md dark:border-zinc-700;
 }
 
 @utility card-fancy {

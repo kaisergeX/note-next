@@ -48,6 +48,8 @@ export async function mutateNoteAction(noteId: string, noteData: Note) {
 }
 
 export async function deleteNoteAction(noteId: string) {
+  if (!noteId) return
+
   const {session} = await requireAuth()
   const email = session.user.email
   await deleteNote(noteId)

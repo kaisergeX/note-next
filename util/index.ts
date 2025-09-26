@@ -23,12 +23,19 @@ export function timeAgo(
   return dayjs(timestamp).fromNow(timeOnly)
 }
 
-export function genRandom<T>(pool: Array<T>): T | string {
-  if (pool.length === 0) {
+export function genRandom<T>(
+  pool: Array<T> | Record<PropertyKey, T>,
+): T | string {
+  if (!pool) {
     return ''
   }
 
-  return pool[Math.floor(Math.random() * pool.length)]
+  const poolArr = Array.isArray(pool) ? pool : Object.values(pool)
+  if (poolArr.length === 0) {
+    return ''
+  }
+
+  return poolArr[Math.floor(Math.random() * poolArr.length)]
 }
 
 /** Construct an anonymous dynamically created function, stack traces are less obvious that makes it harder to search for in the bundle */

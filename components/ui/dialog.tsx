@@ -6,7 +6,7 @@ import {
 } from '@headlessui/react'
 import {classNames} from '@kaiverse/k/utils'
 import {IconX} from '@tabler/icons-react'
-import {Fragment, type PropsWithChildren, type ReactNode} from 'react'
+import {Fragment, useRef, type PropsWithChildren, type ReactNode} from 'react'
 import type {NoteTheme} from '~/db/schema/notes'
 
 type DialogProps = {
@@ -43,6 +43,11 @@ export default function DialogCustom({
   fullScreen,
   children,
 }: PropsWithChildren<DialogProps>) {
+  const dialogRef = useRef<HTMLElement>(null)
+  const isDialogScrollable = dialogRef.current
+    ? dialogRef.current.scrollHeight > dialogRef.current.clientHeight
+    : false
+
   const dialogEnterAnimation =
     disableAnimation && disableAnimation !== 'close'
       ? 'transition-none'
@@ -119,6 +124,7 @@ export default function DialogCustom({
               leaveTo="opacity-0 scale-95"
             >
               <DialogPanel
+                ref={dialogRef}
                 className={classNames(
                   `ring-theme overflow-y-auto shadow-xl max-sm:h-dvh max-sm:w-[100dvw] sm:min-w-lg sm:rounded-lg [&>div]:p-4`,
                   fullScreen
@@ -134,8 +140,10 @@ export default function DialogCustom({
                   <>
                     <div
                       className={classNames(
-                        'sticky top-0 z-40 flex gap-4 bg-inherit transition-shadow *:wrap-anywhere',
-                        'animate-scroll-shadow shadow-zinc-600/10 [animation-range-end:8rem] dark:shadow-zinc-400/10',
+                        'sticky top-0 z-40 flex gap-4 bg-inherit *:wrap-anywhere',
+                        isDialogScrollable
+                          ? 'animate-scroll-shadow shadow-zinc-600/10 transition-shadow [animation-range-end:8rem] dark:shadow-zinc-400/10'
+                          : '',
                         headerClassName,
                       )}
                     >

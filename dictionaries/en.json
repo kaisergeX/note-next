@@ -38,6 +38,26 @@
     "title": "Notes",
     "about": {
       "title": "About etoN"
-    }
+    },
+    "editor": {
+      "title": "Title",
+      "emptyPlaceholder": {
+        "nothing": "Nothing here yet 😶‍🌫️",
+        "new": "Let's add new💡",
+        "inspiration": "Let's add something inspirational ✨",
+        "todo": "Let's add a todo 📝"
+      }
+    },
+    "count": {
+      "characters": "{count} characters",
+      "words": "{count} words"
+    },
+    "creation": {
+      "idea": "New idea",
+      "todo": "New todo",
+      "note": "New note",
+      "inspiration": "New inspiration"
+    },
+    "delete": "Delete note"
   }
 }

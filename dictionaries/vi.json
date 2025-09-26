@@ -38,6 +38,26 @@
     "title": "Ghi chú",
     "about": {
       "title": "Thông tin ứng dụng etoN"
-    }
+    },
+    "editor": {
+      "title": "Tiêu đề",
+      "emptyPlaceholder": {
+        "nothing": "Chưa có gì ở đây 😶‍🌫️",
+        "new": "Thêm 💡ý tưởng mới",
+        "inspiration": "Thêm chút cảm hứng ✨",
+        "todo": "Thêm việc cần làm 📝"
+      }
+    },
+    "count": {
+      "characters": "{count} ký tự",
+      "words": "{count} từ"
+    },
+    "creation": {
+      "idea": "Ý tưởng mới",
+      "todo": "Việc cần làm mới",
+      "note": "Ghi chú mới",
+      "inspiration": "Cảm hứng mới"
+    },
+    "delete": "Xóa ghi chú"
   }
 }
