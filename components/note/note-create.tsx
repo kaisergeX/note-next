@@ -1,10 +1,11 @@
 'use client'
 
 import {IconPencilPlus, IconSparkles} from '@tabler/icons-react'
+import {useMessages} from 'next-intl'
 import {useState, useTransition} from 'react'
 import {createNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
-import {genRandom} from '~/util'
+import {useRandomString} from '~/util/hooks'
 import NoteDialog from './note-dialog'
 
 export default function NoteCreateEditor({authorId}: {authorId: string}) {
@@ -14,6 +15,8 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
     mutateNoteData: state.mutateNoteData,
     setMutateNoteData: state.setMutateNoteData,
   }))
+  const messages = useMessages()
+  const creationBtnMsg = useRandomString(messages.note.creation)
 
   const handleCloseModal = () => {
     if (!mutateNoteData || (!mutateNoteData.title && !mutateNoteData.content)) {
@@ -43,7 +46,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
           className="max-w-0 overflow-clip whitespace-nowrap opacity-0 transition-all duration-300 ease-in-out group-hover:max-w-36 group-hover:opacity-100 max-sm:hidden"
           suppressHydrationWarning
         >
-          {genRandom(['New idea', 'New note', 'New todos', 'New inspiration'])}
+          {creationBtnMsg}
         </span>
       </button>
 

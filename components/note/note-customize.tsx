@@ -11,7 +11,8 @@ import {
   IconTexture,
   IconTrash,
 } from '@tabler/icons-react'
-import {useTransition} from 'react'
+import {useTranslations} from 'next-intl'
+import {useRef, useTransition, type RefObject} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
 import {usePersistStore} from '~/store'
@@ -22,6 +23,7 @@ export type NoteCustomizeProps = {
   loading?: boolean
   type: 'update' | 'create'
   onDeleteSuccess?: () => void
+  scrollContainerRef?: RefObject<HTMLElement | null>
   scrollTopCtrl?: boolean
 }
 
@@ -30,6 +32,7 @@ export default function NoteCustomize({
   loading,
   type,
   onDeleteSuccess,
+  scrollContainerRef,
   scrollTopCtrl = false,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
@@ -38,6 +41,16 @@ export default function NoteCustomize({
     theme: s.mutateNoteData?.theme,
     setMutateNoteData: s.setMutateNoteData,
   }))
+  const t = useTranslations('note')
+
+  const ref = useRef<HTMLDivElement>(null)
+  const scrollContainer = scrollContainerRef?.current
+    ? scrollContainerRef.current
+    : ref.current?.parentElement
+
+  const scrollable = scrollContainer
+    ? scrollContainer.scrollHeight > scrollContainer.clientHeight
+    : false
 
   const handleDeleteNote = () => {
     if (!noteId) {
@@ -59,7 +72,7 @@ export default function NoteCustomize({
           onClick={handleDeleteNote}
           disabled={loading || pendingTransition}
         >
-          <IconTrash size="1.2rem" /> Delete note
+          <IconTrash size="1.2rem" /> {t('delete')}
         </button>
       ),
       hidden: type !== 'update' || !noteId,
@@ -105,10 +118,11 @@ export default function NoteCustomize({
 
   return (
     <div
+      ref={ref}
       className={classNames(
         'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
         theme ? 'glass bg-inherit backdrop-blur-md' : 'bg-default',
-        scrollTopCtrl
+        scrollTopCtrl && scrollable
           ? 'animate-scroll animate-[pr] [--pr-to:4rem] [animation-range-end:5rem]'
           : '',
         className,
@@ -160,18 +174,15 @@ export default function NoteCustomize({
         )}
       </div>
 
-      {scrollTopCtrl && (
+      {scrollTopCtrl && scrollable && (
         <button
           type="button"
           className={classNames(
             'button button-icon absolute right-4 rounded-full p-1 transition-all',
             'animate-affix-appear [--affix-bot-from:-8] [animation-range-end:5rem]',
           )}
-          onClick={(e) =>
-            e.currentTarget.parentElement?.parentElement?.scrollTo({
-              top: 0,
-              behavior: 'smooth',
-            })
+          onClick={() =>
+            scrollContainer?.scrollTo({top: 0, behavior: 'smooth'})
           }
         >
           <IconArrowUp />

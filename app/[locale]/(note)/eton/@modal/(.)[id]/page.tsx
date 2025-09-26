@@ -1,10 +1,18 @@
+import {NextIntlClientProvider} from 'next-intl'
+import {getMessages} from 'next-intl/server'
 import {getCachedNote} from '~/db/helper/notes'
+import type {PropsWithLocale} from '~/types'
 import NoteDetailModal from './note-detail-modal'
 
 export default async function NoteDetailModalPage(
-  props: PageProps<'/[locale]/eton/[id]'>,
+  props: PropsWithLocale<PageProps<'/[locale]/eton/[id]'>>,
 ) {
-  const noteId = (await props.params).id
+  const {id: noteId, locale} = await props.params
   const noteData = await getCachedNote(noteId)
-  return <NoteDetailModal noteData={noteData} />
+  const noteMsgs = (await getMessages({locale})).note
+  return (
+    <NextIntlClientProvider messages={{note: noteMsgs}}>
+      <NoteDetailModal noteData={noteData} />
+    </NextIntlClientProvider>
+  )
 }
