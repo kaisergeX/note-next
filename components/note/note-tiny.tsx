@@ -39,12 +39,13 @@ export default function NoteTiny({data}: NoteProps) {
       )}
     >
       <Link
-        className="block p-4 pb-8"
+        className="block h-full p-4 pb-8"
         href={`${isPreferFullView ? '/full' : ''}/eton/${noteId}`}
         onClick={(e) => {
           pendingTransition && e.preventDefault()
           theme && setMutateNoteData({theme})
         }}
+        scroll={false}
       >
         {title && (
           <article
@@ -90,7 +91,7 @@ export default function NoteTiny({data}: NoteProps) {
           className={classNames(
             `shadow-md shadow-theme-${theme}`,
             'rounded-md',
-            'position-try-y-[bottom_span-left] position-anchor-[var(--anchor-name)] absolute inset-auto mt-2',
+            'position-try-y-[top_span-left] position-anchor-[var(--anchor-name)] absolute inset-auto mb-2',
           )}
           popover="auto"
         >

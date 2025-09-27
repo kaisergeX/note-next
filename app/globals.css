@@ -188,7 +188,7 @@
       related to this issue https://github.com/vercel/next.js/issues/44295 
       and PR https://github.com/vercel/next.js/pull/46995
     */
-    @apply scroll-pt-16 scroll-smooth!;
+    @apply scroll-pt-16 scroll-smooth! [scrollbar-gutter:stable];
   }
 
   body {
@@ -259,13 +259,13 @@
 
 @keyframes affix-appear {
   from {
-    bottom: calc(var(--spacing) * var(--affix-bot-from, -16));
+    transform: translateY(calc(var(--spacing) * var(--affix-y-from, 16)));
+    opacity: 0;
     visibility: hidden;
   }
   to {
-    bottom: calc(
-      var(--spacing) * var(--affix-bot-to, 4) + env(safe-area-inset-bottom)
-    );
+    transform: translateY(0);
+    opacity: 1;
     visibility: visible;
   }
 }
@@ -278,5 +278,4 @@
 
 @view-transition {
   navigation: auto;
-  types: slide, forwards;
 }
