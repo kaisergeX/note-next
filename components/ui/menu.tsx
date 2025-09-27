@@ -28,7 +28,7 @@ type MenuCustomProps = {
 }
 
 export default function MenuCustom({
-  as = 'div',
+  as,
   className,
   menuClassName = '',
   itemsClassName = '',
@@ -59,10 +59,11 @@ export default function MenuCustom({
   )
 
   return (
-    <Menu as={as} className={classNames('relative', menuClassName)}>
+    <Menu as="div" className={classNames('relative', menuClassName)}>
       <MenuButton className={className}>{children}</MenuButton>
 
       <MenuItems
+        as={as}
         className={classNames(
           'bg-default shadow-theme ring-theme overflow-hidden rounded-md text-sm font-semibold focus:outline-none',
           'transform transition',

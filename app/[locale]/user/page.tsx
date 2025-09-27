@@ -70,8 +70,8 @@ export default async function MyProfile() {
       </div>
       <hr />
 
-      <h2 className="text-red-500">Danger Zone</h2>
-      <div className="mt-4 flex gap-4 [&>button]:text-red-500">
+      <h2 className="text-danger">Danger Zone</h2>
+      <div className="[&>button]:text-danger mt-4 flex gap-4">
         <button className="button-secondary" type="button" disabled>
           <IconNoteOff /> Remove all notes
         </button>

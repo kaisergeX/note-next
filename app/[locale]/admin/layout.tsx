@@ -30,6 +30,8 @@ export default async function AdminLayout({
   }
 
   return (
-    <main className="bg-fancy flex-center h-full flex-col p-4">{children}</main>
+    <main className="bg-fancy flex-center body-dvh h-full flex-col p-4">
+      {children}
+    </main>
   )
 }

@@ -38,6 +38,7 @@ export default function NoteDialog({
     <DialogCustom
       className="max-sm:flex max-sm:flex-col"
       theme={noteTheme}
+      headerClassName="p-4"
       header={
         mutateNoteData?.id ? (
           <Link
@@ -66,7 +67,7 @@ export default function NoteDialog({
     >
       <NoteEditor
         id="dialog-note-title"
-        className="mb-2"
+        className="mb-2 p-4"
         editorClassName="text-lg font-semibold sm:text-xl"
         initialValue={mutateNoteData?.title}
         onChange={(value) => setMutateNoteData({title: value})}
@@ -80,7 +81,7 @@ export default function NoteDialog({
 
       <NoteEditor
         id="dialog-note-content"
-        className="flex flex-1 flex-col [&>div:has(.ProseMirror)]:flex-1"
+        className="flex flex-1 flex-col p-4 [&>div:has(.ProseMirror)]:flex-1"
         editorClassName="h-full sm:min-h-[40dvh]"
         initialValue={mutateNoteData?.content}
         placeholder={emptyPlaceholders}

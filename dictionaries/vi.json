@@ -39,6 +39,10 @@
     "about": {
       "title": "Thông tin ứng dụng etoN"
     },
+    "status": {
+      "syncing": "Đang đồng bộ",
+      "synced": "Đã đồng bộ"
+    },
     "editor": {
       "title": "Tiêu đề",
       "emptyPlaceholder": {

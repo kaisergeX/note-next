@@ -67,7 +67,7 @@ export default function NoteCustomize({
     {
       component: (
         <button
-          className="button-secondary w-full text-red-500"
+          className="button-secondary text-danger w-full"
           type="button"
           onClick={handleDeleteNote}
           disabled={loading || pendingTransition}
@@ -120,7 +120,7 @@ export default function NoteCustomize({
     <div
       ref={ref}
       className={classNames(
-        'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all',
+        'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]',
         theme ? 'glass bg-inherit backdrop-blur-md' : 'bg-default',
         scrollTopCtrl && scrollable
           ? 'animate-scroll animate-[pr] [--pr-to:4rem] [animation-range-end:5rem]'
@@ -153,11 +153,13 @@ export default function NoteCustomize({
           <div className="flex items-center gap-1 text-xs font-medium">
             {loading || pendingTransition ? (
               <>
-                <IconLoader2 className="animate-spin" size="1.2rem" /> Syncing
+                <IconLoader2 className="animate-spin" size="1.2rem" />{' '}
+                {t('status.syncing')}
               </>
             ) : (
               <>
-                <IconCheck className="text-green-600" size="1.2rem" /> Synced
+                <IconCheck className="text-green-600" size="1.2rem" />{' '}
+                {t('status.synced')}
               </>
             )}
           </div>

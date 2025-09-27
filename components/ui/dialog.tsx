@@ -126,7 +126,7 @@ export default function DialogCustom({
               <DialogPanel
                 ref={dialogRef}
                 className={classNames(
-                  `ring-theme overflow-y-auto shadow-xl max-sm:h-dvh max-sm:w-[100dvw] sm:min-w-lg sm:rounded-lg [&>div]:p-4`,
+                  `ring-theme overflow-y-auto shadow-xl max-sm:h-dvh max-sm:w-[100dvw] sm:min-w-lg sm:rounded-lg`,
                   fullScreen
                     ? 'h-dvh w-dvw'
                     : 'min-h-80 sm:max-h-full sm:w-1/2 sm:max-w-(--breakpoint-sm) 2xl:max-w-(--breakpoint-lg)',

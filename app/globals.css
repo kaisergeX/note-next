@@ -6,6 +6,10 @@
 @source inline("{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}");
 @custom-variant dark (&:where(.dark, .dark *));
 
+@utility text-danger {
+  @apply text-red-500 dark:text-red-400;
+}
+
 @utility position-anchor-* {
   position-anchor: --value([*]);
   position-visibility: anchors-visible;
@@ -151,6 +155,7 @@
 @utility glass {
   @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/[0.06] dark:bg-transparent;
 }
+
 @utility btn-light-sweep {
   @apply relative overflow-clip;
 
@@ -190,12 +195,12 @@
     @apply bg-default pt-[env(safe-area-inset-top)];
   }
 
-  body:has(main):has(.bg-fancy) {
+  body:has(main.bg-fancy) {
     @apply bg-theme;
-  }
 
-  body:has(main):has(.bg-fancy) nav.glass {
-    @apply bg-transparent;
+    header.glass {
+      @apply bg-transparent! backdrop-blur-none!;
+    }
   }
 
   body:has(.prevent-body-scroll) {

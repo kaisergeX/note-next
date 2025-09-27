@@ -36,7 +36,7 @@ export default async function Notes({params}: PropsWithLocale) {
   }
 
   return (
-    <main className="h-full p-4 max-sm:pt-0">
+    <main className="p-4 max-sm:pt-0">
       <NextIntlClientProvider messages={{note: noteMsgs}}>
         <div className="mb-4 text-right">
           <NoteCreateEditor authorId={userInfo.id} />

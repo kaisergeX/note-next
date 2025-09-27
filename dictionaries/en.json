@@ -39,6 +39,10 @@
     "about": {
       "title": "About etoN"
     },
+    "status": {
+      "syncing": "Syncing",
+      "synced": "Synced"
+    },
     "editor": {
       "title": "Title",
       "emptyPlaceholder": {
