@@ -12,10 +12,7 @@ export default function LogoLoading({
 }: LogoLoadingProps) {
   return (
     <div
-      className={classNames(
-        'flex-center h-dvh w-full text-3xl dark:invert-100',
-        className,
-      )}
+      className={classNames('flex-center text-3xl dark:invert-100', className)}
     >
       <Image
         className={pulse ? 'animate-pulse' : undefined}

@@ -95,7 +95,7 @@ export default function NoteTiny({data}: NoteProps) {
           popover="auto"
         >
           <button
-            className="button-secondary w-full rounded-none border-none text-red-500 shadow-none"
+            className="button-secondary text-danger w-full rounded-none border-none shadow-none"
             type="button"
             onClick={handleDeleteNote}
             disabled={pendingTransition}

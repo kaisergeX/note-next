@@ -26,7 +26,7 @@
 - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.
 - [ ] Note: Link to others.
 - [ ] Landing page.
-- [ ] Preferences: Note - Disable tiny view (dialog) and always view full-size notes.[^1]
+- [ ] Preferences: Note - Option to disable modal view and always show full-size notes.[^1]
 - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
 - [ ] Preferences: Theme.[^3]
   - [ ] Theme editor & preview - Constantly update new themes.
@@ -94,7 +94,7 @@ Check lint and format.
 pnpm lint
 ```
 
-[^1]: Currently using [parallel routes](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes) to show 2 types of view on the same route for the purpose of fast previewing, editing, and jumping between notes (tiny view); can sharing URL, and focusing on edit contents like a document (full-size view). Still haven't found a way to opt-out the dialog view if user prefers full-size mode only. A possible solution is always open the note on a new tab.
+[^1]: Currently using [parallel routes](https://nextjs.org/docs/app/api-reference/file-conventions/parallel-routes) to show 2 types of view on the same route for the purpose of fast previewing, editing, and jumping between notes (modal view); can sharing URL, and focusing on edit contents like a document (full-size view).
 
 [^2]: Unlock theme materials and games via the achievement system.
 
