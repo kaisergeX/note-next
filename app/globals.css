@@ -184,11 +184,11 @@
 
   html {
     /* 
-      this scroll behavior should be set as important for now,
+      Need verify if this scroll behavior bug still existed that it should be set as important,
       related to this issue https://github.com/vercel/next.js/issues/44295 
       and PR https://github.com/vercel/next.js/pull/46995
     */
-    @apply scroll-pt-16 scroll-smooth! [scrollbar-gutter:stable];
+    @apply scroll-pt-16 scroll-smooth [scrollbar-gutter:stable];
   }
 
   body {
@@ -274,8 +274,4 @@
   to {
     padding-right: var(--pr-to, 1rem);
   }
-}
-
-@view-transition {
-  navigation: auto;
 }

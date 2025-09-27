@@ -22,7 +22,7 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   const handleCloseModal = async () => {
     setOpenModal(false)
     await sleep(200)
-    window.history.length > 1 ? router.back() : router.push('/')
+    window.history.length > 1 ? router.back() : router.push('/eton')
   }
 
   const handleSubmit = () =>

@@ -18,26 +18,21 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
   const messages = useMessages()
   const creationBtnMsg = useRandomString(messages.note.creation)
 
-  const handleCloseModal = () => {
-    if (!mutateNoteData || (!mutateNoteData.title && !mutateNoteData.content)) {
-      setOpenModal(false)
-      setMutateNoteData(undefined)
-      return
-    }
-
+  const handleCloseModal = () =>
     startTransition(async () => {
-      await createNoteAction({...mutateNoteData, authorId})
+      if (mutateNoteData && (mutateNoteData.title || mutateNoteData.content)) {
+        await createNoteAction({...mutateNoteData, authorId})
+      }
       setOpenModal(false)
       setMutateNoteData(undefined)
     })
-  }
 
   return (
     <>
       <button
         className="button-secondary btn-light-sweep max-sm:button max-sm:button-affix max-sm:button-icon group w-auto gap-0 transition-all duration-300 max-sm:z-10 max-sm:rounded-full max-sm:!p-3 sm:hover:gap-2"
         type="button"
-        onClick={() => setOpenModal(true)}
+        onClick={() => startTransition(() => setOpenModal(true))}
       >
         <IconPencilPlus className="sm:group-hover:hidden" />
         <IconSparkles className="hidden sm:group-hover:block" />
