@@ -39,8 +39,10 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
       ? `https://ui-avatars.com/api/?name=${profileName}`
       : undefined)
 
-  const {theme, setTheme} = usePersistStore()
-  const isDarkMode = theme === 'dark'
+  const {isDarkMode, setTheme} = usePersistStore((s) => ({
+    isDarkMode: s.theme === 'dark',
+    setTheme: s.setTheme,
+  }))
 
   const [isMenuDialogOpen, {open: openMenuDialog, close: closeMenuDialog}] =
     useDisclosure()

@@ -1,5 +1,6 @@
 import {NextIntlClientProvider} from 'next-intl'
 import {getMessages} from 'next-intl/server'
+import {unstable_ViewTransition as ViewTransition} from 'react'
 import {getCachedNote} from '~/db/helper/notes'
 import type {PropsWithLocale} from '~/types'
 import NoteDetailModal from './note-detail-modal'
@@ -12,7 +13,9 @@ export default async function NoteDetailModalPage(
   const noteMsgs = (await getMessages({locale})).note
   return (
     <NextIntlClientProvider messages={{note: noteMsgs}}>
-      <NoteDetailModal noteData={noteData} />
+      <ViewTransition>
+        <NoteDetailModal noteData={noteData} />
+      </ViewTransition>
     </NextIntlClientProvider>
   )
 }

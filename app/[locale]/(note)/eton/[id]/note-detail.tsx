@@ -51,7 +51,7 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
         await mutateNoteAction(noteData.id, mutateNoteData)
       }
 
-      router.push('/eton')
+      window.history.length > 1 ? router.back() : router.push('/eton')
     })
 
   useEffect(() => {

@@ -45,7 +45,6 @@ export default function NoteTiny({data}: NoteProps) {
           pendingTransition && e.preventDefault()
           theme && setMutateNoteData({theme})
         }}
-        scroll={false}
       >
         {title && (
           <article
