@@ -38,7 +38,7 @@ export default async function Notes({params}: PropsWithLocale) {
   return (
     <main className="p-4 max-sm:pt-0">
       <NextIntlClientProvider messages={{note: noteMsgs}}>
-        <div className="mb-4 text-right">
+        <div className="mb-4 flex justify-end">
           <NoteCreateEditor authorId={userInfo.id} />
         </div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] grid-rows-[masonry] gap-4 pb-16">

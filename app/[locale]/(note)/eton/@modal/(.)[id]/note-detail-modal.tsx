@@ -25,27 +25,24 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
     window.history.length > 1 ? router.back() : router.push('/')
   }
 
-  const handleSubmit = () => {
-    if (
-      !mutateNoteData ||
-      isEqualNonNestedObj(noteData, mutateNoteData, [
-        'createdAt',
-        'updatedAt',
-        'pendingDeleteAt',
-      ])
-    ) {
-      void handleCloseModal()
-      return
-    }
-
+  const handleSubmit = () =>
     startTransition(async () => {
-      await mutateNoteAction(noteData.id, mutateNoteData)
+      if (
+        mutateNoteData &&
+        !isEqualNonNestedObj(noteData, mutateNoteData, [
+          'createdAt',
+          'updatedAt',
+          'pendingDeleteAt',
+        ])
+      ) {
+        await mutateNoteAction(noteData.id, mutateNoteData)
+      }
+
       await handleCloseModal()
     })
-  }
 
   useEffect(() => {
-    setOpenModal(true) // this help open dialog animation can happen
+    startTransition(() => setOpenModal(true))
 
     return () => {
       setMutateNoteData(undefined)

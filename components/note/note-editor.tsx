@@ -26,6 +26,7 @@ type NoteEditorProps = {
   id: string
   initialValue?: string | null
   onChange?: (value: string, rawText?: string) => void
+  onPressEnter?: () => void
 
   className?: string
   menuClassNames?: {
@@ -42,7 +43,7 @@ type NoteEditorProps = {
   limitCharacter?: number
 
   commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
-  disableEnter?: boolean
+  disableDefaultEnter?: boolean
   tabIndex?: string
   autofocus?: FocusPosition
   loading?: boolean
@@ -55,6 +56,7 @@ export default function NoteEditor({
   id,
   initialValue = '',
   onChange,
+  onPressEnter,
 
   className = '',
   menuClassNames,
@@ -67,7 +69,7 @@ export default function NoteEditor({
   limitCharacter,
 
   commandTypes,
-  disableEnter = false,
+  disableDefaultEnter = false,
   tabIndex = '',
   autofocus = false,
   loading,
@@ -83,7 +85,12 @@ export default function NoteEditor({
 
   const DisableEnter = Extension.create({
     name: 'disableEnter',
-    addKeyboardShortcuts: () => ({Enter: () => disableEnter}),
+    addKeyboardShortcuts: () => ({
+      Enter: () => {
+        onPressEnter?.()
+        return disableDefaultEnter
+      },
+    }),
   })
 
   const textEditor = useEditor(

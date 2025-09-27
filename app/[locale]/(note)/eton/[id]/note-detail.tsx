@@ -38,24 +38,21 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
     characters: editorCharCount['note-content']?.characters || 0,
   }
 
-  const handleSubmit = () => {
-    if (
-      !mutateNoteData ||
-      isEqualNonNestedObj(noteData, mutateNoteData, [
-        'createdAt',
-        'updatedAt',
-        'pendingDeleteAt',
-      ])
-    ) {
-      router.push('/eton')
-      return
-    }
+  const handleSubmit = () =>
+    startTransition(async () => {
+      if (
+        mutateNoteData &&
+        !isEqualNonNestedObj(noteData, mutateNoteData, [
+          'createdAt',
+          'updatedAt',
+          'pendingDeleteAt',
+        ])
+      ) {
+        await mutateNoteAction(noteData.id, mutateNoteData)
+      }
 
-    startTransition(async function () {
-      await mutateNoteAction(noteData.id, mutateNoteData)
       router.push('/eton')
     })
-  }
 
   useEffect(() => {
     return () => setMutateNoteData(undefined)
@@ -107,7 +104,7 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
         placeholder="Title"
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
-        disableEnter
+        disableDefaultEnter
         autofocus="end"
         loading={isPending}
       />

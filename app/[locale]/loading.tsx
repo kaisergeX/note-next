@@ -1,5 +1,5 @@
 import LogoLoading from '~/components/layouts/logo-loading'
 
 export default function Loading() {
-  return <LogoLoading className="h-dvh" />
+  return <LogoLoading className="body-dvh h-full" />
 }
