@@ -3,10 +3,10 @@
   "files.associations": {
     "*.css": "tailwindcss"
   },
-  
+
   // "tailwindCSS.experimental.configFile": "app\\globals.css",
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
-  "typescript.format.semicolons": "remove",
-  "typescript.tsdk": "node_modules\\typescript\\lib"
+  "js/ts.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "js/ts.format.semicolons": "remove",
+  "js/ts.tsdk.path": "node_modules\\typescript\\lib"
   // "prettier.prettierPath": "node_modules\\prettier\\index.js"
 }

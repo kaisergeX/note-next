@@ -1,6 +1,6 @@
 'use server'
 
-import {revalidateTag} from 'next/cache'
+import {updateTag} from 'next/cache'
 import {db} from '~/db'
 import {getNoteCacheKey, getNoteListCacheKey} from '~/db/helper'
 import {deleteNote, updateNote} from '~/db/helper/notes'
@@ -24,7 +24,7 @@ export async function createNoteAction(noteData: NewNote) {
   const {session} = await requireAuth()
   const email = session.user.email
   await db.insert(notesTable).values(noteData)
-  revalidateTag(getNoteListCacheKey(email))
+  updateTag(getNoteListCacheKey(email))
 }
 
 export async function mutateNoteAction(noteId: string, noteData: Note) {
@@ -43,8 +43,8 @@ export async function mutateNoteAction(noteId: string, noteData: Note) {
   if (Object.keys(updateData).length === 0) return
 
   await updateNote(noteId, updateData)
-  revalidateTag(getNoteCacheKey(noteId))
-  revalidateTag(getNoteListCacheKey(email))
+  updateTag(getNoteListCacheKey(email))
+  updateTag(getNoteCacheKey(noteId))
 }
 
 export async function deleteNoteAction(noteId: string) {
@@ -53,5 +53,5 @@ export async function deleteNoteAction(noteId: string) {
   const {session} = await requireAuth()
   const email = session.user.email
   await deleteNote(noteId)
-  revalidateTag(getNoteListCacheKey(email))
+  updateTag(getNoteListCacheKey(email))
 }

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/purity */
 import {timeAgo} from '~/util'
 import Image from 'next/image'
 import RefreshButton from './refresh-button'

@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import {useEffect, useState, useRef} from 'react'
+import {useEffect, useState, useRef, useCallback} from 'react'
 
 /**
  *
@@ -20,31 +21,30 @@ export function useDebounced<T = unknown>(
   const timeoutRef = useRef<number | null>(null)
   const cooldownRef = useRef(false)
 
-  const cancelUpdate = () => {
+  const cancelUpdate = useCallback(() => {
     if (typeof window === 'undefined' || !timeoutRef.current) {
       return
     }
 
     window.clearTimeout(timeoutRef.current)
-  }
+  }, [])
 
   useEffect(() => {
-    if (typeof window === 'undefined') {
+    if (typeof window === 'undefined' || !mountedRef.current) {
       return
     }
 
-    if (mountedRef.current) {
-      if (!cooldownRef.current && firstUpdate) {
-        cooldownRef.current = true
-        setValue(value)
-      }
-
-      cancelUpdate()
-      timeoutRef.current = window.setTimeout(() => {
-        cooldownRef.current = false
-        setValue(value)
-      }, wait)
+    if (!cooldownRef.current && firstUpdate) {
+      cooldownRef.current = true
+      setValue(value)
+      return
     }
+
+    cancelUpdate()
+    timeoutRef.current = window.setTimeout(() => {
+      cooldownRef.current = false
+      setValue(value)
+    }, wait)
   }, [value, firstUpdate, wait])
 
   useEffect(() => {

@@ -47,6 +47,7 @@ export function useWindowScroll() {
   useWindowEvent('resize', () => setPosition(getScrollPosition()))
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPosition(getScrollPosition())
   }, [])
 

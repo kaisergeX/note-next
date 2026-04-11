@@ -9,7 +9,7 @@ import {classNames} from '@kaiverse/k/utils'
 import Link from 'next/link'
 import type {ElementType, PropsWithChildren, ReactNode} from 'react'
 
-export type MenuItem = {
+export type MenuCustomItem = {
   containerAs?: 'div'
   disabled?: boolean
   hidden?: boolean
@@ -23,7 +23,7 @@ type MenuCustomProps = {
   className?: string
   menuClassName?: string
   itemsClassName?: string
-  items?: MenuItem[]
+  items?: MenuCustomItem[]
   anchor?: MenuItemsProps['anchor']
 }
 
@@ -45,7 +45,7 @@ export default function MenuCustom({
           <Link
             href={item.url}
             className={classNames(
-              'hover:bg-reverse data-[active]:bg-reverse data-[disabled]:disabled flex items-center gap-2 p-4 transition-colors',
+              'hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex items-center gap-2 p-4 transition-colors',
               item.className || '',
             )}
           >

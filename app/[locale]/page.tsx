@@ -31,7 +31,7 @@ export default async function Home(props: HomeProps) {
   }
 
   return (
-    <main className="[&>section]:h-svh [&>section]:w-full [&>section]:px-4">
+    <main className="body-h-auto [&>section]:h-svh [&>section]:w-full [&>section]:px-4">
       <section className="flex-center flex-col">
         <h2 className="text-center text-2xl font-extrabold md:text-4xl">
           {t('homepage.title')}

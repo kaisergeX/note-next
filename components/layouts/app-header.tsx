@@ -12,6 +12,7 @@ import {
   IconUser,
   IconUserCircle,
 } from '@tabler/icons-react'
+import type {Route} from 'next'
 import {useSession} from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -20,7 +21,7 @@ import {protectedPathnameRegex} from '~/config/auth'
 import {usePersistStore} from '~/store'
 import {useScrollDirection} from '~/util/hooks'
 import SignOutButton from '../auth/signout-button'
-import MenuCustom, {type MenuItem} from '../ui/menu'
+import MenuCustom, {type MenuCustomItem} from '../ui/menu'
 
 type NavProps = {
   appName: string
@@ -52,11 +53,13 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
     defaultDirection: 'up',
   })
 
-  const homepagePath = protectedPathnameRegex.test(pathName)
-    ? `/?utm_source=${pathName}&p_r=true`
-    : '/'
+  const homepagePath = (
+    protectedPathnameRegex.test(pathName)
+      ? `/?utm_source=${pathName}&p_r=true`
+      : '/'
+  ) as Route
 
-  const desktopMenuItems: MenuItem[] = [
+  const desktopMenuItems: MenuCustomItem[] = [
     {
       type: 'link',
       url: '/user',
@@ -79,7 +82,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
     {
       containerAs: 'div',
       component: (
-        <SignOutButton className="data-[active]:bg-reverse hover:bg-reverse data-[disabled]:disabled text-danger flex w-full items-center gap-2 p-4 text-left transition-colors">
+        <SignOutButton className="data-active:bg-reverse hover:bg-reverse data-disabled:disabled text-danger flex w-full items-center gap-2 p-4 text-left transition-colors">
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
@@ -125,6 +128,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
           className="dark:invert-100"
           src="/favicon.svg"
           alt={appName}
+          loading="eager"
           width={48}
           height={48}
         />

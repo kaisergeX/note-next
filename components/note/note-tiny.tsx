@@ -90,7 +90,7 @@ export default function NoteTiny({data}: NoteProps) {
           className={classNames(
             `shadow-md shadow-theme-${theme}`,
             'rounded-md',
-            'position-try-y-[top_span-left] position-anchor-[var(--anchor-name)] absolute inset-auto mb-2',
+            'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
           )}
           popover="auto"
         >

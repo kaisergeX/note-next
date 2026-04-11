@@ -1,23 +1,18 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {debugTimingCheck} from '..'
 import {useWindowEvent} from './use-window-event'
 
-type UseDevtoolsDetectOptions = {
-  /** ms between checks */
-  checkInterval?: number
-}
+const DEVTOOLS_DETECT_INTERVAL = 1000
 
-export function useDevtoolsDetect({
-  checkInterval = 1000,
-}: UseDevtoolsDetectOptions = {}) {
+export function useDevtoolsDetect() {
   const [isOpen, setIsOpen] = useState(false)
 
-  function checkOnce() {
+  const checkOnce = useCallback(() => {
     if (process.env.NODE_ENV !== 'production') return
-    setIsOpen(debugTimingCheck(300))
-  }
+    setIsOpen(debugTimingCheck(1000))
+  }, [])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -25,14 +20,15 @@ export function useDevtoolsDetect({
 
     // initial run
     checkOnce()
-
-    const id = window.setInterval(checkOnce, Math.max(300, checkInterval))
+    const id = window.setInterval(checkOnce, DEVTOOLS_DETECT_INTERVAL)
     document.addEventListener('visibilitychange', checkOnce)
+
     return () => {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', checkOnce)
     }
-  }, [checkInterval])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useWindowEvent('resize', checkOnce)
 

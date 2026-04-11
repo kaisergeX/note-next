@@ -5,8 +5,9 @@ import {hasLocale} from 'next-intl'
 import {getTranslations, setRequestLocale} from 'next-intl/server'
 import {Inter} from 'next/font/google'
 import {notFound} from 'next/navigation'
-import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
+import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
+import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
 import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
@@ -86,10 +87,12 @@ export default async function LocaleLayout({
           }
         >
           <IosSplashLinks />
-          <AppHeader
-            appName={t('common.app')}
-            signOutLabel={t('auth.signOut')}
-          />
+          <Suspense>
+            <AppHeader
+              appName={t('common.app')}
+              signOutLabel={t('auth.signOut')}
+            />
+          </Suspense>
           {children}
           <ScrollTopButton />
 

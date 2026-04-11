@@ -1,5 +1,5 @@
 import {eq} from 'drizzle-orm'
-import {unstable_cache} from 'next/cache'
+import {cacheLife, cacheTag} from 'next/cache'
 import {getUserCacheKey, getUserRoleCacheKey} from '.'
 import {db} from '..'
 import {usersTable, type NewUser, type UpdateUser} from '../schema/users'
@@ -18,10 +18,11 @@ export async function getUserRole(email: string) {
 }
 
 export async function getCachedUserRole(email: string) {
-  const cacheKey = [getUserRoleCacheKey(email)]
-  return unstable_cache(async () => getUserRole(email), cacheKey, {
-    tags: cacheKey,
-  })()
+  'use cache'
+
+  cacheLife('neverRevalidate')
+  cacheTag(getUserRoleCacheKey(email))
+  return await getUserRole(email)
 }
 
 export async function getUser(email: string) {
@@ -39,10 +40,11 @@ export async function getUser(email: string) {
 }
 
 export async function getCachedUser(email: string) {
-  const cacheKey = [getUserCacheKey(email)]
-  return unstable_cache(async () => getUser(email), cacheKey, {
-    tags: cacheKey,
-  })()
+  'use cache'
+
+  cacheLife('neverRevalidate')
+  cacheTag(getUserCacheKey(email))
+  return await getUser(email)
 }
 
 export async function addUser(newUsers: NewUser) {
@@ -55,7 +57,7 @@ export async function addUser(newUsers: NewUser) {
   }
 }
 
-/** Remember to revalidateTag(getUserCacheKey(updatedData[0].email)) after updateUser */
+/** Remember to `updateTag(getUserCacheKey(updatedData[0].email))` or `revalidateTag` after `updateUser` */
 export async function updateUser(data: UpdateUser) {
   return await db
     .update(usersTable)

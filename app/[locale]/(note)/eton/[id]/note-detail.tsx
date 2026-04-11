@@ -56,10 +56,12 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
 
   useEffect(() => {
     return () => setMutateNoteData(undefined)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useLayoutEffect(() => {
     setMutateNoteData(noteData)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   return (

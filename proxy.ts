@@ -1,10 +1,5 @@
 import createIntlMiddleware from 'next-intl/middleware'
-import {
-  NextResponse,
-  type MiddlewareConfig,
-  type NextMiddleware,
-  type NextRequest,
-} from 'next/server'
+import {NextResponse, type NextProxy, type ProxyConfig} from 'next/server'
 import {localeRouting} from '~/config/localization'
 import {protectedApiRegex, protectedPathnameRegex} from './config/auth'
 
@@ -38,7 +33,7 @@ const intlMiddleware = createIntlMiddleware(localeRouting)
 //   },
 // ) as (request: NextRequest) => Promise<NextMiddlewareResult>
 
-function apiMiddleware(req: NextRequest) {
+function apiMiddleware() {
   // if (await rateLimit(req)) {
   //   return rateLimitErrResponse()
   // }
@@ -46,7 +41,7 @@ function apiMiddleware(req: NextRequest) {
   return NextResponse.next()
 }
 
-const middleware: NextMiddleware = (req) => {
+const proxy: NextProxy = (req) => {
   const {pathname} = req.nextUrl
 
   // const isPublicPage = publicPathnameRegex.test(pathname)
@@ -56,15 +51,15 @@ const middleware: NextMiddleware = (req) => {
   }
 
   if (protectedApiRegex.test(pathname)) {
-    return apiMiddleware(req)
+    return apiMiddleware()
   }
 
   return intlMiddleware(req)
 }
 
-export const config: MiddlewareConfig = {
+export const config: ProxyConfig = {
   // Skip all paths that should not be internationalized and authenticated
-  matcher: ['/((?!api/auth/.*|_next|.*\\..*).*)'],
+  matcher: ['/((?!api/auth/.*|_next|_vercel|.*\\..*).*)'],
 }
 
-export default middleware
+export default proxy

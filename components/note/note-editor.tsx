@@ -155,6 +155,7 @@ export default function NoteEditor({
         words: wordCountDebounced,
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [characterCountDebounced, wordCountDebounced])
 
   if (!textEditor) {

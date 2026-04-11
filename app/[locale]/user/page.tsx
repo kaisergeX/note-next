@@ -5,6 +5,7 @@ import {
   IconUserCircle,
   IconUserOff,
 } from '@tabler/icons-react'
+import type {Route} from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import Badge from '~/components/ui/badge'
@@ -25,7 +26,7 @@ export default async function MyProfile() {
           ? 'bg-default hover:bg-theme duration-500'
           : 'bg-reverse',
       )}
-      href={href}
+      href={href as Route}
     >
       {/* {image} */}
       <h3
