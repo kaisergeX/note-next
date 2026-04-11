@@ -1,9 +1,14 @@
 @layer theme, base, components, k-default, k-variant, k-keyframes, utilities;
 @import 'tailwindcss';
-@plugin "@tailwindcss/typography";
-@config "../tailwind.config.mjs";
 
-@source inline("{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}");
+@config '../tailwind.config.mjs';
+
+@plugin '@tailwindcss/typography';
+
+@source inline(
+  '{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}'
+);
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @utility text-danger {
@@ -40,13 +45,9 @@
   @apply animate-scroll animate-[affix-appear];
 }
 
-@utility font-inter {
-  @apply font-(family-name:--font-inter);
-}
-
 @utility prose {
   code {
-    @apply bg-[var(--tw-prose-code-pg,var(--color-gray-200))] dark:bg-[var(--tw-prose-code-pg,var(--color-gray-700))];
+    @apply bg-(--tw-prose-code-pg,var(--color-gray-200)) dark:bg-(--tw-prose-code-pg,var(--color-gray-700));
 
     &::before,
     &::after {
@@ -153,7 +154,7 @@
 }
 
 @utility glass {
-  @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/[0.06] dark:bg-transparent;
+  @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/6 dark:bg-transparent;
 }
 
 @utility btn-light-sweep {

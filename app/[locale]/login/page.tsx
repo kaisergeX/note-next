@@ -33,7 +33,7 @@ export default async function Login(props: PropsWithLocale) {
   }
 
   return (
-    <main className="bg-fancy flex-center h-full flex-col gap-16 p-4">
+    <main className="bg-fancy flex-center h-full flex-col gap-8 p-4">
       <SignInButton>
         <svg
           className="h-4 w-4"

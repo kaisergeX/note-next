@@ -1,6 +1,6 @@
 import {NextIntlClientProvider} from 'next-intl'
 import {getMessages} from 'next-intl/server'
-import {unstable_ViewTransition as ViewTransition} from 'react'
+import {ViewTransition} from 'react'
 import NoteCreateEditor from '~/components/note/note-create'
 import NoteTiny from '~/components/note/note-tiny'
 import {getListNote} from '~/db/helper/notes'
@@ -24,7 +24,7 @@ export default async function Notes({params}: PropsWithLocale) {
     return (
       <main className="bg-fancy h-full p-4">
         <div className="flex-center mt-40 gap-4">
-          <h3 className="opacity-80">
+          <h3 className="opacity-80" suppressHydrationWarning>
             {genRandom(noteMsgs.editor.emptyPlaceholder)}
           </h3>
           <NextIntlClientProvider messages={{note: noteMsgs}}>
@@ -36,7 +36,7 @@ export default async function Notes({params}: PropsWithLocale) {
   }
 
   return (
-    <main className="p-4 max-sm:pt-0">
+    <main className="body-h-auto p-4 max-sm:pt-0">
       <NextIntlClientProvider messages={{note: noteMsgs}}>
         <div className="mb-4 flex justify-end">
           <NoteCreateEditor authorId={userInfo.id} />

@@ -89,6 +89,7 @@ export function useFullscreen<T extends HTMLElement>() {
     }
 
     await exitFullscreen()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const ref = useCallback((element: T | null) => {

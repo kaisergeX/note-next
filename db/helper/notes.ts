@@ -1,8 +1,8 @@
 'use server'
 
 import {and, desc, eq} from 'drizzle-orm'
-import {unstable_cache} from 'next/cache'
-import {requireAuth} from '~/server-utils'
+import type {Session} from 'next-auth'
+import {cacheLife, cacheTag} from 'next/cache'
 import type {Exact} from '~/types'
 import {objectRemoveProperties} from '~/util'
 import {getNoteCacheKey, getNoteListCacheKey} from '.'
@@ -18,13 +18,13 @@ export async function getListNote(userId: string) {
     .orderBy(desc(notesTable.createdAt))
 }
 
-export async function getCachedListNote() {
-  const {session} = await requireAuth()
-  const email = session.user.email,
-    cacheKey = [getNoteListCacheKey(email)]
-  return unstable_cache(async () => getListNote(email), cacheKey, {
-    tags: cacheKey,
-  })()
+export async function getCachedListNote(session: Session) {
+  'use cache'
+
+  cacheLife('neverRevalidate')
+  const email = session.user.email
+  cacheTag(getNoteListCacheKey(email))
+  return await getListNote(email)
 }
 
 export async function getNote(noteId: string, email: string) {
@@ -41,16 +41,12 @@ export async function getNote(noteId: string, email: string) {
   return result[0].notes
 }
 
-export async function getCachedNote(noteId: string) {
-  const {session} = await requireAuth()
-  const email = session.user.email,
-    cacheKey = [getNoteCacheKey(noteId)]
-  return unstable_cache(
-    async () => getNote(noteId, email),
-    cacheKey,
-    // {revalidate: NOTE_CACHE_REVALIDATE_TIME}
-    {tags: cacheKey},
-  )()
+export async function getCachedNote(session: Session, noteId: string) {
+  'use cache'
+
+  cacheLife('neverRevalidate')
+  cacheTag(getNoteCacheKey(noteId))
+  return await getNote(noteId, session.user.email)
 }
 
 export async function updateNote<T extends Exact<UpdateNote, T>>(

@@ -5,6 +5,7 @@ import {getCachedUser} from '~/db/helper/users'
 import {auth} from '../auth'
 import {RoleEnum} from '../db/schema/users'
 import type {Session} from 'next-auth'
+import type {Route} from 'next'
 
 /**
  * This is `next-auth`'s {@link auth} function with auto-redirect if not authenticated.
@@ -17,7 +18,7 @@ import type {Session} from 'next-auth'
  */
 export async function requireAuth(redirectUrl = '/login') {
   const session = await auth()
-  if (!session || session.error) redirect(redirectUrl)
+  if (!session || session.error) redirect(redirectUrl as Route)
 
   // userInfo is non-nullable because of auth.ts ensures that
   // the user must exist in the database if session exists and has no error

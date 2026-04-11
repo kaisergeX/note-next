@@ -92,6 +92,7 @@ export default function NoteCustomize({
       resizeObserver.disconnect()
       // mutationObserver.disconnect()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollTopCtrl])
 
   const handleDeleteNote = () => {
@@ -191,7 +192,7 @@ export default function NoteCustomize({
           className={classNames(
             `shadow-md shadow-theme-${theme}`,
             'grid-cols-4 gap-3 rounded-md p-3 open:grid',
-            'position-try-y-[top_span-right] position-anchor-[var(--theme-anchor-name)] absolute inset-auto mb-2',
+            'position-try-y-[top_span-right] position-anchor-(--theme-anchor-name) absolute inset-auto mb-2',
           )}
           popover="auto"
         >
@@ -246,7 +247,7 @@ export default function NoteCustomize({
               className={classNames(
                 `shadow-md shadow-theme-${theme}`,
                 'rounded-md',
-                'position-try-y-[top_span-left] position-anchor-[var(--anchor-name)] absolute inset-auto mb-2',
+                'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
               )}
               popover="auto"
             >

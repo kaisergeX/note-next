@@ -1,12 +1,21 @@
 import js from '@eslint/js'
-import nextEslint from '@next/eslint-plugin-next'
+import nextVitals from 'eslint-config-next/core-web-vitals'
 import prettierEslintRecommended from 'eslint-plugin-prettier/recommended'
-import pluginReact from 'eslint-plugin-react'
-import {defineConfig} from 'eslint/config'
+import {defineConfig, globalIgnores} from 'eslint/config'
 import globals from 'globals'
-import tseslint from 'typescript-eslint'
+import nextTs from 'eslint-config-next/typescript'
 
 export default defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'public/',
+    '*.config.*',
+  ]),
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
     plugins: {js},
@@ -16,6 +25,12 @@ export default defineConfig([
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],
     languageOptions: {globals: {...globals.browser, ...globals.node}},
   },
+  {
+    files: ['**/*.{ts,tsx}'],
+    rules: {
+      'no-undef': 'off', // eslint doesn't aware of types that globally injected by Next.js (.next/dev/types/**)
+    },
+  },
   // {
   //   plugins: {tseslint},
   //   files: ['*.ts', '*.tsx'],
@@ -24,16 +39,11 @@ export default defineConfig([
   //   },
   //   extends: ['tseslint/recommendedTypeChecked'],
   // },
-  tseslint.configs.recommendedTypeChecked,
-  pluginReact.configs.flat.recommended,
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-  nextEslint.flatConfig.coreWebVitals,
+  // tseslint.configs.recommendedTypeChecked,
   prettierEslintRecommended,
   {
     settings: {
-      react: {
-        version: 'detect',
-      },
+      react: {version: '19'},
     },
     languageOptions: {
       parserOptions: {
@@ -43,6 +53,7 @@ export default defineConfig([
     },
     rules: {
       'prettier/prettier': 'warn',
+      'no-unused-vars': 'off',
       'react/react-in-jsx-scope': 'off',
       '@typescript-eslint/consistent-type-imports': [
         'warn',

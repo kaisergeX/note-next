@@ -30,7 +30,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
   return (
     <>
       <button
-        className="button-secondary btn-light-sweep max-sm:button max-sm:button-affix max-sm:button-icon group w-auto gap-0 transition-all duration-300 max-sm:z-10 max-sm:rounded-full max-sm:!p-3 sm:hover:gap-2"
+        className="button-secondary btn-light-sweep max-sm:button max-sm:button-affix max-sm:button-icon group w-auto gap-0 transition-all duration-300 max-sm:z-10 max-sm:rounded-full max-sm:p-3! sm:hover:gap-2"
         type="button"
         onClick={() => startTransition(() => setOpenModal(true))}
       >

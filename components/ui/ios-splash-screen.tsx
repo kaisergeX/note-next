@@ -18,6 +18,7 @@ export default function IosSplashLinks() {
 
   useEffect(() => {
     if (isIosPwa()) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setShouldRenderIOSSplash(true)
     }
   }, [])

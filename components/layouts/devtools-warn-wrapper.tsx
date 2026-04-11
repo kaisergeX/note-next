@@ -15,7 +15,7 @@ export default function DevtoolsWarnWrapper({
     return (
       <Dialog
         open
-        className="bg-theme z-[9999] h-dvh w-dvw rounded-none text-center select-none"
+        className="bg-theme z-9999 h-dvh w-dvw rounded-none text-center select-none"
         role="presentation"
         preventClose
       >

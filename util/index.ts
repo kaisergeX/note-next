@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/no-implied-eval */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import type {Route} from 'next'
 import {redirect} from 'next/navigation'
 import type {ServerError} from '~/types'
 dayjs.extend(relativeTime)
@@ -86,7 +85,7 @@ export async function fetcher<ResponseData>(
     }
 
     if (res.redirected) {
-      redirect(res.url)
+      redirect(res.url as Route)
     }
 
     throw new Error('Response data is not supported')
