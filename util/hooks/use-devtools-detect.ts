@@ -11,7 +11,7 @@ export function useDevtoolsDetect() {
 
   const checkOnce = useCallback(() => {
     if (process.env.NODE_ENV !== 'production') return
-    setIsOpen(debugTimingCheck(1000))
+    setIsOpen(debugTimingCheck(300))
   }, [])
 
   useEffect(() => {
@@ -19,6 +19,7 @@ export function useDevtoolsDetect() {
     if (process.env.NODE_ENV !== 'production') return
 
     // initial run
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     checkOnce()
     const id = window.setInterval(checkOnce, DEVTOOLS_DETECT_INTERVAL)
     document.addEventListener('visibilitychange', checkOnce)
