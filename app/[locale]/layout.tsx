@@ -96,7 +96,7 @@ export default async function LocaleLayout({
           {children}
           <ScrollTopButton />
 
-          <Analytics />
+          <Analytics mode="production" />
           <SpeedInsights />
         </DevtoolsWarnWrapper>
       </ProviderWrapper>

@@ -36,9 +36,9 @@
 
 ## Engines Requirements
 
-`node@20` or later
+`node@24` or later
 
-`pnpm@9` or later
+`pnpm@11` or later
 
 ## Environment Variables
 
