@@ -1,5 +1,6 @@
 import {IconNotes} from '@tabler/icons-react'
 import {getTranslations} from 'next-intl/server'
+import {locale as localeParam} from 'next/root-params'
 import Image from 'next/image'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
@@ -22,7 +23,7 @@ type HomeProps = PropsWithLocale<{
 export default async function Home(props: HomeProps) {
   const searchParams = await props.searchParams
   const {p_r} = searchParams
-  const locale = (await props.params).locale
+  const locale = await localeParam()
   const t = await getTranslations({locale})
   const session = await auth()
 

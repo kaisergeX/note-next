@@ -1,9 +1,10 @@
 import {hasLocale, type AppConfig} from 'next-intl'
+import * as rootParams from 'next/root-params'
 import {getRequestConfig} from 'next-intl/server'
 import {localeRouting} from './config/localization'
 
-export default getRequestConfig(async ({requestLocale}) => {
-  const requested = await requestLocale
+export default getRequestConfig(async () => {
+  const requested = await rootParams.locale()
   const locale = hasLocale(localeRouting.locales, requested)
     ? requested
     : localeRouting.defaultLocale

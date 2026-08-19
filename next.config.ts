@@ -11,7 +11,6 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     optimizePackageImports: ['@kaiverse/k'],
-    viewTransition: true,
   },
   images: {
     formats: ['image/avif', 'image/webp'],
