@@ -2,7 +2,8 @@ import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
 import type {Metadata, Viewport} from 'next'
 import {hasLocale} from 'next-intl'
-import {getTranslations, setRequestLocale} from 'next-intl/server'
+import {getTranslations} from 'next-intl/server'
+import {locale as localeParam} from 'next/root-params'
 import {Inter} from 'next/font/google'
 import {notFound} from 'next/navigation'
 import {Suspense} from 'react'
@@ -16,10 +17,8 @@ import {localeRouting} from '~/config/localization'
 import type {Locales} from '~/types'
 import '../globals.css'
 
-export async function generateMetadata(
-  props: LayoutProps<'/[locale]'>,
-): Promise<Metadata> {
-  const locale = (await props.params).locale as Locales
+export async function generateMetadata(): Promise<Metadata> {
+  const locale = (await localeParam()) as Locales
   const t = await getTranslations({locale, namespace: 'common'})
   const title = process.env.SERVICE_NAME ?? t('app')
 
@@ -57,19 +56,15 @@ const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
 export default async function LocaleLayout({
   children,
-  params,
 }: LayoutProps<'/[locale]'>) {
-  const locale = (await params).locale
+  const locale = (await localeParam()) as Locales
 
   // Show a 404 error if the user requests an unknown locale
   if (!hasLocale(localeRouting.locales, locale)) {
     notFound()
   }
 
-  // Enable static rendering
-  setRequestLocale(locale)
-
-  const t = await getTranslations({locale})
+  const t = await getTranslations()
 
   return (
     <ThemeWrapper
