@@ -1,11 +1,8 @@
 import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
 import type {Metadata, Viewport} from 'next'
-import {hasLocale} from 'next-intl'
-import {getTranslations} from 'next-intl/server'
+import {getLocale, getTranslations} from 'next-intl/server'
 import {Inter} from 'next/font/google'
-import {notFound} from 'next/navigation'
-import {locale as localeParam} from 'next/root-params'
 import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
 import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
@@ -14,7 +11,6 @@ import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import IosSplashLinks from '~/components/ui/ios-splash-screen'
 import {localeRouting} from '~/i18n/routing'
-import type {Locales} from '~/types'
 import '../globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -56,13 +52,7 @@ const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 export default async function LocaleLayout({
   children,
 }: LayoutProps<'/[locale]'>) {
-  const locale = (await localeParam()) as Locales
-
-  // Show a 404 error if the user requests an unknown locale
-  if (!hasLocale(localeRouting.locales, locale)) {
-    notFound()
-  }
-
+  const locale = await getLocale()
   const t = await getTranslations()
 
   return (
