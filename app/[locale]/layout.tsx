@@ -3,9 +3,9 @@ import {SpeedInsights} from '@vercel/speed-insights/next'
 import type {Metadata, Viewport} from 'next'
 import {hasLocale} from 'next-intl'
 import {getTranslations} from 'next-intl/server'
-import {locale as localeParam} from 'next/root-params'
 import {Inter} from 'next/font/google'
 import {notFound} from 'next/navigation'
+import {locale as localeParam} from 'next/root-params'
 import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
 import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
@@ -13,13 +13,12 @@ import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import IosSplashLinks from '~/components/ui/ios-splash-screen'
-import {localeRouting} from '~/config/localization'
+import {localeRouting} from '~/i18n/routing'
 import type {Locales} from '~/types'
 import '../globals.css'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const locale = (await localeParam()) as Locales
-  const t = await getTranslations({locale, namespace: 'common'})
+  const t = await getTranslations('common')
   const title = process.env.SERVICE_NAME ?? t('app')
 
   return {

@@ -10,7 +10,11 @@ const nextConfig: NextConfig = {
     },
   },
   experimental: {
+    globalNotFound: true,
     optimizePackageImports: ['@kaiverse/k'],
+    instantInsights: {
+      validationLevel: 'manual-warning',
+    },
   },
   images: {
     formats: ['image/avif', 'image/webp'],
@@ -27,6 +31,6 @@ const nextConfig: NextConfig = {
   },
 }
 
-const withNextIntl = createNextIntlPlugin('./i18n.ts')
+const withNextIntl = createNextIntlPlugin()
 
 export default withNextIntl(nextConfig)

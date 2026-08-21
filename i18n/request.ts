@@ -1,7 +1,7 @@
 import {hasLocale, type AppConfig} from 'next-intl'
 import * as rootParams from 'next/root-params'
 import {getRequestConfig} from 'next-intl/server'
-import {localeRouting} from './config/localization'
+import {localeRouting} from './routing'
 
 export default getRequestConfig(async () => {
   const requested = await rootParams.locale()
@@ -12,7 +12,7 @@ export default getRequestConfig(async () => {
   return {
     locale,
     messages: (
-      (await import(`./dictionaries/${locale}.json`)) as {
+      (await import(`../dictionaries/${locale}.json`)) as {
         default: AppConfig['Messages']
       }
     ).default,
