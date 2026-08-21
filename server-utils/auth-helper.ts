@@ -6,6 +6,7 @@ import {auth} from '../auth'
 import {RoleEnum} from '../db/schema/users'
 import type {Session} from 'next-auth'
 import type {Route} from 'next'
+import {connection} from 'next/server'
 
 /**
  * This is `next-auth`'s {@link auth} function with auto-redirect if not authenticated.
@@ -17,6 +18,7 @@ import type {Route} from 'next'
  * @default '/login'
  */
 export async function requireAuth(redirectUrl = '/login') {
+  await connection()
   const session = await auth()
   if (!session || session.error) redirect(redirectUrl as Route)
 

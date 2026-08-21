@@ -6,9 +6,9 @@ import {db} from '~/db'
 import {usersTable} from '~/db/schema/users'
 
 export default async function Table() {
-  const startTime = Date.now()
+  const startTime = performance.now()
   const users = await db.select().from(usersTable)
-  const duration = Date.now() - startTime
+  const duration = (performance.now() - startTime).toFixed()
 
   return (
     <div className="mx-auto w-full max-w-xl rounded-lg bg-white/30 p-4 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg sm:p-12 dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a]">
