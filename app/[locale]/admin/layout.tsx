@@ -2,13 +2,9 @@ import type {Metadata} from 'next'
 import {getTranslations} from 'next-intl/server'
 import {redirect} from 'next/navigation'
 import {requireAuth} from '~/server-utils'
-import type {PropsWithLocale} from '~/types'
 
-export async function generateMetadata(
-  props: PropsWithLocale,
-): Promise<Metadata> {
-  const locale = (await props.params).locale
-  const t = await getTranslations({locale})
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations()
 
   return {
     title: `${t('admin.title')} | ${

@@ -2,13 +2,9 @@ import type {Metadata} from 'next'
 import {useTranslations} from 'next-intl'
 import {getTranslations} from 'next-intl/server'
 import Link from 'next/link'
-import type {PropsWithLocale} from '~/types'
 
-export async function generateMetadata(
-  props: PropsWithLocale,
-): Promise<Metadata> {
-  const locale = (await props.params).locale
-  const t = await getTranslations({locale})
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations()
 
   return {
     title: `403 | ${process.env.SERVICE_NAME ?? t('common.app')}`,
