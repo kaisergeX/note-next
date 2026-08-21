@@ -5,17 +5,11 @@ import {redirect} from 'next/navigation'
 import {auth} from '~/auth'
 import SignInButton from '~/components/auth/signin-button'
 import {isValidSession} from '~/server-utils'
-import type {PropsWithLocale} from '~/types'
 
 export const instant = false
 
-export async function generateMetadata(
-  props: PropsWithLocale,
-): Promise<Metadata> {
-  const params = await props.params
-  const {locale} = params
-
-  const t = await getTranslations({locale})
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations()
 
   return {
     title: `${t('auth.login')} | ${
@@ -25,9 +19,8 @@ export async function generateMetadata(
   }
 }
 
-export default async function Login(props: PropsWithLocale) {
-  const locale = (await props.params).locale
-  const t = await getTranslations({locale, namespace: 'auth'})
+export default async function Login() {
+  const t = await getTranslations('auth')
   const session = await auth()
 
   if (isValidSession(session)) {

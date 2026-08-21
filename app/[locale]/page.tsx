@@ -24,7 +24,7 @@ export default async function Home(props: HomeProps) {
   const searchParams = await props.searchParams
   const {p_r} = searchParams
   const locale = await localeParam()
-  const t = await getTranslations({locale})
+  const t = await getTranslations()
   const session = await auth()
 
   if (isValidSession(session) && !p_r) {
