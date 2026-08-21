@@ -1,7 +1,7 @@
 import createIntlMiddleware from 'next-intl/middleware'
 import {NextResponse, type NextProxy, type ProxyConfig} from 'next/server'
-import {localeRouting} from '~/config/localization'
 import {protectedApiRegex, protectedPathnameRegex} from './config/auth'
+import {localeRouting} from './i18n/routing'
 
 // import {rateLimitErrResponse} from './config/exceptions'
 // import rateLimit from './db/helper/rateLimit'

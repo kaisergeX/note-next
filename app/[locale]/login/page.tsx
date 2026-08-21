@@ -7,6 +7,8 @@ import SignInButton from '~/components/auth/signin-button'
 import {isValidSession} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
 
+export const instant = false
+
 export async function generateMetadata(
   props: PropsWithLocale,
 ): Promise<Metadata> {

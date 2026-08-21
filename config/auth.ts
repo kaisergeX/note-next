@@ -1,4 +1,4 @@
-import {localeRouting} from './localization'
+import {localeRouting} from '~/i18n/routing'
 
 // @todo need to add not-found and error pages here, still couldn't find a way to do it
 // temporarily use logic opposite to it with protectedRoutes instead

@@ -1,5 +1,7 @@
 import {ViewTransition} from 'react'
 
+export const instant = false
+
 export default function NoteLayout({
   children,
   modal,

@@ -4,6 +4,8 @@ import {ViewTransition} from 'react'
 import {requireAuth} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
 
+export const instant = false
+
 export async function generateMetadata(
   props: PropsWithLocale<LayoutProps<'/[locale]'>>,
 ): Promise<Metadata> {

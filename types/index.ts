@@ -1,4 +1,4 @@
-import type {localeRouting} from '~/config/localization'
+import type {localeRouting} from '~/i18n/routing'
 import type {AUTH_ERROR_CODE} from '~/constants'
 
 export type ServerError = {
