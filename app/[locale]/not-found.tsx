@@ -1,7 +1,7 @@
 import {IconArrowLeft} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
+import Link from 'next/link'
 import GoBackButton from '~/components/navigation/go-back-button'
-import {Link} from '~/i18n/navigation'
 
 export default function NotFound() {
   const t = useTranslations('common.navigation')

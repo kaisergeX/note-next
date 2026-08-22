@@ -37,6 +37,7 @@ export default function NoteTiny({data}: NoteProps) {
         'card group relative',
         theme ? `dialog-${theme} shadow-theme-${theme} border-none` : '',
       )}
+      style={{'--anchor-name': `--note-tiny-${noteId}-anchor`} as CSSProperties}
     >
       <Link
         className="block h-full p-4 pb-8"
@@ -67,11 +68,8 @@ export default function NoteTiny({data}: NoteProps) {
       <div
         className={classNames(
           'absolute inset-x-0 bottom-0 w-full cursor-default justify-between p-2 text-zinc-500 transition',
-          'hidden focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
+          'hidden group-has-[.note-tiny-menu:popover-open]:flex focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
         )}
-        style={
-          {'--anchor-name': `--note-tiny-${noteId}-anchor`} as CSSProperties
-        }
       >
         <button type="button">
           <IconPalette size="1rem" />
@@ -85,24 +83,25 @@ export default function NoteTiny({data}: NoteProps) {
         >
           <IconDotsVertical size="1rem" />
         </button>
-        <div
-          id={`note-tiny-${noteId}-menu`}
-          className={classNames(
-            `shadow-md shadow-theme-${theme}`,
-            'rounded-md',
-            'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
-          )}
-          popover="auto"
+      </div>
+      <div
+        id={`note-tiny-${noteId}-menu`}
+        className={classNames(
+          'note-tiny-menu',
+          `shadow-md shadow-theme-${theme}`,
+          'rounded-md',
+          'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
+        )}
+        popover="auto"
+      >
+        <button
+          className="button-secondary text-danger w-full rounded-none border-none shadow-none"
+          type="button"
+          onClick={handleDeleteNote}
+          disabled={pendingTransition}
         >
-          <button
-            className="button-secondary text-danger w-full rounded-none border-none shadow-none"
-            type="button"
-            onClick={handleDeleteNote}
-            disabled={pendingTransition}
-          >
-            <IconTrash size="1rem" /> {t('delete')}
-          </button>
-        </div>
+          <IconTrash size="1rem" /> {t('delete')}
+        </button>
       </div>
     </div>
   )

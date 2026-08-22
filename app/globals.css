@@ -6,7 +6,7 @@
 @plugin '@tailwindcss/typography';
 
 @source inline(
-  '{prose-,dialog-,picker-,shadow-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}'
+  '{prose-,dialog-,picker-,shadow-theme-,border-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}'
 );
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -189,7 +189,7 @@
       related to this issue https://github.com/vercel/next.js/issues/44295 
       and PR https://github.com/vercel/next.js/pull/46995
     */
-    @apply scroll-pt-16 scroll-smooth [scrollbar-gutter:stable];
+    @apply scroll-pt-16 [scrollbar-gutter:stable] scroll-smooth;
   }
 
   body {
