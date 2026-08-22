@@ -6,8 +6,6 @@ import {
   IconCheck,
   IconDotsVertical,
   IconLoader2,
-  IconPalette,
-  IconPaletteOff,
   IconTexture,
   IconTrash,
 } from '@tabler/icons-react'
@@ -22,8 +20,8 @@ import {
   type RefObject,
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import {twNoteThemeConfig} from '~/config/tailwindTheme'
 import {usePersistStore} from '~/store'
+import {NoteThemePicker} from './note-theme-picker'
 
 export type NoteCustomizeProps = {
   className?: string
@@ -123,41 +121,6 @@ export default function NoteCustomize({
     },
   ]
 
-  const menuColors = [
-    {
-      id: 'default',
-      component: (
-        <button
-          className="button-secondary button-icon rounded-full p-1"
-          title="Default"
-          type="button"
-          onClick={() => setMutateNoteData({theme: null})}
-          disabled={!theme}
-        >
-          <IconPaletteOff />
-        </button>
-      ),
-    },
-    ...twNoteThemeConfig.map(({theme: themeName}) => ({
-      id: themeName,
-      component: (
-        <button
-          className={classNames(
-            'block h-8 w-8 rounded-full transition-shadow',
-            `picker-${themeName}`,
-            theme && theme === themeName
-              ? 'ring-2 ring-offset-2'
-              : 'ring-offset-1 hover:ring-2',
-          )}
-          title={themeName}
-          type="button"
-          onClick={() => setMutateNoteData({theme: themeName})}
-          disabled={theme === themeName}
-        />
-      ),
-    })),
-  ]
-
   return (
     <div
       ref={ref}
@@ -170,39 +133,11 @@ export default function NoteCustomize({
         className,
       )}
     >
-      <div
-        className="flex items-center gap-2"
-        style={
-          {
-            '--theme-anchor-name': `--${prefixId}-theme-anchor`,
-          } as CSSProperties
-        }
-      >
-        <button
-          className="button-secondary button-icon rounded-full p-1 [anchor-name:var(--theme-anchor-name)]"
-          type="button"
-          popoverTarget={`${prefixId}-theme`}
-          popoverTargetAction="toggle"
-          disabled={isLoading}
-        >
-          <IconPalette size="1.2rem" />
-        </button>
-        <div
-          id={`${prefixId}-theme`}
-          className={classNames(
-            `shadow-md shadow-theme-${theme}`,
-            'grid-cols-4 gap-3 rounded-md p-3 open:grid',
-            'position-try-y-[top_span-right] position-anchor-(--theme-anchor-name) absolute inset-auto mb-2',
-          )}
-          popover="auto"
-        >
-          {menuColors.map(({component, id}) => (
-            <Fragment key={`theme-${id}`}>{component}</Fragment>
-          ))}
-        </div>
+      <div className="flex items-center gap-2">
+        <NoteThemePicker prefixId={`dialog-${type}`} disabled={isLoading} />
 
         <button
-          className="button-secondary button-icon rounded-full p-1"
+          className={`button-secondary button-icon rounded-full p-1 border-theme-${theme}`}
           title="Illustration, Texture"
           type="button"
           disabled

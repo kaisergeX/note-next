@@ -2,8 +2,8 @@ import {IconArrowLeft} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import {getLocale, getTranslations} from 'next-intl/server'
 import {Inter} from 'next/font/google'
+import Link from 'next/link'
 import GoBackButton from '~/components/navigation/go-back-button'
-import {Link} from '~/i18n/navigation'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('common')

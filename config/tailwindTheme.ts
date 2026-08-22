@@ -33,11 +33,13 @@ export const twNoteThemeConfig: {
   picker: string
   dialog: string
   themeShadow: string
+  themeBorder: string
 }[] = customizableThemes.map((theme) => ({
   theme,
   picker: `bg-${theme}-400`,
   dialog: `bg-${theme}-100 text-${theme}-800 dark:bg-${theme}-100/80`,
-  themeShadow: `shadow-${theme}-500/20!`,
+  themeShadow: `shadow-${theme}-500/20`,
+  themeBorder: `border-${theme}-400`,
 }))
 
 // type TypographyThemeProps = Partial<
@@ -96,6 +98,10 @@ const twNoteThemeBuilder = twNoteThemeConfig.reduce(
     acc[`.shadow-theme-${config.theme}`] = {
       [`@apply ${config.themeShadow}`]: {},
     }
+
+    acc[`.border-theme-${config.theme}`] = {
+      [`@apply ${config.themeBorder}`]: {},
+    }
     return acc
   },
   {},
@@ -105,5 +111,5 @@ export const customThemePlugin = createPlugin((pluginApi) => {
   pluginApi.addComponents(twNoteThemeBuilder)
 })
 
-const prefixes = ['prose', 'dialog', 'picker', 'shadow-theme']
+const prefixes = ['prose', 'dialog', 'picker', 'shadow-theme', 'border-theme']
 export const tailwindSourceInline = `@source inline("{${prefixes.join('-,')}}{${customizableThemes.join(',')}}");\n`

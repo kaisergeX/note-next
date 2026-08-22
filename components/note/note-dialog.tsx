@@ -102,7 +102,7 @@ export default function NoteDialog({
       />
 
       <NoteCustomize
-        className="shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10"
+        className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme}`}
         type={type}
         onDeleteSuccess={onDeleteSuccess}
         loading={loading}
