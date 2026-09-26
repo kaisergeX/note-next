@@ -5,6 +5,10 @@
 > re-decide anything those docs already settle. Phases are sequential; each one
 > ends with something runnable to verify before moving on.
 
+## Progress log
+
+- **2026-09-26 — Phase 0 complete.** Implemented: `db/schema/personas.ts` (personas table, `persona_status` enum draft/active/archived), `db/schema/transcripts.ts` (`runs`, `transcripts` with nullable `run_id` FK plus `model` and `system_prompt` snapshot columns, `run_items` with unique `(run_id, persona_id)` constraint), `config/ai.ts` (`AI_LOCALES` region map, LM Studio endpoint/key/model via env vars with fallbacks, `AI_SAMPLER` constants: temperature 1.0, min_p 0.1, top_p/top_k disabled, thinking off), and Zod persona input validation at `lib/ai/persona-validation.ts` (region validated against `AI_LOCALES[locale].regions`). Migration `drizzle/20260926071750_curvy_photon` generated and applied. Verified: migration applied, app-side insert/select confirmed by owner, `pnpm lint` passes. Note: all new tables use the pre-existing `generate_ulid()` function from the `functions` migration for UUID PK defaults.
+
 ## Ground rules (apply to every phase)
 
 - Every AI server action and API route handler calls `requireFeatureAccess(userId, feature)` first — the layout check is UX only, this helper is the real gate (ARCHITECTURE.md, Auth).

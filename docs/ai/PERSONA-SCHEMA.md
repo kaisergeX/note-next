@@ -108,3 +108,9 @@ when exporting per run.
   behavior belongs to `interview_stance`.
 - What counts as a "near-duplicate" persona for the diversity guard — name
   only, or name + trait-combo similarity (now including background_tags).
+
+## As-built notes (Phase 0)
+
+The `vi-VN` locale default lives in `config/ai.ts` (`AI_DEFAULT_LOCALE`) and the DB column default; adding a locale means a new `AI_LOCALES` entry plus a schema update, not a migration.
+
+Column typing choices as built: `name` varchar(100), `region` varchar(20), `income_bracket` varchar(100), `locale` varchar(20) default 'vi-VN', `background_tags` text[] default empty array, `personality_sliders` jsonb notNull typed `PersonalitySliders` (defined in transcripts.ts). All UUID PKs default to `generate_ulid()`. The `run_items` table has a unique constraint `(run_id, persona_id)` named `run_items_run_persona_unique`.
