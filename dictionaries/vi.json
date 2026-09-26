@@ -41,7 +41,64 @@
     },
     "interview": {
       "title": "Phỏng vấn nhân vật",
-      "placeholder": "Không gian phỏng vấn sẽ được xây dựng ở giai đoạn tiếp theo."
+      "roster": {
+        "title": "Danh sách nhân vật",
+        "newPersona": "Tạo nhân vật",
+        "empty": "Chưa có nhân vật nào",
+        "emptyHint": "Tạo nhân vật đầu tiên để bắt đầu phỏng vấn.",
+        "edit": "Sửa",
+        "activate": "Kích hoạt",
+        "archive": "Lưu trữ",
+        "confirmArchive": "Lưu trữ nhân vật này? Bản phỏng vấn (nếu có) sẽ được giữ lại.",
+        "archiveFailed": "Không cập nhật được nhân vật."
+      },
+      "status": {
+        "draft": "Nháp",
+        "active": "Đang hoạt động",
+        "archived": "Đã lưu trữ"
+      },
+      "form": {
+        "newTitle": "Tạo nhân vật",
+        "editTitle": "Sửa nhân vật",
+        "save": "Lưu",
+        "saving": "Đang lưu…",
+        "drafting": "Đang soạn…",
+        "draftBio": "Soạn tiểu sử",
+        "regenerate": "Soạn lại",
+        "name": "Tên",
+        "age": "Tuổi",
+        "gender": "Giới tính",
+        "region": "Vùng miền",
+        "regionHint": "Tín hiệu phương ngữ cho việc sinh nội dung.",
+        "income": "Khoảng thu nhập",
+        "occupation": "Nghề nghiệp",
+        "tags": "Nền tảng bối cảnh",
+        "tagsHint": "Tỉnh/thành, đặc điểm hoàn cảnh… Gõ để chọn tag có sẵn hoặc thêm mới.",
+        "tagsAddPlaceholder": "Thêm tag…",
+        "sliders": "Tính cách",
+        "sliderCalm": "Bình tĩnh",
+        "sliderAnxious": "Lo âu",
+        "sliderOptimistic": "Lạc quan",
+        "sliderCynical": "Bi quan",
+        "sliderFrugal": "Tiết kiệm",
+        "sliderSpendthrift": "Xài phúng phính",
+        "stance": "Thái độ phỏng vấn",
+        "stanceHint": "Gợi ý: cooperative / guarded / talkative / suspicious — cũng có thể tự mô tả.",
+        "quirks": "Chi tiết riêng / thói quen",
+        "bio": "Tiểu sử",
+        "systemPrompt": "System prompt",
+        "advanced": "Nâng cao",
+        "bioOfflineError": "Không kết nối được trợ lý AI. Vui lòng thử lại sau.",
+        "bioError": "Có lỗi khi soạn tiểu sử.",
+        "saveError": "Không lưu được nhân vật.",
+        "noAccessError": "Bạn không có quyền dùng tính năng này.",
+        "requiredField": "Bắt buộc nhập."
+      },
+      "vi": {
+        "title": "Tiếng Việt",
+        "description": "Nhân vật mô phỏng nói tiếng Việt.",
+        "backToRoster": "Về danh sách"
+      }
     }
   },
   "note": {

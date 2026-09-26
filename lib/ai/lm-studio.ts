@@ -1,7 +1,15 @@
 import 'server-only'
 
 import {createOpenAICompatible} from '@ai-sdk/openai-compatible'
-import {APICallError, generateText, streamText} from 'ai'
+import {
+  APICallError,
+  generateText,
+  NoObjectGeneratedError,
+  NoOutputGeneratedError,
+  Output,
+  streamText,
+} from 'ai'
+import type {z} from 'zod'
 import {
   AI_REQUEST_TIMEOUT_MS,
   AI_SAMPLER,
@@ -38,6 +46,8 @@ const lmStudio = createOpenAICompatible({
   name: PROVIDER_NAME,
   baseURL: LM_STUDIO_ENDPOINT, // already includes /v1
   apiKey: LM_STUDIO_API_KEY || undefined, // no Authorization header when key empty
+  // LM Studio supports response_format json_schema on /v1/chat/completions
+  supportsStructuredOutputs: true,
 })
 
 /**
@@ -165,7 +175,20 @@ function mapError(
     )
   }
 
-  // 3. HTTP status: 401/403 auth, anything else http.
+  // 3. Structured-output failure: the model answered but the payload didn't
+  //    validate against the JSON schema (completeJson). Covers both the
+  //    generateText output path (NoOutputGeneratedError — no structured
+  //    output available on the result) and NoObjectGeneratedError.
+  if (
+    NoObjectGeneratedError.isInstance(err) ||
+    NoOutputGeneratedError.isInstance(err)
+  ) {
+    throw new LMStudioError('http', 'invalid structured output', undefined, {
+      cause: err,
+    })
+  }
+
+  // 4. HTTP status: 401/403 auth, anything else http.
   const status = getStatus(err)
   if (status !== undefined) {
     if (status === 401 || status === 403) {
@@ -184,7 +207,7 @@ function mapError(
     )
   }
 
-  // 4. Connection-level failure.
+  // 5. Connection-level failure.
   if (isNetworkError(err)) {
     throw new LMStudioError(
       'unreachable',
@@ -196,7 +219,7 @@ function mapError(
     )
   }
 
-  // 5. Fallback.
+  // 6. Fallback.
   throw new LMStudioError('http', 'unexpected LM Studio failure', undefined, {
     cause: err,
   })
@@ -213,6 +236,28 @@ export async function complete(
       throw new LMStudioError('http', 'empty completion')
     }
     return text
+  } catch (err) {
+    if (err instanceof LMStudioError) throw err
+    throw mapError(err, opts, signal)
+  }
+}
+
+/** Structured (JSON-schema) completion. Uses the same sampler/ground-rule settings as complete(). */
+export async function completeJson<S extends z.ZodType>(
+  messages: LMStudioMessage[],
+  schema: S,
+  opts?: CompleteOptions,
+): Promise<z.infer<S>> {
+  const {options, signal} = buildGenerationOptions(messages, opts)
+  try {
+    const {output} = await generateText({
+      ...options,
+      output: Output.object({schema}),
+      // AI SDK 7 rejects system-role messages by default; the drafting
+      // prompts (phase 3/6) legitimately open with a system message.
+      allowSystemInMessages: true,
+    })
+    return output as z.infer<S>
   } catch (err) {
     if (err instanceof LMStudioError) throw err
     throw mapError(err, opts, signal)
