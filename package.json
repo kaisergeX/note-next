@@ -25,6 +25,8 @@
     "@headlessui/react": "^2.2.10",
     "@kaiverse/k": "^0.7.0",
     "@tabler/icons-react": "^3.48.0",
+    "@tanstack/react-form": "^1.33.5",
+    "@tanstack/react-form-nextjs": "^1.33.5",
     "@tiptap/extension-character-count": "^2.27.2",
     "@tiptap/extension-highlight": "^2.27.2",
     "@tiptap/extension-placeholder": "^2.27.2",

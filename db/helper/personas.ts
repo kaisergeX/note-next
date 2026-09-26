@@ -37,7 +37,7 @@ export async function listAllBackgroundTags(): Promise<string[]> {
 export type ActiveRosterEntry = {
   name: string
   region: string
-  occupation: string
+  occupation: string | null
   backgroundTags: string[]
   topSliders: string
 }

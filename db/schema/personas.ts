@@ -23,12 +23,14 @@ export const personasTable = pgTable('personas', {
     .default(sql`generate_ulid()`)
     .primaryKey(),
   name: varchar('name', {length: 100}).notNull(),
-  gender: text('gender').notNull(),
-  age: integer('age').notNull(),
+  // Nullable since the Phase-3 UX follow-up: relaxed save requires only
+  // name + region; drafts may leave these for the LLM to invent.
+  gender: text('gender'),
+  age: integer('age'),
   locale: varchar('locale', {length: 20}).notNull().default('vi-VN'),
-  region: varchar('region', {length: 20}).notNull(),
-  incomeBracket: varchar('income_bracket', {length: 100}).notNull(),
-  occupation: varchar('occupation', {length: 100}).notNull(),
+  region: varchar('region', {length: 50}).notNull(),
+  incomeBracket: varchar('income_bracket', {length: 100}),
+  occupation: varchar('occupation', {length: 100}),
   backgroundTags: text('background_tags')
     .array()
     .notNull()
@@ -36,8 +38,8 @@ export const personasTable = pgTable('personas', {
   personalitySliders: jsonb('personality_sliders')
     .$type<PersonalitySliders>()
     .notNull(),
-  interviewStance: text('interview_stance').notNull(),
-  quirksFreetext: text('quirks_freetext').notNull(),
+  interviewStance: text('interview_stance'),
+  quirksFreetext: text('quirks_freetext'),
   generatedBio: text('generated_bio'),
   systemPrompt: text('system_prompt'),
   status: personaStatusPgEnum('status').default('draft').notNull(),

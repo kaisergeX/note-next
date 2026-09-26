@@ -1,37 +1,49 @@
 'use client'
 
+import {
+  IconArrowLeft,
+  IconLoader2,
+  IconSparkles,
+  IconSubtitlesAi,
+} from '@tabler/icons-react'
+import {useForm} from '@tanstack/react-form'
+import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useTranslations} from 'next-intl'
-import Link from 'next/link'
 import {useEffect, useState, useTransition} from 'react'
 import {
   createPersonaAction,
-  draftPersonaBioAction,
+  generatePersonaAction,
   listPersonaTagsAction,
   updatePersonaAction,
 } from '~/app/[locale]/ai/interview/actions'
-import {AI_DEFAULT_LOCALE, AI_LOCALES} from '~/config/ai'
+import {AI_DEFAULT_LOCALE} from '~/config/ai'
 import type {PersonaStatus} from '~/db/schema/personas'
+import {type FieldError} from '~/lib/ai/action-result'
+import type {PersonaDraft} from '~/lib/ai/persona-drafting'
 import PersonaBioPanel from './persona-bio-panel'
+import PersonaCombobox, {type PersonaComboboxOption} from './persona-combobox'
 import PersonaSlider from './persona-slider'
 import PersonaTags from './persona-tags'
 
 export type PersonaFormInitial = {
   id: string
   name: string
-  gender: string
-  age: number
+  // Nullable in the DB since the Phase-3 UX follow-up, so these may be
+  // absent on existing rows; the form applies its own defaults.
+  gender?: string
+  age?: number
   region: string
-  incomeBracket: string
-  occupation: string
+  incomeBracket?: string
+  occupation?: string
   backgroundTags: string[]
   personalitySliders: {
     calm_anxious: number
     optimistic_cynical: number
     frugal_spendthrift: number
   }
-  interviewStance: string
-  quirksFreetext: string
+  interviewStance?: string
+  quirksFreetext?: string
   generatedBio?: string | null
   systemPrompt?: string | null
   status: PersonaStatus
@@ -42,60 +54,69 @@ type PersonaFormProps = {
   initial?: PersonaFormInitial
 }
 
-type FieldErrors = Record<string, string[]>
-
 const SLIDER_AXES = [
   {key: 'calm_anxious', start: 'sliderCalm', end: 'sliderAnxious'},
   {key: 'optimistic_cynical', start: 'sliderOptimistic', end: 'sliderCynical'},
   {key: 'frugal_spendthrift', start: 'sliderFrugal', end: 'sliderSpendthrift'},
 ] as const
 
-const GENDER_PRESETS = ['Nam', 'Nữ', 'Khác']
-const INCOME_PRESETS = ['Thấp', 'Trung bình', 'Cao']
-const STANCE_PRESETS = ['cooperative', 'guarded', 'talkative', 'suspicious']
+const INCOME_VALUES = ['low', 'medium', 'high'] as const
+const STANCE_VALUES = [
+  'cooperative',
+  'guarded',
+  'talkative',
+  'suspicious',
+] as const
+
+// LIGHT client validation only — the server actions are the real gate.
+const requiredValidator = {
+  onChange: ({value}: {value: string}) =>
+    value.trim() ? undefined : {key: 'required'},
+}
 
 export default function PersonaForm({mode, initial}: PersonaFormProps) {
   const t = useTranslations('ai.interview.form')
+  const tErrors = useTranslations('ai.interview.form.errors') as (
+    key: string,
+    values?: Record<string, string | number>,
+  ) => string
   const tRoot = useTranslations('ai.interview')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
-  const [globalError, setGlobalError] = useState<string | undefined>()
   const [noAccess, setNoAccess] = useState(false)
-  const [drafting, setDrafting] = useState(false)
-  const [draftOffline, setDraftOffline] = useState(false)
-  const [draftError, setDraftError] = useState(false)
+  const [globalError, setGlobalError] = useState<string | undefined>()
   const [tagSuggestions, setTagSuggestions] = useState<string[]>([])
+  // Seed is generation-time input only, not a saved field.
+  const [seed, setSeed] = useState('')
+  const [seedErrors, setSeedErrors] = useState<FieldError[] | undefined>()
+  const [generating, setGenerating] = useState(false)
+  const [generateOffline, setGenerateOffline] = useState(false)
+  const [generateError, setGenerateError] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(mode === 'edit')
 
-  const [name, setName] = useState(initial?.name ?? '')
-  const [age, setAge] = useState(initial?.age?.toString() ?? '')
-  const [gender, setGender] = useState(initial?.gender ?? '')
-  const [region, setRegion] = useState(initial?.region ?? '')
-  const [incomeBracket, setIncomeBracket] = useState(
-    initial?.incomeBracket ?? '',
-  )
-  const [occupation, setOccupation] = useState(initial?.occupation ?? '')
-  const [backgroundTags, setBackgroundTags] = useState<string[]>(
-    initial?.backgroundTags ?? [],
-  )
-  const [sliders, setSliders] = useState({
-    calm_anxious: initial?.personalitySliders.calm_anxious ?? 50,
-    optimistic_cynical: initial?.personalitySliders.optimistic_cynical ?? 50,
-    frugal_spendthrift: initial?.personalitySliders.frugal_spendthrift ?? 50,
+  const form = useForm({
+    defaultValues: {
+      name: initial?.name ?? '',
+      age: initial?.age?.toString() ?? '',
+      gender: initial?.gender ?? '',
+      region: initial?.region ?? '',
+      incomeBracket: initial?.incomeBracket ?? '',
+      occupation: initial?.occupation ?? '',
+      backgroundTags: [...(initial?.backgroundTags ?? [])],
+      sliders: {
+        calm_anxious: initial?.personalitySliders.calm_anxious ?? 50,
+        optimistic_cynical:
+          initial?.personalitySliders.optimistic_cynical ?? 50,
+        frugal_spendthrift:
+          initial?.personalitySliders.frugal_spendthrift ?? 50,
+      },
+      interviewStance: initial?.interviewStance ?? '',
+      quirksFreetext: initial?.quirksFreetext ?? '',
+      bio: initial?.generatedBio ?? '',
+      systemPrompt: initial?.systemPrompt ?? '',
+    },
   })
-  const [interviewStance, setInterviewStance] = useState(
-    initial?.interviewStance ?? '',
-  )
-  const [quirksFreetext, setQuirksFreetext] = useState(
-    initial?.quirksFreetext ?? '',
-  )
-  const [bio, setBio] = useState(initial?.generatedBio ?? '')
-  const [systemPrompt, setSystemPrompt] = useState(initial?.systemPrompt ?? '')
-  const [status, setStatus] = useState<PersonaStatus>(
-    initial?.status ?? 'active',
-  )
-
-  const regions = AI_LOCALES[AI_DEFAULT_LOCALE].regions as readonly string[]
 
   useEffect(() => {
     let cancelled = false
@@ -109,361 +130,486 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
     }
   }, [])
 
-  const buildPayload = () => ({
-    name,
-    gender,
-    age,
-    locale: AI_DEFAULT_LOCALE,
-    region,
-    incomeBracket,
-    occupation,
-    backgroundTags,
-    personalitySliders: sliders,
-    interviewStance,
-    quirksFreetext,
-    generatedBio: bio || undefined,
-    systemPrompt: systemPrompt || undefined,
-    status: mode === 'create' ? ('active' as const) : status,
-  })
+  const genderOptions = [
+    {value: '', label: t('genderUnspecified')},
+    {value: 'male', label: t('options.gender.male')},
+    {value: 'female', label: t('options.gender.female')},
+  ]
+  const incomeOptions: PersonaComboboxOption[] = INCOME_VALUES.map((value) => ({
+    value,
+    label: t(`options.income.${value}`),
+  }))
+  const stanceOptions: PersonaComboboxOption[] = STANCE_VALUES.map((value) => ({
+    value,
+    label: t(`options.stance.${value}`),
+  }))
+  const labelFromOptions =
+    (options: PersonaComboboxOption[]) => (value: string) =>
+      options.find((option) => option.value === value)?.label ?? value
 
-  const handleDraft = () => {
-    setDraftOffline(false)
-    setDraftError(false)
-    setDrafting(true)
+  const inputClass =
+    'w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900'
+
+  const renderErrors = (errors: readonly unknown[]) => {
+    const first = errors[0] as FieldError | undefined
+    if (!first) return null
+    return (
+      <p className="text-danger mt-1 text-xs">
+        {tErrors(first.key, first.params ?? undefined)}
+      </p>
+    )
+  }
+
+  /**
+   * Documented one-shot server-error mapping: form.setErrorMap({onSubmit:
+   * {fields}}) distributes each dotted-path key onto the matching registered
+   * field's errorMap, and clears stale onSubmit errors on all other fields
+   * in the same pass.
+   */
+  const setServerFieldErrors = (fieldErrors?: Record<string, FieldError[]>) => {
+    form.setErrorMap({
+      onSubmit: {fields: fieldErrors ?? {}},
+    } as Parameters<typeof form.setErrorMap>[0])
+  }
+
+  const buildPayload = () => {
+    const values = form.state.values
+    return {
+      name: values.name,
+      gender: values.gender || undefined,
+      age: values.age || undefined,
+      locale: AI_DEFAULT_LOCALE,
+      region: values.region,
+      incomeBracket: values.incomeBracket || undefined,
+      occupation: values.occupation || undefined,
+      backgroundTags: values.backgroundTags,
+      personalitySliders: values.sliders,
+      interviewStance: values.interviewStance || undefined,
+      quirksFreetext: values.quirksFreetext || undefined,
+      seedDescription: seed.trim() || undefined,
+      generatedBio: values.bio || undefined,
+      systemPrompt: values.systemPrompt || undefined,
+      status: mode === 'create' ? ('active' as const) : initial!.status,
+    }
+  }
+
+  // Generation write-back: bio/systemPrompt always; structured fields only
+  // when the draft provides them (they are authoritative when present).
+  const applyDraft = (draft: PersonaDraft) => {
+    form.setFieldValue('bio', draft.bio)
+    form.setFieldValue('systemPrompt', draft.systemPrompt)
+    if (draft.name) form.setFieldValue('name', draft.name)
+    if (draft.age !== undefined) form.setFieldValue('age', String(draft.age))
+    if (draft.gender) form.setFieldValue('gender', draft.gender)
+    if (draft.region) form.setFieldValue('region', draft.region)
+    if (draft.incomeBracket) {
+      form.setFieldValue('incomeBracket', draft.incomeBracket)
+    }
+    if (draft.occupation) form.setFieldValue('occupation', draft.occupation)
+    if (draft.interviewStance) {
+      form.setFieldValue('interviewStance', draft.interviewStance)
+    }
+    if (draft.quirksFreetext) {
+      form.setFieldValue('quirksFreetext', draft.quirksFreetext)
+    }
+    if (draft.backgroundTags?.length) {
+      form.setFieldValue('backgroundTags', draft.backgroundTags)
+    }
+    if (draft.personalitySliders) {
+      form.setFieldValue('sliders', draft.personalitySliders)
+    }
+  }
+
+  const handleGenerate = () => {
+    setGenerateOffline(false)
+    setGenerateError(false)
+    setSeedErrors(undefined)
+    setServerFieldErrors()
+    setGenerating(true)
     startTransition(async () => {
-      const result = await draftPersonaBioAction(buildPayload())
-      setDrafting(false)
+      const result = await generatePersonaAction(buildPayload())
+      setGenerating(false)
       if (result.ok) {
-        setBio(result.data.bio)
-        setSystemPrompt(result.data.systemPrompt)
+        applyDraft(result.data)
+        setDetailsOpen(true)
         return
       }
-      if (result.reason === 'offline') setDraftOffline(true)
+      if (result.reason === 'offline') setGenerateOffline(true)
       else if (result.reason === 'validation') {
-        if (result.fieldErrors) setFieldErrors(result.fieldErrors)
-      } else setDraftError(true)
+        if (result.fieldErrors?.seedDescription) {
+          setSeedErrors(result.fieldErrors.seedDescription)
+        }
+        setServerFieldErrors(result.fieldErrors)
+      } else setGenerateError(true)
       if (result.reason === 'no-access') setNoAccess(true)
     })
   }
 
   const handleSave = () => {
-    const missing = !name.trim() || !age.trim() || !region || !occupation.trim()
-    if (missing) {
-      setGlobalError(undefined)
-      const errs: FieldErrors = {}
-      if (!name.trim()) errs.name = ['required']
-      if (!age.trim()) errs.age = ['required']
-      if (!region) errs.region = ['required']
-      if (!occupation.trim()) errs.occupation = ['required']
-      setFieldErrors(errs)
+    // Re-entrancy guard: Enter inside a text input also fires the form's
+    // onSubmit → handleSave; a second run during a pending transition would
+    // create/update the persona twice.
+    if (saving || isPending) return
+    const values = form.state.values
+    const clientErrors: Record<string, FieldError[]> = {}
+    if (!values.name.trim()) clientErrors.name = [{key: 'required'}]
+    if (!values.region.trim()) clientErrors.region = [{key: 'required'}]
+    setGlobalError(undefined)
+    if (Object.keys(clientErrors).length > 0) {
+      setServerFieldErrors(clientErrors)
       return
     }
+    setServerFieldErrors()
+    setSaving(true)
     startTransition(async () => {
-      const payload = buildPayload()
-      const result =
-        mode === 'create'
-          ? await createPersonaAction(payload)
-          : await updatePersonaAction(initial!.id, payload)
-      if (result.ok) {
-        router.push('/ai/interview')
-        return
-      }
-      if (result.reason === 'validation') {
-        if (result.fieldErrors) setFieldErrors(result.fieldErrors)
-      } else if (result.reason === 'no-access') {
-        setNoAccess(true)
-      } else {
+      try {
+        const payload = buildPayload()
+        const result =
+          mode === 'create'
+            ? await createPersonaAction(payload)
+            : await updatePersonaAction(initial!.id, payload)
+        if (result.ok) {
+          form.reset()
+          router.push('/ai/interview')
+          return
+        }
+        if (result.reason === 'validation') {
+          setServerFieldErrors(result.fieldErrors)
+        } else if (result.reason === 'no-access') {
+          setNoAccess(true)
+        } else {
+          setGlobalError(t('saveError'))
+        }
+      } catch {
+        // A thrown action (e.g. unexpected DB error) is not an ActionResult;
+        // surface it and unstick the save button.
         setGlobalError(t('saveError'))
+      } finally {
+        setSaving(false)
       }
     })
   }
 
-  const renderFieldError = (path: string) => {
-    const messages = fieldErrors[path]
-    if (!messages?.length) return null
-    return (
-      <p className="text-danger mt-1 text-xs">
-        {messages[0] === 'required' ? t('requiredField') : messages[0]}
-      </p>
-    )
-  }
-
-  const inputClass =
-    'w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900'
-
   return (
-    <form
-      className="w-full max-w-2xl space-y-4"
-      onSubmit={(e) => {
-        e.preventDefault()
-        handleSave()
-      }}
-    >
-      <Link
-        href="/ai/interview"
-        className="text-sm underline-offset-2 hover:underline"
-      >
-        {tRoot('vi.backToRoster')}
-      </Link>
-      <h2 className="text-xl font-bold">
-        {mode === 'create' ? t('newTitle') : t('editTitle')}
-      </h2>
-
-      {noAccess && <p className="text-danger text-sm">{t('noAccessError')}</p>}
-      {globalError && (
-        <p role="alert" className="text-danger text-sm">
-          {globalError}
-        </p>
-      )}
-
-      <div>
-        <label
-          htmlFor="persona-name"
-          className="mb-1 block text-sm font-medium"
-        >
-          {t('name')}
-        </label>
-        <input
-          id="persona-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={inputClass}
-        />
-        {renderFieldError('name')}
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="persona-age"
-            className="mb-1 block text-sm font-medium"
-          >
-            {t('age')}
-          </label>
-          <input
-            id="persona-age"
-            type="number"
-            min={1}
-            max={120}
-            value={age}
-            onChange={(e) => setAge(e.target.value)}
-            className={inputClass}
-          />
-          {renderFieldError('age')}
-        </div>
-        <div>
-          <label
-            htmlFor="persona-gender"
-            className="mb-1 block text-sm font-medium"
-          >
-            {t('gender')}
-          </label>
-          <input
-            id="persona-gender"
-            type="text"
-            list="persona-gender-presets"
-            value={gender}
-            onChange={(e) => setGender(e.target.value)}
-            className={inputClass}
-          />
-          <datalist id="persona-gender-presets">
-            {GENDER_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
-            ))}
-          </datalist>
-          {renderFieldError('gender')}
-        </div>
-      </div>
-
-      <input type="hidden" name="locale" value={AI_DEFAULT_LOCALE} />
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label
-            htmlFor="persona-region"
-            className="mb-1 block text-sm font-medium"
-          >
-            {t('region')}
-          </label>
-          <select
-            id="persona-region"
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className={inputClass}
-          >
-            <option value="" disabled>
-              —
-            </option>
-            {regions.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
-          <p className="text-muted-foreground mt-1 text-xs">
-            {t('regionHint')}
-          </p>
-          {renderFieldError('region')}
-        </div>
-        <div>
-          <label
-            htmlFor="persona-income"
-            className="mb-1 block text-sm font-medium"
-          >
-            {t('income')}
-          </label>
-          <input
-            id="persona-income"
-            type="text"
-            list="persona-income-presets"
-            value={incomeBracket}
-            onChange={(e) => setIncomeBracket(e.target.value)}
-            className={inputClass}
-          />
-          <datalist id="persona-income-presets">
-            {INCOME_PRESETS.map((preset) => (
-              <option key={preset} value={preset} />
-            ))}
-          </datalist>
-          {renderFieldError('incomeBracket')}
-        </div>
-      </div>
-
-      <div>
-        <label
-          htmlFor="persona-occupation"
-          className="mb-1 block text-sm font-medium"
-        >
-          {t('occupation')}
-        </label>
-        <input
-          id="persona-occupation"
-          type="text"
-          value={occupation}
-          onChange={(e) => setOccupation(e.target.value)}
-          className={inputClass}
-        />
-        {renderFieldError('occupation')}
-      </div>
-
-      <PersonaTags
-        value={backgroundTags}
-        onChange={setBackgroundTags}
-        suggestions={tagSuggestions}
-        label={t('tags')}
-        hint={t('tagsHint')}
-        addPlaceholder={t('tagsAddPlaceholder')}
-        disabled={isPending}
-      />
-
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium">{t('sliders')}</legend>
-        <div className="space-y-4">
-          {SLIDER_AXES.map((axis) => (
-            <PersonaSlider
-              key={axis.key}
-              axisKey={axis.key}
-              value={sliders[axis.key]}
-              onChange={(value) =>
-                setSliders((prev) => ({...prev, [axis.key]: value}))
-              }
-              poleStartLabel={t(axis.start)}
-              poleEndLabel={t(axis.end)}
-              ariaLabel={`${t(axis.start)} – ${t(axis.end)}`}
-              disabled={isPending}
-            />
-          ))}
-        </div>
-      </fieldset>
-
-      <div>
-        <label
-          htmlFor="persona-stance"
-          className="mb-1 block text-sm font-medium"
-        >
-          {t('stance')}
-        </label>
-        <input
-          id="persona-stance"
-          type="text"
-          list="persona-stance-presets"
-          value={interviewStance}
-          onChange={(e) => setInterviewStance(e.target.value)}
-          className={inputClass}
-        />
-        <datalist id="persona-stance-presets">
-          {STANCE_PRESETS.map((preset) => (
-            <option key={preset} value={preset} />
-          ))}
-        </datalist>
-        <p className="text-muted-foreground mt-1 text-xs">{t('stanceHint')}</p>
-        {renderFieldError('interviewStance')}
-      </div>
-
-      <div>
-        <label
-          htmlFor="persona-quirks"
-          className="mb-1 block text-sm font-medium"
-        >
-          {t('quirks')}
-        </label>
-        <textarea
-          id="persona-quirks"
-          rows={3}
-          value={quirksFreetext}
-          onChange={(e) => setQuirksFreetext(e.target.value)}
-          className={inputClass}
-        />
-        {renderFieldError('quirksFreetext')}
-      </div>
-
-      <PersonaBioPanel
-        bio={bio}
-        systemPrompt={systemPrompt}
-        onBioChange={setBio}
-        onSystemPromptChange={setSystemPrompt}
-        onDraft={handleDraft}
-        drafting={drafting}
-        offline={draftOffline}
-        error={draftError}
-        labels={{
-          bio: t('bio'),
-          systemPrompt: t('systemPrompt'),
-          advanced: t('advanced'),
-          draftBio: t('draftBio'),
-          regenerate: t('regenerate'),
-          drafting: t('drafting'),
-          offlineError: t('bioOfflineError'),
-          error: t('bioError'),
+    <>
+      <form
+        className="container space-y-4 p-4"
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleSave()
         }}
-      />
+      >
+        <Link href="/ai/interview" className="inline-flex items-center gap-1">
+          <IconArrowLeft className="inline-block" size="18" />{' '}
+          {tRoot('vi.backToRoster')}
+        </Link>
+        <h2 className="text-xl font-bold">
+          {mode === 'create' ? t('newTitle') : t('editTitle')}
+        </h2>
 
-      {mode === 'edit' && (
-        <div>
-          <label
-            htmlFor="persona-status"
-            className="mb-1 block text-sm font-medium"
-          >
-            {t('status')}
-          </label>
-          <select
-            id="persona-status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as PersonaStatus)}
-            className={inputClass}
-          >
-            <option value="draft">{tRoot('status.draft')}</option>
-            <option value="active">{tRoot('status.active')}</option>
-          </select>
+        {noAccess && (
+          <p className="text-danger text-sm">{t('noAccessError')}</p>
+        )}
+        {globalError && (
+          <p role="alert" className="text-danger text-sm">
+            {globalError}
+          </p>
+        )}
+
+        {mode === 'create' && (
+          <section className="space-y-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+            <label htmlFor="persona-seed" className="block text-sm font-medium">
+              {t('seed')}
+            </label>
+            <textarea
+              id="persona-seed"
+              rows={5}
+              value={seed}
+              onChange={(e) => setSeed(e.target.value)}
+              className={inputClass}
+              maxLength={10000}
+              disabled={generating || saving}
+            />
+            <p className="text-muted-foreground text-xs">{t('seedHint')}</p>
+            {seedErrors && seedErrors.length > 0 && (
+              <p role="alert" className="text-danger text-xs">
+                {tErrors(seedErrors[0].key, seedErrors[0].params ?? undefined)}
+              </p>
+            )}
+            <button
+              type="button"
+              className="button mt-2"
+              onClick={handleGenerate}
+              disabled={generating || saving}
+            >
+              {generating ? (
+                <IconLoader2 className="animate-spin" size="1.2rem" />
+              ) : (
+                <IconSparkles size="1.2rem" />
+              )}
+              {generating ? t('generating') : t('generate')}
+            </button>
+            {(generateOffline || generateError) && (
+              <p role="alert" className="text-danger text-sm">
+                {generateOffline ? t('bioOfflineError') : t('bioError')}
+              </p>
+            )}
+          </section>
+        )}
+
+        <details
+          open={detailsOpen}
+          onToggle={(e) => setDetailsOpen(e.currentTarget.open)}
+        >
+          <summary className="cursor-pointer text-sm font-medium">
+            {t('fineTune')}
+          </summary>
+
+          <div className="mt-4 space-y-4">
+            <form.Field name="name" validators={requiredValidator}>
+              {(field) => (
+                <div>
+                  <label
+                    htmlFor="persona-name"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    {t('name')}
+                  </label>
+                  <input
+                    id="persona-name"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className={inputClass}
+                  />
+                  {renderErrors(field.state.meta.errors)}
+                </div>
+              )}
+            </form.Field>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <form.Field name="age">
+                {(field) => (
+                  <div>
+                    <label
+                      htmlFor="persona-age"
+                      className="mb-1 block text-sm font-medium"
+                    >
+                      {t('age')}
+                    </label>
+                    <input
+                      id="persona-age"
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className={inputClass}
+                    />
+                    {renderErrors(field.state.meta.errors)}
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="gender">
+                {(field) => (
+                  <div>
+                    <PersonaCombobox
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={genderOptions}
+                      labelFor={labelFromOptions(genderOptions)}
+                      label={t('gender')}
+                    />
+                    {renderErrors(field.state.meta.errors)}
+                  </div>
+                )}
+              </form.Field>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <form.Field name="region" validators={requiredValidator}>
+                {(field) => (
+                  <div>
+                    <label
+                      htmlFor="persona-region"
+                      className="mb-1 block text-sm font-medium"
+                    >
+                      {t('region')}
+                    </label>
+                    <input
+                      id="persona-region"
+                      type="text"
+                      value={field.state.value}
+                      onChange={(e) => field.handleChange(e.target.value)}
+                      className={inputClass}
+                    />
+                    <p className="text-muted-foreground mt-1 text-xs">
+                      {t('regionHint')}
+                    </p>
+                    {renderErrors(field.state.meta.errors)}
+                  </div>
+                )}
+              </form.Field>
+              <form.Field name="incomeBracket">
+                {(field) => (
+                  <div>
+                    <PersonaCombobox
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={incomeOptions}
+                      labelFor={labelFromOptions(incomeOptions)}
+                      label={t('income')}
+                    />
+                    {renderErrors(field.state.meta.errors)}
+                  </div>
+                )}
+              </form.Field>
+            </div>
+
+            <form.Field name="occupation">
+              {(field) => (
+                <div>
+                  <label
+                    htmlFor="persona-occupation"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    {t('occupation')}
+                  </label>
+                  <input
+                    id="persona-occupation"
+                    type="text"
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className={inputClass}
+                  />
+                  {renderErrors(field.state.meta.errors)}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="backgroundTags">
+              {(field) => (
+                <PersonaTags
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  suggestions={tagSuggestions}
+                  label={t('tags')}
+                  hint={t('tagsHint')}
+                  addPlaceholder={t('tagsAddPlaceholder')}
+                  disabled={isPending}
+                />
+              )}
+            </form.Field>
+
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium">
+                {t('sliders')}
+              </legend>
+              <div className="space-y-4">
+                {SLIDER_AXES.map((axis) => (
+                  <form.Field key={axis.key} name={`sliders.${axis.key}`}>
+                    {(field) => (
+                      <PersonaSlider
+                        axisKey={axis.key}
+                        value={field.state.value}
+                        onChange={(value) => field.handleChange(value)}
+                        poleStartLabel={t(axis.start)}
+                        poleEndLabel={t(axis.end)}
+                        ariaLabel={`${t(axis.start)} – ${t(axis.end)}`}
+                        disabled={isPending}
+                      />
+                    )}
+                  </form.Field>
+                ))}
+              </div>
+            </fieldset>
+
+            <form.Field name="interviewStance">
+              {(field) => (
+                <div>
+                  <PersonaCombobox
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={stanceOptions}
+                    labelFor={labelFromOptions(stanceOptions)}
+                    label={t('stance')}
+                  />
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    {t('stanceHint')}
+                  </p>
+                  {renderErrors(field.state.meta.errors)}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="quirksFreetext">
+              {(field) => (
+                <div>
+                  <label
+                    htmlFor="persona-quirks"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    {t('quirks')}
+                  </label>
+                  <textarea
+                    id="persona-quirks"
+                    rows={3}
+                    value={field.state.value}
+                    onChange={(e) => field.handleChange(e.target.value)}
+                    className={inputClass}
+                  />
+                  {renderErrors(field.state.meta.errors)}
+                </div>
+              )}
+            </form.Field>
+
+            <form.Field name="bio">
+              {(bioField) => (
+                <form.Field name="systemPrompt">
+                  {(promptField) => (
+                    <PersonaBioPanel
+                      bio={bioField.state.value}
+                      onBioChange={bioField.handleChange}
+                      systemPrompt={promptField.state.value}
+                      onSystemPromptChange={promptField.handleChange}
+                      onRegenerate={handleGenerate}
+                      regenerating={generating}
+                      offline={generateOffline}
+                      error={generateError}
+                      labels={{
+                        bio: t('bio'),
+                        systemPrompt: t('systemPrompt'),
+                        advanced: t('advanced'),
+                        regenerate: t('regenerate'),
+                        drafting: t('drafting'),
+                        offlineError: t('bioOfflineError'),
+                        error: t('bioError'),
+                      }}
+                    />
+                  )}
+                </form.Field>
+              )}
+            </form.Field>
+          </div>
+        </details>
+      </form>
+      <div className="flex-center-between bg-default sticky inset-x-0 bottom-0 z-10 w-full gap-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="container mx-auto border-t border-gray-200 p-4">
+          <form.Subscribe selector={(state) => state.isSubmitting}>
+            {(isSubmitting) => (
+              <button
+                type="button"
+                className="button"
+                onClick={handleSave}
+                disabled={generating || saving || isSubmitting}
+              >
+                <IconSubtitlesAi />{' '}
+                {saving || isSubmitting ? t('starting') : t('start')}
+              </button>
+            )}
+          </form.Subscribe>
         </div>
-      )}
-
-      <div className="flex gap-3">
-        <button type="submit" className="button" disabled={isPending}>
-          {isPending && !drafting ? t('saving') : t('save')}
-        </button>
       </div>
-    </form>
+    </>
   )
 }

@@ -60,19 +60,37 @@
       "form": {
         "newTitle": "New persona",
         "editTitle": "Edit persona",
-        "save": "Save",
+        "start": "Start interview",
+        "starting": "Creating room",
         "status": "Status",
-        "saving": "Saving…",
-        "drafting": "Drafting…",
-        "draftBio": "Draft bio",
+        "drafting": "Drafting",
         "regenerate": "Regenerate",
+        "fineTune": "Fine-tune",
         "name": "Name",
         "age": "Age",
         "gender": "Gender",
+        "genderUnspecified": "Not specified",
         "region": "Region",
-        "regionHint": "Dialect signal for content generation.",
+        "regionHint": "Any region within the persona's country — e.g. Northern Vietnam, Saigon. The AI ignores values that don't fit.",
         "income": "Income bracket",
         "occupation": "Occupation",
+        "options": {
+          "gender": {
+            "male": "Male",
+            "female": "Female"
+          },
+          "income": {
+            "low": "Low",
+            "medium": "Medium",
+            "high": "High"
+          },
+          "stance": {
+            "cooperative": "Cooperative",
+            "guarded": "Guarded",
+            "talkative": "Talkative",
+            "suspicious": "Suspicious"
+          }
+        },
         "tags": "Background tags",
         "tagsHint": "Province/city, circumstances… Type to pick an existing tag or add a new one.",
         "tagsAddPlaceholder": "Add a tag…",
@@ -93,7 +111,19 @@
         "bioError": "Something went wrong while drafting the bio.",
         "saveError": "Could not save the persona.",
         "noAccessError": "You don't have access to this feature.",
-        "requiredField": "This field is required."
+        "requiredField": "This field is required.",
+        "errors": {
+          "required": "This field is required.",
+          "invalid": "Invalid value.",
+          "minLength": "Must be at least {count} characters.",
+          "maxLength": "Must be at most {count} characters.",
+          "min": "Must be at least {count}.",
+          "max": "Must be at most {count}."
+        },
+        "seed": "Persona description (optional)",
+        "seedHint": "Paste or write a paragraph describing the person to interview — the AI treats it as the source of truth and fills in the rest.",
+        "generate": "Generate persona",
+        "generating": "Generating"
       },
       "vi": {
         "title": "Vietnamese",
