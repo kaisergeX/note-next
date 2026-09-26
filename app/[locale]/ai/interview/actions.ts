@@ -2,18 +2,24 @@
 
 import {eq} from 'drizzle-orm'
 import {db} from '~/db'
-import {getPersonaById, listAllBackgroundTags} from '~/db/helper/personas'
+import {
+  getActiveRosterSummary,
+  getPersonaById,
+  listAllBackgroundTags,
+} from '~/db/helper/personas'
 import {
   personaStatusPgEnum,
   personasTable,
   type PersonaStatus,
 } from '~/db/schema/personas'
-import {flattenFieldErrors, type ActionResult} from '~/lib/ai/action-result'
+import {type ActionResult, type FieldError} from '~/lib/ai/action-result'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {LMStudioError} from '~/lib/ai/lm-studio'
 import {draftPersona, type PersonaDraft} from '~/lib/ai/persona-drafting'
 import {
+  draftPersonaInputSchema,
   personaInputSchema,
+  toFieldErrors,
   type PersonaInput,
 } from '~/lib/ai/persona-validation'
 import {AI_LOCALES, AI_REQUEST_TIMEOUT_MS} from '~/config/ai'
@@ -52,7 +58,11 @@ function mapLMStudioError(err: unknown): ActionResult<never> | undefined {
 
 type ParsedPersonaInput =
   | {ok: true; data: PersonaInput}
-  | {ok: false; reason: 'validation'; fieldErrors: Record<string, string[]>}
+  | {
+      ok: false
+      reason: 'validation'
+      fieldErrors: Record<string, FieldError[]>
+    }
 
 function parsePersonaInput(raw: unknown): ParsedPersonaInput {
   const parsed = personaInputSchema.safeParse(raw)
@@ -60,7 +70,7 @@ function parsePersonaInput(raw: unknown): ParsedPersonaInput {
     return {
       ok: false,
       reason: 'validation',
-      fieldErrors: flattenFieldErrors(parsed.error),
+      fieldErrors: toFieldErrors(parsed.error),
     }
   }
   return {ok: true, data: parsed.data}
@@ -77,6 +87,8 @@ export async function createPersonaAction(
 
   const inserted = await db
     .insert(personasTable)
+    // Nullable columns since the Phase-3 UX follow-up: undefined flows
+    // through to SQL NULL for fields the save form doesn't provide.
     .values(parsed.data)
     .returning({id: personasTable.id})
 
@@ -119,7 +131,7 @@ export async function updatePersonaAction(
         ok: false,
         reason: 'validation',
         fieldErrors: {
-          status: [`Invalid persona status: ${String(rawStatus)}`],
+          status: [{key: 'invalid', params: {value: String(rawStatus)}}],
         },
       }
     }
@@ -132,7 +144,7 @@ export async function updatePersonaAction(
         ok: false,
         reason: 'validation',
         fieldErrors: {
-          locale: [`Invalid locale: ${String(rawLocale)}`],
+          locale: [{key: 'invalid', params: {value: String(rawLocale)}}],
         },
       }
     }
@@ -151,18 +163,26 @@ export async function updatePersonaAction(
   return {ok: true, data: {id}}
 }
 
-export async function draftPersonaBioAction(
+export async function generatePersonaAction(
   raw: unknown,
 ): Promise<ActionResult<PersonaDraft>> {
   const noAccess = await requirePersonaInterviewAccess()
   if (noAccess) return noAccess
 
-  const parsed = parsePersonaInput(raw)
-  if (!parsed.ok) return parsed
+  const parsed = draftPersonaInputSchema.safeParse(raw)
+  if (!parsed.success) {
+    return {
+      ok: false,
+      reason: 'validation',
+      fieldErrors: toFieldErrors(parsed.error),
+    }
+  }
+
+  const roster = await getActiveRosterSummary()
 
   try {
     // Well under the 60s ceiling so DB writes keep headroom.
-    const draft = await draftPersona(parsed.data, undefined, {
+    const draft = await draftPersona(parsed.data, roster, {
       timeoutMs: AI_REQUEST_TIMEOUT_MS,
     })
     return {ok: true, data: draft}
@@ -186,21 +206,21 @@ export async function regeneratePersonaBioAction(
 
   // Rebuild a PersonaInput from the stored row, then re-validate it: the row
   // may predate schema changes or hold a locale outside AI_LOCALES. Without
-  // this check, draftPersona's internal personaInputSchema.parse would throw
+  // this check, draftPersona's internal draftPersonaInputSchema.parse would throw
   // a ZodError that escapes as an unhandled 500; here a corrupt row instead
   // returns a normal error result.
   const personaInput: PersonaInput = {
     name: persona.name,
-    gender: persona.gender,
-    age: persona.age,
+    gender: persona.gender ?? undefined,
+    age: persona.age ?? undefined,
     locale: persona.locale as PersonaInput['locale'],
     region: persona.region,
-    incomeBracket: persona.incomeBracket,
-    occupation: persona.occupation,
+    incomeBracket: persona.incomeBracket ?? undefined,
+    occupation: persona.occupation ?? undefined,
     backgroundTags: persona.backgroundTags,
     personalitySliders: persona.personalitySliders,
-    interviewStance: persona.interviewStance,
-    quirksFreetext: persona.quirksFreetext,
+    interviewStance: persona.interviewStance ?? undefined,
+    quirksFreetext: persona.quirksFreetext ?? undefined,
     status: persona.status,
   }
 

@@ -60,18 +60,37 @@
       "form": {
         "newTitle": "Tạo nhân vật",
         "editTitle": "Sửa nhân vật",
-        "save": "Lưu",
-        "saving": "Đang lưu…",
-        "drafting": "Đang soạn…",
-        "draftBio": "Soạn tiểu sử",
+        "status": "Trạng thái",
+        "start": "Bắt đầu",
+        "starting": "Đang tạo phòng",
+        "drafting": "Đang soạn",
         "regenerate": "Soạn lại",
+        "fineTune": "Tinh chỉnh",
         "name": "Tên",
         "age": "Tuổi",
         "gender": "Giới tính",
+        "genderUnspecified": "Không xác định",
         "region": "Vùng miền",
-        "regionHint": "Tín hiệu phương ngữ cho việc sinh nội dung.",
+        "regionHint": "Vùng miền bất kỳ thuộc quốc gia của nhân vật — ví dụ miền Bắc, Sài Gòn. AI sẽ bỏ qua giá trị không hợp lý.",
         "income": "Khoảng thu nhập",
         "occupation": "Nghề nghiệp",
+        "options": {
+          "gender": {
+            "male": "Nam",
+            "female": "Nữ"
+          },
+          "income": {
+            "low": "Thấp",
+            "medium": "Trung bình",
+            "high": "Cao"
+          },
+          "stance": {
+            "cooperative": "Hợp tác",
+            "guarded": "Bảo thủ",
+            "talkative": "Nói nhiều",
+            "suspicious": "Hoài nghi"
+          }
+        },
         "tags": "Nền tảng bối cảnh",
         "tagsHint": "Tỉnh/thành, đặc điểm hoàn cảnh… Gõ để chọn tag có sẵn hoặc thêm mới.",
         "tagsAddPlaceholder": "Thêm tag…",
@@ -81,7 +100,7 @@
         "sliderOptimistic": "Lạc quan",
         "sliderCynical": "Bi quan",
         "sliderFrugal": "Tiết kiệm",
-        "sliderSpendthrift": "Xài phúng phính",
+        "sliderSpendthrift": "Lãng phí",
         "stance": "Thái độ phỏng vấn",
         "stanceHint": "Gợi ý: cooperative / guarded / talkative / suspicious — cũng có thể tự mô tả.",
         "quirks": "Chi tiết riêng / thói quen",
@@ -92,7 +111,19 @@
         "bioError": "Có lỗi khi soạn tiểu sử.",
         "saveError": "Không lưu được nhân vật.",
         "noAccessError": "Bạn không có quyền dùng tính năng này.",
-        "requiredField": "Bắt buộc nhập."
+        "requiredField": "Bắt buộc nhập.",
+        "errors": {
+          "required": "Bắt buộc nhập.",
+          "invalid": "Giá trị không hợp lệ.",
+          "minLength": "Tối thiểu {count} ký tự.",
+          "maxLength": "Tối đa {count} ký tự.",
+          "min": "Tối thiểu {count}.",
+          "max": "Tối đa {count}."
+        },
+        "seed": "Mô tả nhân vật (không bắt buộc)",
+        "seedHint": "Dán hoặc viết một đoạn văn mô tả người cần phỏng vấn — AI sẽ dùng nó làm nguồn chính xác và tự điền phần còn lại.",
+        "generate": "Tạo nhân vật",
+        "generating": "Đang tạo"
       },
       "vi": {
         "title": "Tiếng Việt",

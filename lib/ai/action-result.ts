@@ -1,4 +1,12 @@
-import type {ZodError} from 'zod'
+/**
+ * Structured, localizable field error: `key` doubles as the i18n message key,
+ * `params` carries interpolation values (e.g. min/max counts, region list).
+ * The Zod-issue → FieldError mapping lives in persona-validation.ts.
+ */
+export type FieldError = {
+  key: string
+  params?: Record<string, string | number>
+}
 
 export type ActionResult<T> =
   | {ok: true; data: T}
@@ -6,15 +14,5 @@ export type ActionResult<T> =
       ok: false
       reason: 'validation' | 'no-access' | 'offline' | 'error'
       message?: string
-      fieldErrors?: Record<string, string[]>
+      fieldErrors?: Record<string, FieldError[]>
     }
-
-/** Flattens Zod issues into per-field message arrays keyed by dotted path. */
-export function flattenFieldErrors(error: ZodError): Record<string, string[]> {
-  const fieldErrors: Record<string, string[]> = {}
-  for (const issue of error.issues) {
-    const key = issue.path.join('.') || '_root'
-    ;(fieldErrors[key] ??= []).push(issue.message)
-  }
-  return fieldErrors
-}

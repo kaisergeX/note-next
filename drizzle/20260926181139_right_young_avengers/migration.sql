@@ -1,0 +1,1 @@
+ALTER TABLE "personas" ALTER COLUMN "region" SET DATA TYPE varchar(50) USING "region"::varchar(50);

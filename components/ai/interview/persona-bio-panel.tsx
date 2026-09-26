@@ -8,15 +8,14 @@ type PersonaBioPanelProps = {
   systemPrompt: string
   onBioChange: (bio: string) => void
   onSystemPromptChange: (systemPrompt: string) => void
-  onDraft: () => void
-  drafting: boolean
+  onRegenerate: () => void
+  regenerating: boolean
   offline: boolean
   error: boolean
   labels: {
     bio: string
     systemPrompt: string
     advanced: string
-    draftBio: string
     regenerate: string
     drafting: string
     offlineError: string
@@ -29,16 +28,14 @@ export default function PersonaBioPanel({
   systemPrompt,
   onBioChange,
   onSystemPromptChange,
-  onDraft,
-  drafting,
+  onRegenerate,
+  regenerating,
   offline,
   error,
   labels,
 }: PersonaBioPanelProps) {
   const bioId = useId()
   const promptId = useId()
-
-  const showDraftButton = !bio
 
   return (
     <div className="space-y-3">
@@ -50,7 +47,7 @@ export default function PersonaBioPanel({
           id={bioId}
           rows={4}
           value={bio}
-          disabled={drafting}
+          disabled={regenerating}
           onChange={(e) => onBioChange(e.target.value)}
           className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
         />
@@ -59,19 +56,15 @@ export default function PersonaBioPanel({
       <button
         type="button"
         className="button-secondary"
-        onClick={onDraft}
-        disabled={drafting}
+        onClick={onRegenerate}
+        disabled={regenerating}
       >
-        {drafting ? (
-          <IconLoader2 className="animate-spin" size="1rem" />
+        {regenerating ? (
+          <IconLoader2 className="animate-spin" size="1.2rem" />
         ) : (
-          <IconSparkles size="1rem" />
+          <IconSparkles size="1.2rem" />
         )}
-        {drafting
-          ? labels.drafting
-          : showDraftButton
-            ? labels.draftBio
-            : labels.regenerate}
+        {regenerating ? labels.drafting : labels.regenerate}
       </button>
 
       {(offline || error) && (
@@ -92,7 +85,7 @@ export default function PersonaBioPanel({
             id={promptId}
             rows={4}
             value={systemPrompt}
-            disabled={drafting}
+            disabled={regenerating}
             onChange={(e) => onSystemPromptChange(e.target.value)}
             className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
           />

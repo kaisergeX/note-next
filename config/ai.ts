@@ -1,8 +1,9 @@
+// Supported-locale map. The per-locale payload is empty for now; future
+// per-locale prompt config may live here.
 export const AI_LOCALES = {
-  'vi-VN': {regions: ['Bắc', 'Trung', 'Nam']},
+  'vi-VN': {},
 } as const
 export type AiLocale = keyof typeof AI_LOCALES
-export type AiRegion = (typeof AI_LOCALES)[AiLocale]['regions'][number]
 
 export const AI_DEFAULT_LOCALE: AiLocale = 'vi-VN'
 
