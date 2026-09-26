@@ -55,10 +55,9 @@ export default function NoteCustomize({
   scrollTopCtrl = false,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
-  const {noteId, theme, setMutateNoteData} = usePersistStore((s) => ({
+  const {noteId, theme} = usePersistStore((s) => ({
     noteId: s.mutateNoteData?.id,
     theme: s.mutateNoteData?.theme,
-    setMutateNoteData: s.setMutateNoteData,
   }))
   const t = useTranslations('note')
   const ref = useRef<HTMLDivElement>(null)

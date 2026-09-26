@@ -141,8 +141,7 @@ export default function NoteEditor({
   )
 
   const charCountStorage = textEditor?.storage?.characterCount as
-    | CharacterCountStorage
-    | undefined
+    CharacterCountStorage | undefined
   const characterCount = charCountStorage?.characters() || 0
   const wordCount = charCountStorage?.words() || 0
   const [characterCountDebounced] = useDebounced(characterCount, 400)
