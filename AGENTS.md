@@ -41,6 +41,10 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 - Implements localization using next-intl 4.13.7
 - Utilizes serwist for PWA support (Service worker: `app/sw.ts` → `public/sw.js`)
 - Uses `server-only` package for server-side rendering
+- **AI features** (`app/[locale]/ai/`): shared parent for AI-driven features, isolated from the note-taking domain. Persona interview lives at
+  `app/[locale]/ai/interview/` (own schema files, own layout, own `feature_access` gate); a future companion-chat feature will live at
+  `app/[locale]/ai/companion/` as a sibling. 
+  Read `docs/ai/PRD.md`, `docs/ai/ARCHITECTURE.md`, `docs/ai/PERSONA-SCHEMA.md`, and `docs/ai/BUILD-PLAN.md` before touching anything under `ai/interview/` or its schema files.
 
 ## Testing & Quality
 
