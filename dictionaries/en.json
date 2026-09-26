@@ -34,6 +34,16 @@
       "title": "User Management"
     }
   },
+  "ai": {
+    "noAccess": {
+      "title": "AI access required",
+      "description": "You don't have access to this AI feature yet. Please ask the administrator to grant it."
+    },
+    "interview": {
+      "title": "Persona interview",
+      "placeholder": "The interview workspace arrives in an upcoming phase."
+    }
+  },
   "note": {
     "title": "Notes",
     "about": {

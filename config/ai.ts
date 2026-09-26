@@ -20,3 +20,7 @@ export const AI_SAMPLER = {
   top_k: null, // disabled
   enable_thinking: false, // explicitly off
 } as const
+
+// Per-request timeout for LM Studio calls — well under the 60s serverless ceiling
+// so the invoking action/route still has headroom for DB writes
+export const AI_REQUEST_TIMEOUT_MS = 45_000

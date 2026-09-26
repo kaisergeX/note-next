@@ -34,6 +34,16 @@
       "title": "Quản lý người dùng"
     }
   },
+  "ai": {
+    "noAccess": {
+      "title": "Chưa có quyền truy cập AI",
+      "description": "Bạn chưa được cấp quyền truy cập tính năng AI này. Vui lòng liên hệ quản trị viên để được cấp quyền."
+    },
+    "interview": {
+      "title": "Phỏng vấn nhân vật",
+      "placeholder": "Không gian phỏng vấn sẽ được xây dựng ở giai đoạn tiếp theo."
+    }
+  },
   "note": {
     "title": "Ghi chú",
     "about": {
