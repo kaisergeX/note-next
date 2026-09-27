@@ -24,7 +24,13 @@ type MenuCustomProps = {
   menuClassName?: string
   itemsClassName?: string
   items?: MenuCustomItem[]
-  anchor?: MenuItemsProps['anchor']
+  /**
+   * Headless UI forces `portal` when `anchor` is set, which renders MenuItems
+   * into a body-level portal div that sits below a <dialog> top layer.
+   * Pass `null` to render the items inline (no anchor, no portal) and position
+   * them via `itemsClassName` — required inside native <dialog> drawers.
+   */
+  anchor?: MenuItemsProps['anchor'] | null
 }
 
 export default function MenuCustom({
@@ -65,7 +71,7 @@ export default function MenuCustom({
       <MenuItems
         as={as}
         className={classNames(
-          'bg-default shadow-theme ring-theme overflow-hidden rounded-md text-sm font-semibold focus:outline-none',
+          'bg-default shadow-theme ring-theme overflow-hidden rounded-md border border-gray-400 text-sm font-semibold focus:outline-none dark:border-gray-900',
           'transform transition',
           'data-closed:scale-95 data-closed:opacity-0',
           'data-enter:opacity-100 data-enter:duration-100 data-enter:ease-out',
@@ -73,7 +79,10 @@ export default function MenuCustom({
           itemsClassName,
         )}
         transition
-        anchor={anchor}
+        {...(anchor === null ? {} : {anchor})}
+        // modal={false} skips the useInertOthers inert sweep; with many menus
+        // on a page the modal stack desyncs and the whole page stays inert until reload.
+        modal={false}
       >
         {renderMenuItems}
       </MenuItems>

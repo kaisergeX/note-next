@@ -179,7 +179,7 @@ export default function NoteCustomize({
             <div
               id={`${prefixId}-menu`}
               className={classNames(
-                `shadow-md shadow-theme-${theme}`,
+                `shadow-md shadow-theme-${theme || 'slate'}`,
                 'rounded-md',
                 'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
               )}

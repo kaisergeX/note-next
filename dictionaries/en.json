@@ -50,7 +50,8 @@
         "menu": "More actions",
         "activate": "Activate",
         "archive": "Archive",
-        "confirmArchive": "Archive this persona? Any interview transcript will be kept.",
+        "confirmArchive": "Archive this persona?",
+        "confirmArchiveBody": "The persona will be moved to Archived. Its data and interview transcripts are kept and can be restored later.",
         "archiveFailed": "Could not update the persona."
       },
       "status": {

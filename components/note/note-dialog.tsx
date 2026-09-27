@@ -38,7 +38,7 @@ export default function NoteDialog({
   return (
     <Dialog
       className={classNames(
-        'm-[revert] min-h-80 max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
+        'min-h-80 max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
         'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-1/2 2xl:max-w-(--breakpoint-lg)',
         noteTheme
           ? `dialog-${noteTheme} shadow-xl max-sm:shadow-none shadow-theme-${noteTheme}`
@@ -102,7 +102,7 @@ export default function NoteDialog({
       />
 
       <NoteCustomize
-        className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme}`}
+        className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme || 'slate'}`}
         type={type}
         onDeleteSuccess={onDeleteSuccess}
         loading={loading}

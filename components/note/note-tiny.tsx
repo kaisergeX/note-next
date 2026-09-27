@@ -88,7 +88,7 @@ export default function NoteTiny({data}: NoteProps) {
         id={`note-tiny-${noteId}-menu`}
         className={classNames(
           'note-tiny-menu',
-          `shadow-md shadow-theme-${theme}`,
+          `shadow-md shadow-theme-${theme || 'slate'}`,
           'rounded-md',
           'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
         )}
