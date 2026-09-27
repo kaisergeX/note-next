@@ -12,7 +12,7 @@ import {
   LMStudioError,
   type LMStudioMessage,
 } from '~/lib/ai/lm-studio'
-import {PERSONA_SPEECH_CONTRACT} from '~/lib/ai/persona-style'
+import {buildInterviewSystemMessage} from '~/lib/ai/persona-style'
 import {defineAuthRoute} from '~/server-utils'
 
 export const maxDuration = 60
@@ -58,12 +58,13 @@ function buildLMStudioMessages(
   systemPrompt: string,
   turns: {role: string; content: string}[],
 ): LMStudioMessage[] {
-  // The speech contract is appended at call time so every session — including
-  // ones started before this change — gets the speech rules regardless of
-  // what the drafting model wrote into the snapshot; the snapshot column
-  // stays as authored.
   const messages: LMStudioMessage[] = [
-    {role: 'system', content: `${systemPrompt}\n\n${PERSONA_SPEECH_CONTRACT}`},
+    // The speech contract is appended at call time (see
+    // buildInterviewSystemMessage) so every session — including ones started
+    // before that change — gets the speech rules regardless of what the
+    // drafting model wrote into the snapshot; the snapshot column stays as
+    // authored.
+    {role: 'system', content: buildInterviewSystemMessage(systemPrompt)},
   ]
   for (const turn of turns) {
     // Defensive: 'system' turns must never reach the completion as a mid-

@@ -6,6 +6,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
   varchar,
 } from 'drizzle-orm/pg-core'
@@ -43,6 +44,9 @@ export const runsTable = pgTable('runs', {
     .primaryKey(),
   questionScript: text('question_script').array().notNull(),
   personaIds: uuid('persona_ids').array().notNull(),
+  // Optional interview purpose, shown to the personas in the system message
+  // (never read aloud); run-level, single chat route unaffected.
+  researchContext: text('research_context'),
   status: runStatusPgEnum('status').default('pending').notNull(),
   updatedAt: timestamp('updated_at', {withTimezone: true})
     .defaultNow()
@@ -67,26 +71,37 @@ export const runItemStatusPgEnum = pgEnum('run_item_status', [
 ])
 export type RunItemStatus = (typeof runItemStatusPgEnum.enumValues)[number]
 
-export const transcriptsTable = pgTable('transcripts', {
-  id: uuid('id')
-    .default(sql`generate_ulid()`)
-    .primaryKey(),
-  personaId: uuid('persona_id')
-    .notNull()
-    .references(() => personasTable.id),
-  runId: uuid('run_id').references(() => runsTable.id),
-  mode: transcriptModePgEnum('mode').notNull(),
-  turns: jsonb('turns')
-    .$type<TranscriptTurn[]>()
-    .notNull()
-    .default(sql`'[]'::jsonb`),
-  model: varchar('model', {length: 200}).notNull(),
-  systemPrompt: text('system_prompt').notNull(),
-  title: varchar('title', {length: 200}),
-  createdAt: timestamp('created_at', {withTimezone: true})
-    .defaultNow()
-    .notNull(),
-})
+export const transcriptsTable = pgTable(
+  'transcripts',
+  {
+    id: uuid('id')
+      .default(sql`generate_ulid()`)
+      .primaryKey(),
+    personaId: uuid('persona_id')
+      .notNull()
+      .references(() => personasTable.id),
+    runId: uuid('run_id').references(() => runsTable.id),
+    mode: transcriptModePgEnum('mode').notNull(),
+    turns: jsonb('turns')
+      .$type<TranscriptTurn[]>()
+      .notNull()
+      .default(sql`'[]'::jsonb`),
+    model: varchar('model', {length: 200}).notNull(),
+    systemPrompt: text('system_prompt').notNull(),
+    title: varchar('title', {length: 200}),
+    createdAt: timestamp('created_at', {withTimezone: true})
+      .defaultNow()
+      .notNull(),
+  },
+  (t) => [
+    // Partial: run-linked transcripts only. Single-mode sessions (run_id null)
+    // are intentionally unconstrained — one persona may hold many sessions, but
+    // a resume/retry must never create a second transcript for the same run.
+    uniqueIndex('transcripts_run_persona_unique')
+      .on(t.runId, t.personaId)
+      .where(sql`${t.runId} is not null`),
+  ],
+)
 
 export type Transcript = InferSelectModel<typeof transcriptsTable>
 export type NewTranscript = Omit<

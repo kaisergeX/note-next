@@ -1,6 +1,6 @@
 'use server'
 
-import {eq} from 'drizzle-orm'
+import {eq, inArray} from 'drizzle-orm'
 import {db} from '~/db'
 import {
   getActiveRosterSummary,
@@ -8,15 +8,32 @@ import {
   listAllBackgroundTags,
 } from '~/db/helper/personas'
 import {
+  claimNextRunItem,
+  createRun,
+  finishRunIfComplete,
+  getRunById,
+  getRunProgress,
+  markRunItemStatus,
+  retryFailedRunItems,
+  type RunProgress,
+} from '~/db/helper/runs'
+import {
   personaStatusPgEnum,
   personasTable,
+  type Persona,
   type PersonaStatus,
 } from '~/db/schema/personas'
-import {type TranscriptTurn} from '~/db/schema/transcripts'
+import {type RunItemStatus, type TranscriptTurn} from '~/db/schema/transcripts'
 import {type ActionResult, type FieldError} from '~/lib/ai/action-result'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {isShapedUuid} from '~/lib/ai/id-shape'
-import {LMStudioError, completeJson} from '~/lib/ai/lm-studio'
+import {
+  LMStudioError,
+  complete,
+  completeJson,
+  type LMStudioMessage,
+} from '~/lib/ai/lm-studio'
+import {buildInterviewSystemMessage} from '~/lib/ai/persona-style'
 import {draftPersona, type PersonaDraft} from '~/lib/ai/persona-drafting'
 import {
   draftPersonaInputSchema,
@@ -24,14 +41,27 @@ import {
   toFieldErrors,
   type PersonaInput,
 } from '~/lib/ai/persona-validation'
-import {AI_DRAFT_TIMEOUT_MS, AI_LOCALES, LM_STUDIO_MODEL} from '~/config/ai'
 import {
+  AI_DRAFT_TIMEOUT_MS,
+  AI_LOCALES,
+  AI_REQUEST_TIMEOUT_MS,
+  LM_STUDIO_MODEL,
+} from '~/config/ai'
+import {
+  appendTranscriptTurns,
+  createRunTranscript,
   createSingleTranscript,
   deleteTranscriptById,
+  findRunTranscript,
   getTranscriptById,
   setTranscriptTitle,
 } from '~/db/helper/transcripts'
 import {requireAuth} from '~/server-utils'
+import {
+  RUN_SCRIPT_MAX_QUESTION_LENGTH,
+  RUN_SCRIPT_MAX_QUESTIONS,
+  parseQuestionScript,
+} from '~/lib/ai/question-script'
 import {z} from 'zod'
 
 /**
@@ -493,4 +523,504 @@ export async function generateSessionTitleAction(
     if (mapped) return mapped
     throw err
   }
+}
+
+const RUN_CONTEXT_MAX_CHARS = 2000
+
+/** Server-side only: upper bound on personas per batch run. */
+const MAX_RUN_PERSONAS = 100
+
+/**
+ * Creates a batch run + one pending run_item per eligible persona. Archived
+ * personas and personas without a usable systemPrompt are skipped (reported
+ * by name, no run_item) — matching startInterviewAction's guard, applied per
+ * persona instead of failing the whole run.
+ */
+export async function createRunAction(
+  rawScript: unknown,
+  rawPersonaIds: unknown,
+  rawContext?: unknown,
+): Promise<ActionResult<{runId: string; skipped: string[]}>> {
+  // Cheap pure validation before the gate: no auth/DB work on malformed args.
+  if (typeof rawScript !== 'string') {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: 'question script must be a string',
+    }
+  }
+  // Cap AFTER splitting so a pasted paragraph of many questions is counted
+  // like a typed list, not as one long line; over the cap is a validation
+  // error, never a silent truncation.
+  const questionScript = parseQuestionScript(rawScript)
+  if (
+    questionScript.length < 1 ||
+    questionScript.length > RUN_SCRIPT_MAX_QUESTIONS ||
+    questionScript.some(
+      (question) => question.length > RUN_SCRIPT_MAX_QUESTION_LENGTH,
+    )
+  ) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `question script must contain 1-${RUN_SCRIPT_MAX_QUESTIONS} non-empty lines of at most ${RUN_SCRIPT_MAX_QUESTION_LENGTH} characters`,
+    }
+  }
+  // Optional run-level context: trimmed, capped, empty → null (SQL NULL).
+  const researchContext =
+    typeof rawContext === 'string'
+      ? (() => {
+          const trimmed = rawContext.trim()
+          return 0 < trimmed.length && trimmed.length <= RUN_CONTEXT_MAX_CHARS
+            ? trimmed
+            : null
+        })()
+      : null
+  if (
+    typeof rawContext === 'string' &&
+    rawContext.trim().length > RUN_CONTEXT_MAX_CHARS
+  ) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `context must be at most ${RUN_CONTEXT_MAX_CHARS} characters`,
+    }
+  }
+  if (
+    !Array.isArray(rawPersonaIds) ||
+    rawPersonaIds.length < 1 ||
+    !rawPersonaIds.every(
+      (id): id is string => typeof id === 'string' && isShapedUuid(id),
+    )
+  ) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: 'persona ids must be a non-empty array of valid ids',
+    }
+  }
+  const personaIds = [...new Set(rawPersonaIds)]
+  if (personaIds.length > MAX_RUN_PERSONAS) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `at most ${MAX_RUN_PERSONAS} personas per run`,
+    }
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const personas = await db
+    .select()
+    .from(personasTable)
+    .where(inArray(personasTable.id, personaIds))
+  const skipped: string[] = []
+  const eligible: Persona[] = []
+  for (const id of personaIds) {
+    const persona = personas.find((row) => row.id === id)
+    // Missing from the DB: dropped silently — there is no name to report.
+    if (!persona) continue
+    if (
+      persona.status === 'archived' ||
+      !persona.systemPrompt ||
+      persona.systemPrompt.trim().length === 0
+    ) {
+      skipped.push(persona.name)
+      continue
+    }
+    eligible.push(persona)
+  }
+  if (eligible.length === 0) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: 'no eligible personas for this run',
+    }
+  }
+
+  const run = await createRun({
+    questionScript,
+    personaIds: eligible.map((persona) => persona.id),
+    researchContext,
+  })
+
+  return {ok: true, data: {runId: run.id, skipped}}
+}
+
+const EXTRACT_MAX_INPUT_CHARS = 20000
+
+const EXTRACT_QUESTIONS_PROMPT = [
+  'Bạn là trợ giúp nghiên cứu. Từ văn bản người dùng bên dưới, trích xuất MỌI câu hỏi phỏng vấn xuất hiện trong văn bản.',
+  'Quy tắc bắt buộc:',
+  '- Giữ nguyên văn từng câu hỏi: không diễn đạt lại, không gộp, không thêm câu hỏi mới, không bỏ sót.',
+  '- Chỉ bỏ đánh dấu đầu dòng/đánh số ("1.", "2)", "•", "-"); thứ tự câu hỏi giữ nguyên theo văn bản.',
+  '- Câu hỏi có thể nằm trong danh sách đánh số, dòng gạch đầu dòng, hoặc giữa đoạn văn — tất cả đều phải được tách ra.',
+  '- Trả về JSON: {"questions": ["...", "..."]} với ít nhất một câu hỏi.',
+].join('\n')
+
+const extractQuestionsSchema = z.object({
+  questions: z
+    .array(z.string().min(1).max(RUN_SCRIPT_MAX_QUESTION_LENGTH))
+    .min(1)
+    .max(RUN_SCRIPT_MAX_QUESTIONS),
+})
+
+/**
+ * Review-step helper for the "Detect questions" button (PURE extraction, no
+ * DB writes): pulls every question out of a pasted list or paragraph
+ * VERBATIM — original wording, original order. The user then edits the
+ * textarea before Create, which consumes the lines as-is (createRunAction
+ * stays LLM-free).
+ */
+export async function extractQuestionsAction(
+  rawText: unknown,
+): Promise<ActionResult<{questions: string[]}>> {
+  // Gate first; isShapedUuid is not applicable here (no id argument).
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  if (typeof rawText !== 'string') {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: 'text must be a string',
+    }
+  }
+  const text = rawText.trim()
+  if (text.length === 0 || text.length > EXTRACT_MAX_INPUT_CHARS) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `text must be 1-${EXTRACT_MAX_INPUT_CHARS} characters`,
+    }
+  }
+
+  try {
+    const {questions} = await completeJson(
+      [
+        {role: 'system', content: EXTRACT_QUESTIONS_PROMPT},
+        {role: 'user', content: text},
+      ],
+      extractQuestionsSchema,
+      {timeoutMs: AI_REQUEST_TIMEOUT_MS},
+    )
+    // Belt-and-braces re-parse: completeJson validates against the wire
+    // schema, but a defensive safeParse turns any slip-through into a
+    // validation error instead of storing garbage.
+    const reparsed = extractQuestionsSchema.safeParse({questions})
+    if (!reparsed.success) {
+      return {
+        ok: false,
+        reason: 'validation',
+        message: 'model returned an invalid questions list',
+      }
+    }
+    return {ok: true, data: reparsed.data}
+  } catch (err) {
+    // Schema-invalid structured output surfaces as LMStudioError('http',
+    // 'invalid structured output') from completeJson — a validation error for
+    // the user to retry, not a 500. Detect it BEFORE mapLMStudioError, which
+    // would otherwise map it to reason 'error'.
+    if (
+      err instanceof LMStudioError &&
+      err.kind === 'http' &&
+      err.message === 'invalid structured output'
+    ) {
+      return {
+        ok: false,
+        reason: 'validation',
+        message: 'model returned an invalid questions list',
+      }
+    }
+    const mapped = mapLMStudioError(err)
+    if (mapped) return mapped
+    throw err
+  }
+}
+
+export type RunStepItem = {
+  runItemId: string
+  personaName: string
+  /**
+   * Mirrors the stored run_item status after the step: a non-final scripted
+   * question leaves the item `in_progress` (only the LAST question settles
+   * it), so the client badge must not flip to `done` mid-script.
+   */
+  status: RunItemStatus
+  error: string | null
+}
+
+export type RunStepResult =
+  | {done: true; progress: RunProgress}
+  | {
+      done: false
+      item: RunStepItem
+      /** Why the step failed; 'offline' lets the client stop the loop. */
+      reason?: 'offline' | 'error'
+      progress: RunProgress
+    }
+
+/**
+ * Terminal item outcome: settle the run row first (the item that just
+ * finished may have been the last claimable one — without this a finished
+ * run can stay `in_progress` forever), then re-derive progress for the
+ * client. Used after EVERY terminal item outcome, success or failure.
+ */
+async function finishItem(
+  runId: string,
+  item: RunStepItem,
+  reason?: 'offline' | 'error',
+): Promise<Extract<RunStepResult, {done: false}>> {
+  await finishRunIfComplete(runId)
+  return {
+    done: false,
+    item,
+    ...(reason === undefined ? {} : {reason}),
+    progress: await getRunProgress(runId),
+  }
+}
+
+/**
+ * One question-step for one persona (ARCHITECTURE.md "Batch execution
+ * model"): claim the next run_item, ask the next scripted question through
+ * LM Studio, append the Q&A pair to the persona's run transcript, advance
+ * the item. The browser tab owns the loop; this action owns one step.
+ */
+export async function runNextStepAction(
+  runId: string,
+): Promise<ActionResult<RunStepResult>> {
+  // Server actions are publicly callable: cheap arg shape-checks run first,
+  // before the auth gate and any DB access.
+  if (!isShapedUuid(runId)) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const run = await getRunById(runId)
+  if (!run) {
+    return {ok: false, reason: 'validation', message: 'run not found'}
+  }
+  if (run.status === 'done') {
+    return {
+      ok: true,
+      data: {done: true, progress: await getRunProgress(runId)},
+    }
+  }
+
+  const item = await claimNextRunItem(runId)
+  if (!item) {
+    // Nothing claimable: everything is done or failed. Settle the run row
+    // explicitly — without this the run can stay `in_progress` forever when
+    // every item was already terminal (e.g. after a resume or retry race).
+    await finishRunIfComplete(runId)
+    return {
+      ok: true,
+      data: {done: true, progress: await getRunProgress(runId)},
+    }
+  }
+
+  const persona = await getPersonaById(item.personaId)
+  if (!persona) {
+    await markRunItemStatus(item.id, 'failed', 'persona missing')
+    return {
+      ok: true,
+      data: await finishItem(
+        runId,
+        {
+          runItemId: item.id,
+          personaName: '',
+          status: 'failed',
+          error: 'persona missing',
+        },
+        'error',
+      ),
+    }
+  }
+
+  // Guard on empty model: LM_STUDIO_MODEL defaults to '' in config/ai.ts,
+  // and the transcript snapshots the model at first step — an empty id would
+  // make every step request target an invalid model. Mirrors
+  // startInterviewAction; here the failure is per-item, not run-fatal.
+  if (LM_STUDIO_MODEL.trim().length === 0) {
+    const error = 'model not configured'
+    await markRunItemStatus(item.id, 'failed', error)
+    return {
+      ok: true,
+      data: await finishItem(
+        runId,
+        {
+          runItemId: item.id,
+          personaName: persona.name,
+          status: 'failed',
+          error,
+        },
+        'error',
+      ),
+    }
+  }
+  const systemPrompt = persona.systemPrompt
+  if (!systemPrompt || systemPrompt.trim().length === 0) {
+    const error = 'persona has no system prompt'
+    await markRunItemStatus(item.id, 'failed', error)
+    return {
+      ok: true,
+      data: await finishItem(
+        runId,
+        {
+          runItemId: item.id,
+          personaName: persona.name,
+          status: 'failed',
+          error,
+        },
+        'error',
+      ),
+    }
+  }
+
+  let transcript = await findRunTranscript(persona.id, runId)
+  if (!transcript) {
+    try {
+      transcript = await createRunTranscript({
+        personaId: persona.id,
+        runId,
+        model: LM_STUDIO_MODEL,
+        systemPrompt,
+      })
+    } catch (err) {
+      // Lost a create race (double-tab / retry while the first insert was in
+      // flight): the partial unique index rejected the duplicate — reuse the
+      // winner's row so the step continues instead of surfacing a 500.
+      transcript = await findRunTranscript(persona.id, runId)
+      if (!transcript) throw err
+    }
+  }
+
+  // Each completed step appends exactly one user + one assistant pair, so the
+  // number of user turns equals the number of questions already asked.
+  const questionIndex = transcript.turns.filter(
+    (turn) => turn.role === 'user',
+  ).length
+  if (questionIndex >= run.questionScript.length) {
+    // Script shrunk or already fully answered: the item counts as complete.
+    await markRunItemStatus(item.id, 'done')
+    return {
+      ok: true,
+      data: await finishItem(runId, {
+        runItemId: item.id,
+        personaName: persona.name,
+        status: 'done',
+        error: null,
+      }),
+    }
+  }
+  const question = run.questionScript[questionIndex]!
+
+  const messages: LMStudioMessage[] = [
+    // Snapshot from transcript creation — never persona.systemPrompt, which
+    // the owner may have regenerated since the run began (same rule as the
+    // chat route). Persona snapshot first, speech contract second, then the
+    // optional run-level research context (why the persona is being asked —
+    // never to be read aloud).
+    {
+      role: 'system',
+      content:
+        run.researchContext && run.researchContext.trim().length > 0
+          ? `${buildInterviewSystemMessage(transcript.systemPrompt)}\n\nBỐI CẢNH PHỎNG VẤN (để người được phỏng vấn hiểu vì sao được hỏi, KHÔNG được đọc lại thành tiếng): ${run.researchContext.trim()}`
+          : buildInterviewSystemMessage(transcript.systemPrompt),
+    },
+  ]
+  for (const turn of transcript.turns) {
+    // Defensive: 'system' turns must never reach the completion as a mid-
+    // conversation role — the system prompt comes solely from the snapshot.
+    if (turn.role === 'system') continue
+    if (turn.role === 'user' || turn.role === 'assistant') {
+      messages.push({role: turn.role, content: turn.content})
+    }
+  }
+  messages.push({role: 'user', content: question})
+
+  const timestamp = new Date().toISOString()
+  try {
+    // Batch steps are non-streaming (ARCHITECTURE.md "Batch execution model").
+    const answer = await complete(messages, {timeoutMs: AI_REQUEST_TIMEOUT_MS})
+    // Single-statement append so the Q&A pair lands atomically — two separate
+    // appends could interleave with another writer and desync the
+    // user-turn-derived questionIndex.
+    await appendTranscriptTurns(transcript.id, [
+      {role: 'user', content: question, timestamp},
+      {role: 'assistant', content: answer, timestamp},
+    ])
+    // A run_item covers one persona's WHOLE questionScript; questionIndex is
+    // the count of user turns already asked. Only the LAST scripted question
+    // settles the item — marking it done after every question would stop
+    // multi-question runs at Q1. Between its own questions the item stays
+    // `in_progress` (claimNextRunItem re-claims it, after pending items, so
+    // personas alternate round-robin). finishRunIfComplete is harmless here:
+    // this in_progress item keeps the run `in_progress`.
+    if (questionIndex + 1 >= run.questionScript.length) {
+      await markRunItemStatus(item.id, 'done')
+      return {
+        ok: true,
+        data: await finishItem(runId, {
+          runItemId: item.id,
+          personaName: persona.name,
+          status: 'done',
+          error: null,
+        }),
+      }
+    }
+    return {
+      ok: true,
+      data: await finishItem(runId, {
+        runItemId: item.id,
+        personaName: persona.name,
+        status: 'in_progress',
+        error: null,
+      }),
+    }
+  } catch (err) {
+    // Per-item skip-and-continue (not the run-fatal mapping used by single
+    // actions): a failed step records its error and the loop moves on. The
+    // run-level `failed` status is unused in v1.
+    if (!(err instanceof LMStudioError)) throw err
+    // Store only err.kind: err.message can embed the local LM Studio endpoint
+    // URL, which must not leak into the DB or the UI. The client maps the
+    // kind to a localized label.
+    await markRunItemStatus(item.id, 'failed', err.kind)
+    return {
+      ok: true,
+      data: await finishItem(
+        runId,
+        {
+          runItemId: item.id,
+          personaName: persona.name,
+          status: 'failed',
+          error: err.kind,
+        },
+        err.kind === 'http' ? 'error' : 'offline',
+      ),
+    }
+  }
+}
+
+/**
+ * Re-queues every failed run_item (error text cleared) so the client loop
+ * can resume; a `done` run flips back to `in_progress`.
+ */
+export async function retryFailedRunItemsAction(
+  runId: string,
+): Promise<ActionResult<{retried: number}>> {
+  // See runNextStepAction: arg shape-check before the gate/DB.
+  if (!isShapedUuid(runId)) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const retried = await retryFailedRunItems(runId)
+  return {ok: true, data: {retried}}
 }

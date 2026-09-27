@@ -11,6 +11,7 @@ import PersonaChatShell, {
 import {getPersonaById} from '~/db/helper/personas'
 import {
   getTranscriptById,
+  listRunSessionsByPersona,
   listSingleTranscriptsByPersona,
 } from '~/db/helper/transcripts'
 import type {Transcript, TranscriptTurn} from '~/db/schema/transcripts'
@@ -64,6 +65,25 @@ function serializeSessions(
   }))
 }
 
+/**
+ * Batch-run transcripts, marked read-only: the sidebar links to the run
+ * detail page (which shows the Q&A), never to a chat — group transcripts
+ * have no single-chat session.
+ */
+function serializeRunSessions(
+  transcripts: Transcript[],
+  formatDateTime: (date: Date) => string,
+): ChatSessionSummary[] {
+  return transcripts.map((transcript) => ({
+    id: transcript.id,
+    title: transcript.title,
+    dateLabel: formatDateTime(transcript.createdAt),
+    preview: sessionPreview(transcript),
+    isRun: true,
+    runId: transcript.runId,
+  }))
+}
+
 export default async function PersonaChatPage({
   params,
   searchParams,
@@ -82,7 +102,7 @@ export default async function PersonaChatPage({
   // researcher must generate one on the edit page first.
   if (!persona.systemPrompt) {
     return (
-      <section className="w-full max-w-6xl space-y-4 p-4">
+      <section className="container mx-auto space-y-4 p-4">
         <div>
           <h2 className="text-xl font-bold wrap-anywhere">
             {persona.name}
@@ -119,6 +139,10 @@ export default async function PersonaChatPage({
     // Medium date + short time, matching the old picker's label format.
     (date) => format.dateTime(date, {dateStyle: 'medium', timeStyle: 'short'}),
   )
+  const runSessions = serializeRunSessions(
+    await listRunSessionsByPersona(persona.id),
+    (date) => format.dateTime(date, {dateStyle: 'medium', timeStyle: 'short'}),
+  )
 
   // ?t=<transcriptId> → resume that session. A transcript that doesn't exist
   // or belongs to another persona is a bad URL, not an error UI.
@@ -127,7 +151,12 @@ export default async function PersonaChatPage({
   if (typeof requestedTranscriptId === 'string' && requestedTranscriptId) {
     if (!isShapedUuid(requestedTranscriptId)) notFound()
     const transcript = await getTranscriptById(requestedTranscriptId)
-    if (!transcript || transcript.personaId !== persona.id) notFound()
+    if (
+      !transcript ||
+      transcript.personaId !== persona.id ||
+      transcript.mode !== 'single'
+    )
+      notFound()
     activeId = transcript.id
     chatArea = (
       <PersonaChat
@@ -147,6 +176,7 @@ export default async function PersonaChatPage({
       personaId={persona.id}
       personaName={persona.name}
       sessions={sessions}
+      runSessions={runSessions}
       activeId={activeId}
     >
       {chatArea}

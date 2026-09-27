@@ -106,7 +106,7 @@ export default async function PersonaProfilePage({
   })
 
   return (
-    <section className="w-full max-w-6xl space-y-4 p-4 pb-16">
+    <section className="container mx-auto space-y-4 p-4 pb-16">
       <div>
         <Link
           href="/ai/interview"

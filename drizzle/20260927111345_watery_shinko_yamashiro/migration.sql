@@ -1,0 +1,1 @@
+ALTER TABLE "runs" ADD COLUMN "research_context" text;

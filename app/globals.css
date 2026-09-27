@@ -11,6 +11,10 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme inline {
+  --color-muted-foreground: var(--muted-foreground);
+}
+
 @utility text-danger {
   @apply text-red-500 dark:text-red-400;
 }
@@ -181,6 +185,10 @@
 
   :root:has(body > main.bg-fancy) {
     @apply scrollbar scrollbar-mac;
+  }
+
+  :root {
+    --muted-foreground: lab(48.496% 0 0);
   }
 
   html {
