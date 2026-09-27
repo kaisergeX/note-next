@@ -73,7 +73,7 @@ export const NoteThemePicker = ({
       <div
         id={`${prefixId}-theme`}
         className={classNames(
-          `shadow-md shadow-theme-${theme}`,
+          `shadow-md shadow-theme-${theme || 'slate'}`,
           'grid-cols-4 gap-3 rounded-md p-3 open:grid',
           'position-try-y-[top_span-right] position-anchor-(--theme-anchor-name) absolute inset-auto mb-2',
         )}

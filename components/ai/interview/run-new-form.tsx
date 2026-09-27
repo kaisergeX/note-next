@@ -1,5 +1,7 @@
 'use client'
 
+import {useDisclosure} from '@kaiverse/k/hooks'
+import {Dialog} from '@kaiverse/k/ui'
 import {IconArrowLeft, IconLoader2} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
@@ -24,6 +26,7 @@ type RunNewFormProps = {
 
 export default function RunNewForm({personas}: RunNewFormProps) {
   const t = useTranslations('ai.interview.run')
+  const tChat = useTranslations('ai.interview.chat')
   const router = useRouter()
   const [script, setScript] = useState('')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -39,6 +42,8 @@ export default function RunNewForm({personas}: RunNewFormProps) {
   const [context, setContext] = useState('')
   const [noAccess, setNoAccess] = useState(false)
   const [isPending, startTransition] = useTransition()
+  const [confirmOpen, {open: openConfirm, close: closeConfirm}] =
+    useDisclosure()
 
   const togglePersona = (id: string) => {
     setSelectedIds((prev) =>
@@ -60,7 +65,11 @@ export default function RunNewForm({personas}: RunNewFormProps) {
     // Detect overwrites the textarea, which already holds content (the
     // extraction input comes from it — the empty case above never reaches a
     // replace): ask before clobbering questions the user may have edited.
-    if (!window.confirm(t('detectOverwrite'))) return
+    openConfirm()
+  }
+
+  const runDetect = () => {
+    closeConfirm()
     setDetectError(null)
     setNoAccess(false)
     setDetecting(true)
@@ -258,6 +267,39 @@ export default function RunNewForm({personas}: RunNewFormProps) {
           {busy ? t('creating') : t('create')}
         </button>
       </div>
+
+      <Dialog
+        className="bg-default m-auto w-[calc(100dvw-2rem)] max-w-sm"
+        open={confirmOpen}
+        onClose={closeConfirm}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <Dialog.Header>
+          <Dialog.Title className="text-base font-semibold">
+            {t('detect')}
+          </Dialog.Title>
+        </Dialog.Header>
+        <Dialog.Content className="text-muted-foreground text-sm">
+          {t('detectOverwrite')}
+        </Dialog.Content>
+        <Dialog.Footer className="justify-end gap-2">
+          <button
+            type="button"
+            className="button-secondary text-sm"
+            onClick={closeConfirm}
+          >
+            {tChat('cancel')}
+          </button>
+          <button
+            type="button"
+            className="button text-sm"
+            disabled={detecting || isPending}
+            onClick={runDetect}
+          >
+            {t('detect')}
+          </button>
+        </Dialog.Footer>
+      </Dialog>
     </section>
   )
 }

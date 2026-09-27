@@ -50,7 +50,8 @@
         "menu": "Thao tác khác",
         "activate": "Kích hoạt",
         "archive": "Lưu trữ",
-        "confirmArchive": "Lưu trữ nhân vật này? Bản phỏng vấn (nếu có) sẽ được giữ lại.",
+        "confirmArchive": "Lưu trữ nhân vật này?",
+        "confirmArchiveBody": "Nhân vật sẽ chuyển sang trạng thái đã lưu trữ. Dữ liệu và bản phỏng vấn được giữ lại và có thể khôi phục sau.",
         "archiveFailed": "Không cập nhật được nhân vật."
       },
       "status": {
@@ -165,7 +166,7 @@
         "lastUpdated": "Cập nhật lần cuối: {time}"
       },
       "run": {
-        "title": "Lượt chạy hàng loạt",
+        "title": "Chạy hàng loạt",
         "detailTitle": "Lượt chạy",
         "new": "Tạo lượt chạy",
         "backToRoster": "Về danh sách",

@@ -1,15 +1,19 @@
 'use client'
 
+import {useDisclosure} from '@kaiverse/k/hooks'
+import {Dialog} from '@kaiverse/k/ui'
 import {IconDotsVertical, IconEdit, IconTrash} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useEffect, useRef, useState, useTransition} from 'react'
+import {useState, useTransition} from 'react'
 import {
   deleteInterviewSessionAction,
   renameInterviewSessionAction,
 } from '~/app/[locale]/ai/interview/actions'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {ChatSessionSummary} from '~/components/ai/interview/persona-chat-shell'
+import {classNames} from '@kaiverse/k/utils'
 
 type SessionRowProps = {
   personaId: string
@@ -19,14 +23,11 @@ type SessionRowProps = {
   onSessionNavigate?: () => void
 }
 
-const MENU_ITEM_CLASS =
-  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800'
-
 /**
- * One sidebar session row: navigates to the session, plus a kebab menu
- * (outside-click/Escape/aria, matching the roster card) with rename and a
- * delete confirm modal.
+ * One sidebar session row: navigates to the session, plus a MenuCustom kebab
+ * menu (rename, delete confirm modal).
  */
+
 export default function SessionRow({
   personaId,
   session,
@@ -36,60 +37,11 @@ export default function SessionRow({
   const t = useTranslations('ai.interview.chat')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
-  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [confirmOpen, {open: openConfirm, close: closeConfirm}] =
+    useDisclosure()
   const [actionError, setActionError] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
-
-  // Close the kebab menu on outside click and Escape while open. The Escape
-  // listener runs in the capture phase and stops immediate propagation: the
-  // mobile drawer registers its own document-level keydown (bubble phase) and
-  // both listeners live on `document`, so plain stopPropagation between
-  // same-target listeners would have no effect — the capture listener runs
-  // first and stopImmediatePropagation keeps the drawer open behind the menu.
-  useEffect(() => {
-    if (!menuOpen) return
-    const handlePointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopImmediatePropagation()
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown, true)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [menuOpen])
-
-  // Close the confirm modal on Escape while open (same capture-phase guard so
-  // the drawer behind the modal stays open).
-  useEffect(() => {
-    if (!confirmOpen) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopImmediatePropagation()
-        setConfirmOpen(false)
-      }
-    }
-    document.addEventListener('keydown', handleKeyDown, true)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, true)
-    }
-  }, [confirmOpen])
-
-  const closeMenuAnd = (action: () => void) => {
-    setMenuOpen(false)
-    action()
-  }
 
   const startRename = () => {
     setEditValue(session.title ?? '')
@@ -113,7 +65,7 @@ export default function SessionRow({
   }
 
   const handleDelete = () => {
-    setConfirmOpen(false)
+    closeConfirm()
     setActionError(false)
     startTransition(async () => {
       const result = await deleteInterviewSessionAction(session.id)
@@ -132,6 +84,33 @@ export default function SessionRow({
   }
 
   const title = session.title ?? (session.preview || t('emptyState'))
+
+  const menuItems: MenuCustomItem[] = [
+    {
+      component: (
+        <button
+          type="button"
+          className="hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-3 text-left text-sm"
+          disabled={isPending}
+          onClick={startRename}
+        >
+          <IconEdit size="16" /> {t('rename')}
+        </button>
+      ),
+    },
+    {
+      component: (
+        <button
+          type="button"
+          className="text-danger hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-3 text-left text-sm"
+          disabled={isPending}
+          onClick={openConfirm}
+        >
+          <IconTrash size="16" /> {t('delete')}
+        </button>
+      ),
+    },
+  ]
 
   return (
     <div className="relative">
@@ -161,13 +140,14 @@ export default function SessionRow({
         </form>
       ) : (
         <div
-          className={`flex items-center gap-1 rounded-md ${
-            isActive ? 'bg-zinc-100 dark:bg-zinc-800' : ''
-          }`}
+          className={classNames(
+            'flex items-center gap-1 rounded-md',
+            isActive ? 'bg-zinc-100 dark:bg-zinc-800' : '',
+          )}
         >
           <Link
             href={`/ai/interview/${personaId}/chat?t=${session.id}`}
-            className="min-w-0 flex-1 px-2 py-2"
+            className="min-w-0 flex-1 p-2"
             onClick={onSessionNavigate}
           >
             <p
@@ -179,42 +159,17 @@ export default function SessionRow({
               {session.dateLabel}
             </p>
           </Link>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              className="button-secondary px-1.5 py-1"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label={t('menu')}
-              onClick={() => setMenuOpen((open) => !open)}
-              disabled={isPending}
-            >
-              <IconDotsVertical size="18" />
-            </button>
-            {menuOpen && (
-              <div
-                role="menu"
-                className="bg-default absolute top-full right-0 z-20 mt-1 w-40 overflow-hidden rounded-md border border-zinc-200 py-1 shadow-lg dark:border-zinc-700"
-              >
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={MENU_ITEM_CLASS}
-                  onClick={() => closeMenuAnd(startRename)}
-                >
-                  <IconEdit size="16" /> {t('rename')}
-                </button>
-                <button
-                  type="button"
-                  role="menuitem"
-                  className={`${MENU_ITEM_CLASS} text-danger`}
-                  onClick={() => closeMenuAnd(() => setConfirmOpen(true))}
-                >
-                  <IconTrash size="16" /> {t('delete')}
-                </button>
-              </div>
-            )}
-          </div>
+          <MenuCustom
+            className="button-secondary button-icon rounded-full p-1 not-hover:border-transparent"
+            anchor={null}
+            // Inline render (no portal): body-level portals render below a
+            // <dialog> top layer, so the mobile drawer would cover the menu.
+            itemsClassName="absolute top-full right-0.5 z-20 w-40"
+            items={menuItems}
+          >
+            <span className="sr-only">{t('menu')}</span>
+            <IconDotsVertical size="18" />
+          </MenuCustom>
         </div>
       )}
 
@@ -222,45 +177,34 @@ export default function SessionRow({
         <p className="text-danger px-2 text-xs">{t('actionFailed')}</p>
       )}
 
-      {confirmOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-        >
+      <Dialog
+        className="bg-default m-auto w-[calc(100dvw-2rem)] max-w-sm"
+        open={confirmOpen}
+        onClose={closeConfirm}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <Dialog.Header>
+          <Dialog.Title>{t('deleteConfirmTitle')}</Dialog.Title>
+        </Dialog.Header>
+        <Dialog.Content>{t('deleteConfirmBody')}</Dialog.Content>
+        <Dialog.Footer className="justify-end">
           <button
             type="button"
-            aria-label={t('cancel')}
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setConfirmOpen(false)}
-          />
-          <div className="card bg-default relative z-10 w-full max-w-sm space-y-3 p-4">
-            <h3 className="text-base font-semibold">
-              {t('deleteConfirmTitle')}
-            </h3>
-            <p className="text-muted-foreground text-sm">
-              {t('deleteConfirmBody')}
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                type="button"
-                className="button-secondary text-sm"
-                onClick={() => setConfirmOpen(false)}
-              >
-                {t('cancel')}
-              </button>
-              <button
-                type="button"
-                className="button text-danger text-sm"
-                disabled={isPending}
-                onClick={handleDelete}
-              >
-                <IconTrash size="16" /> {t('delete')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+            className="button-secondary"
+            onClick={closeConfirm}
+          >
+            {t('cancel')}
+          </button>
+          <button
+            type="button"
+            className="button-danger"
+            disabled={isPending}
+            onClick={handleDelete}
+          >
+            <IconTrash size="18" /> {t('delete')}
+          </button>
+        </Dialog.Footer>
+      </Dialog>
     </div>
   )
 }

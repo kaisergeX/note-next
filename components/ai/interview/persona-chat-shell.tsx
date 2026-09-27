@@ -1,21 +1,16 @@
 'use client'
 
-import {
-  IconArrowLeft,
-  IconInfoCircle,
-  IconMenu2,
-  IconX,
-} from '@tabler/icons-react'
+import {useDisclosure} from '@kaiverse/k/hooks'
+import {Dialog} from '@kaiverse/k/ui'
+import {IconArrowLeft, IconInfoCircle, IconMenu2} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {
   cloneElement,
   isValidElement,
-  useEffect,
   type ReactElement,
   type ReactNode,
-  useState,
 } from 'react'
 import {generateSessionTitleAction} from '~/app/[locale]/ai/interview/actions'
 import SessionRow from '~/components/ai/interview/session-row'
@@ -61,7 +56,8 @@ export default function PersonaChatShell({
 }: PersonaChatShellProps) {
   const t = useTranslations('ai.interview.chat')
   const router = useRouter()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, {open: openSidebar, close: closeSidebar}] =
+    useDisclosure()
 
   const activeSession = sessions.find((session) => session.id === activeId)
 
@@ -96,18 +92,6 @@ export default function PersonaChatShell({
         : children
       : null
 
-  // Close the mobile drawer on Escape.
-  useEffect(() => {
-    if (!sidebarOpen) return
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSidebarOpen(false)
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [sidebarOpen])
-
   const renderSidebarContent = (onClose?: () => void) => (
     <>
       <div className="items-start justify-between gap-2 p-4 max-sm:flex">
@@ -126,14 +110,10 @@ export default function PersonaChatShell({
           </Link>
         </p>
         {onClose && (
-          <button
-            type="button"
-            className="button-secondary px-1.5 py-1"
+          <Dialog.CloseButton
+            className="button-secondary px-1.5 py-1 [&>svg]:size-4.5"
             aria-label={t('sidebarToggle')}
-            onClick={onClose}
-          >
-            <IconX size="18" />
-          </button>
+          />
         )}
       </div>
 
@@ -216,10 +196,10 @@ export default function PersonaChatShell({
         <div className="flex items-center gap-2 border-b border-zinc-200 p-3 md:hidden dark:border-zinc-700">
           <button
             type="button"
-            className="button-secondary px-2 py-1"
+            className="button-secondary px-2 py-1 md:hidden"
             aria-label={t('sidebarToggle')}
             aria-expanded={sidebarOpen}
-            onClick={() => setSidebarOpen(true)}
+            onClick={openSidebar}
           >
             <IconMenu2 size="18" />
           </button>
@@ -238,19 +218,17 @@ export default function PersonaChatShell({
         )}
       </div>
 
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <button
-            type="button"
-            aria-label={t('sidebarToggle')}
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-          />
-          <div className="bg-default absolute inset-y-0 left-0 flex max-w-[85vw] flex-col border-r border-zinc-200 shadow-lg md:w-sm dark:border-zinc-700">
-            {renderSidebarContent(() => setSidebarOpen(false))}
-          </div>
-        </div>
-      )}
+      <Dialog
+        className="bg-default max-w-[85vw] border-r border-zinc-200 shadow-lg md:w-sm dark:border-zinc-700"
+        open={sidebarOpen}
+        onClose={closeSidebar}
+        variant="drawer"
+        position="left"
+      >
+        <Dialog.Content className="flex flex-col p-0">
+          {renderSidebarContent(closeSidebar)}
+        </Dialog.Content>
+      </Dialog>
     </div>
   )
 }

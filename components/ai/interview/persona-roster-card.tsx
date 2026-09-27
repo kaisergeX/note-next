@@ -1,5 +1,7 @@
 'use client'
 
+import {useDisclosure} from '@kaiverse/k/hooks'
+import {Dialog} from '@kaiverse/k/ui'
 import {
   IconArchive,
   IconDotsVertical,
@@ -9,9 +11,10 @@ import {
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useEffect, useRef, useState, useTransition} from 'react'
+import {useState, useTransition} from 'react'
 import {setPersonaStatusAction} from '~/app/[locale]/ai/interview/actions'
 import type {PersonaStatus} from '~/db/schema/personas'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {PersonaFormInitial} from './persona-form'
 
 type PersonaRosterCardProps = {
@@ -24,42 +27,18 @@ const STATUS_BADGE_CLASS: Record<PersonaStatus, string> = {
   archived: 'border-zinc-400 text-zinc-500',
 }
 
-const MENU_ITEM_CLASS =
-  'flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-100 dark:hover:bg-zinc-800'
-
 export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
   const t = useTranslations('ai.interview')
   const tGender = useTranslations('ai.interview.form.options.gender')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [actionError, setActionError] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuRef = useRef<HTMLDivElement>(null)
+  const [
+    confirmArchiveOpen,
+    {open: openArchiveConfirm, close: closeArchiveConfirm},
+  ] = useDisclosure()
 
-  // Close on outside click and Escape while the menu is open.
-  useEffect(() => {
-    if (!menuOpen) return
-    const handlePointerDown = (event: PointerEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false)
-    }
-    document.addEventListener('pointerdown', handlePointerDown)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [menuOpen])
-
-  const handleStatusChange = (
-    nextStatus: PersonaStatus,
-    confirmMessage?: string,
-  ) => {
-    if (confirmMessage && !confirm(confirmMessage)) return
+  const handleStatusChange = (nextStatus: PersonaStatus) => {
     setActionError(false)
     startTransition(async () => {
       const result = await setPersonaStatusAction(persona.id, nextStatus)
@@ -68,10 +47,49 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
     })
   }
 
-  const closeMenuAnd = (action: () => void) => {
-    setMenuOpen(false)
-    action()
-  }
+  const menuItems: MenuCustomItem[] = [
+    {
+      type: 'link',
+      url: `/ai/interview/${persona.id}/edit`,
+      label: (
+        <>
+          <IconEdit size="18" /> {t('roster.edit')}
+        </>
+      ),
+    },
+    ...(persona.status === 'draft'
+      ? [
+          {
+            component: (
+              <button
+                type="button"
+                className="hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-4 text-left transition-colors"
+                disabled={isPending}
+                onClick={() => handleStatusChange('active')}
+              >
+                {t('roster.activate')}
+              </button>
+            ),
+          },
+        ]
+      : []),
+    ...(persona.status === 'active'
+      ? [
+          {
+            component: (
+              <button
+                type="button"
+                className="text-danger hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-4 text-left transition-colors"
+                disabled={isPending}
+                onClick={openArchiveConfirm}
+              >
+                <IconArchive size="18" /> {t('roster.archive')}
+              </button>
+            ),
+          },
+        ]
+      : []),
+  ]
 
   // Canonical EN keys (`male`/`female`) get localized labels; custom/legacy
   // values fall back verbatim.
@@ -88,71 +106,20 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
         >
           {persona.name}
         </Link>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-2">
           <span
             className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_BADGE_CLASS[persona.status]}`}
           >
             {t(`status.${persona.status}`)}
           </span>
-          <div className="relative" ref={menuRef}>
-            <button
-              type="button"
-              className="button-secondary px-1.5 py-1"
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              aria-label={t('roster.menu')}
-              onClick={() => setMenuOpen((open) => !open)}
-              disabled={isPending}
-            >
-              <IconDotsVertical size="18" />
-            </button>
-            {menuOpen && (
-              <div
-                role="menu"
-                className="bg-default absolute top-full right-0 z-20 mt-1 w-44 overflow-hidden rounded-md border border-zinc-200 py-1 shadow-lg dark:border-zinc-700"
-              >
-                <Link
-                  role="menuitem"
-                  href={`/ai/interview/${persona.id}/edit`}
-                  className={MENU_ITEM_CLASS}
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <IconEdit size="16" /> {t('roster.edit')}
-                </Link>
-                {persona.status === 'draft' && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={MENU_ITEM_CLASS}
-                    disabled={isPending}
-                    onClick={() =>
-                      closeMenuAnd(() => handleStatusChange('active'))
-                    }
-                  >
-                    {t('roster.activate')}
-                  </button>
-                )}
-                {persona.status === 'active' && (
-                  <button
-                    type="button"
-                    role="menuitem"
-                    className={`${MENU_ITEM_CLASS} text-danger`}
-                    disabled={isPending}
-                    onClick={() =>
-                      closeMenuAnd(() =>
-                        handleStatusChange(
-                          'archived',
-                          t('roster.confirmArchive'),
-                        ),
-                      )
-                    }
-                  >
-                    <IconArchive size="16" /> {t('roster.archive')}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          <MenuCustom
+            className="button-secondary button-icon rounded-full p-1"
+            itemsClassName="w-44 [--anchor-gap:0.5rem]"
+            items={menuItems}
+          >
+            <span className="sr-only">{t('roster.menu')}</span>
+            <IconDotsVertical size="18" />
+          </MenuCustom>
         </div>
       </div>
 
@@ -195,6 +162,38 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
           </Link>
         </div>
       )}
+
+      <Dialog
+        className="max-w-lg"
+        open={confirmArchiveOpen}
+        onClose={closeArchiveConfirm}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <Dialog.Header>
+          <Dialog.Title>{t('roster.confirmArchive')}</Dialog.Title>
+        </Dialog.Header>
+        <Dialog.Content>{t('roster.confirmArchiveBody')}</Dialog.Content>
+        <Dialog.Footer className="justify-end">
+          <button
+            type="button"
+            className="button-secondary"
+            onClick={closeArchiveConfirm}
+          >
+            {t('chat.cancel')}
+          </button>
+          <button
+            type="button"
+            className="button-danger"
+            disabled={isPending}
+            onClick={() => {
+              closeArchiveConfirm()
+              handleStatusChange('archived')
+            }}
+          >
+            <IconArchive size="16" /> {t('roster.archive')}
+          </button>
+        </Dialog.Footer>
+      </Dialog>
     </div>
   )
 }
