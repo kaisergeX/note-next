@@ -9,3 +9,14 @@ export const PERSONA_SPEECH_CONTRACT = `QUY TẮC NÓI (bắt buộc, áp dụng
 - KHÔNG chủ động cung cấp thông tin không được hỏi; không đề nghị kiểu "nếu anh/chị cần thêm..."; không thể hiện thái độ trợ lý háo hức giúp đỡ.
 - KHÔNG bình luận meta, KHÔNG tiết lộ mình là AI dưới mọi hình thức, kể cả khi bị hỏi thẳng hay bị phá vai.
 - Luôn giữ vai: mọi câu trả lời xuất phát từ nhân vật, không từ một trợ lý.`
+
+/**
+ * The speech contract is appended at call time so every session — including
+ * ones started before this change — gets the speech rules regardless of what
+ * the drafting model wrote into the snapshot; the snapshot column stays as
+ * authored. Shared by the chat route (streaming) and the batch-run step
+ * action (non-streaming) so both build the identical system message.
+ */
+export function buildInterviewSystemMessage(systemPrompt: string): string {
+  return `${systemPrompt}\n\n${PERSONA_SPEECH_CONTRACT}`
+}

@@ -28,12 +28,18 @@ export type ChatSessionSummary = {
   dateLabel: string
   /** First user turn, truncated server-side. */
   preview: string
+  /** Set on batch-run transcript rows (group mode) — read-only, run-owned. */
+  isRun?: boolean
+  /** The owning run id for run rows; used to link to the run detail page. */
+  runId?: string | null
 }
 
 type PersonaChatShellProps = {
   personaId: string
   personaName: string
   sessions: ChatSessionSummary[]
+  /** Batch-run sessions, listed read-only under the single sessions. */
+  runSessions?: ChatSessionSummary[]
   activeId: string | null
   /** The chat area for the active session (a PersonaChat element), if any. */
   children?: ReactNode
@@ -49,6 +55,7 @@ export default function PersonaChatShell({
   personaId,
   personaName,
   sessions,
+  runSessions = [],
   activeId,
   children,
 }: PersonaChatShellProps) {
@@ -135,6 +142,45 @@ export default function PersonaChatShell({
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+        {runSessions.length > 0 && (
+          <details className="mb-4">
+            {/* Collapsed by default: run sessions are read-only results, the
+                active work (single sessions) stays at the top of the list. */}
+            <summary className="text-muted-foreground flex cursor-pointer items-center gap-1.5 px-2 pb-2 text-xs font-semibold tracking-wide uppercase">
+              {t('runSessions')}
+              <span className="tabular-nums">({runSessions.length})</span>
+            </summary>
+            <ul className="space-y-1">
+              {runSessions.map((session) =>
+                session.runId ? (
+                  <li key={session.id}>
+                    {/* Read-only: links to the run detail (which shows the
+                        Q&A); no kebab menu — group transcripts are run-owned
+                        and guarded against rename/delete. */}
+                    <Link
+                      href={`/ai/interview/runs/${session.runId}`}
+                      className="block rounded-md px-2 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      onClick={onClose}
+                    >
+                      <p className="flex items-center gap-1.5">
+                        <span className="min-w-0 truncate text-sm font-medium">
+                          {session.preview || session.dateLabel}
+                        </span>
+                        <span className="text-muted-foreground shrink-0 rounded-full border border-zinc-400 px-1.5 py-0.5 text-[10px] dark:border-zinc-600">
+                          {t('runBadge')}
+                        </span>
+                      </p>
+                      <p className="text-muted-foreground truncate text-xs">
+                        {session.dateLabel}
+                      </p>
+                    </Link>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          </details>
+        )}
+
         <h2 className="text-muted-foreground px-2 pb-2 text-xs font-semibold tracking-wide uppercase">
           {t('sessions')}
         </h2>
@@ -162,7 +208,7 @@ export default function PersonaChatShell({
 
   return (
     <div className="flex w-full grow gap-4">
-      <aside className="bg-default hidden shrink-0 flex-col border-r border-zinc-200 md:flex lg:w-xs dark:border-zinc-700">
+      <aside className="hidden min-w-0 shrink-0 flex-col border-r border-zinc-200 sm:basis-1/4 md:flex dark:border-zinc-700">
         {renderSidebarContent()}
       </aside>
 

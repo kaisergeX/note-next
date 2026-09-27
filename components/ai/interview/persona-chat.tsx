@@ -69,7 +69,7 @@ export default function PersonaChat({
   }
 
   return (
-    <div className="card flex grow flex-col gap-3 p-4">
+    <div className="card container mx-auto flex grow flex-col gap-3 p-4">
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
         {messages.length === 0 && (
           <p className="text-muted-foreground text-sm">{t('emptyState')}</p>

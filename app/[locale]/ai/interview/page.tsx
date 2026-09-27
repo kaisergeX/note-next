@@ -42,9 +42,14 @@ export default async function InterviewPage() {
     <section className="p-4">
       <div className="flex-center-between mb-4">
         <h1 className="text-2xl font-bold">{t('roster.title')}</h1>
-        <Link href="/ai/interview/new" className="button text-sm">
-          {t('roster.newPersona')}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/ai/interview/runs" className="button-secondary text-sm">
+            {t('run.title')}
+          </Link>
+          <Link href="/ai/interview/new" className="button text-sm">
+            {t('roster.newPersona')}
+          </Link>
+        </div>
       </div>
 
       {serializedPersonas.length === 0 ? (

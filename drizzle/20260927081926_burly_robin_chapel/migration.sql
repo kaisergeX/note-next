@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "transcripts_run_persona_unique" ON "transcripts" ("run_id","persona_id") WHERE "run_id" is not null;
