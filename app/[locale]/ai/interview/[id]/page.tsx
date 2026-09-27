@@ -78,6 +78,7 @@ export default async function PersonaProfilePage({
 
   const t = await getTranslations('ai.interview')
   const tForm = await getTranslations('ai.interview.form')
+  const tCommon = await getTranslations('common')
   const format = await getFormatter()
 
   // Canonical EN keys get localized labels; custom/legacy values fall back verbatim.
@@ -111,7 +112,7 @@ export default async function PersonaProfilePage({
           href="/ai/interview"
           className="inline-flex items-center gap-1 text-sm"
         >
-          <IconArrowLeft size="18" /> {t('vi.backToRoster')}
+          <IconArrowLeft size="18" /> {tCommon('navigation.back')}
         </Link>
       </div>
 

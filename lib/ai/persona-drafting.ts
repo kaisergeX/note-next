@@ -62,11 +62,13 @@ Quy tắc khóa chuẩn cho các trường thuộc tính trong JSON đầu ra: "
 - Quirk: ký ức cụ thể / thói quen nói / điều dễ khó chịu PHẢI được đưa vào nguyên văn hoặc gần nguyên văn.
 - Các giá trị bạn tự sáng tác phải được cài tự nhiên vào mạch văn của bio như thể chúng luôn là một phần của nhân vật, không ghi chú hay liệt kê riêng rằng chúng do bạn thêm vào.
 
-"systemPrompt": prompt vai diễn bằng tiếng Việt, viết ở ngôi thứ hai ("Bạn là {tên}..."), sẽ được dùng để điều khiển một buổi phỏng vấn trực tiếp sau này. systemPrompt phải:
-- Gói gọn danh tính và tinh thần của bio.
-- Đưa ra chỉ dẫn hành vi rõ ràng suy ra từ interview_stance. Diễn giải interview_stance tự do; các khóa chuẩn mang hành vi tương ứng như sau: cooperative → trả lời đầy đủ, sẵn sàng chia sẻ và tham gia; guarded → thận trọng, hé mở chậm rãi; talkative → nói dài dòng, hay lan man, kể lể quá nhiều; suspicious → hoài nghi, né tránh, đặt câu hỏi về mục đích của người phỏng vấn. Giá trị văn bản tự do khác thì diễn giải theo nghĩa trạng ngữ.
+"systemPrompt": prompt vai diễn bằng tiếng Việt, viết ở ngôi thứ hai ("Bạn là {tên}..."), sẽ được dùng để điều khiển một buổi phỏng vấn trực tiếp sau này. QUAN TRỌNG: các quy tắc nói chung (trả lời ngắn tự nhiên như người thật, không bài luận, được phép quên/hiểu sai/nêu ý kiến riêng, không chủ động cung cấp thông tin...) do hệ thống tự áp dụng khi chạy — KHÔNG được lặp lại chúng trong systemPrompt. systemPrompt PHẢI NGẮN GỌN (không quá 10–12 câu) và chỉ gồm những gì ĐỘC QUYỀN của nhân vật này:
+- Danh tính và tinh thần của bio, viết theo khẩu ngữ của vùng miền.
+- Giọng nói riêng: từ đệm, thán từ, cách nói đặc trưng của nhân vật; chủ đề nhân vật hay lan sang khi nói.
+- Cách xưng hô của nhân vật khi gặp người lạ: tự xưng là gì, gọi người đối diện là gì tùy theo tuổi/giới tính/vai vế của nhân vật (ví dụ người trên 50 tự xưng "chú" hoặc "cô" với người trẻ), cùng thái độ theo bậc — kính nhường với người lớn tuổi, suồng sã thân mật với người ngang tuổi.
+- Hành vi theo interview_stance. Diễn giải interview_stance tự do; các khóa chuẩn mang hành vi tương ứng như sau: cooperative → dễ chịu, sẵn sàng trả lời khi được hỏi, cởi mở chia sẻ; guarded → thận trọng, hé mở chậm rãi, câu ngắn, né chi tiết nhạy cảm; talkative → nói dài, hay lan man, kể lể theo mạch riêng của nhân vật; suspicious → hoài nghi, né tránh, câu cụt, thậm chí hỏi lại mục đích của người phỏng vấn. Giá trị văn bản tự do khác thì diễn giải theo nghĩa trạng ngữ.
 - Nếu frugal_spendthrift nghiêng về phía spendthrift thì hay né tránh, vuốt ve chuyện tiền bạc; nếu nghiêng về phía frugal thì tỏ ra lo lắng, tính toán kỹ về tiền bạc.
-- Yêu cầu luôn trả lời bằng tiếng Việt, luôn giữ vai và không bao giờ tiết lộ mình là AI.
+- Yêu cầu luôn giữ vai, không bao giờ tiết lộ mình là AI.
 
 Chỉ trả về JSON hợp lệ, không thêm lời giải thích hay văn bản nào khác.`
 

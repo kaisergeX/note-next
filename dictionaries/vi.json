@@ -147,7 +147,15 @@
         "stop": "Dừng",
         "offline": "Không kết nối được trợ lý AI. Vui lòng thử lại sau.",
         "genericError": "Có lỗi khi phỏng vấn. Vui lòng thử lại.",
-        "noAccessError": "Bạn không có quyền dùng tính năng này."
+        "noAccessError": "Bạn không có quyền dùng tính năng này.",
+        "menu": "Thao tác phiên",
+        "rename": "Đổi tên",
+        "delete": "Xóa",
+        "deleteConfirmTitle": "Xóa phiên này?",
+        "deleteConfirmBody": "Phiên phỏng vấn và cuộc trò chuyện sẽ bị xóa vĩnh viễn và không thể hoàn tác.",
+        "cancel": "Hủy",
+        "sidebarToggle": "Mở/đóng danh sách phiên",
+        "actionFailed": "Thao tác vừa rồi không thành công. Vui lòng thử lại."
       },
       "profile": {
         "emptyBio": "Chưa có tiểu sử — mở Sửa để tạo.",

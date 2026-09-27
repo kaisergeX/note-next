@@ -39,7 +39,7 @@ export default async function InterviewPage() {
   }))
 
   return (
-    <section className="w-full max-w-6xl p-4">
+    <section className="p-4">
       <div className="flex-center-between mb-4">
         <h1 className="text-2xl font-bold">{t('roster.title')}</h1>
         <Link href="/ai/interview/new" className="button text-sm">
@@ -61,7 +61,7 @@ export default async function InterviewPage() {
           </Link>
         </div>
       ) : (
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] gap-4 pb-16">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(min(20rem,100%),1fr))] gap-4 pb-16">
           {serializedPersonas.map((persona) => (
             <PersonaRosterCard key={persona.id} persona={persona} />
           ))}
