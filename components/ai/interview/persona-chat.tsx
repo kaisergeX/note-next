@@ -11,6 +11,8 @@ type PersonaChatProps = {
   transcriptId: string
   personaName: string
   initialMessages: UIMessage[]
+  /** Fires when an assistant reply finishes streaming (success or abort). */
+  onAssistantFinished?: () => void
 }
 
 /**
@@ -27,6 +29,7 @@ export default function PersonaChat({
   transcriptId,
   personaName,
   initialMessages,
+  onAssistantFinished,
 }: PersonaChatProps) {
   const t = useTranslations('ai.interview.chat')
   const [input, setInput] = useState('')
@@ -45,6 +48,7 @@ export default function PersonaChat({
     id: transcriptId,
     messages: initialMessages,
     transport,
+    onFinish: () => onAssistantFinished?.(),
   })
 
   const isBusy = status === 'submitted' || status === 'streaming'
@@ -65,7 +69,7 @@ export default function PersonaChat({
   }
 
   return (
-    <div className="card flex h-[70vh] flex-col gap-3 p-4">
+    <div className="card flex grow flex-col gap-3 p-4">
       <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
         {messages.length === 0 && (
           <p className="text-muted-foreground text-sm">{t('emptyState')}</p>

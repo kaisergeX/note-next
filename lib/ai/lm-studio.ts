@@ -91,11 +91,11 @@ function buildGenerationOptions(
       })),
       temperature: AI_SAMPLER.temperature,
       topP: 1,
-      topK: 0,
       // Custom fields are passed straight into the request body root by the
-      // openai-compatible provider. top_k: 0 rides along here because the SDK
-      // drops the standardized topK setting for chat models (it would never
-      // reach llama.cpp, whose default top_k 40 must stay off).
+      // openai-compatible provider. top_k: 0 must ride along here: the standardized
+      // topK is unsupported for chat models (setting it only triggers an SDK
+      // warning and is dropped), and omitting it entirely would let llama.cpp's
+      // default top_k 40 apply.
       providerOptions: {
         [PROVIDER_NAME]: {
           min_p: AI_SAMPLER.min_p,

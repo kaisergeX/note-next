@@ -22,6 +22,12 @@ export const AI_SAMPLER = {
   enable_thinking: false, // explicitly off
 } as const
 
-// Per-request timeout for LM Studio calls — well under the 60s serverless ceiling
-// so the invoking action/route still has headroom for DB writes
+// Per-request timeout for LM Studio calls — well under the Hobby function
+// ceiling (300s with Fluid compute) so the invoking action/route still has
+// headroom for DB writes
 export const AI_REQUEST_TIMEOUT_MS = 45_000
+
+// Persona drafting emits a full JSON object (bio + systemPrompt); constrained
+// decoding on the local model can exceed the 45s per-request default. Server-side
+// timeout only — a deployed platform's execution ceiling still caps real runs.
+export const AI_DRAFT_TIMEOUT_MS = 120_000

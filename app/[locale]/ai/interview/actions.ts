@@ -12,9 +12,11 @@ import {
   personasTable,
   type PersonaStatus,
 } from '~/db/schema/personas'
+import {type TranscriptTurn} from '~/db/schema/transcripts'
 import {type ActionResult, type FieldError} from '~/lib/ai/action-result'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
-import {LMStudioError} from '~/lib/ai/lm-studio'
+import {isShapedUuid} from '~/lib/ai/id-shape'
+import {LMStudioError, completeJson} from '~/lib/ai/lm-studio'
 import {draftPersona, type PersonaDraft} from '~/lib/ai/persona-drafting'
 import {
   draftPersonaInputSchema,
@@ -22,9 +24,15 @@ import {
   toFieldErrors,
   type PersonaInput,
 } from '~/lib/ai/persona-validation'
-import {AI_LOCALES, AI_REQUEST_TIMEOUT_MS, LM_STUDIO_MODEL} from '~/config/ai'
-import {createSingleTranscript} from '~/db/helper/transcripts'
+import {AI_DRAFT_TIMEOUT_MS, AI_LOCALES, LM_STUDIO_MODEL} from '~/config/ai'
+import {
+  createSingleTranscript,
+  deleteTranscriptById,
+  getTranscriptById,
+  setTranscriptTitle,
+} from '~/db/helper/transcripts'
 import {requireAuth} from '~/server-utils'
+import {z} from 'zod'
 
 /**
  * Ground rule: requireFeatureAccess is the real gate; the layout check is
@@ -182,9 +190,9 @@ export async function generatePersonaAction(
   const roster = await getActiveRosterSummary()
 
   try {
-    // Well under the 60s ceiling so DB writes keep headroom.
+    // Draft JSON is big; constrained decoding on the local model can run long.
     const draft = await draftPersona(parsed.data, roster, {
-      timeoutMs: AI_REQUEST_TIMEOUT_MS,
+      timeoutMs: AI_DRAFT_TIMEOUT_MS,
     })
     return {ok: true, data: draft}
   } catch (err) {
@@ -235,8 +243,9 @@ export async function regeneratePersonaBioAction(
   }
 
   try {
+    // Draft JSON is big; constrained decoding on the local model can run long.
     const draft = await draftPersona(reparsed.data, undefined, {
-      timeoutMs: AI_REQUEST_TIMEOUT_MS,
+      timeoutMs: AI_DRAFT_TIMEOUT_MS,
     })
     await db
       .update(personasTable)
@@ -326,4 +335,162 @@ export async function startInterviewAction(
   })
 
   return {ok: true, data: {transcriptId: transcript.id}}
+}
+
+export async function renameInterviewSessionAction(
+  transcriptId: string,
+  rawTitle: string,
+): Promise<ActionResult<{title: string | null}>> {
+  // Server actions are publicly callable: cheap arg shape-checks run first,
+  // before the auth gate and any DB access.
+  if (!isShapedUuid(transcriptId) || typeof rawTitle !== 'string') {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const transcript = await getTranscriptById(transcriptId)
+  // Sessions are single-mode only; run-linked transcripts belong to batch runs.
+  if (
+    !transcript ||
+    transcript.runId !== null ||
+    transcript.mode !== 'single'
+  ) {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  const title = rawTitle.trim()
+  if (title.length > 200) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const stored = title.length === 0 ? null : title
+  const row = await setTranscriptTitle(transcriptId, stored)
+  if (!row) {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  return {ok: true, data: {title: row.title}}
+}
+
+export async function deleteInterviewSessionAction(
+  transcriptId: string,
+): Promise<ActionResult<{deleted: boolean}>> {
+  // See renameInterviewSessionAction: arg shape-check before the gate/DB.
+  if (!isShapedUuid(transcriptId)) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const transcript = await getTranscriptById(transcriptId)
+  // Sessions are single-mode only; run-linked transcripts belong to batch runs.
+  // Missing row = already deleted (idempotent retry), not an error.
+  if (!transcript) {
+    return {ok: true, data: {deleted: false}}
+  }
+  if (transcript.runId !== null || transcript.mode !== 'single') {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  const deleted = await deleteTranscriptById(transcriptId)
+  return {ok: true, data: {deleted}}
+}
+
+/**
+ * Names the conversation from its turns. Language mirrors what the
+ * participants actually wrote — never hardcoded to a UI locale.
+ */
+const SESSION_TITLE_PROMPT = [
+  'You name conversations. You will receive a transcript excerpt of a conversation between a user and an assistant.',
+  'Write a short title for the conversation: at most 8 words.',
+  'The title MUST be written in the same language the conversation participants actually use (if they write in Vietnamese, write the title in Vietnamese; any other language likewise).',
+  'Return plain text only: no quotes, no trailing punctuation, no explanation.',
+].join(' ')
+
+const SESSION_TITLE_MAX_CHARS = 200
+
+function buildSessionTitleDigest(turns: TranscriptTurn[]): string | undefined {
+  const relevant = turns
+    .filter((turn) => turn.role === 'user' || turn.role === 'assistant')
+    .slice(0, 6)
+  if (relevant.length === 0) return undefined
+  const digest = relevant
+    .map(
+      (turn) =>
+        `${turn.role === 'user' ? 'User' : 'Assistant'}: ${turn.content.slice(0, 400)}`,
+    )
+    .join('\n')
+    .slice(0, 4000)
+  return digest
+}
+
+export async function generateSessionTitleAction(
+  transcriptId: string,
+): Promise<ActionResult<{title: string | null}>> {
+  // See renameInterviewSessionAction: arg shape-check before the gate/DB.
+  if (!isShapedUuid(transcriptId)) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const transcript = await getTranscriptById(transcriptId)
+  if (
+    !transcript ||
+    transcript.runId !== null ||
+    transcript.mode !== 'single'
+  ) {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  // Already named: no-op, never re-run the LLM.
+  if (transcript.title !== null) {
+    return {ok: true, data: {title: transcript.title}}
+  }
+
+  const userCount = transcript.turns.filter(
+    (turn) => turn.role === 'user',
+  ).length
+  const assistantCount = transcript.turns.filter(
+    (turn) => turn.role === 'assistant',
+  ).length
+  if (userCount === 0 || assistantCount === 0) {
+    return {ok: true, data: {title: null}}
+  }
+
+  const digest = buildSessionTitleDigest(transcript.turns)
+  if (!digest) {
+    return {ok: true, data: {title: null}}
+  }
+
+  try {
+    const {title} = await completeJson(
+      [
+        {role: 'system', content: SESSION_TITLE_PROMPT},
+        {role: 'user', content: digest},
+      ],
+      z.object({title: z.string().min(1).max(120)}),
+    )
+    const stored = title.trim()
+    if (stored.length === 0) {
+      // Whitespace-only LLM output: clear the title instead of storing it, so
+      // auto-title can retry later and the sidebar keeps its preview
+      // fallback (same clear-to-null semantics as the rename action).
+      await setTranscriptTitle(transcript.id, null)
+      return {ok: true, data: {title: null}}
+    }
+    const row = await setTranscriptTitle(
+      transcript.id,
+      stored.slice(0, SESSION_TITLE_MAX_CHARS),
+    )
+    return {ok: true, data: {title: row?.title ?? null}}
+  } catch (err) {
+    const mapped = mapLMStudioError(err)
+    if (mapped) return mapped
+    throw err
+  }
 }

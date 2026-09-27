@@ -52,6 +52,26 @@ export async function createSingleTranscript(input: {
   return row!
 }
 
+export async function deleteTranscriptById(id: string): Promise<boolean> {
+  const rows = await db
+    .delete(transcriptsTable)
+    .where(eq(transcriptsTable.id, id))
+    .returning({id: transcriptsTable.id})
+  return rows.length > 0
+}
+
+export async function setTranscriptTitle(
+  id: string,
+  title: string | null,
+): Promise<Transcript | undefined> {
+  const [row] = await db
+    .update(transcriptsTable)
+    .set({title})
+    .where(eq(transcriptsTable.id, id))
+    .returning()
+  return row
+}
+
 /**
  * ATOMIC append: a single `UPDATE ... SET turns = turns || $1::jsonb`
  * statement — never a select-then-write, which would lose turns appended

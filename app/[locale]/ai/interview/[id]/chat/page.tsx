@@ -1,17 +1,19 @@
-import {IconArrowLeft} from '@tabler/icons-react'
 import type {UIMessage} from 'ai'
 import type {Metadata} from 'next'
+import type {ReactNode} from 'react'
 import {getFormatter, getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import PersonaChat from '~/components/ai/interview/persona-chat'
-import StartInterviewButton from '~/components/ai/interview/start-interview-button'
+import PersonaChatShell, {
+  type ChatSessionSummary,
+} from '~/components/ai/interview/persona-chat-shell'
 import {getPersonaById} from '~/db/helper/personas'
 import {
   getTranscriptById,
   listSingleTranscriptsByPersona,
 } from '~/db/helper/transcripts'
-import type {TranscriptTurn} from '~/db/schema/transcripts'
+import type {Transcript, TranscriptTurn} from '~/db/schema/transcripts'
 import {isShapedUuid} from '~/lib/ai/id-shape'
 import {requireAuth} from '~/server-utils'
 
@@ -28,6 +30,8 @@ export async function generateMetadata({
   }
 }
 
+const PREVIEW_MAX_LENGTH = 80
+
 /** Stored turns → chat UI messages; the system turn is prompt bookkeeping, not dialogue. */
 function turnsToUIMessages(turns: TranscriptTurn[]): UIMessage[] {
   return turns
@@ -37,6 +41,27 @@ function turnsToUIMessages(turns: TranscriptTurn[]): UIMessage[] {
       role: turn.role,
       parts: [{type: 'text', text: turn.content}],
     }))
+}
+
+/** First user turn, truncated for the sidebar fallback title. */
+function sessionPreview(transcript: Transcript): string {
+  const firstUserTurn =
+    transcript.turns.find((turn) => turn.role === 'user')?.content ?? ''
+  return firstUserTurn.length > PREVIEW_MAX_LENGTH
+    ? `${firstUserTurn.slice(0, PREVIEW_MAX_LENGTH)}…`
+    : firstUserTurn
+}
+
+function serializeSessions(
+  transcripts: Transcript[],
+  formatDateTime: (date: Date) => string,
+): ChatSessionSummary[] {
+  return transcripts.map((transcript) => ({
+    id: transcript.id,
+    title: transcript.title,
+    dateLabel: formatDateTime(transcript.createdAt),
+    preview: sessionPreview(transcript),
+  }))
 }
 
 export default async function PersonaChatPage({
@@ -51,6 +76,7 @@ export default async function PersonaChatPage({
   if (!persona) notFound()
 
   const t = await getTranslations('ai.interview.chat')
+  const format = await getFormatter()
 
   // A persona without a system prompt has nothing to interview against; the
   // researcher must generate one on the edit page first.
@@ -88,102 +114,42 @@ export default async function PersonaChatPage({
     )
   }
 
-  const transcripts = await listSingleTranscriptsByPersona(persona.id)
-
-  // No ?t= → session picker for this persona.
-  if (typeof requestedTranscriptId !== 'string' || !requestedTranscriptId) {
-    const format = await getFormatter()
-
-    return (
-      <section className="w-full max-w-6xl space-y-4 p-4">
-        <div className="flex-center-between gap-2">
-          <Link href="/ai/interview" className="inline-flex items-center gap-1">
-            <IconArrowLeft className="inline-block" size="18" />{' '}
-            {t('backToRoster')}
-          </Link>
-          <h2 className="text-xl font-bold wrap-anywhere">{t('title')}</h2>
-
-          <Link
-            href={`/ai/interview/${persona.id}`}
-            className="inline-flex items-center gap-1 text-sm"
-          >
-            {t('viewPersona')}
-          </Link>
-        </div>
-        <p className="wrap-anywhere">
-          <span className="text-xl font-semibold">{persona.name}</span>
-        </p>
-
-        <div>
-          <StartInterviewButton personaId={persona.id} />
-        </div>
-
-        <h3 className="font-semibold">{t('sessions')}</h3>
-        {transcripts.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t('sessionsEmpty')}</p>
-        ) : (
-          <ul className="space-y-2 pb-16">
-            {transcripts.map((transcript) => {
-              const preview = transcript.turns.find(
-                (turn) => turn.role === 'user',
-              )?.content
-
-              return (
-                <li key={transcript.id}>
-                  <Link
-                    href={`/ai/interview/${persona.id}/chat?t=${transcript.id}`}
-                    className="card block p-4"
-                  >
-                    <p className="text-sm font-medium">
-                      {format.dateTime(transcript.createdAt, {
-                        dateStyle: 'medium',
-                        timeStyle: 'short',
-                      })}
-                    </p>
-                    <p className="text-muted-foreground truncate text-sm">
-                      {preview ?? t('emptyState')}
-                    </p>
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-      </section>
-    )
-  }
+  const sessions = serializeSessions(
+    await listSingleTranscriptsByPersona(persona.id),
+    // Medium date + short time, matching the old picker's label format.
+    (date) => format.dateTime(date, {dateStyle: 'medium', timeStyle: 'short'}),
+  )
 
   // ?t=<transcriptId> → resume that session. A transcript that doesn't exist
   // or belongs to another persona is a bad URL, not an error UI.
-  if (!isShapedUuid(requestedTranscriptId)) notFound()
-  const transcript = await getTranscriptById(requestedTranscriptId)
-  if (!transcript || transcript.personaId !== persona.id) notFound()
-
-  return (
-    <section className="w-full max-w-6xl space-y-4 p-4">
-      <div className="flex-center-between gap-2">
-        <Link href="/ai/interview" className="inline-flex items-center gap-1">
-          <IconArrowLeft className="inline-block" size="18" />{' '}
-          {t('backToRoster')}
-        </Link>
-        <h2 className="grow text-xl font-bold wrap-anywhere">
-          {persona.name}
-          <span className="text-muted-foreground text-sm"> · {t('title')}</span>
-        </h2>
-
-        <Link
-          href={`/ai/interview/${persona.id}`}
-          className="inline-flex items-center gap-1 text-sm"
-        >
-          {t('viewPersona')}
-        </Link>
-      </div>
+  let activeId: string | null = null
+  let chatArea: ReactNode = null
+  if (typeof requestedTranscriptId === 'string' && requestedTranscriptId) {
+    if (!isShapedUuid(requestedTranscriptId)) notFound()
+    const transcript = await getTranscriptById(requestedTranscriptId)
+    if (!transcript || transcript.personaId !== persona.id) notFound()
+    activeId = transcript.id
+    chatArea = (
       <PersonaChat
         personaId={persona.id}
         transcriptId={transcript.id}
         personaName={persona.name}
         initialMessages={turnsToUIMessages(transcript.turns)}
       />
-    </section>
+    )
+  }
+
+  // No ?t= → picker state: the shell's sidebar doubles as the session list,
+  // the chat area shows the empty state. The old standalone picker page is
+  // replaced by this shell layout.
+  return (
+    <PersonaChatShell
+      personaId={persona.id}
+      personaName={persona.name}
+      sessions={sessions}
+      activeId={activeId}
+    >
+      {chatArea}
+    </PersonaChatShell>
   )
 }

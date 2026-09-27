@@ -294,7 +294,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
   return (
     <>
       <form
-        className="container space-y-4 p-4"
+        className="container mx-auto space-y-4 p-4"
         onSubmit={(e) => {
           e.preventDefault()
           handleSave()

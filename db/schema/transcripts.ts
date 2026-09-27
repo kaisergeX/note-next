@@ -82,6 +82,7 @@ export const transcriptsTable = pgTable('transcripts', {
     .default(sql`'[]'::jsonb`),
   model: varchar('model', {length: 200}).notNull(),
   systemPrompt: text('system_prompt').notNull(),
+  title: varchar('title', {length: 200}),
   createdAt: timestamp('created_at', {withTimezone: true})
     .defaultNow()
     .notNull(),

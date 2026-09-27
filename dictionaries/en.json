@@ -147,7 +147,15 @@
         "stop": "Stop",
         "offline": "Could not reach the AI assistant. Please try again later.",
         "genericError": "Something went wrong during the interview. Please try again.",
-        "noAccessError": "You don't have access to this feature."
+        "noAccessError": "You don't have access to this feature.",
+        "menu": "Session actions",
+        "rename": "Rename",
+        "delete": "Delete",
+        "deleteConfirmTitle": "Delete this session?",
+        "deleteConfirmBody": "This interview session and its conversation will be permanently deleted. This cannot be undone.",
+        "cancel": "Cancel",
+        "sidebarToggle": "Toggle the session sidebar",
+        "actionFailed": "The last action failed. Please try again."
       },
       "profile": {
         "emptyBio": "No bio yet — open Edit and generate one.",
