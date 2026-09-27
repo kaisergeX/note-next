@@ -43,6 +43,12 @@ type CompleteOptions = {
   timeoutMs?: number
   signal?: AbortSignal
   model?: string
+  /**
+   * Per-call sampler override. The default stays the pinned AI_SAMPLER
+   * temperature; the override exists for utility tasks (verbatim extraction)
+   * where near-greedy decoding prevents tokenizer artifacts under long copies.
+   */
+  temperature?: number
 }
 
 const PROVIDER_NAME = 'lmstudio'
@@ -89,7 +95,7 @@ function buildGenerationOptions(
         role: message.role,
         content: message.content,
       })),
-      temperature: AI_SAMPLER.temperature,
+      temperature: opts?.temperature ?? AI_SAMPLER.temperature,
       topP: 1,
       // Custom fields are passed straight into the request body root by the
       // openai-compatible provider. top_k: 0 must ride along here: the standardized
