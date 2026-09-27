@@ -1,14 +1,12 @@
 import {NextIntlClientProvider} from 'next-intl'
-import {getMessages} from 'next-intl/server'
+import {getLocale, getMessages} from 'next-intl/server'
 import {redirect} from 'next/navigation'
 import {requireFeatureAccess} from '~/lib/ai/feature-access'
 import {requireAuth} from '~/server-utils'
-import type {PropsWithLocale} from '~/types'
 
 export default async function InterviewLayout({
-  params,
   children,
-}: PropsWithLocale<LayoutProps<'/[locale]/ai/interview'>>) {
+}: LayoutProps<'/[locale]/ai/interview'>) {
   const {userInfo} = await requireAuth()
 
   try {
@@ -20,7 +18,9 @@ export default async function InterviewLayout({
     throw err
   }
 
-  const locale = (await params).locale
+  // Next's generated LayoutProps types `locale` as a bare string; the
+  // next-intl request locale is the properly narrowed value.
+  const locale = await getLocale()
   const aiFeatMsgs = (await getMessages({locale})).ai
 
   return (

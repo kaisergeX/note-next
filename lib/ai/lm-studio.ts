@@ -39,7 +39,11 @@ export class LMStudioError extends Error {
   }
 }
 
-type CompleteOptions = {timeoutMs?: number; signal?: AbortSignal}
+type CompleteOptions = {
+  timeoutMs?: number
+  signal?: AbortSignal
+  model?: string
+}
 
 const PROVIDER_NAME = 'lmstudio'
 const lmStudio = createOpenAICompatible({
@@ -62,10 +66,26 @@ function buildGenerationOptions(
   opts?: CompleteOptions,
 ) {
   const signal = buildSignal(opts)
+  // ai@7 rejects system-role messages inside `messages` (standardize-prompt
+  // guard: "!allowSystemInMessages && messages.some(...role === 'system')").
+  // The sanctioned path is the `instructions` option, which the SDK converts
+  // back into a leading system message for the provider. Extract all system
+  // contents (order preserved, joined with a blank line); user/assistant
+  // messages pass through untouched. With no system message the built options
+  // are identical to the plain passthrough.
+  const systemParts: string[] = []
+  const chatMessages: LMStudioMessage[] = []
+  for (const message of messages) {
+    if (message.role === 'system') systemParts.push(message.content)
+    else chatMessages.push(message)
+  }
   return {
     options: {
-      model: lmStudio(LM_STUDIO_MODEL),
-      messages: messages.map((message) => ({
+      model: lmStudio(opts?.model ?? LM_STUDIO_MODEL),
+      ...(systemParts.length > 0
+        ? {instructions: systemParts.join('\n\n')}
+        : {}),
+      messages: chatMessages.map((message) => ({
         role: message.role,
         content: message.content,
       })),
@@ -253,9 +273,10 @@ export async function completeJson<S extends z.ZodType>(
     const {output} = await generateText({
       ...options,
       output: Output.object({schema}),
-      // AI SDK 7 rejects system-role messages by default; the drafting
-      // prompts (phase 3/6) legitimately open with a system message.
-      allowSystemInMessages: true,
+      // allowSystemInMessages removed: buildGenerationOptions never leaves a
+      // system-role message in `messages`, so the standardize-prompt guard
+      // (`!allowSystemInMessages && messages.some(...role === 'system')`) can
+      // never fire and the flag is dead weight.
     })
     return output as z.infer<S>
   } catch (err) {

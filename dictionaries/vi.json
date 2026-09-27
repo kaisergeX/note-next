@@ -47,6 +47,7 @@
         "empty": "Chưa có nhân vật nào",
         "emptyHint": "Tạo nhân vật đầu tiên để bắt đầu phỏng vấn.",
         "edit": "Sửa",
+        "menu": "Thao tác khác",
         "activate": "Kích hoạt",
         "archive": "Lưu trữ",
         "confirmArchive": "Lưu trữ nhân vật này? Bản phỏng vấn (nếu có) sẽ được giữ lại.",
@@ -127,8 +128,31 @@
       },
       "vi": {
         "title": "Tiếng Việt",
-        "description": "Nhân vật mô phỏng nói tiếng Việt.",
-        "backToRoster": "Về danh sách"
+        "description": "Nhân vật mô phỏng nói tiếng Việt."
+      },
+      "chat": {
+        "title": "Phỏng vấn",
+        "backToRoster": "Về danh sách",
+        "viewPersona": "Thông tin nhân vật",
+        "blockedTitle": "Chưa phỏng vấn được",
+        "blockedHint": "Hãy tạo system prompt cho nhân vật trước, rồi quay lại đây để bắt đầu phỏng vấn.",
+        "startNew": "Tạo phỏng vấn mới",
+        "starting": "Đang bắt đầu…",
+        "sessions": "Các phiên phỏng vấn",
+        "sessionsEmpty": "Chưa có phiên phỏng vấn nào",
+        "openChat": "Phỏng vấn",
+        "emptyState": "Hỏi nhân vật bằng tiếng Việt — nhân vật sẽ trả lời bằng tiếng Việt.",
+        "inputPlaceholder": "Nhập câu hỏi tiếng Việt…",
+        "send": "Gửi",
+        "stop": "Dừng",
+        "offline": "Không kết nối được trợ lý AI. Vui lòng thử lại sau.",
+        "genericError": "Có lỗi khi phỏng vấn. Vui lòng thử lại.",
+        "noAccessError": "Bạn không có quyền dùng tính năng này."
+      },
+      "profile": {
+        "emptyBio": "Chưa có tiểu sử — mở Sửa để tạo.",
+        "emptySystemPrompt": "Chưa có system prompt — mở Sửa để tạo trước khi bắt đầu phỏng vấn.",
+        "lastUpdated": "Cập nhật lần cuối: {time}"
       }
     }
   },

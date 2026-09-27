@@ -3,13 +3,14 @@
 import {
   IconArrowLeft,
   IconLoader2,
-  IconSparkles,
+  IconMessages,
+  IconSparkles2,
   IconSubtitlesAi,
 } from '@tabler/icons-react'
 import {useForm} from '@tanstack/react-form'
+import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
-import {useTranslations} from 'next-intl'
 import {useEffect, useState, useTransition} from 'react'
 import {
   createPersonaAction,
@@ -299,10 +300,23 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
           handleSave()
         }}
       >
-        <Link href="/ai/interview" className="inline-flex items-center gap-1">
-          <IconArrowLeft className="inline-block" size="18" />{' '}
-          {tRoot('vi.backToRoster')}
-        </Link>
+        <div className="flex-center-between gap-2">
+          <Link href="/ai/interview" className="inline-flex items-center gap-1">
+            <IconArrowLeft className="inline-block" size="18" />{' '}
+            {tRoot('chat.backToRoster')}
+          </Link>
+          {/* The chat page itself handles the no-system-prompt blocked case,
+              so the link can always render in edit mode. */}
+          {mode === 'edit' && (
+            <Link
+              href={`/ai/interview/${initial!.id}/chat`}
+              className="inline-flex items-center gap-1"
+            >
+              <IconMessages className="inline-block" size="18" />{' '}
+              {tRoot('chat.openChat')}
+            </Link>
+          )}
+        </div>
         <h2 className="text-xl font-bold">
           {mode === 'create' ? t('newTitle') : t('editTitle')}
         </h2>
@@ -338,14 +352,14 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
             )}
             <button
               type="button"
-              className="button mt-2"
+              className="button-secondary mt-2"
               onClick={handleGenerate}
               disabled={generating || saving}
             >
               {generating ? (
                 <IconLoader2 className="animate-spin" size="1.2rem" />
               ) : (
-                <IconSparkles size="1.2rem" />
+                <IconSparkles2 size="1.2rem" />
               )}
               {generating ? t('generating') : t('generate')}
             </button>
