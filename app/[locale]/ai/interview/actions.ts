@@ -61,6 +61,9 @@ import {
   RUN_SCRIPT_MAX_QUESTION_LENGTH,
   RUN_SCRIPT_MAX_QUESTIONS,
   parseQuestionScript,
+  looksLikeSectionHeader,
+  repairVerbatimLine,
+  stripListMarker,
 } from '~/lib/ai/question-script'
 import {z} from 'zod'
 
@@ -650,21 +653,23 @@ export async function createRunAction(
 
 const EXTRACT_MAX_INPUT_CHARS = 20000
 
-const EXTRACT_QUESTIONS_PROMPT = [
-  'Bạn là trợ giúp nghiên cứu. Từ văn bản người dùng bên dưới, trích xuất MỌI câu hỏi phỏng vấn xuất hiện trong văn bản.',
-  'Quy tắc bắt buộc:',
-  '- Giữ nguyên văn từng câu hỏi: không diễn đạt lại, không gộp, không thêm câu hỏi mới, không bỏ sót.',
-  '- Chỉ bỏ đánh dấu đầu dòng/đánh số ("1.", "2)", "•", "-"); thứ tự câu hỏi giữ nguyên theo văn bản.',
-  '- Câu hỏi có thể nằm trong danh sách đánh số, dòng gạch đầu dòng, hoặc giữa đoạn văn — tất cả đều phải được tách ra.',
-  '- Trả về JSON: {"questions": ["...", "..."]} với ít nhất một câu hỏi.',
-].join('\n')
+/**
+ * Plain-text protocol instead of completeJson: grammar-constrained json_schema
+ * degrades long Vietnamese verbatim copies (tokenizer artifacts: '/'→'.',
+ * stray apostrophes, injected foreign glyphs). Unconstrained generation at low
+ * temperature copies cleanly; the app-side parsing in extractQuestionsAction
+ * is the validation layer.
+ */
+const EXTRACT_QUESTIONS_SYSTEM_PROMPT =
+  'Bạn là trợ lý trích xuất. CHỈ copy lại nguyên văn các câu hỏi trong văn bản người dùng.'
 
-const extractQuestionsSchema = z.object({
-  questions: z
-    .array(z.string().min(1).max(RUN_SCRIPT_MAX_QUESTION_LENGTH))
-    .min(1)
-    .max(RUN_SCRIPT_MAX_QUESTIONS),
-})
+const EXTRACT_QUESTIONS_RULES = [
+  'Quy tắc bắt buộc:',
+  '- Trả về CHỈ các câu hỏi, mỗi câu một dòng, đúng thứ tự xuất hiện trong văn bản.',
+  '- Giữ NGUYÊN VĂN từng câu hỏi: giữ nguyên mọi dấu câu, dấu "/", dấu nháy, ký tự đặc biệt — không diễn đạt lại, không sửa lỗi, không dịch, không gộp, không thêm bớt gì.',
+  '- Không đánh số, không gạch đầu dòng, không tiêu đề mục, không lời bình, không dòng trống.',
+  '- Nếu văn bản không có câu hỏi nào, trả về đúng một chữ: EMPTY',
+].join('\n')
 
 /**
  * Review-step helper for the "Detect questions" button (PURE extraction, no
@@ -676,10 +681,8 @@ const extractQuestionsSchema = z.object({
 export async function extractQuestionsAction(
   rawText: unknown,
 ): Promise<ActionResult<{questions: string[]}>> {
-  // Gate first; isShapedUuid is not applicable here (no id argument).
-  const noAccess = await requirePersonaInterviewAccess()
-  if (noAccess) return noAccess
-
+  // Cheap pure arg shape-checks run first (house convention); the access
+  // gate (and the LLM call after it) only runs for well-formed input.
   if (typeof rawText !== 'string') {
     return {
       ok: false,
@@ -696,43 +699,68 @@ export async function extractQuestionsAction(
     }
   }
 
+  // Gate after the cheap arg checks; isShapedUuid is not applicable here
+  // (no id argument).
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
   try {
-    const {questions} = await completeJson(
+    // temperature 0.1 (near-greedy): verbatim copies must not drift — see the
+    // plain-text protocol comment above EXTRACT_QUESTIONS_SYSTEM_PROMPT.
+    const response = await complete(
       [
-        {role: 'system', content: EXTRACT_QUESTIONS_PROMPT},
-        {role: 'user', content: text},
+        {role: 'system', content: EXTRACT_QUESTIONS_SYSTEM_PROMPT},
+        {role: 'user', content: `${text}\n\n${EXTRACT_QUESTIONS_RULES}`},
       ],
-      extractQuestionsSchema,
-      {timeoutMs: AI_REQUEST_TIMEOUT_MS},
+      {timeoutMs: AI_REQUEST_TIMEOUT_MS, temperature: 0.1},
     )
-    // Belt-and-braces re-parse: completeJson validates against the wire
-    // schema, but a defensive safeParse turns any slip-through into a
-    // validation error instead of storing garbage.
-    const reparsed = extractQuestionsSchema.safeParse({questions})
-    if (!reparsed.success) {
+
+    // App-side parsing is the validation layer (see the plain-text protocol
+    // comment): the model's free-text answer is split line by line, stripped
+    // of list markers, and re-checked against the same caps createRunAction
+    // enforces (over the cap is an error, never a silent truncation).
+    const trimmedResponse = response.trim()
+    // "EMPTY." / "empty" / trailing punctuation variants count as the
+    // sentinel; whitespace-only responses count as empty too.
+    if (trimmedResponse.length === 0 || /^EMPTY\b/i.test(trimmedResponse)) {
       return {
         ok: false,
         reason: 'validation',
-        message: 'model returned an invalid questions list',
+        message: 'no questions detected',
       }
     }
-    return {ok: true, data: reparsed.data}
-  } catch (err) {
-    // Schema-invalid structured output surfaces as LMStudioError('http',
-    // 'invalid structured output') from completeJson — a validation error for
-    // the user to retry, not a 500. Detect it BEFORE mapLMStudioError, which
-    // would otherwise map it to reason 'error'.
+    // Verbatim repair: model output is used ONLY for segmentation; the text
+    // of each question is restored from the researcher's own paste so
+    // tokenizer artifacts ('/'→'.', stray glyphs) cannot survive. Lines that
+    // match no source line well enough keep the model's text as-is.
+    const sourceLines = text
+      .split(/\r?\n/)
+      .map(stripListMarker)
+      .filter((line) => line.length > 0)
+    const questions = trimmedResponse
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .map((line) => repairVerbatimLine(stripListMarker(line), sourceLines))
+      // '?'-less section headers ("II. CHUYÊN MÔN → …") are dropped, but
+      // '?'-less imperative questions ("Cho biết anh/chị…") are kept — they
+      // still pass createRunAction's validation downstream.
+      .filter((line) => line.includes('?') || !looksLikeSectionHeader(line))
     if (
-      err instanceof LMStudioError &&
-      err.kind === 'http' &&
-      err.message === 'invalid structured output'
+      questions.length < 1 ||
+      questions.length > RUN_SCRIPT_MAX_QUESTIONS ||
+      questions.some(
+        (question) => question.length > RUN_SCRIPT_MAX_QUESTION_LENGTH,
+      )
     ) {
       return {
         ok: false,
         reason: 'validation',
-        message: 'model returned an invalid questions list',
+        message: `question script must contain 1-${RUN_SCRIPT_MAX_QUESTIONS} non-empty lines of at most ${RUN_SCRIPT_MAX_QUESTION_LENGTH} characters`,
       }
     }
+    return {ok: true, data: {questions}}
+  } catch (err) {
     const mapped = mapLMStudioError(err)
     if (mapped) return mapped
     throw err
