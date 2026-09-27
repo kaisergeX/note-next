@@ -47,6 +47,7 @@
         "empty": "No personas yet",
         "emptyHint": "Create your first persona to start interviewing.",
         "edit": "Edit",
+        "menu": "More actions",
         "activate": "Activate",
         "archive": "Archive",
         "confirmArchive": "Archive this persona? Any interview transcript will be kept.",
@@ -127,8 +128,31 @@
       },
       "vi": {
         "title": "Vietnamese",
-        "description": "Simulated personas speak Vietnamese.",
-        "backToRoster": "Back to roster"
+        "description": "Simulated personas speak Vietnamese."
+      },
+      "chat": {
+        "title": "Interview",
+        "backToRoster": "Back to roster",
+        "viewPersona": "View persona",
+        "blockedTitle": "Interview not available yet",
+        "blockedHint": "Generate a system prompt for this persona first — then come back to start the interview.",
+        "startNew": "New interview",
+        "starting": "Starting…",
+        "sessions": "Interview sessions",
+        "sessionsEmpty": "No interview sessions yet",
+        "openChat": "Chat",
+        "emptyState": "Ask your questions in Vietnamese — this persona replies in Vietnamese.",
+        "inputPlaceholder": "Type a question in Vietnamese…",
+        "send": "Send",
+        "stop": "Stop",
+        "offline": "Could not reach the AI assistant. Please try again later.",
+        "genericError": "Something went wrong during the interview. Please try again.",
+        "noAccessError": "You don't have access to this feature."
+      },
+      "profile": {
+        "emptyBio": "No bio yet — open Edit and generate one.",
+        "emptySystemPrompt": "No system prompt yet — open Edit and generate one before starting an interview.",
+        "lastUpdated": "Last updated: {time}"
       }
     }
   },

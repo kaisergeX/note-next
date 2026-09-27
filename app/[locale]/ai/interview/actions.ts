@@ -22,7 +22,8 @@ import {
   toFieldErrors,
   type PersonaInput,
 } from '~/lib/ai/persona-validation'
-import {AI_LOCALES, AI_REQUEST_TIMEOUT_MS} from '~/config/ai'
+import {AI_LOCALES, AI_REQUEST_TIMEOUT_MS, LM_STUDIO_MODEL} from '~/config/ai'
+import {createSingleTranscript} from '~/db/helper/transcripts'
 import {requireAuth} from '~/server-utils'
 
 /**
@@ -281,4 +282,48 @@ export async function listPersonaTagsAction(): Promise<ActionResult<string[]>> {
   if (noAccess) return noAccess
 
   return {ok: true, data: await listAllBackgroundTags()}
+}
+
+/**
+ * Creates the transcript row for a single-interview session. The model id and
+ * system prompt are SNAPSHOTTED here (ARCHITECT.md "Provenance"): the chat
+ * route later reads them from the transcript, never from the (mutable) persona
+ * row, so an A/B model swap or a regenerated prompt cannot reframe an
+ * in-progress interview. Belt-and-braces on empty systemPrompt — the UI
+ * blocks starting without one.
+ */
+export async function startInterviewAction(
+  personaId: string,
+): Promise<ActionResult<{transcriptId: string}>> {
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const persona = await getPersonaById(personaId)
+  if (!persona) {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  const systemPrompt = persona.systemPrompt
+  if (!systemPrompt || systemPrompt.trim().length === 0) {
+    return {
+      ok: false,
+      reason: 'error',
+      message: 'persona has no system prompt',
+    }
+  }
+
+  // Guard on empty model: LM_STUDIO_MODEL defaults to '' in config/ai.ts,
+  // and the transcript snapshots the model at session start — an empty id
+  // would make every chat request target an invalid model.
+  if (LM_STUDIO_MODEL.trim().length === 0) {
+    return {ok: false, reason: 'error', message: 'model not configured'}
+  }
+
+  const transcript = await createSingleTranscript({
+    personaId: persona.id,
+    model: LM_STUDIO_MODEL,
+    systemPrompt,
+  })
+
+  return {ok: true, data: {transcriptId: transcript.id}}
 }
