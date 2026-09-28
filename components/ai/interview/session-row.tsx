@@ -95,7 +95,7 @@ export default function SessionRow({
     {
       type: 'link',
       url: `/api/ai/interview/export/session/${session.id}?format=md`,
-      className: 'p-3',
+      className: 'p-3!',
       label: (
         <>
           <IconDownload size="16" /> {tExport('report')}
@@ -105,7 +105,7 @@ export default function SessionRow({
     {
       type: 'link',
       url: `/api/ai/interview/export/session/${session.id}?format=json`,
-      className: 'p-3',
+      className: 'p-3!',
       label: (
         <>
           <IconDownload size="16" /> {tExport('backupJson')}
@@ -190,7 +190,7 @@ export default function SessionRow({
             anchor={null}
             // Inline render (no portal): body-level portals render below a
             // <dialog> top layer, so the mobile drawer would cover the menu.
-            itemsClassName="absolute top-full right-0.5 z-20 w-40"
+            itemsClassName="absolute top-full right-0.5 z-20 w-48"
             items={menuItems}
           >
             <span className="sr-only">{t('menu')}</span>
