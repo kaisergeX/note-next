@@ -7,7 +7,7 @@ import {
 } from '@tabler/icons-react'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
-import {getFormatter, getTranslations} from 'next-intl/server'
+import {getLocale, getFormatter, getTranslations} from 'next-intl/server'
 import type {PersonaStatus} from '~/db/schema/personas'
 import {getPersonaById} from '~/db/helper/personas'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
@@ -86,6 +86,9 @@ export default async function PersonaProfilePage({
   const tForm = await getTranslations('ai.interview.form')
   const tCommon = await getTranslations('common')
   const format = await getFormatter()
+  // Export API routes live outside the [locale] segment, so the UI locale is
+  // forwarded for the Markdown report labels.
+  const locale = await getLocale()
 
   // Canonical EN keys get localized labels; custom/legacy values fall back verbatim.
   const genderLabel =
@@ -111,7 +114,7 @@ export default async function PersonaProfilePage({
   const exportMenuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: `/api/ai/interview/export/persona/${persona.id}?format=md`,
+      url: `/api/ai/interview/export/persona/${persona.id}?format=md&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {t('export.report')}
@@ -120,7 +123,7 @@ export default async function PersonaProfilePage({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/persona/${persona.id}?format=csv`,
+      url: `/api/ai/interview/export/persona/${persona.id}?format=csv&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {t('export.dataCsv')}
@@ -129,7 +132,7 @@ export default async function PersonaProfilePage({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/persona/${persona.id}?format=json`,
+      url: `/api/ai/interview/export/persona/${persona.id}?format=json&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {t('export.backupJson')}

@@ -12,6 +12,7 @@ import {
 } from '~/lib/ai/export'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {isShapedUuid} from '~/lib/ai/id-shape'
+import {buildReportLabels} from '~/lib/ai/report-labels'
 import {defineAuthRoute} from '~/server-utils'
 
 export const maxDuration = 60
@@ -87,12 +88,23 @@ export const GET = defineAuthRoute<
   let body: string
   let contentType: string
   let filename: string
+  // Markdown AND both CSV flavors are localized via `?locale=` (validated,
+  // fallback 'en'); the JSON backup stays locale-free by design.
+  const localeParam = request.nextUrl.searchParams.get('locale')
   if (format === 'csv') {
-    body = buildRunExportCsv(run, exportItems)
+    body = buildRunExportCsv(
+      run,
+      exportItems,
+      await buildReportLabels(localeParam),
+    )
     contentType = 'text/csv; charset=utf-8'
     filename = `run-${short8}.csv`
   } else if (format === 'csv-wide') {
-    body = buildRunComparisonCsv(run, exportItems)
+    body = buildRunComparisonCsv(
+      run,
+      exportItems,
+      await buildReportLabels(localeParam),
+    )
     contentType = 'text/csv; charset=utf-8'
     filename = `run-${short8}-comparison.csv`
   } else if (format === 'json') {
@@ -102,7 +114,12 @@ export const GET = defineAuthRoute<
     contentType = 'application/json; charset=utf-8'
     filename = `run-${short8}-backup.json`
   } else {
-    body = buildRunExportMarkdown(run, exportItems, run.questionScript)
+    body = buildRunExportMarkdown(
+      run,
+      exportItems,
+      run.questionScript,
+      await buildReportLabels(localeParam),
+    )
     contentType = 'text/markdown; charset=utf-8'
     filename = `run-${short8}-report.md`
   }

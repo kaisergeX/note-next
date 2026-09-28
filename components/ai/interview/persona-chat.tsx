@@ -69,7 +69,7 @@ export default function PersonaChat({
   }
 
   return (
-    <div className="relative min-h-0 grow overflow-y-auto px-4">
+    <div className="relative flex min-h-0 grow flex-col overflow-y-auto px-4">
       {error && (
         <p role="alert" className="text-danger sticky top-0 z-10 text-sm">
           {isOffline
@@ -82,7 +82,9 @@ export default function PersonaChat({
 
       <div className="container mx-auto flex grow flex-col gap-3 py-4">
         {messages.length === 0 && (
-          <p className="text-muted-foreground text-sm">{t('emptyState')}</p>
+          <p className="text-muted-foreground h-full content-center text-center text-sm">
+            {t('emptyState')}
+          </p>
         )}
         {messages.map((message) => (
           <div

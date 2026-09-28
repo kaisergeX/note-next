@@ -8,7 +8,7 @@ import {
   IconEdit,
   IconTrash,
 } from '@tabler/icons-react'
-import {useTranslations} from 'next-intl'
+import {useLocale, useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
@@ -41,6 +41,9 @@ export default function SessionRow({
 }: SessionRowProps) {
   const t = useTranslations('ai.interview.chat')
   const tExport = useTranslations('ai.interview.export')
+  // Export API routes live outside the [locale] segment, so the UI locale is
+  // forwarded for the Markdown report labels.
+  const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isEditing, setIsEditing] = useState(false)
@@ -94,7 +97,7 @@ export default function SessionRow({
   const menuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: `/api/ai/interview/export/session/${session.id}?format=md`,
+      url: `/api/ai/interview/export/session/${session.id}?format=md&locale=${locale}`,
       className: 'p-3!',
       label: (
         <>
@@ -104,7 +107,7 @@ export default function SessionRow({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/session/${session.id}?format=json`,
+      url: `/api/ai/interview/export/session/${session.id}?format=json&locale=${locale}`,
       className: 'p-3!',
       label: (
         <>

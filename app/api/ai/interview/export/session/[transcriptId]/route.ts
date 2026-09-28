@@ -3,11 +3,13 @@ import {getPersonaById} from '~/db/helper/personas'
 import {getCachedUser} from '~/db/helper/users'
 import {getTranscriptById} from '~/db/helper/transcripts'
 import {
+  asciiSlug,
   buildSessionExportJson,
   buildSessionExportMarkdown,
 } from '~/lib/ai/export'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {isShapedUuid} from '~/lib/ai/id-shape'
+import {buildReportLabels} from '~/lib/ai/report-labels'
 import {defineAuthRoute} from '~/server-utils'
 
 export const maxDuration = 60
@@ -55,10 +57,22 @@ export const GET = defineAuthRoute<
   }
 
   const isJson = format === 'json'
+  // Markdown labels are localized via `?locale=` (validated, fallback 'en');
+  // the JSON backup stays locale-free by design.
   const body = isJson
     ? buildSessionExportJson(persona, transcript)
-    : buildSessionExportMarkdown(persona, transcript)
-  const filename = `session-${transcriptId.slice(0, 8)}.${format}`
+    : buildSessionExportMarkdown(
+        persona,
+        transcript,
+        await buildReportLabels(request.nextUrl.searchParams.get('locale')),
+      )
+  // Download name: persona slug + UTC date (createdAt is a Date; compact
+  // yyyymmdd) + the 8-char id prefix, same base for every format.
+  const yyyymmdd = transcript.createdAt
+    .toISOString()
+    .slice(0, 10)
+    .replace(/-/g, '')
+  const filename = `session-${asciiSlug(persona.name)}-${yyyymmdd}-${transcriptId.slice(0, 8)}.${format}`
 
   return new NextResponse(body, {
     headers: {
