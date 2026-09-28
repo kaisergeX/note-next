@@ -361,13 +361,16 @@ export async function startInterviewAction(
     return {ok: false, reason: 'error', message: 'model not configured'}
   }
 
-  const transcript = await createSingleTranscript({
-    personaId: persona.id,
-    model: LM_STUDIO_MODEL,
-    systemPrompt,
-  })
-
-  return {ok: true, data: {transcriptId: transcript.id}}
+  try {
+    const transcript = await createSingleTranscript({
+      personaId: persona.id,
+      model: LM_STUDIO_MODEL,
+      systemPrompt,
+    })
+    return {ok: true, data: {transcriptId: transcript.id}}
+  } catch (_) {
+    return {ok: false, reason: 'error', message: 'transcript insert failed'}
+  }
 }
 
 export async function renameInterviewSessionAction(

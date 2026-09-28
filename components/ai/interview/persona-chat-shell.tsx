@@ -187,12 +187,12 @@ export default function PersonaChatShell({
   )
 
   return (
-    <div className="flex w-full grow gap-4">
-      <aside className="hidden min-w-0 shrink-0 flex-col border-r border-zinc-200 sm:basis-1/4 md:flex dark:border-zinc-700">
+    <div className="flex min-h-0 w-full grow gap-4">
+      <aside className="hidden max-w-md min-w-0 shrink-0 flex-col border-r border-zinc-200 sm:basis-1/4 md:flex dark:border-zinc-700">
         {renderSidebarContent()}
       </aside>
 
-      <div className="flex min-w-0 grow flex-col py-4">
+      <div className="flex min-w-0 grow flex-col">
         <div className="flex items-center gap-2 border-b border-zinc-200 p-3 md:hidden dark:border-zinc-700">
           <button
             type="button"

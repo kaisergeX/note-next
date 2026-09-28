@@ -69,8 +69,18 @@ export default function PersonaChat({
   }
 
   return (
-    <div className="card container mx-auto flex grow flex-col gap-3 p-4">
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto">
+    <div className="relative min-h-0 grow overflow-y-auto px-4">
+      {error && (
+        <p role="alert" className="text-danger sticky top-0 z-10 text-sm">
+          {isOffline
+            ? t('offline')
+            : isNoAccess
+              ? t('noAccessError')
+              : t('genericError')}
+        </p>
+      )}
+
+      <div className="container mx-auto flex grow flex-col gap-3 py-4">
         {messages.length === 0 && (
           <p className="text-muted-foreground text-sm">{t('emptyState')}</p>
         )}
@@ -106,18 +116,8 @@ export default function PersonaChat({
         <div ref={bottomRef} />
       </div>
 
-      {error && (
-        <p role="alert" className="text-danger text-sm">
-          {isOffline
-            ? t('offline')
-            : isNoAccess
-              ? t('noAccessError')
-              : t('genericError')}
-        </p>
-      )}
-
       <form
-        className="flex items-end gap-2"
+        className="bg-default sticky bottom-0 z-10 container mx-auto flex items-end gap-2 py-4"
         onSubmit={(e) => {
           e.preventDefault()
           handleSend()

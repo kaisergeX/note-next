@@ -166,7 +166,7 @@ export default async function RunDetailPage({
         </div>
         <MenuCustom
           className="button-secondary button-icon shrink-0 rounded-full p-1"
-          itemsClassName="w-48 [--anchor-gap:0.5rem]"
+          itemsClassName="w-xs [--anchor-gap:0.5rem]"
           items={exportMenuItems}
         >
           <span className="sr-only">{tExport('menu')}</span>

@@ -24,7 +24,7 @@ export default async function InterviewLayout({
   const aiFeatMsgs = (await getMessages({locale})).ai
 
   return (
-    <main className="body-h-auto flex h-full grow flex-col">
+    <main className="flex h-full min-h-0 grow flex-col">
       <NextIntlClientProvider messages={{ai: aiFeatMsgs}}>
         {children}
       </NextIntlClientProvider>
