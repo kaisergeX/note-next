@@ -1,10 +1,16 @@
 import type {Metadata} from 'next'
-import {IconArrowLeft, IconEdit, IconMessages} from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconDownload,
+  IconEdit,
+  IconMessages,
+} from '@tabler/icons-react'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import {getFormatter, getTranslations} from 'next-intl/server'
 import type {PersonaStatus} from '~/db/schema/personas'
 import {getPersonaById} from '~/db/helper/personas'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {isShapedUuid} from '~/lib/ai/id-shape'
 import {requireAuth} from '~/server-utils'
 
@@ -100,6 +106,38 @@ export default async function PersonaProfilePage({
       ? tForm(`options.stance.${persona.interviewStance}`)
       : (persona.interviewStance ?? '—')
 
+  // Plain anchors: the API responds with Content-Disposition, so normal
+  // navigation downloads the file — no fetch/Blob handling needed.
+  const exportMenuItems: MenuCustomItem[] = [
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/persona/${persona.id}?format=md`,
+      label: (
+        <>
+          <IconDownload size="18" /> {t('export.report')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/persona/${persona.id}?format=csv`,
+      label: (
+        <>
+          <IconDownload size="18" /> {t('export.dataCsv')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/persona/${persona.id}?format=json`,
+      label: (
+        <>
+          <IconDownload size="18" /> {t('export.backupJson')}
+        </>
+      ),
+    },
+  ]
+
   const lastUpdated = format.dateTime(persona.updatedAt, {
     dateStyle: 'medium',
     timeStyle: 'short',
@@ -144,6 +182,14 @@ export default async function PersonaProfilePage({
         >
           <IconEdit size="1.2rem" /> {t('roster.edit')}
         </Link>
+        <MenuCustom
+          className="button-secondary button-icon rounded-full p-1"
+          itemsClassName="w-48 [--anchor-gap:0.5rem]"
+          items={exportMenuItems}
+        >
+          <span className="sr-only">{t('export.menu')}</span>
+          <IconDownload size="18" />
+        </MenuCustom>
       </div>
 
       <div className="card space-y-4 p-4">

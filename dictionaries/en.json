@@ -214,6 +214,13 @@
         "itemErrorKind": "Model error: {kind}",
         "results": "Results",
         "noTranscript": "No transcript"
+      },
+      "export": {
+        "menu": "Export",
+        "report": "Report (Markdown)",
+        "dataCsv": "Data (CSV)",
+        "comparisonCsv": "Comparison (CSV)",
+        "backupJson": "Backup (JSON)"
       }
     }
   },

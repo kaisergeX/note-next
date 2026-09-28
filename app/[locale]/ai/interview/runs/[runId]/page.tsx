@@ -1,8 +1,9 @@
-import {IconArrowLeft} from '@tabler/icons-react'
+import {IconArrowLeft, IconDownload} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import {getFormatter, getTranslations} from 'next-intl/server'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import RunLoop, {type RunItemView} from '~/components/ai/interview/run-loop'
 import RunTranscripts, {
   type RunResultRow,
@@ -41,7 +42,49 @@ export default async function RunDetailPage({
     getRunProgress(runId),
   ])
   const t = await getTranslations('ai.interview.run')
+  const tExport = await getTranslations('ai.interview.export')
   const format = await getFormatter()
+
+  // Plain anchors: the API responds with Content-Disposition, so normal
+  // navigation downloads the file — no fetch/Blob handling needed.
+  const exportMenuItems: MenuCustomItem[] = [
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/run/${run.id}?format=md`,
+      label: (
+        <>
+          <IconDownload size="18" /> {tExport('report')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/run/${run.id}?format=csv`,
+      label: (
+        <>
+          <IconDownload size="18" /> {tExport('dataCsv')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/run/${run.id}?format=csv-wide`,
+      label: (
+        <>
+          <IconDownload size="18" /> {tExport('comparisonCsv')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/run/${run.id}?format=json`,
+      label: (
+        <>
+          <IconDownload size="18" /> {tExport('backupJson')}
+        </>
+      ),
+    },
+  ]
 
   const created = format.dateTime(run.createdAt, {
     dateStyle: 'medium',
@@ -113,12 +156,22 @@ export default async function RunDetailPage({
       </div>
 
       <div className="flex-center-between gap-2">
-        <h1 className="text-2xl font-bold">{t('detailTitle')}</h1>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-xs ${RUN_STATUS_BADGE_CLASS[run.status]}`}
+        <div className="flex min-w-0 items-center gap-2">
+          <h1 className="text-2xl font-bold">{t('detailTitle')}</h1>
+          <span
+            className={`rounded-full border px-2 py-0.5 text-xs ${RUN_STATUS_BADGE_CLASS[run.status]}`}
+          >
+            {t(`status.${run.status}`)}
+          </span>
+        </div>
+        <MenuCustom
+          className="button-secondary button-icon shrink-0 rounded-full p-1"
+          itemsClassName="w-48 [--anchor-gap:0.5rem]"
+          items={exportMenuItems}
         >
-          {t(`status.${run.status}`)}
-        </span>
+          <span className="sr-only">{tExport('menu')}</span>
+          <IconDownload size="18" />
+        </MenuCustom>
       </div>
 
       <p className="text-muted-foreground text-sm wrap-anywhere">

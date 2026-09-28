@@ -59,6 +59,21 @@ export async function listRunSessionsByPersona(
     .orderBy(desc(transcriptsTable.createdAt))
 }
 
+/**
+ * Every transcript of one persona — single sessions AND run sessions alike,
+ * oldest first — for the per-persona export (both modes carry Q&A worth
+ * exporting; the other two list helpers are UI-scoped subsets).
+ */
+export async function listAllTranscriptsByPersona(
+  personaId: string,
+): Promise<Transcript[]> {
+  return await db
+    .select()
+    .from(transcriptsTable)
+    .where(eq(transcriptsTable.personaId, personaId))
+    .orderBy(transcriptsTable.createdAt)
+}
+
 export async function createSingleTranscript(input: {
   personaId: string
   model: string

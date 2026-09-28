@@ -53,7 +53,7 @@ The host app is open to public Google sign-up (10 users currently), built for no
 1. User (owner or researcher) creates persona(s) via UI → Next.js server action → LM Studio (bio/system-prompt drafting) → saved to DB. Drafting produces a compact, persona-unique systemPrompt (identity, dialect voice, stance) — universal speech rules are enforced at runtime by the appended `PERSONA_SPEECH_CONTRACT`, not baked into the prompt.
 2. Single interview: client streams chat turns through a Next.js API route → LM Studio → streamed back to client. Turns append atomically to one transcript row per interview session (single-statement JSONB append — not one row per turn).
 3. Group/batch interview — browser-driven loop (see "Batch execution model"): the client calls a server action per question-step (one persona, one question) → LM Studio (sequential, one request at a time) → the action appends the turn to that persona's transcript (single-statement JSONB append) and advances its `run_items` row → client calls the next step until the run completes. Progress UI reads DB state; closing the tab pauses the run, resume continues from saved turns.
-4. Export: server action reads DB rows for a persona or run → renders Markdown/CSV → download.
+4. Export: GET API routes under `app/api/ai/interview/export/{persona/[id],run/[runId],session/[transcriptId]}` read DB rows → render report Markdown / flat CSV / wide comparison CSV / versioned JSON backup (`?format=md|csv|csv-wide|json`) → download. Routes, not server actions, because server actions cannot set `Content-Disposition`; the gate chain is identical to the chat route's.
 
 ## Batch execution model
 
