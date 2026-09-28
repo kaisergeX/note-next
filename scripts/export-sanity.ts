@@ -1,0 +1,649 @@
+/**
+ * Export regression suite for lib/ai/export.ts — kept alongside the module it
+ * guards. Asserts the stable output contract of every builder (CSV escape /
+ * pairing rules, Markdown structure, JSON backup shapes) so renderer changes
+ * fail loudly here before shipping.
+ * Run: pnpm exec dotenv -e .env.local -- tsx scripts/export-sanity.ts
+ * (dotenv is needed because lib/ai/export pulls the db client in
+ * transitively through db/helper/personas for the slider labels.)
+ * Maintain alongside lib/ai/export.ts: new builder behavior → new assertion.
+ */
+import type {Persona} from '../db/schema/personas'
+import type {
+  Run,
+  RunItem,
+  Transcript,
+  TranscriptTurn,
+} from '../db/schema/transcripts'
+import {
+  asciiSlug,
+  buildPersonaExportCsv,
+  buildPersonaExportJson,
+  buildPersonaExportMarkdown,
+  buildRunComparisonCsv,
+  buildRunExportCsv,
+  buildRunExportJson,
+  buildRunExportMarkdown,
+  buildSessionExportJson,
+  buildSessionExportMarkdown,
+  csvEscape,
+  mdInline,
+  qaPairsFromTurns,
+} from '../lib/ai/export'
+
+let passed = 0
+let failed = 0
+function check(label: string, condition: boolean): void {
+  if (condition) {
+    passed++
+    console.log(`PASS ${label}`)
+  } else {
+    failed++
+    console.log(`FAIL ${label}`)
+  }
+}
+
+/** Minimal RFC 4180 field reader for the escape round-trip. */
+function parseCsvField(doc: string): string {
+  let field = ''
+  let inQuotes = false
+  for (let i = 0; i < doc.length; i++) {
+    const ch = doc[i]!
+    if (inQuotes) {
+      if (ch === '"') {
+        if (doc[i + 1] === '"') {
+          field += '"'
+          i++
+        } else {
+          inQuotes = false
+        }
+      } else {
+        field += ch
+      }
+    } else if (ch === '"') {
+      inQuotes = true
+    } else if (ch !== '\r') {
+      field += ch
+    }
+  }
+  return field
+}
+
+const now = new Date('2026-09-27T10:00:00.000Z')
+const persona: Persona = {
+  id: '01900000-0000-7000-8000-000000000001',
+  name: 'Trần Thị B, "cô Ba" hàng cá',
+  gender: 'female',
+  age: 54,
+  locale: 'vi-VN',
+  region: 'Nam Bộ',
+  incomeBracket: 'medium',
+  occupation: 'nhà bán cá',
+  backgroundTags: ['Cần Thơ', 'chợ nổi'],
+  personalitySliders: {
+    calm_anxious: 30,
+    optimistic_cynical: 70,
+    frugal_spendthrift: 65,
+  },
+  interviewStance: 'cooperative',
+  quirksFreetext: 'hay nhắc lại chuyện năm 1998',
+  generatedBio: 'Bio "có" dấu phẩy,\nxuống dòng.',
+  systemPrompt: 'System prompt "nhân vật".',
+  status: 'active',
+  updatedAt: now,
+  createdAt: now,
+}
+
+const turns: TranscriptTurn[] = [
+  {
+    role: 'system',
+    content: 'system prompt snapshot',
+    timestamp: '2026-09-27T10:00:00.000Z',
+  },
+  {
+    role: 'user',
+    content: 'Anh bán cá ở đây bao nhiêu năm rồi?',
+    timestamp: '2026-09-27T10:02:00.000Z',
+  },
+  {
+    role: 'assistant',
+    content: 'Trời, chục năm rồi chú à, "chợ" còn ướt chân.',
+    timestamp: '2026-09-27T10:02:05.000Z',
+  },
+  {
+    role: 'user',
+    content: 'Giá cá hôm nay sao rồi?',
+    timestamp: '2026-09-27T10:03:00.000Z',
+  },
+]
+
+const transcript: Transcript = {
+  id: '01900000-0000-7000-8000-000000000002',
+  personaId: persona.id,
+  runId: null,
+  mode: 'single',
+  turns,
+  model: 'qwen2.5-7b-instruct.gguf',
+  systemPrompt: 'System prompt "nhân vật".',
+  title: null,
+  createdAt: now,
+}
+
+// 1 — system turns filtered, consecutive user→assistant paired, trailing
+// unanswered user turn kept with an empty answer.
+const pairs = qaPairsFromTurns(turns)
+check(
+  'qaPairs count 2 (system filtered, trailing user unpaired)',
+  pairs.length === 2,
+)
+check(
+  'qaPairs turnIndex in filtered sequence (0, 2)',
+  pairs[0]?.turnIndex === 0 && pairs[1]?.turnIndex === 2,
+)
+check(
+  'pair 1 question/answer populated',
+  pairs[0]?.question.includes('bao nhiêu năm') === true &&
+    pairs[0]?.answer.includes('chục năm') === true,
+)
+check(
+  'pair 2 answer empty + times null/kept',
+  pairs[1]?.answer === '' &&
+    pairs[1]?.questionTime === '2026-09-27T10:03:00.000Z' &&
+    pairs[1]?.answerTime === null,
+)
+
+// 2 — lone assistant turn (should not happen) → empty question.
+const assistantOnly = qaPairsFromTurns([
+  {
+    role: 'assistant',
+    content: 'chỉ có trả lời',
+    timestamp: '2026-09-27T10:04:00.000Z',
+  },
+])
+check(
+  'unpaired assistant → empty question',
+  assistantOnly.length === 1 &&
+    assistantOnly[0]?.question === '' &&
+    assistantOnly[0]?.answer === 'chỉ có trả lời',
+)
+
+// 3 — RFC 4180 escape round-trip on Vietnamese with quotes/commas/newlines.
+const nasty = 'Cá "ngon", giá 50k/kg,\nlinh vật — "đắt"!'
+check(
+  'csvEscape round-trips Vietnamese quotes/commas/newlines',
+  parseCsvField(csvEscape(nasty)) === nasty,
+)
+check(
+  'csvEscape leaves plain value untouched',
+  csvEscape('plain giá trị') === 'plain giá trị',
+)
+check(
+  'csvEscape quotes leading/trailing space',
+  csvEscape(' space ') === '" space "',
+)
+
+// 3b — CSV formula-injection guard: a cell whose first char would execute as
+// an Excel formula gets a single-quote prefix (text-forcing), landing inside
+// the cell before quote wrapping.
+check(
+  'csvEscape prefixes quote for formula-leading cells',
+  csvEscape('=SUM(A1)') === "'=SUM(A1)" &&
+    csvEscape('@cmd') === "'@cmd" &&
+    csvEscape('+1') === "'+1" &&
+    csvEscape('-1') === "'-1",
+)
+check(
+  'csvEscape keeps quote prefix inside quoted cells',
+  csvEscape('=SUM(A1),B2') === '"\'=SUM(A1),B2"',
+)
+
+// 3c — mdInline collapses whitespace runs (incl. newlines) and trims.
+check(
+  'mdInline collapses newlines/space runs to single spaces',
+  mdInline('A\n\nB') === 'A B' && mdInline(' x\r\n y ') === 'x y',
+)
+
+// 4 — persona CSV: header exact, CRLF, no BOM in the lib output, pair rows.
+const personaCsv = buildPersonaExportCsv(persona, [transcript])
+const csvLines = personaCsv.split('\r\n')
+const expectedHeader =
+  'persona_id,persona_name,gender,age,locale,region,income_bracket,occupation,background_tags,calm_anxious,optimistic_cynical,frugal_spendthrift,interview_stance,quirks,run_id,model,turn_index,question,answer,question_time,answer_time'
+check(
+  'persona CSV starts with exact header',
+  personaCsv.startsWith(expectedHeader),
+)
+check(
+  'persona CSV CRLF line endings, 3 lines (header + 2 pairs)',
+  csvLines.length === 3,
+)
+check('persona CSV has NO BOM', !personaCsv.includes('\uFEFF'))
+check(
+  'persona CSV escapes name with doubled quotes',
+  personaCsv.includes('"Trần Thị B, ""cô Ba"" hàng cá"'),
+)
+check(
+  'persona CSV run_id empty for single session',
+  personaCsv.includes(',qwen2.5-7b-instruct.gguf,0,') === true &&
+    !personaCsv.includes('01900000-0000-7000-8000-000000000009'),
+)
+
+// 5 — persona Markdown report: H1 + exported date + integrity line verbatim,
+// no BOM, numbered Q/A, session fallback title.
+const personaMd = buildPersonaExportMarkdown(persona, [transcript])
+check(
+  'persona Markdown carries verbatim integrity line',
+  personaMd.includes(
+    'Simulated personas generated by an LLM for research purposes — not real people.',
+  ),
+)
+check('persona Markdown has NO BOM', !personaMd.includes('\uFEFF'))
+check(
+  'persona Markdown H1 report title',
+  personaMd.includes('# Interview Report — Trần Thị B, "cô Ba" hàng cá'),
+)
+check(
+  'persona Markdown session fallback + Q/A numbering (locale-free)',
+  personaMd.includes('### Session 1 — Untitled (2026-09-27 10:00:00)') &&
+    personaMd.includes('**Q1.** Anh bán cá ở đây bao nhiêu năm rồi?') &&
+    personaMd.includes('**A1.** Trời, chục năm rồi chú à, "chợ" còn ướt chân.'),
+)
+
+// 5b — heading interpolations are mdInline-safe: newlines in the persona name
+// or transcript title cannot split the heading into extra markdown blocks.
+const evilPersona: Persona = {...persona, name: 'Evil\n# injected'}
+const nastyTitleTranscript: Transcript = {
+  ...transcript,
+  id: '01900000-0000-7000-8000-000000000008',
+  title: 'Phiên\n"lạ" ## inject',
+}
+const evilMd = buildPersonaExportMarkdown(evilPersona, [nastyTitleTranscript])
+check(
+  'persona/session headings stay on one line (mdInline)',
+  evilMd.includes('# Interview Report — Evil # injected') &&
+    evilMd.includes(
+      '### Session 1 — Phiên "lạ" ## inject (2026-09-27 10:00:00)',
+    ),
+)
+
+// 6 — ascii slug for the download filename.
+check(
+  'asciiSlug strips diacritics/punctuation',
+  asciiSlug('Trần Thị B, "cô Ba" hàng cá') === 'tran-thi-b-co-ba-hang-ca' &&
+    asciiSlug('   ') === 'persona',
+)
+
+// 7 — run CSV: only personas with transcripts yield rows; run_id column.
+const runId = '01900000-0000-7000-8000-000000000003'
+const run: Run = {
+  id: runId,
+  questionScript: ['Câu hỏi 1?', 'Câu hỏi 2?'],
+  personaIds: [persona.id],
+  researchContext: 'Nghiên cứu "thói quen" mua sắm',
+  status: 'done',
+  updatedAt: now,
+  createdAt: now,
+}
+const doneItem: RunItem = {
+  id: '01900000-0000-7000-8000-000000000004',
+  runId,
+  personaId: persona.id,
+  status: 'done',
+  error: null,
+}
+const failedItem: RunItem = {
+  id: '01900000-0000-7000-8000-000000000005',
+  runId,
+  personaId: '01900000-0000-7000-8000-000000000006',
+  status: 'failed',
+  error: 'unreachable',
+}
+const runTranscript: Transcript = {
+  ...transcript,
+  id: '01900000-0000-7000-8000-000000000007',
+  runId,
+  mode: 'group',
+  title: 'Phiên chạy nhóm',
+}
+const runCsv = buildRunExportCsv(run, [
+  {item: doneItem, persona, transcript: runTranscript},
+  {item: failedItem, persona, transcript: null},
+])
+check(
+  'run CSV 3 lines (header + 2 pairs), failed item skipped',
+  runCsv.split('\r\n').length === 3,
+)
+check(
+  'run CSV carries run id per row',
+  runCsv.includes(`,${runId},qwen2.5-7b-instruct.gguf,0,`),
+)
+
+// 8 — run Markdown report: Overview (context + participants count), numbered
+// script, Q/A directly under the participant heading (no Session sub-heading).
+const runMd = buildRunExportMarkdown(
+  run,
+  [
+    {item: doneItem, persona, transcript: runTranscript},
+    {item: failedItem, persona, transcript: null},
+  ],
+  run.questionScript,
+)
+check(
+  'run Markdown Overview (context + participants count) + numbered script',
+  runMd.includes('# Interview Report — Run 2026-09-27 10:00:00') &&
+    runMd.includes('## Overview') &&
+    runMd.includes('- Research Context: Nghiên cứu "thói quen" mua sắm') &&
+    runMd.includes('- Participants: 1 of 2 completed') &&
+    runMd.includes('## Interview Script') &&
+    runMd.includes('1. Câu hỏi 1?') &&
+    runMd.includes('2. Câu hỏi 2?'),
+)
+check(
+  'run Markdown no-transcript italic note for failed item',
+  runMd.includes(
+    '_No transcript — run item not completed (error: unreachable)._',
+  ),
+)
+check(
+  'run Markdown Q/A directly under participant heading (no Session sub-heading)',
+  runMd.includes('### Trần Thị B, "cô Ba" hàng cá (done)') &&
+    runMd.includes('- Region: Nam Bộ') &&
+    runMd.includes('- Age: 54') &&
+    runMd.includes('**Q1.** Anh bán cá ở đây bao nhiêu năm rồi?') &&
+    !runMd.includes('### Session'),
+)
+
+// 8b — run_items.error holds only a short fixed kind in practice (err.kind
+// per runNextStepAction); mdInline keeps the note on one line even if a
+// legacy row smuggled a newline into the column.
+const smuggleItem: RunItem = {
+  ...failedItem,
+  id: '01900000-0000-7000-8000-000000000010',
+  error: 'timeout\nhttp://localhost:1234',
+}
+const smuggleMd = buildRunExportMarkdown(
+  run,
+  [{item: smuggleItem, persona, transcript: null}],
+  run.questionScript,
+)
+check(
+  'run Markdown error note strips newline smuggling (one line)',
+  smuggleMd.includes(
+    '_No transcript — run item not completed (error: timeout http://localhost:1234)._',
+  ),
+)
+
+// 9 — persona report MD: report structure + zero provenance leakage even
+// though the persona HAS a systemPrompt set (that is the JSON backup's job).
+check(
+  'persona Markdown report structure (exported date + profile/bio/sessions)',
+  personaMd.includes('Exported: ') &&
+    personaMd.includes('## Participant Profile') &&
+    personaMd.includes('## Bio') &&
+    personaMd.includes('## Sessions'),
+)
+check(
+  'persona Markdown no system/model tokens despite systemPrompt set',
+  !personaMd.toLowerCase().includes('system') &&
+    !personaMd.toLowerCase().includes('model'),
+)
+check(
+  'persona Markdown profile labels (omit-null, tags joined ;)',
+  personaMd.includes('- Region: Nam Bộ') &&
+    personaMd.includes('- Occupation: nhà bán cá') &&
+    personaMd.includes('- Gender: female') &&
+    personaMd.includes('- Age: 54') &&
+    personaMd.includes('- Income Bracket: medium') &&
+    personaMd.includes('- Interview Stance: cooperative') &&
+    personaMd.includes('- Background Tags: Cần Thơ;chợ nổi'),
+)
+check(
+  'persona Markdown bio paragraph stays raw (multi-line)',
+  personaMd.includes('## Bio') &&
+    personaMd.includes('Bio "có" dấu phẩy,\nxuống dòng.'),
+)
+const emptyTurnsTranscript: Transcript = {
+  ...transcript,
+  id: '01900000-0000-7000-8000-000000000011',
+  title: 'Trống',
+  turns: [turns[0]!],
+}
+const emptyMd = buildPersonaExportMarkdown(persona, [emptyTurnsTranscript])
+check(
+  'persona Markdown empty session → italic no-dialogue note',
+  emptyMd.includes('### Session 1 — Trống (2026-09-27 10:00:00)') &&
+    emptyMd.includes('_No dialogue recorded._'),
+)
+
+// 10 — persona JSON backup: versioned/import-ready, system prompt kept,
+// persona id stripped (import mints new ULIDs), turns round-trip verbatim.
+const personaJsonRaw = buildPersonaExportJson(persona, [transcript])
+const personaJson = JSON.parse(personaJsonRaw) as {
+  format: string
+  version: number
+  exportedAt: string
+  integrity: string
+  persona: Record<string, unknown>
+  sessions: Array<{
+    id: string
+    systemPrompt: string
+    turns: TranscriptTurn[]
+  }>
+}
+check(
+  'persona JSON format/version/integrity',
+  personaJson.format === 'note-next.persona-backup' &&
+    personaJson.version === 1 &&
+    personaJson.exportedAt.length > 0 &&
+    personaJson.integrity ===
+      'Simulated personas generated by an LLM for research purposes — not real people.',
+)
+check(
+  'persona JSON keeps persona systemPrompt, strips persona id',
+  personaJson.persona.systemPrompt === 'System prompt "nhân vật".' &&
+    !('id' in personaJson.persona) &&
+    !personaJsonRaw.includes(persona.id),
+)
+check(
+  'persona JSON session: id + snapshot + turns preserved verbatim',
+  personaJson.sessions.length === 1 &&
+    personaJson.sessions[0]?.id === transcript.id &&
+    personaJson.sessions[0]?.systemPrompt === transcript.systemPrompt &&
+    personaJson.sessions[0]?.turns.length === 4 &&
+    personaJson.sessions[0]?.turns.map((turn) => turn.role).join(',') ===
+      'system,user,assistant,user' &&
+    personaJson.sessions[0]?.turns[3]?.timestamp === '2026-09-27T10:03:00.000Z',
+)
+
+// 11 — run JSON backup: run fields + participants, transcript null for the
+// failed item with its error kept, run id stripped (import mints new ULID).
+const runJsonRaw = buildRunExportJson(
+  run,
+  [
+    {item: doneItem, persona, transcript: runTranscript},
+    {item: failedItem, persona, transcript: null},
+  ],
+  run.questionScript,
+)
+const runJson = JSON.parse(runJsonRaw) as {
+  format: string
+  version: number
+  run: {
+    questionScript: string[]
+    researchContext: string | null
+    status: string
+  }
+  participants: Array<{
+    status: string
+    error: string | null
+    transcript: {id: string; runId: string; turns: TranscriptTurn[]} | null
+  }>
+}
+check(
+  'run JSON format/version + run fields',
+  runJson.format === 'note-next.run-backup' &&
+    runJson.version === 1 &&
+    runJson.run.questionScript.join('|') === 'Câu hỏi 1?|Câu hỏi 2?' &&
+    runJson.run.researchContext === 'Nghiên cứu "thói quen" mua sắm' &&
+    runJson.run.status === 'done',
+)
+check(
+  'run JSON participants: transcript kept, null + error for failed item',
+  runJson.participants.length === 2 &&
+    runJson.participants[0]?.status === 'done' &&
+    runJson.participants[0]?.transcript?.id === runTranscript.id &&
+    runJson.participants[0]?.transcript?.turns.length === 4 &&
+    runJson.participants[1]?.status === 'failed' &&
+    runJson.participants[1]?.error === 'unreachable' &&
+    runJson.participants[1]?.transcript === null,
+)
+check(
+  'run JSON strips run id at run level (transcripts keep informative runId)',
+  !('id' in runJson.run) && !('runId' in runJson.run),
+)
+
+// 11b — runId placement across backups: persona backup sessions carry NO
+// runId (run absent from that document, import mints new ULIDs → dangling
+// FK), while the run backup's per-participant transcripts keep runId (run
+// context present there).
+check(
+  'runId placement: persona sessions omit it, run backup transcripts keep it',
+  personaJson.sessions.every((session) => !('runId' in session)) &&
+    runJson.participants[0]?.transcript?.runId === runId &&
+    runJson.participants[1]?.transcript === null,
+)
+
+// 12 — wide comparison CSV: 3 personas × 3 questions, one persona missing its
+// transcript (column present, all cells empty), one transcript SHORTER than
+// the script (missing pair → empty cell).
+function scriptTurnsFor(
+  answerPrefix: string,
+  questionCount: number,
+): TranscriptTurn[] {
+  const built: TranscriptTurn[] = [
+    {role: 'system', content: 'sys', timestamp: '2026-09-27T11:00:00.000Z'},
+  ]
+  for (let i = 1; i <= questionCount; i++) {
+    built.push({
+      role: 'user',
+      content: `câu ${i}?`,
+      timestamp: `2026-09-27T11:0${i}:00.000Z`,
+    })
+    built.push({
+      role: 'assistant',
+      content: `${answerPrefix} trả lời ${i}`,
+      timestamp: `2026-09-27T11:0${i}:05.000Z`,
+    })
+  }
+  return built
+}
+const comparisonScript = ['Q một?', 'Q hai?', 'Q ba?']
+const comparisonRun: Run = {
+  ...run,
+  id: '01900000-0000-7000-8000-000000000012',
+  questionScript: comparisonScript,
+}
+const personaB: Persona = {
+  ...persona,
+  id: '01900000-0000-7000-8000-000000000013',
+  name: 'Bìm bip',
+}
+const personaC: Persona = {
+  ...persona,
+  id: '01900000-0000-7000-8000-000000000014',
+  name: 'Chít chít',
+}
+const comparisonCsv = buildRunComparisonCsv(comparisonRun, [
+  {
+    item: {...doneItem, runId: comparisonRun.id},
+    persona,
+    transcript: {
+      ...runTranscript,
+      personaId: persona.id,
+      turns: scriptTurnsFor('A', 3),
+    },
+  },
+  {
+    item: {
+      ...doneItem,
+      id: '01900000-0000-7000-8000-000000000015',
+      personaId: personaB.id,
+    },
+    persona: personaB,
+    // Short transcript: only 2 of 3 script questions answered.
+    transcript: {
+      ...runTranscript,
+      personaId: personaB.id,
+      turns: scriptTurnsFor('B', 2),
+    },
+  },
+  {
+    item: {
+      ...doneItem,
+      id: '01900000-0000-7000-8000-000000000016',
+      personaId: personaC.id,
+    },
+    persona: personaC,
+    transcript: null,
+  },
+])
+const cmpLines = comparisonCsv.split('\r\n')
+check(
+  'comparison CSV header: index,question,one column per persona (escaped)',
+  cmpLines[0] ===
+    'question_index,question,"Trần Thị B, ""cô Ba"" hàng cá",Bìm bip,Chít chít',
+)
+check(
+  'comparison CSV rows: verbatim question + answers aligned by pair index',
+  cmpLines[1] === `0,Q một?,A trả lời 1,B trả lời 1,` &&
+    cmpLines[2] === `1,Q hai?,A trả lời 2,B trả lời 2,` &&
+    cmpLines[3] === `2,Q ba?,A trả lời 3,,`,
+)
+check(
+  'comparison CSV no BOM, 4 CRLF lines (header + 3 questions)',
+  !comparisonCsv.includes('\uFEFF') && cmpLines.length === 4,
+)
+
+// 13 — session export: MD report + JSON backup shape.
+const sessionMd = buildSessionExportMarkdown(persona, transcript)
+check(
+  'session MD: H1 + exported date + integrity + brief profile + Q/A',
+  sessionMd.includes('# Interview Session — Trần Thị B, "cô Ba" hàng cá') &&
+    sessionMd.includes('Exported: ') &&
+    sessionMd.includes(
+      'Simulated personas generated by an LLM for research purposes — not real people.',
+    ) &&
+    sessionMd.includes('- Region: Nam Bộ') &&
+    sessionMd.includes('- Occupation: nhà bán cá') &&
+    sessionMd.includes('**Q1.** Anh bán cá ở đây bao nhiêu năm rồi?') &&
+    sessionMd.includes('**A1.**'),
+)
+check(
+  'session MD: no system/model tokens',
+  !sessionMd.toLowerCase().includes('system') &&
+    !sessionMd.toLowerCase().includes('model'),
+)
+const sessionJsonRaw = buildSessionExportJson(persona, transcript)
+const sessionJson = JSON.parse(sessionJsonRaw) as {
+  format: string
+  version: number
+  persona: {name: string}
+  session: {
+    id: string
+    mode: string
+    systemPrompt: string
+    turns: TranscriptTurn[]
+  }
+}
+check(
+  'session JSON: format/version + persona + session shape',
+  sessionJson.format === 'note-next.session-backup' &&
+    sessionJson.version === 1 &&
+    sessionJson.persona.name === persona.name &&
+    sessionJson.session.id === transcript.id &&
+    sessionJson.session.mode === 'single' &&
+    sessionJson.session.systemPrompt === transcript.systemPrompt &&
+    sessionJson.session.turns.length === 4,
+)
+
+console.log(`\n${passed}/${passed + failed} PASS`)
+if (failed > 0) process.exit(1)

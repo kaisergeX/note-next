@@ -27,6 +27,15 @@ export async function getPersonaById(id: string): Promise<Persona | undefined> {
   return row
 }
 
+/** Fetch full persona rows for a known id set (run items); empty ids → []. */
+export async function listPersonasByIds(ids: string[]): Promise<Persona[]> {
+  if (ids.length === 0) return []
+  return await db
+    .select()
+    .from(personasTable)
+    .where(inArray(personasTable.id, ids))
+}
+
 export async function listAllBackgroundTags(): Promise<string[]> {
   const rows = await db.execute<{tag: string}>(
     sql`select distinct unnest(${personasTable.backgroundTags}) as tag from ${personasTable}`,
@@ -42,12 +51,18 @@ export type ActiveRosterEntry = {
   topSliders: string
 }
 
-const SLIDER_POLAR_LABELS: Record<keyof PersonalitySliders, [string, string]> =
-  {
-    calm_anxious: ['calm', 'anxious'],
-    optimistic_cynical: ['optimistic', 'cynical'],
-    frugal_spendthrift: ['frugal', 'spendthrift'],
-  }
+/**
+ * Shared between buildActiveRosterSummary and the export renderers so the
+ * roster summary and the export files always describe a slider the same way.
+ */
+export const SLIDER_POLAR_LABELS: Record<
+  keyof PersonalitySliders,
+  [string, string]
+> = {
+  calm_anxious: ['calm', 'anxious'],
+  optimistic_cynical: ['optimistic', 'cynical'],
+  frugal_spendthrift: ['frugal', 'spendthrift'],
+}
 
 /**
  * Pure: filter to `active` personas and map to the roster-summary shape.

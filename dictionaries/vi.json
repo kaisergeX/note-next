@@ -214,6 +214,13 @@
         "itemErrorKind": "Lỗi mô hình: {kind}",
         "results": "Kết quả",
         "noTranscript": "Chưa có phiên trả lời"
+      },
+      "export": {
+        "menu": "Xuất dữ liệu",
+        "report": "Báo cáo (Markdown)",
+        "dataCsv": "Dữ liệu (CSV)",
+        "comparisonCsv": "So sánh (CSV)",
+        "backupJson": "Sao lưu (JSON)"
       }
     }
   },

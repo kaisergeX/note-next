@@ -2,7 +2,12 @@
 
 import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
-import {IconDotsVertical, IconEdit, IconTrash} from '@tabler/icons-react'
+import {
+  IconDotsVertical,
+  IconDownload,
+  IconEdit,
+  IconTrash,
+} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -35,6 +40,7 @@ export default function SessionRow({
   onSessionNavigate,
 }: SessionRowProps) {
   const t = useTranslations('ai.interview.chat')
+  const tExport = useTranslations('ai.interview.export')
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isEditing, setIsEditing] = useState(false)
@@ -86,6 +92,26 @@ export default function SessionRow({
   const title = session.title ?? (session.preview || t('emptyState'))
 
   const menuItems: MenuCustomItem[] = [
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/session/${session.id}?format=md`,
+      className: 'p-3',
+      label: (
+        <>
+          <IconDownload size="16" /> {tExport('report')}
+        </>
+      ),
+    },
+    {
+      type: 'link',
+      url: `/api/ai/interview/export/session/${session.id}?format=json`,
+      className: 'p-3',
+      label: (
+        <>
+          <IconDownload size="16" /> {tExport('backupJson')}
+        </>
+      ),
+    },
     {
       component: (
         <button

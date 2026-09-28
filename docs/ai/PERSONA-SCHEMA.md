@@ -38,7 +38,7 @@
 | `quirks_freetext`           | string                         | one or two sentences — a specific memory, speech habit, pet peeve                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `generated_bio`             | string                         | AI-drafted from the above, editable/regeneratable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | `system_prompt`             | string                         | derived from `generated_bio` + stance; the authored snapshot of the persona's instructions (compact, persona-unique only — universal speech rules are enforced at runtime by the appended contract, not baked in here). At call time the chat route appends `PERSONA_SPEECH_CONTRACT`, so the full system message = snapshot + contract; this column is never mutated. Snapshot at interview time is stored on the transcript (see Transcript) — the persona may be edited after a run.                                                                     |
-| `status`                    | enum                           | `draft` / `active` / `archived`. Bulk candidates arrive as `draft` (swipe-review keep/edit/reroll); `keep` promotes to `active`. Only `active` personas join the roster summary (diversity guard), batch selection, and export. `archived` is the delete mechanism — transcripts reference `persona_id`, so hard delete would orphan or cascade them; archiving sidesteps the FK question entirely.                                                                                                                                                         |
+| `status`                    | enum                           | `draft` / `active` / `archived`. Bulk candidates arrive as `draft` (swipe-review keep/edit/reroll); `keep` promotes to `active`. Only `active` personas join the roster summary (diversity guard) and batch selection; export is deliberately status-blind (see Export shape). `archived` is the delete mechanism — transcripts reference `persona_id`, so hard delete would orphan or cascade them; archiving sidesteps the FK question entirely.                                                                                                          |
 | `created_at` / `updated_at` | timestamp                      |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 
 ### Why region stays region-level, not province-level
@@ -118,12 +118,49 @@ catch two personas that are only superficially different.
 
 ## Export shape
 
-Detail deliberately deferred to build time (per owner decision) — but one
-landmine recorded now: CSV must be written **UTF-8 with BOM** or Vietnamese
-text opens as mojibake in Excel, which is where the researcher will open it.
-Planned flattening: one row per Q&A pair, sliders as one column per axis,
-`background_tags` joined with `;`, plus run-level columns (`run_id`, `model`)
-when exporting per run.
+Reworked in Phase 7 per owner feedback into purpose-driven exports —
+dev/backup/share tooling, not a single researcher deliverable. Three scopes
+(persona / run / session), served as GET downloads under
+`app/api/ai/interview/export/{persona/[id],run/[runId],session/[transcriptId]}`
+— API routes, not server actions, because server actions cannot set
+Content-Disposition; the gate chain is identical to the chat route's. The
+landmine recorded below held and is now enforced in code: every CSV is
+written **UTF-8 with BOM** (the routes prepend `\uFEFF`; the renderers stay
+BOM-free) or Vietnamese text opens as mojibake in Excel, which is where the
+researcher will open it — rows use CRLF with RFC 4180 escaping plus a
+formula-injection guard.
+
+Four formats:
+
+- **Report (Markdown)** — the human-readable file, structured per
+  UX-research report conventions: context → methodology (the interview
+  script) → participant profile → verbatim Q/A transcript. Deliberately
+  contains **no** `systemPrompt` and no model snapshot — provenance lives
+  only in the JSON backup — and deliberately does not synthesize findings or
+  themes in-app: synthesis stays the researcher's job (research integrity;
+  the file opens with the simulated-personas line instead).
+- **Data (CSV, flat)** — one row per Q&A pair; persona attributes flattened
+  (sliders as one column per axis, `background_tags` joined with `;`), plus
+  run-level columns (`run_id`, `model` — the per-transcript snapshot).
+- **Comparison (CSV, wide; run export only)** — rows are the run's script
+  questions × columns are the personas, for cross-persona comparison; cells
+  stay empty (never fabricated) when a participant has no transcript or a
+  shorter one.
+- **Backup (JSON, versioned)** — `note-next.persona-backup` /
+  `note-next.run-backup` / `note-next.session-backup`, `version: 1`,
+  import-ready full fidelity including the `systemPrompt` and per-session
+  `model` snapshots. Ids are dropped where import would mint new ULIDs —
+  **except the session id**, kept as the stable key; the persona backup's
+  sessions also drop `runId`, since the run is absent from that document and
+  a carried-over runId would dangle after import. Import/restore is a future
+  feature, not built yet.
+
+Two deliberate access-semantics choices: export is **status-blind** — draft
+and archived personas export fine (backup semantics; archiving is the delete
+mechanism, so an archived persona's history must stay reachable). And the
+session export accepts both single and group transcripts (read-only
+backup/share semantics) even though the UI only exposes it on single
+sessions.
 
 ## Open questions (carried from PRD.md, now partly resolved)
 
