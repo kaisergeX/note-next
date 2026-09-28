@@ -2,7 +2,7 @@ import {IconArrowLeft, IconDownload} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
-import {getFormatter, getTranslations} from 'next-intl/server'
+import {getLocale, getFormatter, getTranslations} from 'next-intl/server'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import RunLoop, {type RunItemView} from '~/components/ai/interview/run-loop'
 import RunTranscripts, {
@@ -44,13 +44,16 @@ export default async function RunDetailPage({
   const t = await getTranslations('ai.interview.run')
   const tExport = await getTranslations('ai.interview.export')
   const format = await getFormatter()
+  // Export API routes live outside the [locale] segment, so the UI locale is
+  // forwarded for the Markdown report labels.
+  const locale = await getLocale()
 
   // Plain anchors: the API responds with Content-Disposition, so normal
   // navigation downloads the file — no fetch/Blob handling needed.
   const exportMenuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: `/api/ai/interview/export/run/${run.id}?format=md`,
+      url: `/api/ai/interview/export/run/${run.id}?format=md&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {tExport('report')}
@@ -59,7 +62,7 @@ export default async function RunDetailPage({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/run/${run.id}?format=csv`,
+      url: `/api/ai/interview/export/run/${run.id}?format=csv&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {tExport('dataCsv')}
@@ -68,7 +71,7 @@ export default async function RunDetailPage({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/run/${run.id}?format=csv-wide`,
+      url: `/api/ai/interview/export/run/${run.id}?format=csv-wide&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {tExport('comparisonCsv')}
@@ -77,7 +80,7 @@ export default async function RunDetailPage({
     },
     {
       type: 'link',
-      url: `/api/ai/interview/export/run/${run.id}?format=json`,
+      url: `/api/ai/interview/export/run/${run.id}?format=json&locale=${locale}`,
       label: (
         <>
           <IconDownload size="18" /> {tExport('backupJson')}
@@ -166,7 +169,7 @@ export default async function RunDetailPage({
         </div>
         <MenuCustom
           className="button-secondary button-icon shrink-0 rounded-full p-1"
-          itemsClassName="w-xs [--anchor-gap:0.5rem]"
+          itemsClassName="w-48 [--anchor-gap:0.5rem]"
           items={exportMenuItems}
         >
           <span className="sr-only">{tExport('menu')}</span>

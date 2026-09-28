@@ -10,6 +10,7 @@ import {
 } from '~/lib/ai/export'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {isShapedUuid} from '~/lib/ai/id-shape'
+import {buildReportLabels} from '~/lib/ai/report-labels'
 import {defineAuthRoute} from '~/server-utils'
 
 export const maxDuration = 60
@@ -55,8 +56,15 @@ export const GET = defineAuthRoute<
   let body: string
   let contentType: string
   let filename: string
+  // Markdown AND CSV are localized via `?locale=` (validated, fallback 'en');
+  // the JSON backup stays locale-free by design.
+  const localeParam = request.nextUrl.searchParams.get('locale')
   if (format === 'csv') {
-    body = buildPersonaExportCsv(persona, transcripts)
+    body = buildPersonaExportCsv(
+      persona,
+      transcripts,
+      await buildReportLabels(localeParam),
+    )
     contentType = 'text/csv; charset=utf-8'
     filename = `persona-${asciiSlug(persona.name)}.csv`
   } else if (format === 'json') {
@@ -66,7 +74,11 @@ export const GET = defineAuthRoute<
     contentType = 'application/json; charset=utf-8'
     filename = `persona-${asciiSlug(persona.name)}-backup.json`
   } else {
-    body = buildPersonaExportMarkdown(persona, transcripts)
+    body = buildPersonaExportMarkdown(
+      persona,
+      transcripts,
+      await buildReportLabels(localeParam),
+    )
     contentType = 'text/markdown; charset=utf-8'
     filename = `persona-${asciiSlug(persona.name)}-report.md`
   }
