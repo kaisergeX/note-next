@@ -40,6 +40,7 @@ function turnsToUIMessages(turns: TranscriptTurn[]): UIMessage[] {
     .map((turn, index) => ({
       id: `turn-${index}`,
       role: turn.role,
+      metadata: {createdAt: turn.timestamp},
       parts: [{type: 'text', text: turn.content}],
     }))
 }

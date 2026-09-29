@@ -49,6 +49,10 @@
   @apply animate-scroll animate-[affix-appear];
 }
 
+@utility typing-dot {
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+
 @utility prose {
   code {
     @apply bg-(--tw-prose-code-pg,var(--color-gray-200)) dark:bg-(--tw-prose-code-pg,var(--color-gray-700));
@@ -298,5 +302,19 @@
 @keyframes pr {
   to {
     padding-right: var(--pr-to, 1rem);
+  }
+}
+
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+
+  30% {
+    transform: translateY(-3px);
+    opacity: 1;
   }
 }
