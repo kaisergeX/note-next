@@ -158,7 +158,13 @@
         "sidebarToggle": "Mở/đóng danh sách phiên",
         "actionFailed": "Thao tác vừa rồi không thành công. Vui lòng thử lại.",
         "runSessions": "Phiên chạy hàng loạt",
-        "runBadge": "Loạt"
+        "runBadge": "Loạt",
+        "typing": "Đang nhập…",
+        "expandInput": "Mở rộng khung nhập",
+        "collapseInput": "Thu gọn khung nhập",
+        "scrollToBottom": "Xuống tin nhắn mới nhất",
+        "retry": "Thử lại",
+        "regenerate": "Tạo lại"
       },
       "profile": {
         "emptyBio": "Chưa có tiểu sử — mở Sửa để tạo.",

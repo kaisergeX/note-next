@@ -158,7 +158,13 @@
         "sidebarToggle": "Toggle the session sidebar",
         "actionFailed": "The last action failed. Please try again.",
         "runSessions": "Run sessions",
-        "runBadge": "Run"
+        "runBadge": "Run",
+        "typing": "Typing…",
+        "expandInput": "Expand input",
+        "collapseInput": "Collapse input",
+        "scrollToBottom": "Scroll to latest",
+        "retry": "Retry",
+        "regenerate": "Regenerate"
       },
       "profile": {
         "emptyBio": "No bio yet — open Edit and generate one.",

@@ -1,4 +1,5 @@
 import {getTranslations} from 'next-intl/server'
+import ChatBubble from '~/components/ai/interview/chat-bubble'
 import {RUN_STATUS_BADGE_CLASS} from '~/components/ai/interview/run-status'
 import type {RunItemStatus} from '~/db/schema/transcripts'
 
@@ -26,9 +27,9 @@ type RunTranscriptsProps = {
 
 /**
  * Read-only per-persona Q&A under the run item list. The user turn is the
- * researcher's question, the assistant turn is the persona's answer — styled
- * like the chat bubbles (user right/dark, persona left/light) so the two
- * surfaces read the same. Collapsible via native <details>, like persona form.
+ * researcher's question, the assistant turn is the persona's answer — rendered
+ * through the shared chat bubble so they read the same as the live chat.
+ * Collapsible via native <details>, like persona form.
  */
 export default async function RunTranscripts({rows}: RunTranscriptsProps) {
   const t = await getTranslations('ai.interview.run')
@@ -66,15 +67,9 @@ export default async function RunTranscripts({rows}: RunTranscriptsProps) {
                           {row.personaName}
                         </span>
                       )}
-                      <div
-                        className={
-                          turn.role === 'user'
-                            ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-900 px-3 py-2 text-sm whitespace-pre-wrap text-white dark:bg-zinc-200 dark:text-black'
-                            : 'max-w-[85%] rounded-2xl rounded-bl-sm border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm whitespace-pre-wrap dark:border-zinc-700 dark:bg-zinc-900'
-                        }
-                      >
+                      <ChatBubble variant={turn.role}>
                         {turn.content}
-                      </div>
+                      </ChatBubble>
                       {turn.timeLabel && (
                         <p className="text-muted-foreground mt-0.5 text-xs">
                           {turn.timeLabel}
