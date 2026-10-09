@@ -519,7 +519,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
               <legend className="mb-2 text-sm font-medium">
                 {t('sliders')}
               </legend>
-              <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3 sm:gap-8">
                 {SLIDER_AXES.map((axis) => (
                   <form.Field key={axis.key} name={`sliders.${axis.key}`}>
                     {(field) => (
