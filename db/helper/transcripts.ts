@@ -133,6 +133,18 @@ export async function findRunTranscript(
   return row
 }
 
+/** Any transcript row (single or run) referencing one persona. */
+export async function personaHasTranscripts(
+  personaId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({id: transcriptsTable.id})
+    .from(transcriptsTable)
+    .where(eq(transcriptsTable.personaId, personaId))
+    .limit(1)
+  return row !== undefined
+}
+
 export async function deleteTranscriptById(id: string): Promise<boolean> {
   const rows = await db
     .delete(transcriptsTable)

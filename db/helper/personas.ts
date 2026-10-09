@@ -1,4 +1,4 @@
-import {desc, eq, inArray, sql} from 'drizzle-orm'
+import {and, desc, eq, inArray, sql} from 'drizzle-orm'
 import {db} from '..'
 import {
   personasTable,
@@ -65,15 +65,22 @@ export const SLIDER_POLAR_LABELS: Record<
 }
 
 /**
- * Pure: filter to `active` personas and map to the roster-summary shape.
+ * Pure: filter to the given statuses and map to the roster-summary shape.
  * `topSliders` = the top-2 slider axes by |value-50| distance with direction
  * (e.g. "anxious(85), spendthrift(78)") — deterministic and testable.
+ * Phase 6: also feeds the bulk-draft diversity guard over
+ * ['active', 'draft'] (unkept draft candidates count in the guard).
  */
-export function buildActiveRosterSummary(
+export function buildRosterSummary(
   personas: Persona[],
+  statuses?: PersonaStatus[],
 ): ActiveRosterEntry[] {
+  // statuses omitted = the caller already filtered (DB helpers pass the
+  // status list into the SQL query; the filter lives in ONE place either
+  // way — never both).
+  const included = statuses === undefined ? undefined : new Set(statuses)
   return personas
-    .filter((persona) => persona.status === 'active')
+    .filter((persona) => included === undefined || included.has(persona.status))
     .map((persona) => {
       const sliders = persona.personalitySliders
       const ranked = (
@@ -100,6 +107,47 @@ export function buildActiveRosterSummary(
     })
 }
 
+/**
+ * Current behavior for the Phase 3/5 callers, unchanged: active personas
+ * only, byte-compatible summary output.
+ */
+export function buildActiveRosterSummary(
+  personas: Persona[],
+): ActiveRosterEntry[] {
+  return buildRosterSummary(personas, ['active'])
+}
+
 export async function getActiveRosterSummary(): Promise<ActiveRosterEntry[]> {
-  return buildActiveRosterSummary(await listPersonasByStatuses(['active']))
+  return buildRosterSummary(await listPersonasByStatuses(['active']))
+}
+
+/**
+ * Phase 6 bulk-draft diversity guard: active personas AND unkept draft
+ * candidates (owner decision — drafts count in the guard until kept,
+ * archived never does). `excludePersonaId` removes one persona (reroll:
+ * the target must not guard against itself — used while the replacement is
+ * generated BEFORE the old row is deleted).
+ */
+export async function getDraftGuardRosterSummary(options?: {
+  excludePersonaId?: string
+}): Promise<ActiveRosterEntry[]> {
+  const rows = await listPersonasByStatuses(['active', 'draft'])
+  const eligible =
+    options?.excludePersonaId === undefined
+      ? rows
+      : rows.filter((row) => row.id !== options.excludePersonaId)
+  return buildRosterSummary(eligible)
+}
+
+/**
+ * Draft-candidate-only hard delete (TOCTOU-safe: re-checks status in the
+ * DELETE predicate itself — a concurrent flip to active/archived makes this
+ * a no-op returning 0). Callers guard transcripts/run-items separately.
+ */
+export async function deleteDraftPersonaById(id: string): Promise<number> {
+  const rows = await db
+    .delete(personasTable)
+    .where(and(eq(personasTable.id, id), eq(personasTable.status, 'draft')))
+    .returning({id: personasTable.id})
+  return rows.length
 }
