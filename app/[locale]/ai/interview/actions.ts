@@ -3,10 +3,13 @@
 import {eq, inArray} from 'drizzle-orm'
 import {db} from '~/db'
 import {
+  deleteDraftPersonaById,
   getActiveRosterSummary,
+  getDraftGuardRosterSummary,
   getPersonaById,
   listAllBackgroundTags,
 } from '~/db/helper/personas'
+import {personaHasRunItems} from '~/db/helper/runs'
 import {
   claimNextRunItem,
   createRun,
@@ -23,7 +26,11 @@ import {
   type Persona,
   type PersonaStatus,
 } from '~/db/schema/personas'
-import {type RunItemStatus, type TranscriptTurn} from '~/db/schema/transcripts'
+import {
+  type RunItemStatus,
+  type PersonalitySliders,
+  type TranscriptTurn,
+} from '~/db/schema/transcripts'
 import {type ActionResult, type FieldError} from '~/lib/ai/action-result'
 import {FeatureAccessError, requireFeatureAccess} from '~/lib/ai/feature-access'
 import {isShapedUuid} from '~/lib/ai/id-shape'
@@ -34,7 +41,11 @@ import {
   type LMStudioMessage,
 } from '~/lib/ai/lm-studio'
 import {buildInterviewSystemMessage} from '~/lib/ai/persona-style'
-import {draftPersona, type PersonaDraft} from '~/lib/ai/persona-drafting'
+import {
+  draftPersona,
+  draftPersonaBatch,
+  type PersonaDraft,
+} from '~/lib/ai/persona-drafting'
 import {
   draftPersonaInputSchema,
   personaInputSchema,
@@ -43,6 +54,7 @@ import {
 } from '~/lib/ai/persona-validation'
 import {
   AI_DRAFT_TIMEOUT_MS,
+  AI_DEFAULT_LOCALE,
   AI_LOCALES,
   AI_REQUEST_TIMEOUT_MS,
   LM_STUDIO_MODEL,
@@ -54,6 +66,7 @@ import {
   deleteTranscriptById,
   findRunTranscript,
   getTranscriptById,
+  personaHasTranscripts,
   setTranscriptTitle,
 } from '~/db/helper/transcripts'
 import {requireAuth} from '~/server-utils'
@@ -1054,4 +1067,295 @@ export async function retryFailedRunItemsAction(
 
   const retried = await retryFailedRunItems(runId)
   return {ok: true, data: {retried}}
+}
+
+// ---------------------------------------------------------------------------
+// Phase 6 — bulk persona drafting (server half)
+// ---------------------------------------------------------------------------
+
+export type PersonaCandidate = {
+  id: string
+  name: string
+  region: string
+  occupation: string | null
+  backgroundTags: string[]
+  personalitySliders: PersonalitySliders
+  bio: string | null
+  systemPrompt: string | null
+}
+
+const MIX_DESCRIPTION_MAX_CHARS = 2000
+const BATCH_MIN_SIZE = 2
+const BATCH_MAX_SIZE = 8
+const BATCH_DEFAULT_SIZE = 5
+
+/**
+ * Map one validated AI draft onto a persisted candidate row. The draft
+ * schema makes fields optional; the model is instructed to invent name and
+ * region (shared core: empty fields MUST be invented), so these fallbacks
+ * only fire on a degraded payload — they are not a normal path. The
+ * hardcoded Vietnamese name fallback is accepted for now (no app-locale
+ * plumbing reaches the drafting model). region stays '' because the
+ * personas.region column is NOT NULL — persisting null is impossible
+ * without a migration (owner-flagged finding).
+ */
+function draftToCandidateRow(draft: PersonaDraft) {
+  return {
+    name: draft.name ?? 'Nhân vật chưa đặt tên',
+    locale: AI_DEFAULT_LOCALE,
+    region: draft.region ?? '',
+    gender: draft.gender,
+    age: draft.age,
+    incomeBracket: draft.incomeBracket,
+    occupation: draft.occupation,
+    backgroundTags: draft.backgroundTags ?? [],
+    personalitySliders:
+      draft.personalitySliders ??
+      ({
+        calm_anxious: 50,
+        optimistic_cynical: 50,
+        frugal_spendthrift: 50,
+      } as PersonalitySliders),
+    interviewStance: draft.interviewStance,
+    quirksFreetext: draft.quirksFreetext,
+    generatedBio: draft.bio,
+    systemPrompt: draft.systemPrompt,
+    status: 'draft' as const,
+  }
+}
+
+function rowToCandidate(row: Persona): PersonaCandidate {
+  return {
+    id: row.id,
+    name: row.name,
+    region: row.region,
+    occupation: row.occupation,
+    backgroundTags: row.backgroundTags,
+    personalitySliders: row.personalitySliders,
+    bio: row.generatedBio,
+    systemPrompt: row.systemPrompt,
+  }
+}
+
+/**
+ * Draft arg shape-checks shared by generate/reroll: cheap, pure, run before
+ * the access gate (house convention).
+ */
+type ActionFailure = Extract<ActionResult<never>, {ok: false}>
+
+function parseMixDescriptionArg(
+  rawMix: unknown,
+): {ok: true; text: string} | ActionFailure {
+  if (typeof rawMix !== 'string') {
+    return {ok: false, reason: 'validation'}
+  }
+  const trimmed = rawMix.trim()
+  if (trimmed.length === 0 || trimmed.length > MIX_DESCRIPTION_MAX_CHARS) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `mixDescription must be 1-${MIX_DESCRIPTION_MAX_CHARS} characters`,
+    }
+  }
+  return {ok: true, text: trimmed}
+}
+
+function parseBatchSizeArg(
+  rawSize: unknown,
+): {ok: true; size: number} | ActionFailure {
+  if (rawSize === undefined) {
+    return {ok: true, size: BATCH_DEFAULT_SIZE}
+  }
+  if (
+    typeof rawSize !== 'number' ||
+    !Number.isInteger(rawSize) ||
+    rawSize < BATCH_MIN_SIZE ||
+    rawSize > BATCH_MAX_SIZE
+  ) {
+    return {
+      ok: false,
+      reason: 'validation',
+      message: `batchSize must be an integer between ${BATCH_MIN_SIZE} and ${BATCH_MAX_SIZE}`,
+    }
+  }
+  return {ok: true, size: rawSize}
+}
+
+/**
+ * Server-validated batch size: 2–8 candidates per call (default 5). The
+ * diversity guard covers active personas AND unkept draft candidates (owner
+ * decision — drafts count until kept, archived never does). All returned
+ * candidates persist immediately as status='draft' rows; there is no
+ * client-only candidate state. Fewer than N candidates is not an error —
+ * the client loops and shows what came back.
+ */
+export async function generatePersonaCandidatesAction(
+  raw: unknown,
+): Promise<ActionResult<PersonaCandidate[]>> {
+  const record =
+    typeof raw === 'object' && raw !== null
+      ? (raw as Record<string, unknown>)
+      : undefined
+  const mix = parseMixDescriptionArg(record?.mixDescription)
+  if (!mix.ok) return mix
+  const size = parseBatchSizeArg(record?.batchSize)
+  if (!size.ok) return size
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const guardSummary = await getDraftGuardRosterSummary()
+
+  try {
+    // Batch JSON is the biggest drafting payload; use the extended draft
+    // timeout like the single generate path.
+    const drafts = await draftPersonaBatch(mix.text, size.size, guardSummary, {
+      timeoutMs: AI_DRAFT_TIMEOUT_MS,
+    })
+    // The shared draft schema is loose and can silently drop a degraded
+    // candidate; an empty batch is a distinct outcome the client shows
+    // instead of a confusing "success, nothing happened".
+    if (drafts.length === 0) {
+      return {ok: false, reason: 'noCandidates'}
+    }
+    // Defensive: the batch schema already bounds the array at count, but
+    // never insert more than the validated batchSize.
+    const inserted = await db
+      .insert(personasTable)
+      .values(drafts.slice(0, size.size).map(draftToCandidateRow))
+      .returning()
+    return {ok: true, data: inserted.map(rowToCandidate)}
+  } catch (err) {
+    const mapped = mapLMStudioError(err)
+    if (mapped) return mapped
+    throw err
+  }
+}
+
+/**
+ * Replaces one draft candidate with a single fresh draft. Refuses anything
+ * that is not a transcript-less draft ('notDraft' / 'hasTranscripts') —
+ * drafts hold no transcripts/run items by design, so the guard is the
+ * safety net before a HARD delete (transcripts.persona_id and
+ * run_items.persona_id have no ON DELETE cascade and there is no run-delete
+ * path in v1).
+ *
+ * GENERATION-FIRST: the replacement is generated and inserted BEFORE the
+ * old row is deleted — an offline/timeout failure must not leave the user
+ * with nothing (the old draft survives). The guard summary EXCLUDES the
+ * target persona so the new draft is not guarded against itself, and the
+ * final delete re-checks status='draft' in the DELETE predicate (TOCTOU:
+ * a concurrent flip to active/archived makes the delete a no-op → 0 rows
+ * → 'notDraft'; the inserted replacement is cleaned up).
+ */
+export async function rerollPersonaCandidateAction(
+  rawPersonaId: unknown,
+  rawMix: unknown,
+): Promise<ActionResult<PersonaCandidate>> {
+  // Cheap arg shape-checks before the gate/DB.
+  if (typeof rawPersonaId !== 'string' || !isShapedUuid(rawPersonaId)) {
+    return {ok: false, reason: 'validation'}
+  }
+  const mix = parseMixDescriptionArg(rawMix)
+  if (!mix.ok) return mix
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const persona = await getPersonaById(rawPersonaId)
+  if (!persona) {
+    return {ok: false, reason: 'error', message: 'not found'}
+  }
+  if (persona.status !== 'draft') {
+    return {ok: false, reason: 'notDraft'}
+  }
+  if (await personaHasTranscripts(persona.id)) {
+    return {ok: false, reason: 'hasTranscripts'}
+  }
+  if (await personaHasRunItems(persona.id)) {
+    return {ok: false, reason: 'hasTranscripts'}
+  }
+
+  // Summary BEFORE generation, target excluded: the rerolled candidate must
+  // not guard against itself, but the rest of the roster + other drafts
+  // still does. (Deletion happens last, so the exclusion is required here.)
+  const guardSummary = await getDraftGuardRosterSummary({
+    excludePersonaId: persona.id,
+  })
+
+  try {
+    // Mix description rides the seedDescription hook — the shared template
+    // treats that block as AUTHORITATIVE. Neutral sliders; the model
+    // invents the rest (draftPersona re-validates through the loose schema).
+    const seed = draftPersonaInputSchema.parse({
+      locale: AI_DEFAULT_LOCALE,
+      seedDescription: mix.text,
+    })
+    const draft = await draftPersona(seed, guardSummary, {
+      timeoutMs: AI_DRAFT_TIMEOUT_MS,
+    })
+    const inserted = await db
+      .insert(personasTable)
+      .values(draftToCandidateRow(draft))
+      .returning()
+    const replacementId = inserted[0]!.id
+
+    // Delete LAST (draft-only predicate re-verifies status at delete time).
+    // 0 rows = concurrent status flip (TOCTOU): the replacement draft stays
+    // harmless, but the reroll did not happen as requested — clean it up
+    // and report 'notDraft' rather than silently mutating the roster.
+    const deleted = await deleteDraftPersonaById(persona.id)
+    if (deleted === 0) {
+      await deleteDraftPersonaById(replacementId)
+      return {ok: false, reason: 'notDraft'}
+    }
+    return {ok: true, data: rowToCandidate(inserted[0]!)}
+  } catch (err) {
+    const mapped = mapLMStudioError(err)
+    if (mapped) return mapped
+    throw err
+  }
+}
+
+/**
+ * Discards one draft candidate: same draft + no-transcripts guard, then a
+ * draft-only hard delete (0 rows = concurrent status flip → 'notDraft').
+ * Missing row = already discarded (idempotent retry), mirroring
+ * deleteInterviewSessionAction. Deleting a persona with transcripts or run
+ * items is refused ('hasTranscripts') — the FKs have no cascade, and there
+ * is no run-delete path in v1, so those scenarios would 500 on the FK
+ * violation; the guards are the safety net.
+ */
+export async function discardPersonaDraftAction(
+  rawPersonaId: unknown,
+): Promise<ActionResult<{deleted: boolean}>> {
+  // Cheap arg shape-check before the gate/DB.
+  if (typeof rawPersonaId !== 'string' || !isShapedUuid(rawPersonaId)) {
+    return {ok: false, reason: 'validation'}
+  }
+
+  const noAccess = await requirePersonaInterviewAccess()
+  if (noAccess) return noAccess
+
+  const persona = await getPersonaById(rawPersonaId)
+  if (!persona) {
+    return {ok: true, data: {deleted: false}}
+  }
+  if (persona.status !== 'draft') {
+    return {ok: false, reason: 'notDraft'}
+  }
+  if (await personaHasTranscripts(persona.id)) {
+    return {ok: false, reason: 'hasTranscripts'}
+  }
+  if (await personaHasRunItems(persona.id)) {
+    return {ok: false, reason: 'hasTranscripts'}
+  }
+
+  // Draft-only predicate re-verifies status at delete time (TOCTOU-safe);
+  // 0 rows = concurrent flip to non-draft, reported as 'notDraft'.
+  const deletedCount = await deleteDraftPersonaById(persona.id)
+  if (deletedCount === 0) {
+    return {ok: false, reason: 'notDraft'}
+  }
+  return {ok: true, data: {deleted: true}}
 }

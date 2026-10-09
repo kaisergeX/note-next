@@ -43,6 +43,22 @@ export async function createRun(input: {
   })
 }
 
+/**
+ * Any run_item referencing one persona. Draft personas should have none
+ * (only kept personas enter runs) — this guard is the safety net before a
+ * hard delete, since run_items.persona_id has no ON DELETE cascade and
+ * there is no run-delete path in v1 (deleting the persona would 500 on the
+ * FK violation).
+ */
+export async function personaHasRunItems(personaId: string): Promise<boolean> {
+  const [row] = await db
+    .select({id: runItemsTable.id})
+    .from(runItemsTable)
+    .where(eq(runItemsTable.personaId, personaId))
+    .limit(1)
+  return row !== undefined
+}
+
 export async function getRunById(id: string): Promise<Run | undefined> {
   const [row] = await db
     .select()

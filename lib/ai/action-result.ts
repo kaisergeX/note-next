@@ -12,7 +12,17 @@ export type ActionResult<T> =
   | {ok: true; data: T}
   | {
       ok: false
-      reason: 'validation' | 'no-access' | 'offline' | 'error'
+      reason:
+        | 'validation'
+        | 'no-access'
+        | 'offline'
+        | 'error'
+        // Phase 6 draft-candidate guards: reroll/discard refuse non-draft
+        // personas or personas that already hold transcripts/run items;
+        // 'noCandidates' = the model returned zero usable candidates.
+        | 'notDraft'
+        | 'hasTranscripts'
+        | 'noCandidates'
       message?: string
       fieldErrors?: Record<string, FieldError[]>
     }

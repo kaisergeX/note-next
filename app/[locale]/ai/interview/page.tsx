@@ -5,7 +5,7 @@ import PersonaRosterCard from '~/components/ai/interview/persona-roster-card'
 import type {PersonaFormInitial} from '~/components/ai/interview/persona-form'
 import {listPersonasByStatuses} from '~/db/helper/personas'
 import {requireAuth} from '~/server-utils'
-import {IconMan, IconUsersGroup} from '@tabler/icons-react'
+import {IconMan, IconSparkles, IconUsersGroup} from '@tabler/icons-react'
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations()
@@ -44,6 +44,9 @@ export default async function InterviewPage() {
       <div className="flex-center-between mb-4">
         <h1 className="text-2xl font-bold">{t('roster.title')}</h1>
         <div className="flex items-center gap-2">
+          <Link href="/ai/interview/bulk" className="button-secondary text-sm">
+            <IconSparkles /> {t('bulk.title')}
+          </Link>
           <Link href="/ai/interview/runs" className="button-secondary text-sm">
             <IconUsersGroup /> {t('run.title')}
           </Link>

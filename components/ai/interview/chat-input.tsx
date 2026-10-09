@@ -8,7 +8,7 @@ import {
   IconSend,
 } from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useEffect, useLayoutEffect, useRef, useState} from 'react'
+import {useEffect, useRef, useState} from 'react'
 
 type ChatInputProps = {
   value: string
