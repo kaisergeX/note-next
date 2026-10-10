@@ -100,8 +100,10 @@ export default async function PersonaChatPage({
   const format = await getFormatter()
 
   // A persona without a system prompt has nothing to interview against; the
-  // researcher must generate one on the edit page first.
-  if (!persona.systemPrompt) {
+  // researcher must generate one on the edit page first. Draft personas are
+  // blocked too: they must be activated before interviewing.
+  if (persona.status === 'draft' || !persona.systemPrompt) {
+    const isDraft = persona.status === 'draft'
     return (
       <section className="container mx-auto space-y-4 p-4">
         <div>
@@ -114,9 +116,11 @@ export default async function PersonaChatPage({
           </h2>
         </div>
         <p role="alert" className="text-danger text-sm">
-          {t('blockedTitle')}
+          {isDraft ? t('blockedDraftTitle') : t('blockedTitle')}
         </p>
-        <p className="text-muted-foreground text-sm">{t('blockedHint')}</p>
+        <p className="text-muted-foreground text-sm">
+          {isDraft ? t('blockedDraftHint') : t('blockedHint')}
+        </p>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/ai/interview"

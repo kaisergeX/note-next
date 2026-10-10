@@ -1,14 +1,9 @@
 'use client'
 
 import {classNames} from '@kaiverse/k/utils'
-import {
-  IconChevronDown,
-  IconChevronUp,
-  IconPlayerStop,
-  IconSend,
-} from '@tabler/icons-react'
+import {IconPlayerStop, IconSend} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useRef} from 'react'
 
 type ChatInputProps = {
   value: string
@@ -35,46 +30,8 @@ export default function ChatInput({
   maxLengthHint = 8000,
 }: ChatInputProps) {
   const t = useTranslations('ai.interview.chat')
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [canExpand, setCanExpand] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auto-grow: collapse to the natural height, then stretch to the content.
-  // CSS max-height caps the box; overflow scrolling kicks in past the cap.
-  // The same pass counts rendered lines; the expand toggle only appears once
-  // the content is at least 2 lines tall. When the input shrinks back under
-  // 2 lines the expanded mode is force-collapsed: it has no room for it.
-  // useLayoutEffect(() => {
-  //   const textarea = textareaRef.current
-  //   if (!textarea) return
-  //   if (isExpanded) {
-  //     textarea.style.removeProperty('height')
-  //     return
-  //   }
-
-  //   // Measure the content alone: at height 0 scrollHeight is exactly the
-  //   // padded content, so the padding and the 2-row baseline are stripped.
-  //   // Hide the scrollbar while measuring: it narrows the wrap width, which
-  //   // would overcount line breaks that only exist during measurement.
-  //   textarea.style.overflowY = 'hidden'
-  //   textarea.style.height = '0px'
-  //   const contentScrollHeight = textarea.scrollHeight + 2
-  //   const style = getComputedStyle(textarea)
-  //   const contentHeight =
-  //     contentScrollHeight -
-  //     parseFloat(style.paddingTop) -
-  //     parseFloat(style.paddingBottom)
-  //   const lineHeightPx = parseFloat(style.lineHeight) || 20
-  //   const nextCanExpand = Math.floor(contentHeight / lineHeightPx) >= 2
-  //   setCanExpand(nextCanExpand)
-  //   if (!nextCanExpand) setIsExpanded(false)
-  //   // Then set the working height: auto collapses to the content (CSS rows
-  //   // baseline), clamped by the CSS max-height caps. Restore overflow so the
-  //   // CSS overflow-y-auto class applies again after measurement.
-  //   textarea.style.height = 'auto'
-  //   textarea.style.height = `${textarea.scrollHeight + 2}px`
-  //   textarea.style.overflowY = ''
-  // }, [value, isExpanded])
   useEffect(() => {
     textareaRef.current?.focus()
   }, [])
@@ -93,10 +50,9 @@ export default function ChatInput({
         submit()
       }}
     >
-      <div className="relative min-w-0 flex-1">
+      <div className="relative min-w-0 flex-1 rounded-lg border border-zinc-300 py-2 focus-within:outline dark:border-zinc-700">
         <textarea
           ref={textareaRef}
-          rows={2}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {
@@ -108,27 +64,11 @@ export default function ChatInput({
           }}
           placeholder={t('inputPlaceholder')}
           className={classNames(
-            'w-full min-w-0 resize-none overflow-y-auto rounded-md px-3 py-2 text-sm',
-            'border border-zinc-300 transition-[height] [interpolate-size:allow-keywords] dark:border-zinc-700 dark:bg-zinc-900',
-            isExpanded ? 'h-[40dvh]' : 'h-auto max-h-60',
+            'w-full min-w-0 px-3 text-sm outline-none',
+            'field-sizing-content h-auto max-h-80 min-h-10 resize-none overflow-y-auto transition-[height] [interpolate-size:allow-keywords]',
+            'dark:bg-zinc-900',
           )}
         />
-        {canExpand && (
-          <button
-            type="button"
-            aria-pressed={isExpanded}
-            title={isExpanded ? t('collapseInput') : t('expandInput')}
-            aria-label={isExpanded ? t('collapseInput') : t('expandInput')}
-            onClick={() => setIsExpanded((expanded) => !expanded)}
-            className="absolute top-2 right-2 flex size-7 items-center justify-center rounded-md text-zinc-500 transition-colors hover:text-zinc-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 dark:focus-visible:outline-zinc-400"
-          >
-            {isExpanded ? (
-              <IconChevronDown size="16" />
-            ) : (
-              <IconChevronUp size="16" />
-            )}
-          </button>
-        )}
       </div>
       {value.length > maxLengthHint - 1000 && (
         <span className="text-muted-foreground self-center text-xs tabular-nums">

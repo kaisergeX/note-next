@@ -1,7 +1,6 @@
 import 'server-only'
 
 import {z} from 'zod'
-import {AI_DEFAULT_LOCALE, type AiLocale} from '~/config/ai'
 import {completeJson, type LMStudioMessage} from '~/lib/ai/lm-studio'
 import {
   draftPersonaInputSchema,
@@ -43,9 +42,8 @@ export type RosterSummaryEntry = {
 }
 
 /**
- * Shared drafting rules for BOTH the single-draft and batch paths (do not
- * duplicate them). The single template wraps this core with its own intro
- * paragraph; the batch template wraps it with the batch intro + overrides.
+ * Drafting rules for the single-draft path; the system template wraps this
+ * core with its own intro paragraph.
  */
 const DRAFTING_RULES_CORE = `MỌI trường đầu vào bị bỏ trống hoặc thiếu có nghĩa là bạn PHẢI tự sáng tác một giá trị hợp lý, nhất quán với vùng miền/locale và các trường còn lại, rồi trả giá trị đó về đúng trường tương ứng trong JSON đầu ra ("name", "age", "gender", "region", "incomeBracket", "occupation", "backgroundTags", "personalitySliders", "interviewStance", "quirksFreetext"). Các thanh trượt tính cách (personalitySliders) luôn được cung cấp dưới dạng số nguyên 0–100.
 
@@ -81,25 +79,6 @@ const SYSTEM_PROMPT_TEMPLATE = `Bạn là trợ lý của nhà nghiên cứu, ph
 ${DRAFTING_RULES_CORE}`
 
 const ROSTER_HEADER = `Ngoài ra, tránh trùng lặp với các nhân vật hiện có. Dưới đây là danh sách các nhân vật đang hoạt động, kèm vùng miền, nghề nghiệp, background_tags và các trục tính cách nổi bật của từng người. Hãy bảo đảm nhân vật mới khác biệt rõ rệt so với tất cả các nhân vật này:`
-
-/**
- * Phase 6 batch path: same drafting rules, wrapped for a multi-candidate
- * response. The mix description's language is authoritative for every text
- * field (explicit override — the core's Vietnamese wording applies only when
- * the mix itself is written in Vietnamese).
- */
-const BATCH_INTRO = (count: number) =>
-  `Bạn là trợ lý của nhà nghiên cứu, phụ trách soạn thảo tài liệu cho các nhân vật mô phỏng dùng trong các buổi phỏng vấn nghiên cứu thị trường tại Việt Nam. Nhà nghiên cứu cần MỘT NHÓM ${count} nhân vật KHÁC BIỆT RÕ RỆT; bạn nhận được mô tả nhu cầu của nhóm và phải trả về MỘT mảng JSON gồm ĐÚNG ${count} đối tượng, mỗi đối tượng là hồ sơ của MỘT nhân vật theo đúng quy tắc bên dưới.`
-
-const BATCH_GROUP_RULES = (
-  count: number,
-) => `Quy tắc riêng cho chế độ nhóm (mảng nhiều nhân vật):
-- Mảng đầu ra PHẢI có đúng ${count} phần tử.
-- Các phần tử phải KHÁC BIỆT RÕ RỆT với nhau: mỗi phần tử có tên riêng, vùng miền/tỉnh thành, nghề nghiệp, background_tags, combo thanh trượt và quirk riêng; không hai phần tử nào là bản sao gần của nhau.
-- "Mô tả gốc từ nhà nghiên cứu" bên dưới là ràng buộc chung của CẢ NHÓM: mọi yêu cầu nó nêu rõ (đặc điểm nhóm, sự kết hợp cần phủ) phải được đáp ứng trên toàn bộ mảng, phân bố KHÁC NHAU giữa các phần tử; các trường mà mô tả không nêu được tự sáng tác RIÊNG cho từng phần tử.
-- GHI ĐÈ NGÔN NGỮ: viết "bio", "systemPrompt" và mọi giá trị tự sáng tác bằng CÙNG NGÔN NGỮ với "Mô tả gốc từ nhà nghiên cứu" (mô tả tiếng Việt → đầu ra tiếng Việt; mô tả tiếng Anh → đầu ra tiếng Anh). Quy tắc này THẮNG mọi quy tắc "tiếng Việt" khác ở trên.`
-
-const BATCH_ROSTER_HEADER = `Ngoài ra, tránh trùng lặp với các nhân vật đã có (đang hoạt động hoặc là bản nháp chưa được giữ lại). Dưới đây là danh sách các nhân vật này, kèm vùng miền, nghề nghiệp, background_tags và các trục tính cách nổi bật của từng người. Hãy bảo đảm từng nhân vật mới khác biệt rõ rệt so với tất cả các nhân vật này:`
 
 function withSeedDescription(
   systemMessage: string,
@@ -171,68 +150,4 @@ export async function draftPersona(
     personaDraftOutputSchema,
     opts,
   )
-}
-
-/**
- * Phase 6 bulk drafting: N distinct candidates in one structured response.
- * Same per-candidate rules as the single-draft schema. Array length is
- * bounded AT the schema level to the requested count — a degraded model
- * returning an unbounded array must fail the structured-output parse, not
- * flood the insert. Partial batches (fewer than N) still survive; the
- * action additionally slices defensively before inserting.
- */
-export const personaDraftBatchOutputSchema = (count: number) =>
-  z.array(personaDraftOutputSchema).max(count)
-export type PersonaDraftBatch = z.infer<
-  ReturnType<typeof personaDraftBatchOutputSchema>
->
-
-export function buildPersonaDraftBatchMessages(
-  mixDescription: string,
-  count: number,
-  locale: AiLocale,
-  rosterSummary: RosterSummaryEntry[],
-): LMStudioMessage[] {
-  let systemMessage = `${BATCH_INTRO(count)}\n\n${DRAFTING_RULES_CORE}\n\n${BATCH_GROUP_RULES(count)}`
-  if (rosterSummary.length > 0) {
-    systemMessage = `${systemMessage}\n\n${BATCH_ROSTER_HEADER}\n${formatRosterEntries(rosterSummary)}`
-  }
-  // The mix description rides the "Mô tả gốc từ nhà nghiên cứu" block —
-  // the shared core already treats that block as AUTHORITATIVE.
-  systemMessage = withSeedDescription(systemMessage, mixDescription)
-  return [
-    {role: 'system', content: systemMessage},
-    {
-      role: 'user',
-      content: JSON.stringify({locale, requestedCount: count}),
-    },
-  ]
-}
-
-export async function draftPersonaBatch(
-  mixDescription: string,
-  count: number,
-  rosterSummary: RosterSummaryEntry[],
-  opts?: {timeoutMs?: number; signal?: AbortSignal},
-): Promise<PersonaDraft[]> {
-  const batch = await completeJson(
-    buildPersonaDraftBatchMessages(
-      mixDescription,
-      count,
-      AI_DEFAULT_LOCALE,
-      rosterSummary,
-    ),
-    personaDraftBatchOutputSchema(count),
-    opts,
-  )
-  // Re-validate each candidate through the loose draft schema (defense in
-  // depth — completeJson already validates the whole array); drop any
-  // element that somehow fails.
-  const candidates = batch.filter(
-    (candidate) => personaDraftOutputSchema.safeParse(candidate).success,
-  )
-  // An EMPTY batch is NOT thrown here: the action maps it to the dedicated
-  // 'noCandidates' ActionResult reason so the UI can distinguish "the model
-  // returned nothing" from a generic bug — partial batches are fine.
-  return candidates
 }
