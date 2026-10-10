@@ -1,4 +1,6 @@
 import type {Metadata} from 'next'
+import {IconArrowLeft} from '@tabler/icons-react'
+import Link from 'next/link'
 import {getTranslations} from 'next-intl/server'
 import BulkDraftWorkbench from '~/components/ai/interview/bulk-draft-workbench'
 import {listPersonasByStatuses} from '~/db/helper/personas'
@@ -13,11 +15,21 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BulkDraftPage() {
   await requireAuth()
   const t = await getTranslations('ai.interview.bulk')
+  const tRoot = await getTranslations('ai.interview')
   const drafts = await listPersonasByStatuses(['draft'])
 
   return (
-    <section className="p-4">
-      <h1 className="mb-4 text-2xl font-bold">{t('title')}</h1>
+    <section className="container mx-auto space-y-4 p-4 pb-16">
+      <div>
+        <Link
+          href="/ai/interview"
+          className="inline-flex items-center gap-1 text-sm"
+        >
+          <IconArrowLeft size="18" /> {tRoot('chat.backToRoster')}
+        </Link>
+      </div>
+
+      <h1 className="text-2xl font-bold">{t('title')}</h1>
       <BulkDraftWorkbench
         drafts={drafts.map((persona) => ({
           id: persona.id,

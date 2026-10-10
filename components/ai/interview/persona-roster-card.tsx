@@ -152,7 +152,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
         <p className="text-danger text-xs">{t('roster.archiveFailed')}</p>
       )}
 
-      {persona.systemPrompt && (
+      {persona.systemPrompt && persona.status !== 'draft' && (
         <div className="mt-auto pt-2">
           <Link
             href={`/ai/interview/${persona.id}/chat`}

@@ -41,11 +41,7 @@ import {
   type LMStudioMessage,
 } from '~/lib/ai/lm-studio'
 import {buildInterviewSystemMessage} from '~/lib/ai/persona-style'
-import {
-  draftPersona,
-  draftPersonaBatch,
-  type PersonaDraft,
-} from '~/lib/ai/persona-drafting'
+import {draftPersona, type PersonaDraft} from '~/lib/ai/persona-drafting'
 import {
   draftPersonaInputSchema,
   personaInputSchema,
@@ -345,7 +341,7 @@ export async function listPersonaTagsAction(): Promise<ActionResult<string[]>> {
  * route later reads them from the transcript, never from the (mutable) persona
  * row, so an A/B model swap or a regenerated prompt cannot reframe an
  * in-progress interview. Belt-and-braces on empty systemPrompt — the UI
- * blocks starting without one.
+ * blocks starting without one. Draft personas are rejected ('draftPersona').
  */
 export async function startInterviewAction(
   personaId: string,
@@ -356,6 +352,13 @@ export async function startInterviewAction(
   const persona = await getPersonaById(personaId)
   if (!persona) {
     return {ok: false, reason: 'error', message: 'not found'}
+  }
+
+  // Draft personas are review candidates, not interviewable yet: they must be
+  // activated first. The UI hides the chat entry points for drafts; this
+  // guard is the server-side backstop. Archived personas stay interviewable.
+  if (persona.status === 'draft') {
+    return {ok: false, reason: 'draftPersona'}
   }
 
   const systemPrompt = persona.systemPrompt
@@ -1085,9 +1088,6 @@ export type PersonaCandidate = {
 }
 
 const MIX_DESCRIPTION_MAX_CHARS = 2000
-const BATCH_MIN_SIZE = 2
-const BATCH_MAX_SIZE = 8
-const BATCH_DEFAULT_SIZE = 5
 
 /**
  * Map one validated AI draft onto a persisted candidate row. The draft
@@ -1160,71 +1160,43 @@ function parseMixDescriptionArg(
   return {ok: true, text: trimmed}
 }
 
-function parseBatchSizeArg(
-  rawSize: unknown,
-): {ok: true; size: number} | ActionFailure {
-  if (rawSize === undefined) {
-    return {ok: true, size: BATCH_DEFAULT_SIZE}
-  }
-  if (
-    typeof rawSize !== 'number' ||
-    !Number.isInteger(rawSize) ||
-    rawSize < BATCH_MIN_SIZE ||
-    rawSize > BATCH_MAX_SIZE
-  ) {
-    return {
-      ok: false,
-      reason: 'validation',
-      message: `batchSize must be an integer between ${BATCH_MIN_SIZE} and ${BATCH_MAX_SIZE}`,
-    }
-  }
-  return {ok: true, size: rawSize}
-}
-
 /**
- * Server-validated batch size: 2–8 candidates per call (default 5). The
- * diversity guard covers active personas AND unkept draft candidates (owner
- * decision — drafts count until kept, archived never does). All returned
- * candidates persist immediately as status='draft' rows; there is no
- * client-only candidate state. Fewer than N candidates is not an error —
- * the client loops and shows what came back.
+ * Drafts and inserts ONE candidate per call. The client drives the loop
+ * (N calls, one at a time), so each candidate appears as soon as it lands
+ * and the diversity guard sees every candidate inserted by earlier loop
+ * iterations — near-dupes regress call over call instead of within one
+ * prompt.
  */
-export async function generatePersonaCandidatesAction(
-  raw: unknown,
-): Promise<ActionResult<PersonaCandidate[]>> {
-  const record =
-    typeof raw === 'object' && raw !== null
-      ? (raw as Record<string, unknown>)
-      : undefined
-  const mix = parseMixDescriptionArg(record?.mixDescription)
+export async function generatePersonaCandidateAction(
+  rawMix: unknown,
+): Promise<ActionResult<PersonaCandidate>> {
+  const mix = parseMixDescriptionArg(rawMix)
   if (!mix.ok) return mix
-  const size = parseBatchSizeArg(record?.batchSize)
-  if (!size.ok) return size
 
   const noAccess = await requirePersonaInterviewAccess()
   if (noAccess) return noAccess
 
+  // Summary BEFORE generation, nothing excluded: the new candidate must
+  // differ from the active roster AND every draft candidate inserted so far.
   const guardSummary = await getDraftGuardRosterSummary()
 
   try {
-    // Batch JSON is the biggest drafting payload; use the extended draft
-    // timeout like the single generate path.
-    const drafts = await draftPersonaBatch(mix.text, size.size, guardSummary, {
+    // Mix description rides the seedDescription hook — the shared template
+    // treats that block as AUTHORITATIVE (mirrors the reroll single-draft
+    // path). Neutral sliders; the model invents the rest (draftPersona
+    // re-validates through the loose schema).
+    const seed = draftPersonaInputSchema.parse({
+      locale: AI_DEFAULT_LOCALE,
+      seedDescription: mix.text,
+    })
+    const draft = await draftPersona(seed, guardSummary, {
       timeoutMs: AI_DRAFT_TIMEOUT_MS,
     })
-    // The shared draft schema is loose and can silently drop a degraded
-    // candidate; an empty batch is a distinct outcome the client shows
-    // instead of a confusing "success, nothing happened".
-    if (drafts.length === 0) {
-      return {ok: false, reason: 'noCandidates'}
-    }
-    // Defensive: the batch schema already bounds the array at count, but
-    // never insert more than the validated batchSize.
     const inserted = await db
       .insert(personasTable)
-      .values(drafts.slice(0, size.size).map(draftToCandidateRow))
+      .values(draftToCandidateRow(draft))
       .returning()
-    return {ok: true, data: inserted.map(rowToCandidate)}
+    return {ok: true, data: rowToCandidate(inserted[0]!)}
   } catch (err) {
     const mapped = mapLMStudioError(err)
     if (mapped) return mapped

@@ -37,6 +37,15 @@ type PersonaDraftCardProps = {
   /** True while the workbench generate action runs; card actions pause. */
   generateBusy: boolean
   onBanner: (reason: BulkBannerReason) => void
+  /**
+   * Client-state hooks for the optimistic bulk loop: when provided, a
+   * successful action updates the workbench's local draft list instead of
+   * triggering a server refresh. When absent (server page render),
+   * `router.refresh()` keeps DB truth on screen.
+   */
+  onKept?: (id: string) => void
+  onRerolled?: (oldId: string, replacement: PersonaDraftCardData) => void
+  onDiscarded?: (id: string) => void
 }
 
 export default function PersonaDraftCard({
@@ -44,6 +53,9 @@ export default function PersonaDraftCard({
   mixDescription,
   generateBusy,
   onBanner,
+  onKept,
+  onRerolled,
+  onDiscarded,
 }: PersonaDraftCardProps) {
   const t = useTranslations('ai.interview.bulk')
   const tForm = useTranslations('ai.interview.form')
@@ -60,8 +72,10 @@ export default function PersonaDraftCard({
     onBanner(null)
     startTransition(async () => {
       const result = await setPersonaStatusAction(persona.id, 'active')
-      if (result.ok) router.refresh()
-      else onBanner('keepFailed')
+      if (result.ok) {
+        if (onKept) onKept(persona.id)
+        else router.refresh()
+      } else onBanner('keepFailed')
     })
   }
 
@@ -73,8 +87,10 @@ export default function PersonaDraftCard({
         persona.id,
         mixDescription,
       )
-      if (result.ok) router.refresh()
-      else if (
+      if (result.ok) {
+        if (onRerolled) onRerolled(persona.id, result.data)
+        else router.refresh()
+      } else if (
         result.reason === 'notDraft' ||
         result.reason === 'hasTranscripts' ||
         result.reason === 'offline'
@@ -93,8 +109,10 @@ export default function PersonaDraftCard({
     onBanner(null)
     startTransition(async () => {
       const result = await discardPersonaDraftAction(persona.id)
-      if (result.ok) router.refresh()
-      else if (
+      if (result.ok) {
+        if (onDiscarded) onDiscarded(persona.id)
+        else router.refresh()
+      } else if (
         result.reason === 'notDraft' ||
         result.reason === 'hasTranscripts'
       ) {

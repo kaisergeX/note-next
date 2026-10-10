@@ -171,7 +171,7 @@ export default async function PersonaProfilePage({
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
-        {persona.systemPrompt && (
+        {persona.systemPrompt && persona.status !== 'draft' && (
           <Link
             href={`/ai/interview/${persona.id}/chat`}
             className="button text-sm"

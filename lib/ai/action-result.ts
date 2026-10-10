@@ -18,11 +18,12 @@ export type ActionResult<T> =
         | 'offline'
         | 'error'
         // Phase 6 draft-candidate guards: reroll/discard refuse non-draft
-        // personas or personas that already hold transcripts/run items;
-        // 'noCandidates' = the model returned zero usable candidates.
+        // personas or personas that already hold transcripts/run items.
         | 'notDraft'
         | 'hasTranscripts'
-        | 'noCandidates'
+        // Draft personas must be activated before an interview session can
+        // start (startInterviewAction).
+        | 'draftPersona'
       message?: string
       fieldErrors?: Record<string, FieldError[]>
     }

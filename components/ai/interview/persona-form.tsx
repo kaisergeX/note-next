@@ -305,17 +305,17 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
             <IconArrowLeft className="inline-block" size="18" />{' '}
             {tRoot('chat.backToRoster')}
           </Link>
-          {/* The chat page itself handles the no-system-prompt blocked case,
-              so the link can always render in edit mode. */}
-          {mode === 'edit' && (
-            <Link
-              href={`/ai/interview/${initial!.id}/chat`}
-              className="inline-flex items-center gap-1"
-            >
-              <IconMessages className="inline-block" size="18" />{' '}
-              {tRoot('chat.openChat')}
-            </Link>
-          )}
+          {mode === 'edit' &&
+            initial!.systemPrompt &&
+            initial!.status !== 'draft' && (
+              <Link
+                href={`/ai/interview/${initial!.id}/chat`}
+                className="inline-flex items-center gap-1"
+              >
+                <IconMessages className="inline-block" size="18" />{' '}
+                {tRoot('chat.openChat')}
+              </Link>
+            )}
         </div>
         <h2 className="text-xl font-bold">
           {mode === 'create' ? t('newTitle') : t('editTitle')}
