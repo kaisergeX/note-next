@@ -16,11 +16,11 @@ import {
   useRef,
   useState,
   useTransition,
-  type CSSProperties,
   type RefObject,
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
+import PopoverBase from '~/components/ui/popover'
 import {NoteThemePicker} from './note-theme-picker'
 
 export type NoteCustomizeProps = {
@@ -62,7 +62,6 @@ export default function NoteCustomize({
   const t = useTranslations('note')
   const ref = useRef<HTMLDivElement>(null)
   const [scrollable, setScrollable] = useState(false)
-  const prefixId = `note-dialog-${type}-${noteId || 'new'}`
   const isLoading = loading || pendingTransition
 
   const getScrollContainer = () =>
@@ -133,10 +132,13 @@ export default function NoteCustomize({
       )}
     >
       <div className="flex items-center gap-2">
-        <NoteThemePicker prefixId={`dialog-${type}`} disabled={isLoading} />
+        <NoteThemePicker disabled={isLoading} />
 
         <button
-          className={`button-secondary button-icon rounded-full p-1 border-theme-${theme}`}
+          className={classNames(
+            'button-secondary button-icon rounded-full p-1',
+            theme ? `border-theme-${theme}` : '',
+          )}
           title="Illustration, Texture"
           type="button"
           disabled
@@ -145,10 +147,7 @@ export default function NoteCustomize({
         </button>
       </div>
 
-      <div
-        className="flex items-center gap-2"
-        style={{'--anchor-name': `--${prefixId}-anchor`} as CSSProperties}
-      >
+      <div className="flex items-center gap-2">
         {type === 'update' && (
           <div className="flex items-center gap-1 text-xs font-medium">
             {isLoading ? (
@@ -166,30 +165,23 @@ export default function NoteCustomize({
         )}
 
         {!pendingTransition && menuItems.every(({hidden}) => !hidden) && (
-          <>
-            <button
-              className="[anchor-name:var(--anchor-name)]"
-              type="button"
-              popoverTarget={`${prefixId}-menu`}
-              popoverTargetAction="toggle"
-              disabled={isLoading}
-            >
-              <IconDotsVertical size="1.2rem" />
-            </button>
-            <div
-              id={`${prefixId}-menu`}
-              className={classNames(
-                `shadow-md shadow-theme-${theme || 'slate'}`,
-                'rounded-md',
-                'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
-              )}
-              popover="auto"
-            >
-              {menuItems.map(({component, id}) => (
-                <Fragment key={id}>{component}</Fragment>
-              ))}
-            </div>
-          </>
+          <PopoverBase
+            trigger={<IconDotsVertical size="1.2rem" />}
+            triggerClassName="p-2"
+            anchor="top-end"
+            disabled={isLoading}
+            popoverClassName={classNames(
+              // restores the UA popover's default 0.25em padding for the
+              // full-bleed delete button.
+              'p-1',
+              `shadow-md shadow-theme-${theme || 'slate'}`,
+              'rounded-md',
+            )}
+          >
+            {menuItems.map(({component, id}) => (
+              <Fragment key={id}>{component}</Fragment>
+            ))}
+          </PopoverBase>
         )}
       </div>
 

@@ -4,9 +4,10 @@ import {classNames} from '@kaiverse/k/utils'
 import {IconDotsVertical, IconPalette, IconTrash} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
-import {useTransition, type CSSProperties} from 'react'
+import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import type {Note} from '~/db/schema/notes'
+import PopoverBase from '~/components/ui/popover'
 import {usePersistStore} from '~/store'
 
 type NoteProps = {
@@ -37,7 +38,6 @@ export default function NoteTiny({data}: NoteProps) {
         'card group relative',
         theme ? `dialog-${theme} shadow-theme-${theme} border-none` : '',
       )}
-      style={{'--anchor-name': `--note-tiny-${noteId}-anchor`} as CSSProperties}
     >
       <Link
         className="block h-full p-4 pb-8"
@@ -71,37 +71,32 @@ export default function NoteTiny({data}: NoteProps) {
           'hidden group-has-[.note-tiny-menu:popover-open]:flex focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
         )}
       >
-        <button type="button">
+        <button className="p-2" type="button">
           <IconPalette size="1rem" />
         </button>
 
-        <button
-          className="[anchor-name:var(--anchor-name)]"
-          type="button"
-          popoverTarget={`note-tiny-${noteId}-menu`}
-          popoverTargetAction="toggle"
+        <PopoverBase
+          trigger={<IconDotsVertical size="1rem" />}
+          triggerClassName="p-2"
+          anchor="top-end"
+          popoverClassName={classNames(
+            'note-tiny-menu',
+            // restores the UA popover's default 0.25em padding for the
+            // full-bleed delete button.
+            'p-1',
+            `shadow-md shadow-theme-${theme || 'slate'}`,
+            'rounded-md',
+          )}
         >
-          <IconDotsVertical size="1rem" />
-        </button>
-      </div>
-      <div
-        id={`note-tiny-${noteId}-menu`}
-        className={classNames(
-          'note-tiny-menu',
-          `shadow-md shadow-theme-${theme || 'slate'}`,
-          'rounded-md',
-          'position-try-y-[top_span-left] position-anchor-(--anchor-name) absolute inset-auto mb-2',
-        )}
-        popover="auto"
-      >
-        <button
-          className="button-secondary text-danger w-full rounded-none border-none shadow-none"
-          type="button"
-          onClick={handleDeleteNote}
-          disabled={pendingTransition}
-        >
-          <IconTrash size="1rem" /> {t('delete')}
-        </button>
+          <button
+            className="button-secondary text-danger w-full rounded-none border-none shadow-none"
+            type="button"
+            onClick={handleDeleteNote}
+            disabled={pendingTransition}
+          >
+            <IconTrash size="1rem" /> {t('delete')}
+          </button>
+        </PopoverBase>
       </div>
     </div>
   )

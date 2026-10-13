@@ -80,9 +80,8 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
       hidden: userRole !== 'archivist',
     },
     {
-      containerAs: 'div',
       component: (
-        <SignOutButton className="data-active:bg-reverse hover:bg-reverse data-disabled:disabled text-danger flex w-full items-center gap-2 p-4 text-left transition-colors">
+        <SignOutButton className="hover:bg-reverse focus-visible:bg-reverse text-danger flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50">
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
@@ -146,23 +145,23 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
 
         <div className={isAuthenticated ? '' : 'hidden'}>
           {/* Profile dropdown */}
-          <MenuCustom
-            as="nav"
-            className={classNames(
-              'flex items-center rounded-full',
-              renderAvatar.container,
-            )}
-            menuClassName="hidden lg:block"
-            itemsClassName="w-48 [--anchor-gap:0.5rem] sm:[--anchor-gap:1rem]"
-            items={desktopMenuItems}
-          >
-            <span className="sr-only">Open user menu</span>
-            {renderAvatar.avatar}
-          </MenuCustom>
+          <nav className="hidden lg:block">
+            <MenuCustom
+              className={classNames(
+                'flex items-center rounded-full',
+                renderAvatar.container,
+              )}
+              itemsClassName="w-48 sm:mt-4"
+              items={desktopMenuItems}
+            >
+              <span className="sr-only">Open user menu</span>
+              {renderAvatar.avatar}
+            </MenuCustom>
+          </nav>
 
           {/* Mobile menu button */}
           <button
-            className="button-icon flex-center rounded-full border-none p-1 shadow-none [anchor-name:--anchor-navbar] lg:hidden"
+            className="button-icon flex-center rounded-full border-none p-1 shadow-none lg:hidden"
             type="button"
             onClick={openMenuDialog}
             aria-controls="main-menu"
