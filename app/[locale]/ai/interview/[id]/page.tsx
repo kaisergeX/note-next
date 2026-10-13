@@ -187,7 +187,7 @@ export default async function PersonaProfilePage({
         </Link>
         <MenuCustom
           className="button-secondary button-icon rounded-full p-1"
-          itemsClassName="w-48 [--anchor-gap:0.5rem]"
+          itemsClassName="w-48"
           items={exportMenuItems}
         >
           <span className="sr-only">{t('export.menu')}</span>

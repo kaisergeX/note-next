@@ -22,7 +22,6 @@
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.55",
     "@ai-sdk/react": "^4.0.117",
-    "@headlessui/react": "^2.2.10",
     "@kaiverse/k": "^0.7.0",
     "@tabler/icons-react": "^3.48.0",
     "@tanstack/react-form": "^1.33.5",

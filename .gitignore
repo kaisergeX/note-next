@@ -39,6 +39,9 @@ drizzle/local
 public/sw*
 public/swe-worker*
 
+# playwright mcp artifacts
+.playwright-mcp/
+
 # Large data files
 *.csv
 *.xlsx

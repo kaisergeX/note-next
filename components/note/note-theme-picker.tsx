@@ -1,20 +1,17 @@
 import {classNames} from '@kaiverse/k/utils'
 import {IconPalette, IconPaletteOff} from '@tabler/icons-react'
-import {Fragment, type CSSProperties} from 'react'
+import {Fragment} from 'react'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
+import PopoverBase from '~/components/ui/popover'
 import {usePersistStore} from '~/store'
 
 export const NoteThemePicker = ({
-  prefixId: pId,
   disabled = false,
-}: {prefixId?: string; disabled?: boolean} = {}) => {
-  const {noteId, theme, setMutateNoteData} = usePersistStore((s) => ({
-    noteId: s.mutateNoteData?.id,
+}: {disabled?: boolean} = {}) => {
+  const {theme, setMutateNoteData} = usePersistStore((s) => ({
     theme: s.mutateNoteData?.theme,
     setMutateNoteData: s.setMutateNoteData,
   }))
-
-  const prefixId = `note-${pId}-${noteId || 'new'}`
 
   const menuColors = [
     {
@@ -51,38 +48,26 @@ export const NoteThemePicker = ({
     })),
   ]
 
+  // closeOnSelect={false}: the popover stays open so theme changes preview
+  // live; it closes on light-dismiss (outside click / Esc).
   return (
-    <div
-      className="contents"
-      style={
-        {
-          '--theme-anchor-name': `--${prefixId}-theme-anchor`,
-        } as CSSProperties
-      }
+    <PopoverBase
+      trigger={<IconPalette size="1.2rem" />}
+      triggerClassName={classNames(
+        'button-secondary rounded-full p-1',
+        theme ? `border-theme-${theme}` : '',
+      )}
+      disabled={disabled}
+      anchor="top-start"
+      closeOnSelect={false}
+      popoverClassName={classNames(
+        `shadow-md shadow-theme-${theme || 'slate'}`,
+        'grid-cols-4 gap-3 rounded-md p-3 open:grid',
+      )}
     >
-      <button
-        className={`button-secondary rounded-full p-1 [anchor-name:var(--theme-anchor-name)] border-theme-${theme}`}
-        type="button"
-        popoverTarget={`${prefixId}-theme`}
-        popoverTargetAction="toggle"
-        disabled={disabled}
-      >
-        <IconPalette size="1.2rem" />
-      </button>
-
-      <div
-        id={`${prefixId}-theme`}
-        className={classNames(
-          `shadow-md shadow-theme-${theme || 'slate'}`,
-          'grid-cols-4 gap-3 rounded-md p-3 open:grid',
-          'position-try-y-[top_span-right] position-anchor-(--theme-anchor-name) absolute inset-auto mb-2',
-        )}
-        popover="auto"
-      >
-        {menuColors.map(({component, id}) => (
-          <Fragment key={`theme-${id}`}>{component}</Fragment>
-        ))}
-      </div>
-    </div>
+      {menuColors.map(({component, id}) => (
+        <Fragment key={`theme-${id}`}>{component}</Fragment>
+      ))}
+    </PopoverBase>
   )
 }

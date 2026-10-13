@@ -264,6 +264,63 @@
       @apply p-4;
     }
   }
+
+  /* Menu popover (components/ui/popover.tsx): open/close transition via
+   :popover-open + @starting-style. Closed state is the default rule; the open
+   state overrides. Lives in @layer components so Tailwind's layered `mt-2` /
+   `mb-2` gap classes (set per anchor in the component) still win over the
+   margin reset here. `margin: auto` centering is unneeded — align-self and
+   justify-self are set explicitly per anchor. */
+  .menu-popover {
+    margin: 0; /* reset must match UA so anchor offsets are predictable */
+    padding: 0; /* UA popover default is 0.25em; the old div had none */
+    position-visibility: anchors-visible; /* hide when anchor scrolls out */
+    opacity: 0;
+    transform: scale(0.95);
+    transition:
+      opacity 75ms ease-in,
+      transform 75ms ease-in,
+      display 75ms allow-discrete,
+      overlay 75ms allow-discrete;
+  }
+
+  .menu-popover:popover-open {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity 100ms ease-out,
+      transform 100ms ease-out,
+      display 100ms allow-discrete,
+      overlay 100ms allow-discrete;
+  }
+
+  @starting-style {
+    .menu-popover:popover-open {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+}
+
+/* JS fallback path (no CSS anchor positioning): neutralize anchor positioning
+   props. Unlayered on purpose — it must beat the layered arbitrary-property
+   utilities the component applies per anchor. `margin: 0` mirrors the popover
+   reset above: the JS fallback owns the gap via its own 8px offset, so the
+   layered `mt-2` / `mb-2` utilities must not stack on top of it. */
+.menu-no-anchor {
+  margin: 0;
+  position-area: none;
+  position-visibility: visible;
+}
+
+/* Pre-Popover-API browsers (Chrome <114, Safari <17, Firefox <125) never get
+   UA `display: none` for the closed state, so the popover div would render
+   permanently visible and `togglePopover` would be undefined. Hide it — the
+   menu degrades to a plain trigger there. */
+@supports not selector(:popover-open) {
+  .menu-popover {
+    display: none;
+  }
 }
 
 @keyframes light-sweep {

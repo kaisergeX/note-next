@@ -119,7 +119,7 @@ export default function SessionRow({
       component: (
         <button
           type="button"
-          className="hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-3 text-left text-sm"
+          className="hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-3 text-left text-sm disabled:opacity-50"
           disabled={isPending}
           onClick={startRename}
         >
@@ -131,7 +131,7 @@ export default function SessionRow({
       component: (
         <button
           type="button"
-          className="text-danger hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-3 text-left text-sm"
+          className="text-danger hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-3 text-left text-sm disabled:opacity-50"
           disabled={isPending}
           onClick={openConfirm}
         >
@@ -190,10 +190,10 @@ export default function SessionRow({
           </Link>
           <MenuCustom
             className="button-secondary button-icon rounded-full p-1 not-hover:border-transparent"
-            anchor={null}
-            // Inline render (no portal): body-level portals render below a
-            // <dialog> top layer, so the mobile drawer would cover the menu.
-            itemsClassName="absolute top-full right-0.5 z-20 w-48"
+            // Top-layer anchored popover: body-level portals used to render
+            // below a <dialog> top layer, but popover="auto" opens in the top
+            // layer itself, so no manual inline positioning is needed.
+            itemsClassName="w-48"
             items={menuItems}
           >
             <span className="sr-only">{t('menu')}</span>

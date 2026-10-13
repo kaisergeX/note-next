@@ -63,7 +63,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
             component: (
               <button
                 type="button"
-                className="hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-4 text-left transition-colors"
+                className="hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50"
                 disabled={isPending}
                 onClick={() => handleStatusChange('active')}
               >
@@ -79,7 +79,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
             component: (
               <button
                 type="button"
-                className="text-danger hover:bg-reverse data-active:bg-reverse data-disabled:disabled flex w-full items-center gap-2 p-4 text-left transition-colors"
+                className="text-danger hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50"
                 disabled={isPending}
                 onClick={openArchiveConfirm}
               >
@@ -114,7 +114,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
           </span>
           <MenuCustom
             className="button-secondary button-icon rounded-full p-1"
-            itemsClassName="w-44 [--anchor-gap:0.5rem]"
+            itemsClassName="w-44"
             items={menuItems}
           >
             <span className="sr-only">{t('roster.menu')}</span>
