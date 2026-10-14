@@ -32,6 +32,14 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 - Tiptap editor for rich text editing
 - State management: Zustand stores (check `lib/stores/`)
 
+## Design System
+
+- `DESIGN.md` (repo root) is the source of truth for the app's look ("Paper & Ink"). Read it before any UI change.
+- Tokens are CSS vars in `app/globals.css` (`:root` + `.dark`) mapped via `@theme inline`. Use semantic utilities: `bg-paper`, `bg-paper-raised`, `text-ink`, `text-ink-muted`, `border-hairline`, `text-accent`, `bg-destructive`, `text-success`, `shadow-sheet`, `font-serif`, `bg-dotgrid`. Dark mode is automatic (vars flip) — no `dark:` pair needed for token colors.
+- Primitives live in `components/ui/` (`button.tsx`, `input.tsx`, `badge.tsx`) — use them for new UI instead of raw classes.
+- **Tailwind 4 syntax only.** Never generate v3-era syntax: no `tailwind.config.*` files, no `content`/`safelist` arrays, no `darkMode:` key, no JS theme extensions. Use `@theme`, `@utility`, `@custom-variant`, `@plugin`, `@source inline` in CSS. Custom plugins load via `config/tailwindTypographyPlugin.mjs` + `config/tailwindNoteThemePlugin.mjs`.
+- Legacy classes (`bg-default`, `button*`, `card`, `glass`, `text-danger`, `bg-theme`, `bg-reverse`, `shadow-theme`) exist only until route migration finishes — never use them in new code. Old→new mapping: docs/design-audit.md.
+
 ## Special Notes
 
 - Uses `dotenv-cli` for environment variable management in scripts
@@ -43,7 +51,7 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 - Uses `server-only` package for server-side rendering
 - **AI features** (`app/[locale]/ai/`): Implementing. Shared parent for AI-driven features, isolated from the note-taking domain. Persona interview lives at
   `app/[locale]/ai/interview/` (own schema files, own layout, own `feature_access` gate); a future companion-chat feature will live at
-  `app/[locale]/ai/companion/` as a sibling. 
+  `app/[locale]/ai/companion/` as a sibling.
   Read `docs/ai/PRD.md`, `docs/ai/ARCHITECTURE.md`, `docs/ai/PERSONA-SCHEMA.md`, and `docs/ai/BUILD-PLAN.md` before touching anything under `ai/interview/` or its schema files.
 
 ## Testing & Quality

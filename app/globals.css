@@ -1,9 +1,9 @@
 @layer theme, base, k-components, components, utilities;
 @import 'tailwindcss';
 
-@config '../tailwind.config.mjs';
-
 @plugin '@tailwindcss/typography';
+@plugin '../config/tailwindTypographyPlugin.mjs';
+@plugin '../config/tailwindNoteThemePlugin.mjs';
 
 @source inline(
   '{prose-,dialog-,picker-,shadow-theme-,border-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}'
@@ -13,6 +13,21 @@
 
 @theme inline {
   --color-muted-foreground: var(--muted-foreground);
+  --color-paper: var(--paper);
+  --color-paper-raised: var(--paper-raised);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-hairline: var(--hairline);
+  --color-hairline-strong: var(--hairline-strong);
+  --color-accent: var(--accent);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-ink-hover: var(--ink-hover);
+  --color-ink-tint: var(--ink-tint);
+  --color-ink-tint-strong: var(--ink-tint-strong);
+  --color-raised-hover: var(--raised-hover);
+  --shadow-sheet: var(--sheet-shadow);
+  --font-serif: var(--font-newsreader), Georgia, serif;
 }
 
 @utility text-danger {
@@ -94,6 +109,14 @@
 
 @utility bg-reverse {
   @apply bg-zinc-900 text-zinc-200 dark:bg-zinc-100 dark:text-zinc-900;
+}
+
+@utility bg-dotgrid {
+  background-image: radial-gradient(
+    color-mix(in oklab, var(--hairline) 80%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
 }
 
 @utility bg-theme {
@@ -196,7 +219,36 @@
   }
 
   :root {
-    --muted-foreground: lab(48.496% 0 0);
+    --paper: oklch(0.972 0.006 90);
+    --paper-raised: oklch(0.985 0.004 90);
+    --ink: oklch(0.24 0.018 270);
+    --ink-muted: oklch(0.44 0.014 270);
+    --hairline: oklch(0.895 0.006 90);
+    --accent: oklch(0.5 0.16 255);
+    --destructive: oklch(0.5 0.19 25);
+    --success: oklch(0.45 0.13 155);
+    --ink-hover: color-mix(in oklab, var(--ink) 88%, var(--paper));
+    --ink-tint: color-mix(in oklab, var(--ink) 6%, transparent);
+    --ink-tint-strong: color-mix(in oklab, var(--ink) 9%, transparent);
+    --hairline-strong: color-mix(in oklab, var(--ink) 35%, var(--hairline));
+    --raised-hover: color-mix(in oklab, var(--paper-raised) 92%, var(--ink));
+    --sheet-tint: oklch(0.24 0.018 270);
+    --sheet-shadow:
+      0 1px 2px color-mix(in oklab, var(--sheet-tint) 7%, transparent),
+      0 8px 24px -12px color-mix(in oklab, var(--sheet-tint) 20%, transparent);
+    --muted-foreground: var(--ink-muted);
+  }
+
+  .dark {
+    --paper: oklch(0.185 0.012 270);
+    --paper-raised: oklch(0.225 0.014 270);
+    --ink: oklch(0.9 0.008 90);
+    --ink-muted: oklch(0.62 0.012 270);
+    --hairline: oklch(0.3 0.014 270);
+    --accent: oklch(0.78 0.12 255);
+    --destructive: oklch(0.7 0.17 22);
+    --success: oklch(0.72 0.13 152);
+    --sheet-tint: oklch(0 0 0);
   }
 
   html {

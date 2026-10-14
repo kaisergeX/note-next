@@ -1,7 +1,15 @@
 'use client'
 import {classNames} from '@kaiverse/k/utils'
+import {Newsreader} from 'next/font/google'
 import {type HtmlHTMLAttributes, type PropsWithChildren, useEffect} from 'react'
 import {usePersistStore, withStorageDOMEvents} from '~/store'
+
+const newsreader = Newsreader({
+  variable: '--font-newsreader',
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  axes: ['opsz'],
+})
 
 export default function ThemeWrapper({
   className = '',
@@ -30,7 +38,11 @@ export default function ThemeWrapper({
   return (
     <html
       {...props}
-      className={classNames(className, isDarkMode ? 'dark' : '')}
+      className={classNames(
+        className,
+        newsreader.variable,
+        isDarkMode ? 'dark' : '',
+      )}
     >
       {/* 
         Note that dv* will adapts with viewport size (which changes the actual size of element),
