@@ -1,41 +1,43 @@
 import {classNames} from '@kaiverse/k/utils'
-import type {PropsWithChildren} from 'react'
+import type {ComponentPropsWithRef} from 'react'
 
-type BadgeProps = {
-  className?: string
-  pingClassName?: string
-  withPing?: boolean
+type BadgeStatus = 'draft' | 'active' | 'archived' | 'accent' | 'neutral'
+
+interface BadgeProps extends ComponentPropsWithRef<'span'> {
+  status?: BadgeStatus
+  dot?: boolean
 }
 
-export default function Badge({
-  className = '',
-  pingClassName = '',
-  withPing,
+const STATUS_CLASSES: Record<BadgeStatus, string> = {
+  draft: 'border-amber-500/40 text-amber-600 dark:text-amber-400',
+  active: 'border-success/40 text-success',
+  archived: 'border-hairline text-ink-muted',
+  accent: 'border-accent/40 text-accent',
+  neutral: 'border-hairline text-ink',
+}
+
+const BASE_CLASSES =
+  'inline-flex items-center gap-1 rounded-full border bg-paper-raised px-2 py-0.5 text-xs font-medium'
+
+/** Paper & Ink status pill: paper-raised fill, hairline border, role-colored text. */
+export function Badge({
+  status = 'neutral',
+  dot = false,
+  className,
   children,
-}: PropsWithChildren<BadgeProps>) {
-  const renderPing = withPing ? (
-    <span
-      className={classNames(
-        'absolute top-0 right-0 -mt-1 -mr-1 flex h-3 w-3',
-        pingClassName,
-      )}
-    >
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-      <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
-    </span>
-  ) : (
-    <></>
-  )
-
+  ...props
+}: BadgeProps) {
   return (
-    <div
-      className={classNames(
-        'bg-reverse relative inline-block cursor-default rounded-xl px-2 py-0.5 text-sm',
-        className,
-      )}
+    <span
+      className={classNames(BASE_CLASSES, STATUS_CLASSES[status], className)}
+      {...props}
     >
-      {renderPing}
+      {dot ? (
+        <span className="size-1.5 rounded-full bg-current" aria-hidden />
+      ) : null}
       {children}
-    </div>
+    </span>
   )
 }
+
+export type {BadgeProps, BadgeStatus}

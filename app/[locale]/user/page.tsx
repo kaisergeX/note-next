@@ -8,7 +8,7 @@ import {
 import type {Route} from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
-import Badge from '~/components/ui/badge'
+import {Badge} from '~/components/ui/badge'
 import {requireAuth} from '~/server-utils'
 
 export default async function MyProfile() {
