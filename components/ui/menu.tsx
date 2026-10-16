@@ -33,7 +33,7 @@ type MenuCustomProps = PropsWithChildren<{
 }>
 
 const BASE_CLASSES =
-  'bg-paper-raised shadow-sheet rounded-md border border-hairline text-sm font-semibold focus:outline-none'
+  'bg-paper-raised text-ink shadow-sheet rounded-md border border-hairline text-sm font-semibold focus:outline-none'
 
 export default function MenuCustom({
   className,

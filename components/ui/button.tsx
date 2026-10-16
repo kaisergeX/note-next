@@ -1,4 +1,3 @@
-import {classNames} from '@kaiverse/k/utils'
 import {IconLoader2} from '@tabler/icons-react'
 import {cn} from 'cn'
 import type {ComponentPropsWithRef} from 'react'
@@ -47,7 +46,7 @@ export function buttonClass({
   size?: ButtonSize
   iconOnly?: boolean
 } = {}): string {
-  return classNames(
+  return cn(
     BASE_CLASSES,
     VARIANTS[variant],
     iconOnly ? ICON_ONLY_SIZES[size] : SIZES[size],

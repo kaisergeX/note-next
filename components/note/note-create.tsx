@@ -4,6 +4,7 @@ import {IconPencilPlus, IconSparkles} from '@tabler/icons-react'
 import {useMessages} from 'next-intl'
 import {useState, useTransition} from 'react'
 import {createNoteAction} from '~/app/[locale]/(note)/eton/actions'
+import Button from '~/components/ui/button'
 import {usePersistStore} from '~/store'
 import {useRandomString} from '~/util/hooks'
 import NoteDialog from './note-dialog'
@@ -29,9 +30,9 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
 
   return (
     <>
-      <button
-        className="button-secondary btn-light-sweep max-sm:button max-sm:button-affix max-sm:button-icon group w-auto gap-0 transition-all duration-300 max-sm:z-10 max-sm:rounded-full max-sm:p-3! sm:hover:gap-2"
-        type="button"
+      <Button
+        variant="secondary"
+        className="group btn-light-sweep w-auto gap-0 p-2 transition-all duration-300 max-sm:fixed max-sm:right-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-10 max-sm:h-fit! max-sm:rounded-full sm:hover:gap-2"
         onClick={() => startTransition(() => setOpenModal(true))}
       >
         <IconPencilPlus className="sm:group-hover:hidden" />
@@ -43,7 +44,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
         >
           {creationBtnMsg}
         </span>
-      </button>
+      </Button>
 
       <NoteDialog
         open={openModal}

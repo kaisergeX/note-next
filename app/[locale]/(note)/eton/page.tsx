@@ -22,9 +22,12 @@ export default async function Notes({params}: PropsWithLocale) {
 
   if (renderNoteList.length === 0) {
     return (
-      <main className="bg-fancy h-full p-4">
+      <main className="bg-dotgrid h-full p-4">
         <div className="flex-center mt-40 gap-4">
-          <h3 className="opacity-80" suppressHydrationWarning>
+          <h3
+            className="text-ink font-serif opacity-80"
+            suppressHydrationWarning
+          >
             {genRandom(noteMsgs.editor.emptyPlaceholder)}
           </h3>
           <NextIntlClientProvider messages={{note: noteMsgs}}>

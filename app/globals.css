@@ -9,6 +9,9 @@
   '{prose-,dialog-,picker-,shadow-theme-,border-theme-}{slate,zinc,stone,red,orange,yellow,green,cyan,blue,purple,pink,rose}'
 );
 
+@source not '../docs';
+@source not '../AGENTS.md';
+
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
@@ -208,7 +211,13 @@
 
   &::before {
     @apply pointer-events-none absolute top-0 -left-1/2 h-full w-1/2 skew-x-[-20deg] opacity-0 content-[''];
-    @apply bg-[linear-gradient(120deg,transparent_0%,rgba(0,200,255,0.4),rgba(140,82,255,0.5),transparent_100%)];
+    background-image: linear-gradient(
+      120deg,
+      transparent 0%,
+      color-mix(in oklab, var(--accent) 45%, transparent),
+      color-mix(in oklab, var(--ink) 30%, transparent),
+      transparent 100%
+    );
   }
 
   &:hover::before {
