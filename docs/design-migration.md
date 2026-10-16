@@ -66,7 +66,7 @@ Primitives:
 
 ## Threads (in order — chrome first, so later threads inherit it)
 
-> Status: see docs/design-threads-status.md — Thread 1 done; its notes/deferred items are binding context for later threads.
+> Status: see docs/design-threads-status.md
 
 ### Thread 1 — App chrome
 

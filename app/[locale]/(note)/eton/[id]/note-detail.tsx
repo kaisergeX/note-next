@@ -1,6 +1,6 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {
   IconArrowLeft,
   IconWindowMaximize,
@@ -9,6 +9,7 @@ import {
 import {useMessages, useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {useEffect, useLayoutEffect, useTransition} from 'react'
+import Button from '~/components/ui/button'
 import NoteCustomize from '~/components/note/note-customize'
 import NoteEditor from '~/components/note/note-editor'
 import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
@@ -66,15 +67,15 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
 
   return (
     <main className="relative flex flex-1 flex-col">
-      <section className="bg-default flex-center-between sticky inset-x-0 top-0 z-20 gap-4 p-4">
-        <button
-          type="button"
-          className="button button-icon rounded-full p-1"
+      <section className="bg-paper/70 border-hairline flex-center-between sticky inset-x-0 top-0 z-20 gap-4 border-b p-4 backdrop-blur-sm">
+        <Button
+          iconOnly
           onClick={handleSubmit}
           disabled={isPending}
+          aria-label="Save and go back"
         >
           <IconArrowLeft />
-        </button>
+        </Button>
 
         <div className="flex items-center gap-4">
           {contentCount.words > 1 && (
@@ -85,15 +86,17 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
               &nbsp;{t('count.words', {count: contentCount.words})}
             </div>
           )}
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            iconOnly
             title="Toggle fullscreen"
-            className="button-secondary button-icon rounded-full p-1 max-sm:hidden"
+            className="max-sm:hidden"
             onClick={() => void toggleFullscreen()}
             disabled={fullscreenErr}
+            aria-label="Toggle fullscreen"
           >
             {isFullscreen ? <IconWindowMinimize /> : <IconWindowMaximize />}
-          </button>
+          </Button>
         </div>
       </section>
 
@@ -113,19 +116,19 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
 
       <NoteEditor
         id="note-content"
-        className={classNames(
+        className={cn(
           'flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:w-auto! sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1',
           theme
             ? `dialog-${theme} shadow-xl shadow-theme-${theme}`
-            : 'sm:shadow-theme',
+            : 'sm:shadow-sheet',
         )}
         editorClassName="h-full"
         menuClassNames={{
-          fixedMenu: classNames(
+          fixedMenu: cn(
             'transition-shadow mb-4',
             scroll.y < 240
               ? ''
-              : 'shadow-[0_8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10 rounded-b-xl',
+              : 'shadow-[0_8px_5px_-5px] shadow-ink/10 rounded-b-xl',
           ),
         }}
         initialValue={mutateNoteData?.content || noteData?.content || ''}
@@ -138,12 +141,11 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
 
       <NoteCustomize
         type="update"
-        className={classNames(
+        className={cn(
           scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button
           viewY < maxViewY - 16
-            ? 'shadow-[0_-8px_5px_-5px] shadow-zinc-600/10 dark:shadow-zinc-400/10'
-            : 'dark:bg-zinc-900 dark:backdrop-blur-none',
-          theme && viewY < maxViewY - 16 ? 'dark:text-black' : '',
+            ? 'shadow-ink/10 shadow-[0_-8px_5px_-5px]'
+            : 'dark:bg-paper-raised dark:backdrop-blur-none',
         )}
         loading={isPending}
         onDeleteSuccess={() => router.push('/eton')}

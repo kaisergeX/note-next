@@ -2,7 +2,7 @@
 
 /**
  * Native Popover API primitive: owns behavior only. Visuals live in the
- * callers (`triggerClassName` / `popoverClassName`).
+ * callers (`triggerClassName` / `className`).
  *
  * The trigger <button> uses the Invoker Commands API (`commandfor`/`command`)
  * instead of `popovertarget` on modern browsers, because the invoker gets
@@ -29,7 +29,7 @@
  * globals.css keeps the popover permanently hidden there.
  */
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {
   useEffect,
   useId,
@@ -51,7 +51,7 @@ export type PopoverBaseProps = {
   trigger: ReactNode
   triggerClassName?: string
   /** Extra classes on the popover div — visuals live here, in the callers. */
-  popoverClassName?: string
+  className?: string
   disabled?: boolean
   /** A click on an enabled `a`/`button` inside the popover closes it. */
   closeOnSelect?: boolean
@@ -71,13 +71,13 @@ const safeId = (raw: string) => raw.replace(/[^a-zA-Z0-9_-]/g, '')
 
 const ANCHOR_CLASSES: Record<PopoverAnchor, string> = {
   'bottom-end':
-    '[position-area:block-end_span-inline-start] [justify-self:end] [align-self:start] mt-2 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
+    '[position-area:block-end_span-inline-start] [justify-self:end] [align-self:start] mt-1 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
   'bottom-start':
-    '[position-area:block-end_span-inline-end] [justify-self:start] [align-self:start] mt-2 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
+    '[position-area:block-end_span-inline-end] [justify-self:start] [align-self:start] mt-1 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
   'top-end':
-    '[position-area:block-start_span-inline-start] [justify-self:end] [align-self:end] mb-2 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
+    '[position-area:block-start_span-inline-start] [justify-self:end] [align-self:end] mb-1 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
   'top-start':
-    '[position-area:block-start_span-inline-end] [justify-self:start] [align-self:end] mb-2 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
+    '[position-area:block-start_span-inline-end] [justify-self:start] [align-self:end] mb-1 [position-try-fallbacks:flip-block,flip-inline,flip-block_flip-inline]',
 }
 
 const supportsAnchorPositioning = () =>
@@ -91,7 +91,7 @@ export default function PopoverBase({
   anchor = 'bottom-end',
   trigger,
   triggerClassName,
-  popoverClassName,
+  className,
   disabled,
   closeOnSelect = true,
   onToggle,
@@ -229,15 +229,15 @@ export default function PopoverBase({
           setOpen(isOpen)
           onToggle?.(isOpen)
         }}
-        className={classNames(
-          'menu-popover',
+        className={cn(
+          'menu-popover text-ink',
           noAnchor && 'menu-no-anchor',
           // `overflow-y` still clips, so rounded corners are preserved while
           // long popovers scroll instead of overflowing the viewport.
           // `overflow-x` is explicit so horizontal clipping is guaranteed.
           'max-h-[calc(100vh-16px)] overflow-x-hidden overflow-y-auto',
           ANCHOR_CLASSES[anchor],
-          popoverClassName,
+          className,
         )}
       >
         {children}

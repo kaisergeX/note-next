@@ -1,14 +1,14 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
 import {IconDotsVertical, IconPalette, IconTrash} from '@tabler/icons-react'
+import {cn} from 'cn'
 import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import type {Note} from '~/db/schema/notes'
-import PopoverBase from '~/components/ui/popover'
 import Button from '~/components/ui/button'
+import PopoverBase from '~/components/ui/popover'
+import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 
 type NoteProps = {
@@ -35,7 +35,7 @@ export default function NoteTiny({data}: NoteProps) {
 
   return (
     <div
-      className={classNames(
+      className={cn(
         'group relative rounded-lg',
         'transition-shadow',
         theme
@@ -53,7 +53,7 @@ export default function NoteTiny({data}: NoteProps) {
       >
         {title && (
           <article
-            className={classNames(
+            className={cn(
               'prose sm:prose-lg line-clamp-3 pb-2 font-semibold wrap-anywhere sm:leading-normal',
               theme ? `prose-${theme}` : 'dark:prose-invert',
             )}
@@ -61,7 +61,7 @@ export default function NoteTiny({data}: NoteProps) {
           />
         )}
         <article
-          className={classNames(
+          className={cn(
             'prose line-clamp-10 wrap-anywhere',
             theme ? `prose-${theme}` : 'dark:prose-invert',
           )}
@@ -70,7 +70,7 @@ export default function NoteTiny({data}: NoteProps) {
       </Link>
 
       <div
-        className={classNames(
+        className={cn(
           'text-ink-muted absolute inset-x-0 bottom-0 w-full cursor-default justify-between p-2 transition',
           'hidden group-has-[.note-tiny-menu:popover-open]:flex focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
         )}
@@ -83,14 +83,13 @@ export default function NoteTiny({data}: NoteProps) {
           trigger={<IconDotsVertical size="1rem" />}
           triggerClassName="p-2"
           anchor="top-end"
-          popoverClassName={classNames(
+          className={cn(
             'note-tiny-menu',
             // restores the UA popover's default 0.25em padding for the
             // full-bleed delete button.
-            'p-1',
+            'rounded-lg p-1',
             `shadow-theme-${theme || 'slate'}`,
-            'bg-paper-raised border border-hairline',
-            'rounded-md',
+            'bg-paper-raised border-hairline border',
           )}
         >
           <Button

@@ -1,8 +1,9 @@
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {IconPalette, IconPaletteOff} from '@tabler/icons-react'
 import {Fragment} from 'react'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
 import PopoverBase from '~/components/ui/popover'
+import Button, {buttonClass} from '~/components/ui/button'
 import {usePersistStore} from '~/store'
 
 export const NoteThemePicker = ({
@@ -17,22 +18,24 @@ export const NoteThemePicker = ({
     {
       id: 'default',
       component: (
-        <button
-          className="button-secondary button-icon rounded-full p-1"
+        <Button
+          className="p-1"
+          variant="secondary"
+          iconOnly
           title="Default"
-          type="button"
+          aria-label="Default theme"
           onClick={() => setMutateNoteData({theme: null})}
           disabled={!theme}
         >
           <IconPaletteOff />
-        </button>
+        </Button>
       ),
     },
     ...twNoteThemeConfig.map(({theme: themeName}) => ({
       id: themeName,
       component: (
         <button
-          className={classNames(
+          className={cn(
             'block h-8 w-8 rounded-full transition-shadow',
             `picker-${themeName}`,
             theme && theme === themeName
@@ -53,16 +56,17 @@ export const NoteThemePicker = ({
   return (
     <PopoverBase
       trigger={<IconPalette size="1.2rem" />}
-      triggerClassName={classNames(
-        'button-secondary rounded-full p-1',
+      triggerClassName={cn(
+        buttonClass({variant: 'secondary', iconOnly: true}),
         theme ? `border-theme-${theme}` : '',
       )}
       disabled={disabled}
       anchor="top-start"
       closeOnSelect={false}
-      popoverClassName={classNames(
+      className={cn(
         `shadow-md shadow-theme-${theme || 'slate'}`,
-        'grid-cols-4 gap-3 rounded-md p-3 open:grid',
+        'bg-paper-raised border-hairline border',
+        'grid-cols-4 place-items-center gap-3 rounded-lg p-3 open:grid',
       )}
     >
       {menuColors.map(({component, id}) => (

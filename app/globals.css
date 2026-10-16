@@ -91,6 +91,18 @@
 }
 
 @utility prose {
+  font-family: var(--font-serif);
+  font-weight: 400;
+
+  :is(h1, h2, h3, h4, h5, h6, strong, b) {
+    font-weight: 600;
+  }
+
+  blockquote,
+  em {
+    font-style: italic;
+  }
+
   code {
     @apply bg-(--tw-prose-code-pg,var(--color-gray-200)) dark:bg-(--tw-prose-code-pg,var(--color-gray-700));
 
@@ -320,7 +332,7 @@
 
 @layer components {
   .k-dialog {
-    @apply bg-default m-[revert] dark:border dark:border-gray-800;
+    @apply bg-paper-raised text-ink border-hairline m-[revert] border;
 
     .k-dialog-header,
     .k-dialog-content,

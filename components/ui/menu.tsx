@@ -47,7 +47,7 @@ export default function MenuCustom({
       anchor={anchor}
       trigger={children}
       triggerClassName={className}
-      popoverClassName={cn(BASE_CLASSES, itemsClassName)}
+      className={cn(BASE_CLASSES, itemsClassName)}
     >
       {items.flatMap((item, index) => {
         if (item.hidden) return []

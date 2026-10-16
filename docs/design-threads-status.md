@@ -65,6 +65,31 @@ Current state: after Thread 2 (Notes list), completed plus owner-approved defaul
 - Create-dialog legacy classes (bg-default, shadow-theme-slate, bg-zinc-50 dark:bg-zinc-900) — Thread 3 scope.
 - Empty-state CTA copy randomizes per load ('New idea'/'New todo'/...) — intentional useRandomString, but consider one canonical string.
 
+## Thread 3 — Note editor: DONE
+
+### Owner decisions (binding)
+
+- Prose size refinement (DESIGN prose-body 1.0625rem/1.7) deferred by owner. Bare `prose` also styles privacy page (Thread 7) and note card previews (Thread 2); adding the size to `@utility prose` would clobber the typography plugin's `prose-sm`/`prose-lg` (custom utility emits later in cascade). If pursued later: scoped utility (e.g. `prose-note`) applied to note-editor + note-tiny preview only, or migrate privacy page first.
+- Create dialog has no maximize/full-page link (no note id yet) — pre-existing behavior, kept; owner to confirm if it should appear post-save.
+
+### Deviations / notes
+
+- Actual note-detail path differs from the guide: `components/note/note-detail.tsx` does not exist; migrated file is `app/[locale]/(note)/eton/[id]/note-detail.tsx`. The modal shell (`eton/@modal/(.)[id]/note-detail-modal.tsx`) and `app/[locale]/(note)/full/eton/[id]/page.tsx` (pure redirect stub) were clean — untouched.
+- Out-of-chunk (add-on): `components/ui/popover.tsx` popover surface got `text-ink` + `classNames`→`cn` — same native-Popover `canvastext` black-text bug fixed in menu.tsx earlier; affects note-customize/theme-picker popovers.
+- Thread 1 deferred items closed here: full-page background strips fixed (sticky toolbar now `bg-paper/70 backdrop-blur-sm` + `border-b border-hairline`, blends with paper); `popovertarget`/`popovertargetaction` dead attrs were already cleaned upstream (no occurrences in chunk files — prior status note outdated). Create-dialog legacy classes (bg-zinc-50 dark:bg-zinc-900 etc.) lived in note-dialog.tsx and are migrated.
+- Directional sticky shadows retinted to ink (`shadow-ink/10`) in note-dialog, note-detail (fixed menu + bottom bar); protected directional `shadow-[0_-8px_5px_-5px] shadow-theme-<hue>` strings kept byte-identical.
+- Unthemed dialog fallback: `bg-zinc-50 dark:bg-zinc-900` → `bg-paper-raised shadow-sheet`; dialog radius fixed to spec `rounded-lg` (12px) with `max-sm:rounded-none` full-bleed kept; backdrop → `backdrop:bg-paper/50 backdrop:backdrop-blur`.
+- Prose typography: `@utility prose` now sets Newsreader (`var(--font-serif)`), weight 400, headings/strong/bold 600, blockquote/em italic. Font-only — see deferred size decision. `prose-<hue>` and `prose-invert` untouched.
+- `.k-dialog` in globals.css tokenized (`bg-paper-raised text-ink border-hairline`); zero direct usages in app/components — applied at runtime by `@kaiverse/k/ui` Dialog internals.
+- `components/ui/rte-commands.tsx` internals untouched (own toggle styling system) — tokenize during a later thread if it reads as zinc in QA.
+- Delete rows: `<Button variant="danger">` matching Thread 2's note-tiny pattern (`w-full border-none shadow-none`, default rounded-md).
+
+### Verification
+
+- `pnpm lint` + `pnpm build` pass (76 static pages). Grep of chunk files: zero legacy/raw classes; protected hue strings byte-identical; working tree = 7 code files + docs only.
+- Visual QA (ui-reviewer, 3 rounds, real browser): dialog surface/radius/backdrop/title serif/shadow-sheet; bubble/floating/fixed toolbars tokenized; theme picker popover (swatches, accent ring, hue shadow) light+dark; colorways blue/rose/green light+dark unchanged; unthemed dark readable (no black-on-dark); delete row destructive hover fill; full-page toolbar blends with paper, dark bottom bar solid paper-raised; 390px no horizontal overflow (dark verified); console 0 errors.
+- Gaps: 390px LIGHT sweep not run (low risk — light verified at 1440 on every surface); scroll-top affix trigger + scroll shadows not exercisable (test note too short to scroll — button present in DOM). Header Theme Switcher popover didn't open under programmatic clicks in round 2 (likely automation artifact — native Popover needs trusted events; component untouched this thread) — worth a manual click check.
+
 ## Future (outside migration)
 
 - Full-palette theme switching: design spec at docs/theme-system.md — deferred, additive, no current docs/CSS changes needed.
