@@ -8,6 +8,7 @@ import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import type {Note} from '~/db/schema/notes'
 import PopoverBase from '~/components/ui/popover'
+import Button from '~/components/ui/button'
 import {usePersistStore} from '~/store'
 
 type NoteProps = {
@@ -35,12 +36,15 @@ export default function NoteTiny({data}: NoteProps) {
   return (
     <div
       className={classNames(
-        'card group relative',
-        theme ? `dialog-${theme} shadow-theme-${theme} border-none` : '',
+        'group relative rounded-lg',
+        'transition-shadow',
+        theme
+          ? `dialog-${theme} shadow-theme-${theme}`
+          : 'bg-paper-raised border-hairline hover:shadow-sheet focus-within:shadow-sheet border',
       )}
     >
       <Link
-        className="block h-full p-4 pb-8"
+        className="block h-full p-4 pb-10"
         href={`${isPreferFullView ? '/full' : ''}/eton/${noteId}`}
         onClick={(e) => {
           pendingTransition && e.preventDefault()
@@ -50,7 +54,7 @@ export default function NoteTiny({data}: NoteProps) {
         {title && (
           <article
             className={classNames(
-              'prose sm:prose-lg mb-4 line-clamp-3 font-semibold wrap-anywhere sm:leading-normal',
+              'prose sm:prose-lg line-clamp-3 pb-2 font-semibold wrap-anywhere sm:leading-normal',
               theme ? `prose-${theme}` : 'dark:prose-invert',
             )}
             dangerouslySetInnerHTML={{__html: title || ''}}
@@ -67,7 +71,7 @@ export default function NoteTiny({data}: NoteProps) {
 
       <div
         className={classNames(
-          'absolute inset-x-0 bottom-0 w-full cursor-default justify-between p-2 text-zinc-500 transition',
+          'text-ink-muted absolute inset-x-0 bottom-0 w-full cursor-default justify-between p-2 transition',
           'hidden group-has-[.note-tiny-menu:popover-open]:flex focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
         )}
       >
@@ -84,18 +88,19 @@ export default function NoteTiny({data}: NoteProps) {
             // restores the UA popover's default 0.25em padding for the
             // full-bleed delete button.
             'p-1',
-            `shadow-md shadow-theme-${theme || 'slate'}`,
+            `shadow-theme-${theme || 'slate'}`,
+            'bg-paper-raised border border-hairline',
             'rounded-md',
           )}
         >
-          <button
-            className="button-secondary text-danger w-full rounded-none border-none shadow-none"
-            type="button"
+          <Button
+            variant="danger"
+            className="w-full border-none shadow-none"
             onClick={handleDeleteNote}
             disabled={pendingTransition}
           >
             <IconTrash size="1rem" /> {t('delete')}
-          </button>
+          </Button>
         </PopoverBase>
       </div>
     </div>

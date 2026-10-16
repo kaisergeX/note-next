@@ -82,7 +82,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
     },
     {
       component: (
-        <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 border border-transparent bg-transparent p-3 text-left font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
+        <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 rounded-sm bg-transparent p-3 text-left font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
