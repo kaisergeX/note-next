@@ -78,7 +78,7 @@ export default function NoteDialog({
 
       <NoteEditor
         id={`dialog-note-title-${type}-${mutateNoteData?.id || 'new'}`}
-        className="mb-2 p-4"
+        className="p-4"
         editorClassName="text-lg font-semibold sm:text-xl"
         initialValue={mutateNoteData?.title}
         onChange={(value) => setMutateNoteData({title: value})}

@@ -10,7 +10,7 @@
  * arrow-key navigation is implemented (menu roles require menu semantics).
  */
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import Link from 'next/link'
 import {Fragment, type PropsWithChildren, type ReactNode} from 'react'
 import PopoverBase, {type PopoverAnchor} from './popover'
@@ -33,7 +33,7 @@ type MenuCustomProps = PropsWithChildren<{
 }>
 
 const BASE_CLASSES =
-  'bg-default shadow-theme ring-theme rounded-md border border-gray-400 text-sm font-semibold focus:outline-none dark:border-gray-900'
+  'bg-paper-raised shadow-sheet rounded-md border border-hairline text-sm font-semibold focus:outline-none'
 
 export default function MenuCustom({
   className,
@@ -47,7 +47,7 @@ export default function MenuCustom({
       anchor={anchor}
       trigger={children}
       triggerClassName={className}
-      popoverClassName={classNames(BASE_CLASSES, itemsClassName)}
+      popoverClassName={cn(BASE_CLASSES, itemsClassName)}
     >
       {items.flatMap((item, index) => {
         if (item.hidden) return []
@@ -58,8 +58,8 @@ export default function MenuCustom({
             href={item.url}
             aria-disabled={item.disabled ? 'true' : undefined}
             data-disabled={item.disabled ? '' : undefined}
-            className={classNames(
-              'hover:bg-reverse focus-visible:bg-reverse data-disabled:disabled flex items-center gap-2 p-4 transition-colors',
+            className={cn(
+              'hover:bg-ink-tint focus-visible:bg-ink-tint focus-visible:outline-accent data-disabled:disabled flex items-center gap-2 rounded-sm p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
               item.className || '',
             )}
             onClick={(e) => {

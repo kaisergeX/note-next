@@ -66,6 +66,8 @@ Primitives:
 
 ## Threads (in order — chrome first, so later threads inherit it)
 
+> Status: see docs/design-threads-status.md — Thread 1 done; its notes/deferred items are binding context for later threads.
+
 ### Thread 1 — App chrome
 
 Files: `app/[locale]/layout.tsx`, `components/layouts/theme-wrapper.tsx` (Newsreader already wired — verify only), `components/layouts/app-header.tsx`, `components/layouts/scroll-top-button.tsx`, `components/layouts/logo-loading.tsx`, `components/layouts/provider-wrapper.tsx` (verify only), `app/[locale]/error.tsx`, `app/[locale]/global-error.tsx`, `app/[locale]/not-found.tsx`, `app/[locale]/global-not-found.tsx`, `app/[locale]/denied/**`, `app/[locale]/login/page.tsx`.
