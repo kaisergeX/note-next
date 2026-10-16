@@ -36,6 +36,9 @@ const ICON_ONLY_SIZES: Record<ButtonSize, string> = {
 
 const LOADER_SIZES: Record<ButtonSize, number> = {sm: 14, md: 16, lg: 18}
 
+const BASE_CLASSES =
+  'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent font-semibold transition-colors duration-100 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed aria-busy:pointer-events-none aria-busy:opacity-75'
+
 /** Assembles the full class list for a Button: base + variant + size (icon-aware). */
 export function buttonClass({
   variant = 'primary',
@@ -52,9 +55,6 @@ export function buttonClass({
     iconOnly ? ICON_ONLY_SIZES[size] : SIZES[size],
   )
 }
-
-const BASE_CLASSES =
-  'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent font-semibold transition-colors duration-100 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed aria-busy:pointer-events-none aria-busy:opacity-75'
 
 /**
  * Paper & Ink button. Variants per DESIGN.md; accent is never a button fill.

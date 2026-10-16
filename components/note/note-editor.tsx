@@ -1,6 +1,6 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import CharacterCount, {
   type CharacterCountStorage,
 } from '@tiptap/extension-character-count'
@@ -110,7 +110,7 @@ export default function NoteEditor({
       ],
       editorProps: {
         attributes: {
-          class: classNames(
+          class: cn(
             'focus:outline-none prose max-w-none',
             theme ? `prose-${theme}` : 'dark:prose-invert',
             loading ? 'opacity-80 cursor-progress' : '',
@@ -163,11 +163,11 @@ export default function NoteEditor({
 
   const renderFixedMenu = (
     <RTECommands
-      className={classNames(
+      className={cn(
         'sticky inset-x-0 z-10 -mx-4 p-4',
         commandTypes === 'always-fixed'
-          ? 'bg-default top-16'
-          : 'glass invisible top-14 bg-inherit group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4',
+          ? 'bg-paper-raised border-hairline top-16 border'
+          : 'bg-paper/70 invisible top-14 bg-inherit backdrop-blur-sm group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4',
         menuClassNames?.fixedMenu || '',
       )}
       editor={textEditor}
@@ -179,8 +179,8 @@ export default function NoteEditor({
     <>
       <BubbleMenu
         pluginKey={new PluginKey(id)}
-        className={classNames(
-          'bg-default shadow-theme rounded-lg p-2',
+        className={cn(
+          'bg-paper-raised border-hairline shadow-sheet rounded-lg border p-2',
           menuClassNames?.bubbleMenu || '',
         )}
         editor={textEditor}
@@ -191,8 +191,8 @@ export default function NoteEditor({
 
       <FloatingMenu
         pluginKey={new PluginKey(id)}
-        className={classNames(
-          'bg-default ml-4 rounded-lg',
+        className={cn(
+          'bg-paper-raised border-hairline ml-4 rounded-lg border',
           menuClassNames?.floatingMenu || '',
         )}
         editor={textEditor}
@@ -228,16 +228,13 @@ export default function NoteEditor({
   }
 
   return (
-    <div
-      id={id}
-      className={classNames('group/rteditor relative w-full', className)}
-    >
+    <div id={id} className={cn('group/rteditor relative w-full', className)}>
       {renderCommands()}
       <EditorContent editor={textEditor} />
       {showCount && (
         <div
-          className={classNames(
-            'invisible absolute right-4 -bottom-4 border-gray-100 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
+          className={cn(
+            'border-hairline invisible absolute right-4 -bottom-4 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
             countClassName,
           )}
         >

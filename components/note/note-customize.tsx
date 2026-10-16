@@ -1,6 +1,6 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {
   IconArrowUp,
   IconCheck,
@@ -21,6 +21,7 @@ import {
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
 import PopoverBase from '~/components/ui/popover'
+import Button from '~/components/ui/button'
 import {NoteThemePicker} from './note-theme-picker'
 
 export type NoteCustomizeProps = {
@@ -106,14 +107,14 @@ export default function NoteCustomize({
     {
       id: 'delete',
       component: (
-        <button
-          className="button-secondary text-danger w-full rounded-none border-none shadow-none"
-          type="button"
+        <Button
+          variant="danger"
+          className="w-full border-none shadow-none"
           onClick={handleDeleteNote}
           disabled={isLoading}
         >
           <IconTrash size="1.2rem" /> {t('delete')}
-        </button>
+        </Button>
       ),
       hidden: type !== 'update' || !noteId,
     },
@@ -122,9 +123,9 @@ export default function NoteCustomize({
   return (
     <div
       ref={ref}
-      className={classNames(
+      className={cn(
         'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]',
-        theme ? 'glass bg-inherit backdrop-blur-md' : 'bg-default',
+        'bg-paper/50 border-hairline border-t backdrop-blur-sm',
         scrollTopCtrl && scrollable
           ? 'animate-scroll animate-[pr] [--pr-to:4rem] [animation-range-end:5rem]'
           : '',
@@ -134,17 +135,15 @@ export default function NoteCustomize({
       <div className="flex items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
 
-        <button
-          className={classNames(
-            'button-secondary button-icon rounded-full p-1',
-            theme ? `border-theme-${theme}` : '',
-          )}
+        <Button
+          variant="secondary"
+          iconOnly
+          className={theme ? `border-theme-${theme}` : ''}
           title="Illustration, Texture"
-          type="button"
           disabled
         >
           <IconTexture size="1.2rem" />
-        </button>
+        </Button>
       </div>
 
       <div className="flex items-center gap-2">
@@ -157,7 +156,7 @@ export default function NoteCustomize({
               </>
             ) : (
               <>
-                <IconCheck className="text-green-600" size="1.2rem" />{' '}
+                <IconCheck className="text-success" size="1.2rem" />{' '}
                 {t('status.synced')}
               </>
             )}
@@ -170,10 +169,11 @@ export default function NoteCustomize({
             triggerClassName="p-2"
             anchor="top-end"
             disabled={isLoading}
-            popoverClassName={classNames(
+            className={cn(
               // restores the UA popover's default 0.25em padding for the
               // full-bleed delete button.
               'p-1',
+              'bg-paper-raised border border-hairline',
               `shadow-md shadow-theme-${theme || 'slate'}`,
               'rounded-md',
             )}
@@ -186,10 +186,12 @@ export default function NoteCustomize({
       </div>
 
       {scrollTopCtrl && scrollable && (
-        <button
-          type="button"
-          className={classNames(
-            'button button-icon absolute right-4 bottom-4 rounded-full p-1 transition-all will-change-transform',
+        <Button
+          variant="secondary"
+          iconOnly
+          aria-label="Scroll to top"
+          className={cn(
+            'absolute right-4 bottom-4 transition-all will-change-transform',
             'animate-affix-appear [--affix-y-from:2] [animation-range-end:6rem] [animation-range-start:2rem]',
           )}
           onClick={() =>
@@ -197,7 +199,7 @@ export default function NoteCustomize({
           }
         >
           <IconArrowUp />
-        </button>
+        </Button>
       )}
     </div>
   )
