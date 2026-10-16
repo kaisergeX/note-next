@@ -37,6 +37,7 @@
     "@vercel/functions": "^3.9.9",
     "@vercel/speed-insights": "^2.0.0",
     "ai": "^7.0.114",
+    "cn": "^0.4.0",
     "dayjs": "^1.11.23",
     "drizzle-orm": "1.0.0-rc.4",
     "next": "16.3.6",

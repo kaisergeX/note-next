@@ -1,4 +1,4 @@
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import Image from 'next/image'
 
 type LogoLoadingProps = {
@@ -11,9 +11,7 @@ export default function LogoLoading({
   pulse = false,
 }: LogoLoadingProps) {
   return (
-    <div
-      className={classNames('flex-center text-3xl dark:invert-100', className)}
-    >
+    <div className={cn('flex-center text-3xl dark:invert', className)}>
       <Image
         className={pulse ? 'animate-pulse' : undefined}
         src="/web-app-manifest-144x144.png"

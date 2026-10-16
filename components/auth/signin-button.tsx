@@ -2,6 +2,7 @@
 import {signIn} from 'next-auth/react'
 import {useSearchParams} from 'next/navigation'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
+import Button from '~/components/ui/button'
 
 type Props = {
   provider?: Parameters<typeof signIn>[0]
@@ -16,13 +17,11 @@ export default function SignInButton({
   const callbackUrl = `/${searchParams.get('callbackUrl') || ''}`
 
   return (
-    <button
-      type="button"
-      className="button"
+    <Button
       onClick={() => void signIn(provider, {redirect: true, callbackUrl})}
       {...props}
     >
       {children}
-    </button>
+    </Button>
   )
 }

@@ -28,7 +28,7 @@ export default async function Login() {
   }
 
   return (
-    <main className="bg-fancy flex-center h-full flex-col gap-8 p-4">
+    <main className="bg-dotgrid flex-center h-full flex-col gap-8 p-4">
       <SignInButton>
         <svg
           className="h-4 w-4"
@@ -49,10 +49,10 @@ export default async function Login() {
         {t('signIn.withGoogle')}
       </SignInButton>
 
-      <div className="text-center text-sm">
+      <div className="text-ink-muted text-center text-sm">
         By clicking Sign In, you are setting up a etoN account and agree to our{' '}
         <Link
-          className="underline"
+          className="text-accent underline"
           href="/trust/privacy"
           rel="noopener noreferrer nofollow"
           target="_blank"

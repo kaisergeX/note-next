@@ -2,7 +2,7 @@
 
 import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {
   IconActivity,
   IconLogout,
@@ -20,6 +20,7 @@ import {usePathname} from 'next/navigation'
 import {protectedPathnameRegex} from '~/config/auth'
 import {usePersistStore} from '~/store'
 import {useScrollDirection} from '~/util/hooks'
+import Button from '~/components/ui/button'
 import SignOutButton from '../auth/signout-button'
 import MenuCustom, {type MenuCustomItem} from '../ui/menu'
 
@@ -81,7 +82,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
     },
     {
       component: (
-        <SignOutButton className="hover:bg-reverse focus-visible:bg-reverse text-danger flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50">
+        <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 border border-transparent bg-transparent p-3 text-left font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
@@ -97,34 +98,34 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             alt={profileName || sessionData?.user.email || 'profile-avatar'}
             width={34}
             height={34}
-            className="rounded-full ring-1 ring-gray-900/5"
+            className="ring-hairline rounded-full ring-1"
           />
         ),
       }
-    : {container: 'button button-icon p-1', avatar: <IconUser />}
+    : {
+        container:
+          'flex size-[34px] items-center justify-center rounded-full bg-ink text-paper',
+        avatar: <IconUser />,
+      }
 
   return (
     <header
-      className={classNames(
-        'glass sticky inset-x-0 top-0 z-20 w-full transition-transform sm:bg-zinc-50/60 dark:bg-zinc-900/60',
+      className={cn(
+        'bg-paper border-hairline animate-header-shadow sticky inset-x-0 top-0 z-20 w-full border-b transition-transform',
         'flex h-16 items-center justify-between gap-4 p-4',
         scrollDirection === 'down' ? '-translate-y-full' : '',
       )}
     >
       <Link
         href={homepagePath}
-        className="group text-2xl font-bold max-lg:hidden md:text-4xl"
+        className="text-2xl font-medium max-lg:hidden md:text-4xl"
       >
-        <span className="text-gradient inline-block text-inherit transition-colors group-hover:text-transparent dark:hidden">
-          {appName}
-        </span>
-
-        <span className="hidden dark:inline-block">{appName}</span>
+        <span className="text-accent inline-block font-serif">{appName}</span>
       </Link>
 
       <Link href={homepagePath} className="lg:hidden">
         <Image
-          className="dark:invert-100"
+          className="dark:invert"
           src="/favicon.svg"
           alt={appName}
           loading="eager"
@@ -134,20 +135,21 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
       </Link>
 
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          className="button-secondary button-icon rounded-full p-1"
+        <Button
+          variant="secondary"
+          size="md"
+          iconOnly
           onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+          aria-label="Theme Switcher"
         >
-          <span className="sr-only">Theme Switcher</span>
           {isDarkMode ? <IconMoonStars /> : <IconSun />}
-        </button>
+        </Button>
 
         <div className={isAuthenticated ? '' : 'hidden'}>
           {/* Profile dropdown */}
           <nav className="hidden lg:block">
             <MenuCustom
-              className={classNames(
+              className={cn(
                 'flex items-center rounded-full',
                 renderAvatar.container,
               )}
@@ -160,31 +162,33 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
           </nav>
 
           {/* Mobile menu button */}
-          <button
-            className="button-icon flex-center rounded-full border-none p-1 shadow-none lg:hidden"
-            type="button"
+          <Button
+            variant="ghost"
+            size="md"
+            iconOnly
+            className="lg:hidden"
             onClick={openMenuDialog}
             aria-controls="main-menu"
             aria-expanded={isMenuDialogOpen}
+            aria-label="Open main menu"
           >
-            <span className="sr-only">Open main menu</span>
             <IconMenu2 size="1.5rem" />
-          </button>
+          </Button>
         </div>
       </div>
 
       <Dialog
         id="main-menu"
-        className="dark:bg-theme pt-[calc(.5rem+env(safe-area-inset-top))] text-inherit max-xl:pb-[calc(1rem+env(safe-area-inset-bottom))]"
+        className="bg-paper-raised border-hairline shadow-sheet text-ink pt-[calc(.5rem+env(safe-area-inset-top))] max-xl:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         open={isMenuDialogOpen}
         onClose={closeMenuDialog}
         variant="drawer"
         position="right"
       >
-        <header className="block border-b border-zinc-200 dark:border-zinc-700">
-          <div className="flex items-center justify-between border-b border-gray-700 px-4 pb-2">
+        <header className="border-hairline block border-b">
+          <div className="border-hairline flex items-center justify-between border-b px-4 pb-2">
             <Image
-              className="dark:invert-100"
+              className="dark:invert"
               src="/favicon.svg"
               alt={appName}
               width={48}
@@ -192,12 +196,12 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             />
             <Dialog.CloseButton className="[&>svg]:size-8" />
           </div>
-          <div className="flex gap-4 border-b border-zinc-200 px-4 py-8 dark:border-zinc-700">
+          <div className="border-hairline flex gap-4 border-b px-4 py-8">
             <div className={renderAvatar.container}>{renderAvatar.avatar}</div>
             <div>
               <div className="leading-none">{profileName}</div>
               {sessionData?.user.email && (
-                <div className="mt-2 text-sm leading-none font-medium text-zinc-400">
+                <div className="text-ink-muted mt-2 text-sm leading-none font-medium">
                   {sessionData.user.email}
                 </div>
               )}
@@ -208,7 +212,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
           <nav aria-label="Main navigation">
             <Link
               href="/user"
-              className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
+              className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
               onClick={closeMenuDialog}
             >
               <IconUserCircle /> Profile
@@ -217,7 +221,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             {userRole === 'archivist' && (
               <Link
                 href="/admin"
-                className="flex items-center gap-2 rounded-md p-4 text-base font-medium"
+                className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
                 onClick={closeMenuDialog}
               >
                 <IconActivity /> Admin Portal
@@ -225,8 +229,8 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             )}
           </nav>
 
-          <div className="border-t border-zinc-200 dark:border-zinc-700">
-            <SignOutButton className="text-danger flex w-full items-center gap-2 rounded-md p-4 text-left text-base font-medium">
+          <div className="border-hairline border-t">
+            <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 rounded-md border border-transparent bg-transparent p-3 text-left text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
               <IconLogout /> {signOutLabel}
             </SignOutButton>
           </div>

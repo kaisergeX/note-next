@@ -28,6 +28,12 @@
   --color-raised-hover: var(--raised-hover);
   --shadow-sheet: var(--sheet-shadow);
   --font-serif: var(--font-newsreader), Georgia, serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  /* DESIGN.md Shapes: sm 6 / md 8 / lg 12 / xl 16 (Tailwind defaults differ) */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
 }
 
 @utility text-danger {
@@ -64,6 +70,19 @@
   @apply animate-scroll animate-[affix-appear];
 }
 
+/* Sheet lift grows in as the page scrolls; applied to the sticky header.
+   Longhands only (no `animation` shorthand) so animation-timeline is not
+   reset, and gated per DESIGN.md Motion: scroll-driven anims off when the
+   user prefers reduced motion. */
+@utility animate-header-shadow {
+  @media (prefers-reduced-motion: no-preference) {
+    animation-name: header-sheet-shadow;
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll();
+  }
+}
+
 @utility typing-dot {
   animation: typing-bounce 1.2s ease-in-out infinite;
 }
@@ -93,14 +112,6 @@
 
 @utility disabled {
   @apply pointer-events-none cursor-not-allowed opacity-50;
-}
-
-@utility ring-reverse {
-  @apply ring-1 ring-zinc-700 dark:ring-zinc-100;
-}
-
-@utility ring-theme {
-  @apply ring-1 ring-zinc-100 dark:ring-zinc-700;
 }
 
 @utility bg-default {
@@ -205,10 +216,6 @@
   }
 }
 
-@utility text-gradient {
-  @apply bg-linear-to-r from-rose-500 to-violet-500 bg-clip-text text-transparent;
-}
-
 @layer base {
   :root:not(:has(body > main.bg-fancy)) * {
     @apply scrollbar;
@@ -261,15 +268,11 @@
   }
 
   body {
-    @apply bg-default pt-[env(safe-area-inset-top)];
+    @apply bg-paper text-ink pt-[env(safe-area-inset-top)];
   }
 
   body:has(main.bg-fancy) {
     @apply bg-theme;
-
-    header.glass {
-      @apply bg-transparent! backdrop-blur-none!;
-    }
   }
 
   body:has(.prevent-body-scroll) {
@@ -298,7 +301,7 @@
   }
 
   a {
-    @apply transition-colors hover:text-blue-400;
+    @apply hover:text-accent transition-colors;
   }
 
   code {
@@ -392,6 +395,12 @@
 @keyframes add-shadow {
   to {
     box-shadow: 0 8px 5px -5px var(--tw-shadow-color, currentcolor);
+  }
+}
+
+@keyframes header-sheet-shadow {
+  to {
+    box-shadow: var(--sheet-shadow);
   }
 }
 

@@ -1,5 +1,6 @@
 import {classNames} from '@kaiverse/k/utils'
 import {IconLoader2} from '@tabler/icons-react'
+import {cn} from 'cn'
 import type {ComponentPropsWithRef} from 'react'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'link'
@@ -29,12 +30,29 @@ const SIZES: Record<ButtonSize, string> = {
 }
 
 const ICON_ONLY_SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 w-8 p-0',
-  md: 'h-10 w-10 p-0',
-  lg: 'h-12 w-12 p-0',
+  sm: 'h-8 w-8 p-0 rounded-full',
+  md: 'h-10 w-10 p-0 rounded-full',
+  lg: 'h-12 w-12 p-0 rounded-full',
 }
 
 const LOADER_SIZES: Record<ButtonSize, number> = {sm: 14, md: 16, lg: 18}
+
+/** Assembles the full class list for a Button: base + variant + size (icon-aware). */
+export function buttonClass({
+  variant = 'primary',
+  size = 'md',
+  iconOnly = false,
+}: {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  iconOnly?: boolean
+} = {}): string {
+  return classNames(
+    BASE_CLASSES,
+    VARIANTS[variant],
+    iconOnly ? ICON_ONLY_SIZES[size] : SIZES[size],
+  )
+}
 
 const BASE_CLASSES =
   'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent font-semibold transition-colors duration-100 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed aria-busy:pointer-events-none aria-busy:opacity-75'
@@ -58,12 +76,7 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading ? 'true' : undefined}
-      className={classNames(
-        BASE_CLASSES,
-        VARIANTS[variant],
-        iconOnly ? ICON_ONLY_SIZES[size] : SIZES[size],
-        className,
-      )}
+      className={cn(buttonClass({variant, size, iconOnly}), className)}
       {...props}
     >
       {loading ? (
@@ -78,4 +91,4 @@ export default function Button({
   )
 }
 
-export type {ButtonProps, ButtonVariant, ButtonSize}
+export type {ButtonProps, ButtonSize, ButtonVariant}

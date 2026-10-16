@@ -38,8 +38,8 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   viewportFit: 'cover',
   themeColor: [
-    {media: '(prefers-color-scheme: light)', color: '#fafafa'},
-    {media: '(prefers-color-scheme: dark)', color: '#1b1718'},
+    {media: '(prefers-color-scheme: light)', color: '#f7f6f1'},
+    {media: '(prefers-color-scheme: dark)', color: '#0e1016'},
   ],
 }
 
@@ -80,7 +80,7 @@ export default async function LocaleLayout({
           {children}
           <ScrollTopButton />
 
-          <Analytics mode="production" />
+          <Analytics mode="auto" />
           <SpeedInsights />
         </DevtoolsWarnWrapper>
       </ProviderWrapper>
