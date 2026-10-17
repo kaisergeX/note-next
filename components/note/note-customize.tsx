@@ -19,7 +19,7 @@ import {
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
-import Button from '~/components/ui/button'
+import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {NoteThemePicker} from './note-theme-picker'
 
@@ -134,12 +134,13 @@ export default function NoteCustomize({
 
         <Button
           variant="secondary"
+          size="sm"
           iconOnly
           className={theme ? `border-theme-${theme}` : ''}
           title="Illustration, Texture"
           disabled
         >
-          <IconTexture size="1.2rem" />
+          <IconTexture size="18" />
         </Button>
       </div>
 
@@ -162,7 +163,11 @@ export default function NoteCustomize({
 
         {!pendingTransition && menuItems.every(({hidden}) => !hidden) && (
           <MenuCustom
-            className="p-2"
+            className={buttonClass({
+              variant: 'ghost',
+              size: 'sm',
+              iconOnly: true,
+            })}
             anchor="top-end"
             disabled={isLoading}
             itemsClassName={cn(

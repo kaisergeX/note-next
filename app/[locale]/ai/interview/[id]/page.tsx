@@ -1,20 +1,24 @@
-import type {Metadata} from 'next'
 import {
   IconArrowLeft,
+  IconBraces,
   IconDownload,
   IconEdit,
+  IconFileSpreadsheet,
+  IconMarkdown,
   IconMessages,
 } from '@tabler/icons-react'
+import {cn} from 'cn'
+import type {Metadata} from 'next'
+import {getFormatter, getLocale, getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
-import {getLocale, getFormatter, getTranslations} from 'next-intl/server'
 import {Badge} from '~/components/ui/badge'
+import {buttonClass} from '~/components/ui/button'
 import LinkButton from '~/components/ui/link-button'
-import {getPersonaById} from '~/db/helper/personas'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
+import {getPersonaById} from '~/db/helper/personas'
 import {isShapedUuid} from '~/lib/ai/id-shape'
 import {requireAuth} from '~/server-utils'
-import {buttonClass} from '~/components/ui/button'
 
 const SLIDER_AXES = [
   {key: 'calm_anxious', start: 'sliderCalm', end: 'sliderAnxious'},
@@ -113,7 +117,7 @@ export default async function PersonaProfilePage({
       url: `/api/ai/interview/export/persona/${persona.id}?format=md&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {t('export.report')}
+          <IconMarkdown /> {t('export.report')}
         </>
       ),
     },
@@ -122,7 +126,7 @@ export default async function PersonaProfilePage({
       url: `/api/ai/interview/export/persona/${persona.id}?format=csv&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {t('export.dataCsv')}
+          <IconFileSpreadsheet /> {t('export.dataCsv')}
         </>
       ),
     },
@@ -131,7 +135,7 @@ export default async function PersonaProfilePage({
       url: `/api/ai/interview/export/persona/${persona.id}?format=json&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {t('export.backupJson')}
+          <IconBraces /> {t('export.backupJson')}
         </>
       ),
     },
@@ -176,12 +180,15 @@ export default async function PersonaProfilePage({
           <IconEdit size="1.2rem" /> {t('roster.edit')}
         </LinkButton>
         <MenuCustom
-          className={buttonClass({
-            variant: 'secondary',
-            iconOnly: true,
-            size: 'sm',
-          })}
-          itemsClassName="w-48"
+          className={cn(
+            buttonClass({
+              variant: 'secondary',
+              iconOnly: true,
+              size: 'sm',
+            }),
+            'ml-auto',
+          )}
+          itemsClassName="w-50"
           items={exportMenuItems}
         >
           <span className="sr-only">{t('export.menu')}</span>

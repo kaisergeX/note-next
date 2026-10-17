@@ -55,9 +55,9 @@ export const NoteThemePicker = ({
   // live; it closes on light-dismiss (outside click / Esc).
   return (
     <PopoverBase
-      trigger={<IconPalette size="1.2rem" />}
+      trigger={<IconPalette size="18" />}
       triggerClassName={cn(
-        buttonClass({variant: 'secondary', iconOnly: true}),
+        buttonClass({variant: 'secondary', size: 'sm', iconOnly: true}),
         theme ? `border-theme-${theme}` : '',
       )}
       disabled={disabled}

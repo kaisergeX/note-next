@@ -1,17 +1,24 @@
-import {IconArrowLeft, IconDownload} from '@tabler/icons-react'
+import {
+  IconArrowLeft,
+  IconBraces,
+  IconDownload,
+  IconFileSpreadsheet,
+  IconFileTypeCsv,
+  IconMarkdown,
+} from '@tabler/icons-react'
 import type {Metadata} from 'next'
+import {getFormatter, getLocale, getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
-import {getLocale, getFormatter, getTranslations} from 'next-intl/server'
-import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import RunLoop, {type RunItemView} from '~/components/ai/interview/run-loop'
+import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
 import RunTranscripts, {
   type RunResultRow,
   type RunResultTurnView,
 } from '~/components/ai/interview/run-transcript'
 import {Badge} from '~/components/ui/badge'
 import {buttonClass} from '~/components/ui/button'
-import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {getRunById, getRunProgress, listRunItems} from '~/db/helper/runs'
 import {listRunTranscripts} from '~/db/helper/transcripts'
 import type {TranscriptTurn} from '~/db/schema/transcripts'
@@ -58,7 +65,7 @@ export default async function RunDetailPage({
       url: `/api/ai/interview/export/run/${run.id}?format=md&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {tExport('report')}
+          <IconMarkdown /> {tExport('report')}
         </>
       ),
     },
@@ -67,7 +74,7 @@ export default async function RunDetailPage({
       url: `/api/ai/interview/export/run/${run.id}?format=csv&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {tExport('dataCsv')}
+          <IconFileSpreadsheet /> {tExport('dataCsv')}
         </>
       ),
     },
@@ -76,7 +83,7 @@ export default async function RunDetailPage({
       url: `/api/ai/interview/export/run/${run.id}?format=csv-wide&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {tExport('comparisonCsv')}
+          <IconFileTypeCsv /> {tExport('comparisonCsv')}
         </>
       ),
     },
@@ -85,7 +92,7 @@ export default async function RunDetailPage({
       url: `/api/ai/interview/export/run/${run.id}?format=json&locale=${locale}`,
       label: (
         <>
-          <IconDownload size="18" /> {tExport('backupJson')}
+          <IconBraces /> {tExport('backupJson')}
         </>
       ),
     },
@@ -168,8 +175,12 @@ export default async function RunDetailPage({
           </Badge>
         </div>
         <MenuCustom
-          className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11 shrink-0`}
-          itemsClassName="w-48"
+          className={buttonClass({
+            variant: 'secondary',
+            size: 'sm',
+            iconOnly: true,
+          })}
+          itemsClassName="w-50"
           items={exportMenuItems}
         >
           <span className="sr-only">{tExport('menu')}</span>

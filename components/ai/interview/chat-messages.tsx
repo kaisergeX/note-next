@@ -86,36 +86,40 @@ export default function ChatMessages({
                   <p key={index}>{part.text}</p>
                 ))}
             </ChatBubble>
-            {createdAt && (
-              <time
-                dateTime={createdAt}
-                title={format.dateTime(new Date(createdAt), {
-                  dateStyle: 'medium',
-                  timeStyle: 'short',
-                })}
-                className="text-ink-muted mt-0.5 text-xs tabular-nums"
-              >
-                {format.dateTime(new Date(createdAt), {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </time>
-            )}
-            {isLast &&
-              showRegenerate &&
-              message.role === 'assistant' &&
-              !showTyping && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="md"
-                  aria-label={t('regenerate')}
-                  onClick={onRegenerate}
-                  className="text-ink-muted mt-1 min-h-11"
+            <p className="flex-center gap-2">
+              {createdAt && (
+                <time
+                  dateTime={createdAt}
+                  title={format.dateTime(new Date(createdAt), {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                  className="text-ink-muted mt-0.5 text-xs tabular-nums"
                 >
-                  <IconRefresh size={14} /> {t('regenerate')}
-                </Button>
+                  {format.dateTime(new Date(createdAt), {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </time>
               )}
+              {isLast &&
+                showRegenerate &&
+                message.role === 'assistant' &&
+                !showTyping && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    title={t('regenerate')}
+                    aria-label={t('regenerate')}
+                    onClick={onRegenerate}
+                    className="text-ink-muted"
+                    iconOnly
+                  >
+                    <IconRefresh size="16" />
+                  </Button>
+                )}
+            </p>
           </div>
         )
       })}

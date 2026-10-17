@@ -8,6 +8,7 @@ import PersonaChat from '~/components/ai/interview/persona-chat'
 import PersonaChatShell, {
   type ChatSessionSummary,
 } from '~/components/ai/interview/persona-chat-shell'
+import LinkButton from '~/components/ui/link-button'
 import {getPersonaById} from '~/db/helper/personas'
 import {
   getTranscriptById,
@@ -109,16 +110,13 @@ export default async function PersonaChatPage({
         <div>
           <h2 className="text-xl font-bold wrap-anywhere">
             {persona.name}
-            <span className="text-muted-foreground text-sm">
-              {' '}
-              · {t('title')}
-            </span>
+            <span className="text-ink-muted text-sm"> · {t('title')}</span>
           </h2>
         </div>
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {isDraft ? t('blockedDraftTitle') : t('blockedTitle')}
         </p>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-ink-muted text-sm">
           {isDraft ? t('blockedDraftHint') : t('blockedHint')}
         </p>
         <div className="flex flex-wrap gap-3">
@@ -128,12 +126,9 @@ export default async function PersonaChatPage({
           >
             {t('backToRoster')}
           </Link>
-          <Link
-            href={`/ai/interview/${persona.id}`}
-            className="button-secondary w-fit text-sm"
-          >
+          <LinkButton href={`/ai/interview/${persona.id}`} variant="secondary">
             {t('viewPersona')}
-          </Link>
+          </LinkButton>
         </div>
       </section>
     )
