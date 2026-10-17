@@ -4,6 +4,7 @@ import type {UIMessage} from 'ai'
 import {IconRefresh} from '@tabler/icons-react'
 import {useFormatter, useTranslations} from 'next-intl'
 import ChatBubble from '~/components/ai/interview/chat-bubble'
+import Button from '~/components/ui/button'
 
 type ChatMessagesProps = {
   messages: UIMessage[]
@@ -46,7 +47,7 @@ export default function ChatMessages({
       className="container mx-auto flex grow flex-col gap-3 py-4"
     >
       {messages.length === 0 && (
-        <p className="text-muted-foreground h-full content-center text-center text-sm">
+        <p className="text-ink-muted h-full content-center text-center text-sm">
           {emptyStateLabel}
         </p>
       )}
@@ -72,7 +73,7 @@ export default function ChatMessages({
             }
           >
             {message.role !== 'user' && (
-              <span className="text-muted-foreground mb-0.5 text-xs wrap-anywhere">
+              <span className="text-ink-muted mb-0.5 text-xs wrap-anywhere">
                 {personaName}
               </span>
             )}
@@ -92,7 +93,7 @@ export default function ChatMessages({
                   dateStyle: 'medium',
                   timeStyle: 'short',
                 })}
-                className="text-muted-foreground mt-0.5 text-[10px] tabular-nums"
+                className="text-ink-muted mt-0.5 text-xs tabular-nums"
               >
                 {format.dateTime(new Date(createdAt), {
                   hour: '2-digit',
@@ -104,21 +105,23 @@ export default function ChatMessages({
               showRegenerate &&
               message.role === 'assistant' &&
               !showTyping && (
-                <button
+                <Button
                   type="button"
+                  variant="ghost"
+                  size="md"
                   aria-label={t('regenerate')}
                   onClick={onRegenerate}
-                  className="text-muted-foreground mt-1 inline-flex items-center gap-1 text-xs transition-colors hover:text-zinc-900 dark:hover:text-zinc-100"
+                  className="text-ink-muted mt-1 min-h-11"
                 >
                   <IconRefresh size={14} /> {t('regenerate')}
-                </button>
+                </Button>
               )}
           </div>
         )
       })}
       {showTyping && (
         <div className="flex flex-col items-start">
-          <span className="text-muted-foreground mb-0.5 text-xs wrap-anywhere">
+          <span className="text-ink-muted mb-0.5 text-xs wrap-anywhere">
             {personaName}
           </span>
           <ChatBubble variant="assistant">
@@ -128,9 +131,9 @@ export default function ChatMessages({
               aria-label={t('typing')}
               className="flex items-center gap-1.5 py-1"
             >
-              <span className="typing-dot size-1.5 rounded-full bg-zinc-400 dark:bg-zinc-500" />
-              <span className="typing-dot size-1.5 rounded-full bg-zinc-400 [animation-delay:200ms] dark:bg-zinc-500" />
-              <span className="typing-dot size-1.5 rounded-full bg-zinc-400 [animation-delay:400ms] dark:bg-zinc-500" />
+              <span className="typing-dot bg-ink-muted size-1.5 rounded-full" />
+              <span className="typing-dot bg-ink-muted size-1.5 rounded-full [animation-delay:200ms]" />
+              <span className="typing-dot bg-ink-muted size-1.5 rounded-full [animation-delay:400ms]" />
             </div>
           </ChatBubble>
         </div>

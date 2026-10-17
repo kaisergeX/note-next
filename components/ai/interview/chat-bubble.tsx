@@ -15,8 +15,8 @@ export default function ChatBubble({variant, children}: ChatBubbleProps) {
     <div
       className={
         variant === 'user'
-          ? 'max-w-[85%] rounded-2xl rounded-br-sm bg-zinc-900 px-3 py-2 text-sm whitespace-pre-wrap text-white dark:bg-zinc-200 dark:text-black'
-          : 'max-w-[85%] rounded-2xl rounded-bl-sm border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm whitespace-pre-wrap dark:border-zinc-700 dark:bg-zinc-900'
+          ? 'bg-ink text-paper max-w-[85%] rounded-xl rounded-br-sm px-3 py-2 text-sm whitespace-pre-wrap'
+          : 'bg-paper-raised text-ink border-hairline max-w-[85%] rounded-xl rounded-bl-sm border px-3 py-2 text-sm whitespace-pre-wrap'
       }
     >
       {children}

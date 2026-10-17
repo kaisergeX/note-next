@@ -2,7 +2,7 @@
 
 Append one section per finished thread. Only record what the migration guide does NOT already say: owner decisions, deviations from scope, deferred issues, verification gaps. Never log per-file changes that fall inside a thread's listed scope.
 
-Current state: after Thread 2 (Notes list), completed plus owner-approved defaults. All changes are in the working tree (uncommitted at time of writing).
+Current state: after Thread 5 (AI chat), completed through this thread. Changes are in the working tree.
 
 ## Thread 1 — App chrome: DONE
 
@@ -103,6 +103,18 @@ Current state: after Thread 2 (Notes list), completed plus owner-approved defaul
 - `pnpm lint` passed (TypeScript and ESLint; the changed chunk was formatted afterward; the only remaining warning is unrelated in `components/note/note-customize.tsx`).
 - `pnpm build` passed (Next.js production build, 76 static pages, service worker precached 138 URLs).
 - Chunk grep: zero `inputClass`, legacy classes, or raw zinc/red/gray color utilities. `git diff --check` clean. Visual QA remains unverified: the reviewer reached the Eton routes but was redirected to the custom login page, which only exposes Google sign-in; the dev Credentials provider was not reachable through the UI.
+
+## Thread 5 — AI chat: DONE
+
+### Deviations / notes
+
+- `chat-bubble.tsx` is also used by `run-transcript.tsx`; its shared bubble styling changes the read-only run transcript too. No Thread 6 files were edited.
+- Owner-approved follow-up after review: also brought the app-header Theme Switcher/Open main menu buttons and the chat drawer's New interview action up to the mobile target size. The review rubric's 44px target was applied to these controls and the composer.
+
+### Verification
+
+- `pnpm lint` and `pnpm build` pass (76 static pages; service worker precaches 137 URLs). Chunk grep found no legacy classes or raw palette colors; `git diff --check` is clean.
+- Final visual re-review: PASS at 390px in light/dark and 1440px. Header buttons, sidebar toggle, composer, Send, Regenerate, New interview, and session actions measured at least 44px high; no overflow or layout regressions; no application console errors. The known dev HMR WebSocket failures remain intentionally unaddressed. Reviewer created a local test interview and sent one Vietnamese prompt to render the chat states.
 
 ## Future (outside migration)
 

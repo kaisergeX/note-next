@@ -15,6 +15,8 @@ import {
 import {generateSessionTitleAction} from '~/app/[locale]/ai/interview/actions'
 import SessionRow from '~/components/ai/interview/session-row'
 import StartInterviewButton from '~/components/ai/interview/start-interview-button'
+import Button, {buttonClass} from '~/components/ui/button'
+import {Badge} from '~/components/ui/badge'
 
 export type ChatSessionSummary = {
   id: string
@@ -95,13 +97,16 @@ export default function PersonaChatShell({
   const renderSidebarContent = (onClose?: () => void) => (
     <>
       <div className="items-start justify-between gap-2 p-4 max-sm:flex">
-        <Link href="/ai/interview" className="inline-flex items-center gap-1">
+        <Link
+          href="/ai/interview"
+          className="focus-visible:outline-accent inline-flex items-center gap-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
           <IconArrowLeft className="inline-block" size="18" />{' '}
           {t('backToRoster')}
         </Link>
         <p className="mt-4">
           <Link
-            className="inline-flex items-center gap-1 wrap-anywhere"
+            className="focus-visible:outline-accent inline-flex items-center gap-1 wrap-anywhere hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
             href={`/ai/interview/${personaId}`}
             title={t('viewPersona')}
           >
@@ -111,7 +116,7 @@ export default function PersonaChatShell({
         </p>
         {onClose && (
           <Dialog.CloseButton
-            className="button-secondary px-1.5 py-1 [&>svg]:size-4.5"
+            className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11`}
             aria-label={t('sidebarToggle')}
           />
         )}
@@ -126,7 +131,7 @@ export default function PersonaChatShell({
           <details className="mb-4">
             {/* Collapsed by default: run sessions are read-only results, the
                 active work (single sessions) stays at the top of the list. */}
-            <summary className="text-muted-foreground flex cursor-pointer items-center gap-1.5 px-2 pb-2 text-xs font-semibold tracking-wide uppercase">
+            <summary className="text-ink-muted focus-visible:outline-accent flex cursor-pointer items-center gap-1.5 px-2 pb-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2">
               {t('runSessions')}
               <span className="tabular-nums">({runSessions.length})</span>
             </summary>
@@ -139,18 +144,21 @@ export default function PersonaChatShell({
                         and guarded against rename/delete. */}
                     <Link
                       href={`/ai/interview/runs/${session.runId}`}
-                      className="block rounded-md px-2 py-2 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                      className="hover:bg-ink-tint focus-visible:outline-accent block rounded-md px-2 py-2 focus-visible:outline-2 focus-visible:outline-offset-2"
                       onClick={onClose}
                     >
                       <p className="flex items-center gap-1.5">
                         <span className="min-w-0 truncate text-sm font-medium">
                           {session.preview || session.dateLabel}
                         </span>
-                        <span className="text-muted-foreground shrink-0 rounded-full border border-zinc-400 px-1.5 py-0.5 text-[10px] dark:border-zinc-600">
+                        <Badge
+                          status="neutral"
+                          className="shrink-0 px-1.5 py-0.5 text-xs"
+                        >
                           {t('runBadge')}
-                        </span>
+                        </Badge>
                       </p>
-                      <p className="text-muted-foreground truncate text-xs">
+                      <p className="text-ink-muted truncate text-xs">
                         {session.dateLabel}
                       </p>
                     </Link>
@@ -161,13 +169,11 @@ export default function PersonaChatShell({
           </details>
         )}
 
-        <h2 className="text-muted-foreground px-2 pb-2 text-xs font-semibold tracking-wide uppercase">
+        <h2 className="text-ink-muted px-2 pb-2 text-xs font-semibold">
           {t('sessions')}
         </h2>
         {sessions.length === 0 ? (
-          <p className="text-muted-foreground px-2 text-sm">
-            {t('sessionsEmpty')}
-          </p>
+          <p className="text-ink-muted px-2 text-sm">{t('sessionsEmpty')}</p>
         ) : (
           <ul className="space-y-1">
             {sessions.map((session) => (
@@ -188,29 +194,30 @@ export default function PersonaChatShell({
 
   return (
     <div className="flex min-h-0 w-full grow gap-4">
-      <aside className="hidden max-w-md min-w-0 shrink-0 flex-col border-r border-zinc-200 sm:basis-1/4 md:flex dark:border-zinc-700">
+      <aside className="border-hairline hidden max-w-md min-w-0 shrink-0 flex-col border-r sm:basis-1/4 md:flex">
         {renderSidebarContent()}
       </aside>
 
       <div className="flex min-w-0 grow flex-col">
-        <div className="flex items-center gap-2 border-b border-zinc-200 p-3 md:hidden dark:border-zinc-700">
-          <button
+        <div className="border-hairline flex items-center gap-2 border-b p-3 md:hidden">
+          <Button
             type="button"
-            className="button-secondary px-2 py-1 md:hidden"
+            variant="secondary"
+            size="md"
+            iconOnly
+            className="min-h-11 min-w-11 md:hidden"
             aria-label={t('sidebarToggle')}
             aria-expanded={sidebarOpen}
             onClick={openSidebar}
           >
             <IconMenu2 size="18" />
-          </button>
+          </Button>
           <p className="truncate text-sm font-semibold">{personaName}</p>
         </div>
 
         {chatArea ?? (
           <div className="flex-center min-h-[50vh] flex-1 flex-col p-8 text-center">
-            <p className="text-muted-foreground max-w-md text-sm">
-              {t('emptyState')}
-            </p>
+            <p className="text-ink-muted max-w-md text-sm">{t('emptyState')}</p>
             <div className="mt-4">
               <StartInterviewButton personaId={personaId} />
             </div>
@@ -219,13 +226,17 @@ export default function PersonaChatShell({
       </div>
 
       <Dialog
-        className="bg-default max-w-[85vw] border-r border-zinc-200 shadow-lg md:w-sm dark:border-zinc-700"
+        className="bg-paper-raised text-ink border-hairline shadow-sheet max-w-[85vw] rounded-r-lg border-r md:w-sm"
+        aria-labelledby="persona-chat-sidebar-title"
         open={sidebarOpen}
         onClose={closeSidebar}
         variant="drawer"
         position="left"
       >
         <Dialog.Content className="flex flex-col p-0">
+          <Dialog.Title id="persona-chat-sidebar-title" className="sr-only">
+            {personaName} {t('sessions')}
+          </Dialog.Title>
           {renderSidebarContent(closeSidebar)}
         </Dialog.Content>
       </Dialog>

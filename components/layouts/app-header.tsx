@@ -139,6 +139,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
           variant="secondary"
           size="md"
           iconOnly
+          className="min-h-11 min-w-11"
           onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
           aria-label="Theme Switcher"
         >
@@ -166,7 +167,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             variant="ghost"
             size="md"
             iconOnly
-            className="lg:hidden"
+            className="min-h-11 min-w-11 lg:hidden"
             onClick={openMenuDialog}
             aria-controls="main-menu"
             aria-expanded={isMenuDialogOpen}
