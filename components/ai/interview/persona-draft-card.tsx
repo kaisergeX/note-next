@@ -20,6 +20,9 @@ import {
 import type {PersonalitySliders} from '~/db/schema/transcripts'
 import PersonaSlider from './persona-slider'
 import type {BulkBannerReason} from './bulk-draft-workbench'
+import Button from '~/components/ui/button'
+import {Badge} from '~/components/ui/badge'
+import LinkButton from '~/components/ui/link-button'
 
 export type PersonaDraftCardData = {
   id: string
@@ -124,7 +127,7 @@ export default function PersonaDraftCard({
   }
 
   return (
-    <div className="card flex flex-col gap-2 p-4">
+    <div className="border-hairline bg-paper-raised text-ink flex flex-col gap-2 rounded-lg border p-4">
       <div className="flex-center-between gap-2">
         <Link
           href={`/ai/interview/${persona.id}/edit`}
@@ -132,12 +135,10 @@ export default function PersonaDraftCard({
         >
           {persona.name}
         </Link>
-        <span className="rounded-full border border-amber-500 px-2 py-0.5 text-xs text-amber-600 dark:text-amber-400">
-          {tStatus('draft')}
-        </span>
+        <Badge status="draft">{tStatus('draft')}</Badge>
       </div>
 
-      <p className="text-muted-foreground text-sm">
+      <p className="text-ink-muted text-sm">
         {[persona.region, persona.occupation]
           .filter((part) => part !== undefined && part !== '')
           .join(' · ')}
@@ -148,7 +149,7 @@ export default function PersonaDraftCard({
           {persona.backgroundTags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800"
+              className="border-hairline bg-paper text-ink rounded-full border px-2 py-0.5 text-xs"
             >
               {tag}
             </span>
@@ -187,15 +188,14 @@ export default function PersonaDraftCard({
       </div>
 
       {persona.bio && (
-        <p className="text-muted-foreground line-clamp-3 text-sm">
-          {persona.bio}
-        </p>
+        <p className="text-ink-muted line-clamp-3 text-sm">{persona.bio}</p>
       )}
 
       <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
-        <button
+        <Button
           type="button"
-          className="button text-sm"
+          variant="primary"
+          size="sm"
           disabled={isPending || generateBusy}
           onClick={handleKeep}
         >
@@ -205,34 +205,33 @@ export default function PersonaDraftCard({
             <IconUserCheck size="18" />
           )}
           {t('keep')}
-        </button>
-        <Link
-          href={`/ai/interview/${persona.id}/edit`}
-          className="button-secondary text-sm"
-        >
+        </Button>
+        <LinkButton href={`/ai/interview/${persona.id}/edit`} size="sm">
           <IconEdit size="18" /> {t('edit')}
-        </Link>
-        <button
+        </LinkButton>
+        <Button
           type="button"
-          className="button-secondary text-sm"
+          variant="secondary"
+          size="sm"
           disabled={rerollDisabled}
           title={rerollDisabled ? t('rerollNeedsMix') : undefined}
           onClick={() => setRerollOpen(true)}
         >
           <IconRefresh size="18" /> {t('reroll')}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
-          className="button-secondary text-sm"
+          variant="secondary"
+          size="sm"
           disabled={isPending || generateBusy}
           onClick={() => setDiscardOpen(true)}
         >
           <IconTrash size="18" /> {t('discard')}
-        </button>
+        </Button>
       </div>
 
       <Dialog
-        className="bg-default max-w-lg"
+        className="max-w-lg"
         open={rerollOpen}
         onClose={() => setRerollOpen(false)}
         onMouseDown={(e) => e.stopPropagation()}
@@ -242,16 +241,16 @@ export default function PersonaDraftCard({
         </Dialog.Header>
         <Dialog.Content>{t('rerollConfirmBody')}</Dialog.Content>
         <Dialog.Footer className="justify-end">
-          <button
+          <Button
             type="button"
-            className="button-secondary"
+            variant="secondary"
             onClick={() => setRerollOpen(false)}
           >
             {tChat('cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button-danger"
+            variant="danger"
             disabled={rerollDisabled}
             onClick={handleReroll}
           >
@@ -261,12 +260,12 @@ export default function PersonaDraftCard({
               <IconRefresh size="16" />
             )}{' '}
             {t('reroll')}
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog>
 
       <Dialog
-        className="bg-default max-w-lg"
+        className="max-w-lg"
         open={discardOpen}
         onClose={() => setDiscardOpen(false)}
         onMouseDown={(e) => e.stopPropagation()}
@@ -276,21 +275,21 @@ export default function PersonaDraftCard({
         </Dialog.Header>
         <Dialog.Content>{t('discardConfirmBody')}</Dialog.Content>
         <Dialog.Footer className="justify-end">
-          <button
+          <Button
             type="button"
-            className="button-secondary"
+            variant="secondary"
             onClick={() => setDiscardOpen(false)}
           >
             {tChat('cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button-danger"
+            variant="danger"
             disabled={isPending || generateBusy}
             onClick={handleDiscard}
           >
             <IconTrash size="16" /> {t('discard')}
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog>
     </div>

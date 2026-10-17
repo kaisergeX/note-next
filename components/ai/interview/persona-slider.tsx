@@ -27,7 +27,7 @@ export default function PersonaSlider({
     <div>
       <div className="flex-center-between mb-1 text-sm">
         <span className="font-medium">{poleStartLabel}</span>
-        <span className="text-zinc-500 tabular-nums">{value}</span>
+        <span className="text-ink-muted tabular-nums">{value}</span>
         <span className="font-medium">{poleEndLabel}</span>
       </div>
       <input
@@ -41,7 +41,7 @@ export default function PersonaSlider({
         aria-label={ariaLabel}
         data-axis={axisKey}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="w-full accent-zinc-900 disabled:opacity-50 dark:accent-zinc-300"
+        className="accent-accent w-full disabled:cursor-not-allowed disabled:opacity-45"
       />
     </div>
   )

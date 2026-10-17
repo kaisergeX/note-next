@@ -6,8 +6,7 @@ import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import Button from '~/components/ui/button'
-import PopoverBase from '~/components/ui/popover'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 
@@ -32,6 +31,20 @@ export default function NoteTiny({data}: NoteProps) {
       await deleteNoteAction(noteId)
     })
   }
+
+  const menuItems: MenuCustomItem[] = [
+    {
+      type: 'action',
+      label: (
+        <>
+          <IconTrash size="1rem" /> {t('delete')}
+        </>
+      ),
+      destructive: true,
+      disabled: pendingTransition,
+      onSelect: handleDeleteNote,
+    },
+  ]
 
   return (
     <div
@@ -79,28 +92,18 @@ export default function NoteTiny({data}: NoteProps) {
           <IconPalette size="1rem" />
         </button>
 
-        <PopoverBase
-          trigger={<IconDotsVertical size="1rem" />}
-          triggerClassName="p-2"
+        <MenuCustom
+          className="p-2"
           anchor="top-end"
-          className={cn(
+          itemsClassName={cn(
             'note-tiny-menu',
-            // restores the UA popover's default 0.25em padding for the
-            // full-bleed delete button.
-            'rounded-lg p-1',
-            `shadow-theme-${theme || 'slate'}`,
-            'bg-paper-raised border-hairline border',
+            'rounded-lg bg-paper-raised border-hairline border',
+            `shadow-none shadow-theme-${theme || 'slate'}`,
           )}
+          items={menuItems}
         >
-          <Button
-            variant="danger"
-            className="w-full border-none shadow-none"
-            onClick={handleDeleteNote}
-            disabled={pendingTransition}
-          >
-            <IconTrash size="1rem" /> {t('delete')}
-          </Button>
-        </PopoverBase>
+          <IconDotsVertical size="1rem" />
+        </MenuCustom>
       </div>
     </div>
   )

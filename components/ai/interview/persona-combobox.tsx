@@ -1,6 +1,8 @@
 'use client'
 
 import {useId, useRef, useState, type KeyboardEvent} from 'react'
+import {Input} from '~/components/ui/input'
+import {cn} from 'cn'
 
 export type PersonaComboboxOption = {value: string; label: string}
 
@@ -90,6 +92,12 @@ export default function PersonaCombobox({
           ? Math.min(prev + 1, matches.length - 1)
           : Math.max(prev - 1, 0),
       )
+      return
+    }
+    if (event.key === 'Home' || event.key === 'End') {
+      if (!open || matches.length === 0) return
+      event.preventDefault()
+      setHighlight(event.key === 'Home' ? 0 : matches.length - 1)
     }
   }
 
@@ -98,8 +106,8 @@ export default function PersonaCombobox({
       <label htmlFor={id} className="mb-1 block text-sm font-medium">
         {label}
       </label>
-      {hint && <p className="text-muted-foreground mb-2 text-xs">{hint}</p>}
-      <input
+      {hint && <p className="text-ink-muted mb-2 text-xs">{hint}</p>}
+      <Input
         ref={inputRef}
         id={id}
         type="text"
@@ -127,13 +135,12 @@ export default function PersonaCombobox({
           onChange(e.target.value)
         }}
         onKeyDown={handleKeyDown}
-        className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
       />
       {open && matches.length > 0 && (
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-md border border-zinc-300 bg-zinc-50 py-1 shadow-md dark:border-zinc-700 dark:bg-zinc-900"
+          className="border-hairline bg-paper-raised text-ink shadow-sheet absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-md border py-1"
         >
           {matches.map((option, index) => (
             <li
@@ -141,11 +148,10 @@ export default function PersonaCombobox({
               id={`${listId}-${index}`}
               role="option"
               aria-selected={option.value === value}
-              className={`cursor-pointer px-3 py-2 text-sm ${
-                index === activeIndex
-                  ? 'bg-zinc-200 dark:bg-zinc-700'
-                  : 'hover:bg-zinc-100 dark:hover:bg-zinc-800'
-              }`}
+              className={cn(
+                'cursor-pointer px-3 py-2 text-sm',
+                index === activeIndex ? 'bg-ink-tint' : 'hover:bg-raised-hover',
+              )}
               onMouseDown={(event) => {
                 // Prevent the input's blur from closing the list first.
                 event.preventDefault()

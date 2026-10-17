@@ -8,7 +8,8 @@ import {
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import {getLocale, getFormatter, getTranslations} from 'next-intl/server'
-import type {PersonaStatus} from '~/db/schema/personas'
+import {Badge} from '~/components/ui/badge'
+import LinkButton from '~/components/ui/link-button'
 import {getPersonaById} from '~/db/helper/personas'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {isShapedUuid} from '~/lib/ai/id-shape'
@@ -20,16 +21,10 @@ const SLIDER_AXES = [
   {key: 'frugal_spendthrift', start: 'sliderFrugal', end: 'sliderSpendthrift'},
 ] as const
 
-const STATUS_BADGE_CLASS: Record<PersonaStatus, string> = {
-  draft: 'border-amber-500 text-amber-600 dark:text-amber-400',
-  active: 'border-green-600 text-green-600 dark:text-green-400',
-  archived: 'border-zinc-400 text-zinc-500',
-}
-
 function ProfileField({label, value}: {label: string; value: string}) {
   return (
     <div>
-      <dt className="text-muted-foreground text-xs">{label}</dt>
+      <dt className="text-ink-muted text-xs">{label}</dt>
       <dd className="text-sm wrap-anywhere">{value}</dd>
     </div>
   )
@@ -49,12 +44,12 @@ function StaticSlider({
     <div>
       <div className="flex-center-between mb-1 text-sm">
         <span className="font-medium">{poleStartLabel}</span>
-        <span className="text-zinc-500 tabular-nums">{value}</span>
+        <span className="text-ink-muted tabular-nums">{value}</span>
         <span className="font-medium">{poleEndLabel}</span>
       </div>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+      <div className="bg-ink-tint h-1.5 w-full overflow-hidden rounded-full">
         <div
-          className="h-full rounded-full bg-zinc-900 dark:bg-zinc-300"
+          className="bg-ink h-full rounded-full"
           style={{width: `${Math.min(100, Math.max(0, value))}%`}}
         />
       </div>
@@ -159,34 +154,28 @@ export default async function PersonaProfilePage({
 
       <div className="flex-center-between gap-2">
         <h1 className="text-2xl font-bold wrap-anywhere">{persona.name}</h1>
-        <span
-          className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_BADGE_CLASS[persona.status]}`}
-        >
-          {t(`status.${persona.status}`)}
-        </span>
+        <Badge status={persona.status}>{t(`status.${persona.status}`)}</Badge>
       </div>
 
-      <p className="text-muted-foreground text-sm">
+      <p className="text-ink-muted text-sm">
         {t('profile.lastUpdated', {time: lastUpdated})}
       </p>
 
       <div className="flex flex-wrap items-center gap-2">
         {persona.systemPrompt && persona.status !== 'draft' && (
-          <Link
+          <LinkButton
             href={`/ai/interview/${persona.id}/chat`}
-            className="button text-sm"
+            variant="primary"
+            size="sm"
           >
             <IconMessages size="1.2rem" /> {t('chat.openChat')}
-          </Link>
+          </LinkButton>
         )}
-        <Link
-          href={`/ai/interview/${persona.id}/edit`}
-          className="button-secondary text-sm"
-        >
+        <LinkButton href={`/ai/interview/${persona.id}/edit`} size="sm">
           <IconEdit size="1.2rem" /> {t('roster.edit')}
-        </Link>
+        </LinkButton>
         <MenuCustom
-          className="button-secondary button-icon rounded-full p-1"
+          className="border-hairline bg-paper-raised text-ink hover:bg-raised-hover rounded-full border"
           itemsClassName="w-48"
           items={exportMenuItems}
         >
@@ -195,7 +184,7 @@ export default async function PersonaProfilePage({
         </MenuCustom>
       </div>
 
-      <div className="card space-y-4 p-4">
+      <div className="border-hairline bg-paper-raised text-ink space-y-4 rounded-lg border p-4">
         <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
           <ProfileField label={tForm('gender')} value={genderLabel} />
           <ProfileField
@@ -218,19 +207,19 @@ export default async function PersonaProfilePage({
               {persona.backgroundTags.map((tag) => (
                 <span
                   key={tag}
-                  className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800"
+                  className="border-hairline bg-paper text-ink rounded-full border px-2 py-0.5 text-xs"
                 >
                   {tag}
                 </span>
               ))}
             </div>
           ) : (
-            <p className="text-muted-foreground text-sm">—</p>
+            <p className="text-ink-muted text-sm">—</p>
           )}
         </div>
       </div>
 
-      <div className="card space-y-4 p-4">
+      <div className="border-hairline bg-paper-raised text-ink space-y-4 rounded-lg border p-4">
         <h2 className="text-sm font-medium">{tForm('sliders')}</h2>
         <div className="space-y-4">
           {SLIDER_AXES.map((axis) => (
@@ -245,7 +234,7 @@ export default async function PersonaProfilePage({
       </div>
 
       {persona.quirksFreetext && (
-        <div className="card space-y-2 p-4">
+        <div className="border-hairline bg-paper-raised text-ink space-y-2 rounded-lg border p-4">
           <h2 className="text-sm font-medium">{tForm('quirks')}</h2>
           <p className="text-sm wrap-anywhere whitespace-pre-wrap">
             {persona.quirksFreetext}
@@ -253,27 +242,27 @@ export default async function PersonaProfilePage({
         </div>
       )}
 
-      <div className="card space-y-2 p-4">
+      <div className="border-hairline bg-paper-raised text-ink space-y-2 rounded-lg border p-4">
         <h2 className="text-sm font-medium">{tForm('bio')}</h2>
         {persona.generatedBio ? (
           <p className="text-sm wrap-anywhere whitespace-pre-wrap">
             {persona.generatedBio}
           </p>
         ) : (
-          <p className="text-muted-foreground text-sm wrap-anywhere">
+          <p className="text-ink-muted text-sm wrap-anywhere">
             {t('profile.emptyBio')}
           </p>
         )}
       </div>
 
-      <div className="card space-y-2 p-4">
+      <div className="border-hairline bg-paper-raised text-ink space-y-2 rounded-lg border p-4">
         <h2 className="text-sm font-medium">{tForm('systemPrompt')}</h2>
         {persona.systemPrompt ? (
-          <pre className="text-muted-foreground overflow-x-auto text-xs wrap-anywhere whitespace-pre-wrap">
+          <pre className="text-ink-muted overflow-x-auto text-xs wrap-anywhere whitespace-pre-wrap">
             {persona.systemPrompt}
           </pre>
         ) : (
-          <p className="text-muted-foreground text-sm wrap-anywhere">
+          <p className="text-ink-muted text-sm wrap-anywhere">
             {t('profile.emptySystemPrompt')}
           </p>
         )}
