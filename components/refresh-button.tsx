@@ -1,19 +1,17 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
 import {useRouter} from 'next/navigation'
 import {useTransition} from 'react'
+import Button from '~/components/ui/button'
 
 export default function RefreshButton() {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   return (
-    <button
-      className={classNames(
-        isPending ? 'cursor-not-allowed text-gray-400' : '',
-        'text-sm text-gray-500 hover:text-gray-900',
-      )}
+    <Button
+      variant="ghost"
+      size="sm"
       disabled={isPending}
       onClick={() => {
         startTransition(() => {
@@ -22,6 +20,6 @@ export default function RefreshButton() {
       }}
     >
       {isPending ? 'Refreshing...' : 'Refresh'}
-    </button>
+    </Button>
   )
 }

@@ -149,10 +149,6 @@
   @apply bg-[#d6dbdc] bg-linear-to-b from-transparent to-white bg-no-repeat dark:bg-zinc-900 dark:bg-none;
 }
 
-@utility shadow-theme {
-  @apply shadow-xl ring-1 shadow-slate-700/10 ring-gray-900/5 dark:shadow-slate-400/10 dark:ring-gray-400/5;
-}
-
 @utility scrollbar {
   &::-webkit-scrollbar {
     @apply w-4;
@@ -206,18 +202,6 @@
   @apply button-base h-fit!;
 }
 
-@utility card {
-  @apply rounded-lg border border-solid border-zinc-200 transition-shadow focus-within:shadow-md hover:shadow-md dark:border-zinc-700;
-}
-
-@utility card-fancy {
-  @apply dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a];
-}
-
-@utility glass {
-  @apply bg-zinc-50/40 backdrop-blur-sm transition-all sm:bg-transparent dark:border-slate-50/6 dark:bg-transparent;
-}
-
 @utility btn-light-sweep {
   @apply relative overflow-clip;
 
@@ -238,14 +222,6 @@
 }
 
 @layer base {
-  :root:not(:has(body > main.bg-fancy)) * {
-    @apply scrollbar;
-  }
-
-  :root:has(body > main.bg-fancy) {
-    @apply scrollbar scrollbar-mac;
-  }
-
   :root {
     --paper: oklch(0.972 0.006 90);
     --paper-raised: oklch(0.985 0.004 90);
@@ -290,10 +266,6 @@
 
   body {
     @apply bg-paper text-ink pt-[env(safe-area-inset-top)];
-  }
-
-  body:has(main.bg-fancy) {
-    @apply bg-theme;
   }
 
   body:has(.prevent-body-scroll) {

@@ -2,9 +2,9 @@ import Link from 'next/link'
 
 export default function Privacy() {
   return (
-    <main className="bg-fancy bg-theme sm:p-4">
-      <div className="shadow-theme w-full bg-white px-6 py-12 md:mx-auto md:max-w-3xl lg:max-w-4xl lg:pt-16 lg:pb-28 dark:bg-inherit">
-        <article className="prose prose-sm dark:prose-invert sm:prose-base mx-auto">
+    <main className="bg-dotgrid p-4">
+      <div className="border-hairline bg-paper-raised shadow-sheet mx-auto w-full max-w-4xl rounded-lg border px-6 py-12 lg:pt-16 lg:pb-28">
+        <article className="prose prose-sm text-ink mx-auto max-w-prose">
           <h1 className="mb-4">etoN Privacy Policy</h1>
           <div className="text-right text-sm">
             Last Update Date: July, 11 2023
