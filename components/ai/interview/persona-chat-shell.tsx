@@ -96,7 +96,7 @@ export default function PersonaChatShell({
 
   const renderSidebarContent = (onClose?: () => void) => (
     <>
-      <div className="items-start justify-between gap-2 p-4 max-sm:flex">
+      <div className="flex-center-between gap-2 p-4">
         <Link
           href="/ai/interview"
           className="focus-visible:outline-accent inline-flex items-center gap-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
@@ -104,25 +104,25 @@ export default function PersonaChatShell({
           <IconArrowLeft className="inline-block" size="18" />{' '}
           {t('backToRoster')}
         </Link>
-        <p className="mt-4">
-          <Link
-            className="focus-visible:outline-accent inline-flex items-center gap-1 wrap-anywhere hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
-            href={`/ai/interview/${personaId}`}
-            title={t('viewPersona')}
-          >
-            <span className="text-lg font-bold">{personaName}</span>{' '}
-            <IconInfoCircle size="18" />
-          </Link>
-        </p>
+
         {onClose && (
           <Dialog.CloseButton
-            className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11`}
+            className={buttonClass({variant: 'secondary', iconOnly: true})}
             aria-label={t('sidebarToggle')}
           />
         )}
       </div>
 
-      <div className="px-4 pb-4">
+      <div className="space-y-4 px-4 pb-4">
+        <Link
+          className="focus-visible:outline-accent inline-flex items-center gap-1 wrap-anywhere hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+          href={`/ai/interview/${personaId}`}
+          title={t('viewPersona')}
+        >
+          <span className="text-lg font-bold">{personaName}</span>{' '}
+          <IconInfoCircle size="18" />
+        </Link>
+
         <StartInterviewButton personaId={personaId} />
       </div>
 

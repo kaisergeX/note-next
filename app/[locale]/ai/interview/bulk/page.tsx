@@ -23,7 +23,7 @@ export default async function BulkDraftPage() {
       <div>
         <Link
           href="/ai/interview"
-          className="inline-flex items-center gap-1 text-sm"
+          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <IconArrowLeft size="18" /> {tRoot('chat.backToRoster')}
         </Link>

@@ -1,11 +1,13 @@
 import 'server-only'
 
 import NextAuth, {type NextAuthConfig} from 'next-auth'
-import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import Credentials from 'next-auth/providers/credentials'
+import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import {AUTH_ERROR_CODE} from './constants'
-import {addUser, getCachedUser} from './db/helper/users'
+import {addUser, getCachedUser, getUser} from './db/helper/users'
 import {RoleEnum, type NewUser} from './db/schema/users'
+
+const VISUAL_QA_EMAIL = 'qa@test.dev'
 
 const authOptions: NextAuthConfig = {
   providers: [
@@ -16,7 +18,9 @@ const authOptions: NextAuthConfig = {
     // DEV-ONLY visual-QA bypass — remove before any production deploy.
     // Gate on NODE_ENV: `pnpm dev` (`next dev`) sets it to 'development';
     // `pnpm build` / `next start` set it to 'production', so this provider
-    // is never bundled or registered outside dev. Accepts any email.
+    // is never bundled or registered outside dev. Only the existing QA user
+    // is accepted; look up instead of upserting so a typo cannot create a
+    // stray account.
     ...(process.env.NODE_ENV === 'development'
       ? [
           Credentials({
@@ -27,23 +31,18 @@ const authOptions: NextAuthConfig = {
             authorize: async (credentials) => {
               const email =
                 typeof credentials?.email === 'string'
-                  ? credentials.email
+                  ? credentials.email.trim().toLowerCase()
                   : undefined
-              if (!email) return null
+              if (!email || email !== VISUAL_QA_EMAIL) return null
 
-              // Mirror the Google signIn flow: upsert the user so the
-              // jwt callback's getCachedUser lookup succeeds.
-              const added = await addUser({
-                name: email.split('@')[0] || email,
-                email,
-              })
-              if (!added) return null
+              const userInfo = await getUser(email)
+              if (!userInfo) return null
 
               return {
-                id: email,
+                id: userInfo.id,
                 email,
-                name: email.split('@')[0] || email,
-                role: RoleEnum['note-taker'],
+                name: userInfo.name,
+                role: userInfo.role,
               }
             },
           }),
@@ -99,8 +98,14 @@ const authOptions: NextAuthConfig = {
       return session
     },
     signIn: async ({account, profile}) => {
-      // DEV-ONLY visual-QA bypass — remove before any production deploy
-      if (account?.provider === 'credentials') return true
+      // DEV-ONLY visual-QA bypass
+      if (
+        process.env.NODE_ENV === 'development' &&
+        account?.provider === 'credentials' &&
+        profile?.email === VISUAL_QA_EMAIL
+      ) {
+        return true
+      }
 
       if (!profile) {
         throw new Error(AUTH_ERROR_CODE.NO_PROFILE)

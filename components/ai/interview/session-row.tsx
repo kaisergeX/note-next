@@ -192,7 +192,7 @@ export default function SessionRow({
             </p>
           </Link>
           <MenuCustom
-            className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11`}
+            className={`${buttonClass({variant: 'ghost', size: 'sm', iconOnly: true, pressMotion: false})} `}
             // Top-layer anchored popover: body-level portals used to render
             // below a <dialog> top layer, but popover="auto" opens in the top
             // layer itself, so no manual inline positioning is needed.
@@ -200,7 +200,7 @@ export default function SessionRow({
             items={menuItems}
           >
             <span className="sr-only">{t('menu')}</span>
-            <IconDotsVertical size="18" />
+            <IconDotsVertical size="16" />
           </MenuCustom>
         </div>
       )}

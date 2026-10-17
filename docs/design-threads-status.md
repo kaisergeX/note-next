@@ -2,7 +2,7 @@
 
 Append one section per finished thread. Only record what the migration guide does NOT already say: owner decisions, deviations from scope, deferred issues, verification gaps. Never log per-file changes that fall inside a thread's listed scope.
 
-Current state: after Thread 5 (AI chat), completed through this thread. Changes are in the working tree.
+Current state: Thread 6 (AI runs + bulk) is DONE in the working tree. Lint, production build, and the final UI review pass; Thread 7 is pending.
 
 ## Thread 1 — App chrome: DONE
 
@@ -115,6 +115,19 @@ Current state: after Thread 5 (AI chat), completed through this thread. Changes 
 
 - `pnpm lint` and `pnpm build` pass (76 static pages; service worker precaches 137 URLs). Chunk grep found no legacy classes or raw palette colors; `git diff --check` is clean.
 - Final visual re-review: PASS at 390px in light/dark and 1440px. Header buttons, sidebar toggle, composer, Send, Regenerate, New interview, and session actions measured at least 44px high; no overflow or layout regressions; no application console errors. The known dev HMR WebSocket failures remain intentionally unaddressed. Reviewer created a local test interview and sent one Vietnamese prompt to render the chat states.
+
+## Thread 6 — AI runs + bulk: DONE
+
+### Deviations / notes
+
+- Run status badges now use the shared `<Badge>` mapping: pending → neutral, in_progress/done → active, failed → archived, following the migration guide's status mapping.
+- Multiline textareas and the batch-size select have no shared primitive in `components/ui/`; their surfaces and focus states use semantic token utilities directly. Native text inputs were not introduced in this chunk.
+- The development visual-QA credentials provider now accepts only the existing `qa@test.dev` user and performs a lookup instead of an upsert, so an email typo cannot create a stray local account.
+
+### Verification
+
+- `pnpm lint` passes using the bundled Node runtime and fallback pnpm command; TypeScript and full-repo ESLint pass. `pnpm build` passes (76 static pages; Serwist precached 137 URLs). `git diff --check` is clean, and the Thread 6 grep finds no legacy classes or raw zinc/red/gray palette utilities.
+- Final dedicated `ui_reviewer` re-review: PASS at 1440px and 390px, light and dark, for `/en/ai/interview/runs`, `/en/ai/interview/runs/new`, `/en/ai/interview/runs/[runId]`, and `/en/ai/interview/bulk`. Mobile targets are at least 44px; labels are 12px muted; the reviewed focus rings are 2px accent; no horizontal overflow or app console errors.
 
 ## Future (outside migration)
 
