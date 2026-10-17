@@ -90,4 +90,26 @@ export default function Button({
   )
 }
 
-export type {ButtonProps, ButtonSize, ButtonVariant}
+type MenuItemButtonProps = Omit<ButtonProps, 'variant'> & {
+  destructive?: boolean
+}
+
+/** Button styled as a full-width, square-cornered row inside a popover. */
+export function MenuItemButton({
+  destructive = false,
+  className,
+  ...props
+}: MenuItemButtonProps) {
+  return (
+    <Button
+      variant={destructive ? 'danger' : 'ghost'}
+      className={cn(
+        'w-full justify-start rounded-none border-transparent px-3 text-left',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
+export type {ButtonProps, ButtonSize, ButtonVariant, MenuItemButtonProps}

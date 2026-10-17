@@ -90,6 +90,20 @@ Current state: after Thread 2 (Notes list), completed plus owner-approved defaul
 - Visual QA (ui-reviewer, 3 rounds, real browser): dialog surface/radius/backdrop/title serif/shadow-sheet; bubble/floating/fixed toolbars tokenized; theme picker popover (swatches, accent ring, hue shadow) light+dark; colorways blue/rose/green light+dark unchanged; unthemed dark readable (no black-on-dark); delete row destructive hover fill; full-page toolbar blends with paper, dark bottom bar solid paper-raised; 390px no horizontal overflow (dark verified); console 0 errors.
 - Gaps: 390px LIGHT sweep not run (low risk — light verified at 1440 on every surface); scroll-top affix trigger + scroll shadows not exercisable (test note too short to scroll — button present in DOM). Header Theme Switcher popover didn't open under programmatic clicks in round 2 (likely automation artifact — native Popover needs trusted events; component untouched this thread) — worth a manual click check.
 
+## Thread 4 — AI roster + forms: DONE
+
+### Deviations / notes
+
+- The interview layout was already feature-gated and has no independent visual styles to migrate; verified without changes. New/edit route files are thin wrappers around the migrated shared form and required no edits.
+- PersonaCombobox stays hand-rolled but now uses the shared Input and paper tokens, with Arrow/Home/End navigation and `aria-activedescendant` retained for active-option announcement.
+- Owner-approved follow-up: roster dropdown actions and Eton delete actions use `MenuCustom` typed actions backed by square, borderless `MenuItemButton` rows, including the archive action's destructive hover treatment. The live-preview theme swatch picker stays on `PopoverBase` because it remains open during selection.
+
+### Verification
+
+- `pnpm lint` passed (TypeScript and ESLint; the changed chunk was formatted afterward; the only remaining warning is unrelated in `components/note/note-customize.tsx`).
+- `pnpm build` passed (Next.js production build, 76 static pages, service worker precached 138 URLs).
+- Chunk grep: zero `inputClass`, legacy classes, or raw zinc/red/gray color utilities. `git diff --check` clean. Visual QA remains unverified: the reviewer reached the Eton routes but was redirected to the custom login page, which only exposes Google sign-in; the dev Credentials provider was not reachable through the UI.
+
 ## Future (outside migration)
 
 - Full-palette theme switching: design spec at docs/theme-system.md — deferred, additive, no current docs/CSS changes needed.

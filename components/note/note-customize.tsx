@@ -11,7 +11,6 @@ import {
 } from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {
-  Fragment,
   useLayoutEffect,
   useRef,
   useState,
@@ -20,8 +19,8 @@ import {
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
-import PopoverBase from '~/components/ui/popover'
 import Button from '~/components/ui/button'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {NoteThemePicker} from './note-theme-picker'
 
 export type NoteCustomizeProps = {
@@ -103,19 +102,17 @@ export default function NoteCustomize({
     })
   }
 
-  const menuItems = [
+  const menuItems: MenuCustomItem[] = [
     {
-      id: 'delete',
-      component: (
-        <Button
-          variant="danger"
-          className="w-full border-none shadow-none"
-          onClick={handleDeleteNote}
-          disabled={isLoading}
-        >
+      type: 'action',
+      label: (
+        <>
           <IconTrash size="1.2rem" /> {t('delete')}
-        </Button>
+        </>
       ),
+      destructive: true,
+      onSelect: handleDeleteNote,
+      disabled: isLoading,
       hidden: type !== 'update' || !noteId,
     },
   ]
@@ -164,24 +161,18 @@ export default function NoteCustomize({
         )}
 
         {!pendingTransition && menuItems.every(({hidden}) => !hidden) && (
-          <PopoverBase
-            trigger={<IconDotsVertical size="1.2rem" />}
-            triggerClassName="p-2"
+          <MenuCustom
+            className="p-2"
             anchor="top-end"
             disabled={isLoading}
-            className={cn(
-              // restores the UA popover's default 0.25em padding for the
-              // full-bleed delete button.
-              'p-1',
-              'bg-paper-raised border border-hairline',
-              `shadow-md shadow-theme-${theme || 'slate'}`,
-              'rounded-md',
+            itemsClassName={cn(
+              'rounded-lg bg-paper-raised border border-hairline',
+              `shadow-none shadow-theme-${theme || 'slate'}`,
             )}
+            items={menuItems}
           >
-            {menuItems.map(({component, id}) => (
-              <Fragment key={id}>{component}</Fragment>
-            ))}
-          </PopoverBase>
+            <IconDotsVertical size="1.2rem" />
+          </MenuCustom>
         )}
       </div>
 

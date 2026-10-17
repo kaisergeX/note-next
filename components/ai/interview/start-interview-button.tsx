@@ -5,6 +5,7 @@ import {useRouter} from 'next/navigation'
 import {useTranslations} from 'next-intl'
 import {useState, useTransition} from 'react'
 import {startInterviewAction} from '~/app/[locale]/ai/interview/actions'
+import Button from '~/components/ui/button'
 
 type StartInterviewButtonProps = {
   personaId: string
@@ -37,9 +38,10 @@ export default function StartInterviewButton({
 
   return (
     <div className="space-y-2">
-      <button
+      <Button
         type="button"
-        className="button text-sm"
+        variant="primary"
+        size="sm"
         onClick={handleStart}
         disabled={isPending}
       >
@@ -49,12 +51,14 @@ export default function StartInterviewButton({
           <IconMessages size="1.2rem" />
         )}
         {isPending ? t('chat.starting') : t('chat.startNew')}
-      </button>
+      </Button>
       {noAccess && (
-        <p className="text-danger text-sm">{t('form.noAccessError')}</p>
+        <p role="alert" className="text-destructive text-sm">
+          {t('form.noAccessError')}
+        </p>
       )}
       {hasError && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {t('chat.genericError')}
         </p>
       )}

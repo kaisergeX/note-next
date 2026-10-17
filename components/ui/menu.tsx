@@ -13,6 +13,7 @@
 import {cn} from 'cn'
 import Link from 'next/link'
 import {Fragment, type PropsWithChildren, type ReactNode} from 'react'
+import {MenuItemButton} from './button'
 import PopoverBase, {type PopoverAnchor} from './popover'
 
 export type MenuCustomItem = {
@@ -20,6 +21,12 @@ export type MenuCustomItem = {
   hidden?: boolean
 } & (
   | {type: 'link'; className?: string; url: string; label: ReactNode}
+  | {
+      type: 'action'
+      label: ReactNode
+      onSelect: () => void
+      destructive?: boolean
+    }
   | {type?: undefined; component: ReactNode}
 )
 
@@ -28,6 +35,7 @@ type MenuCustomProps = PropsWithChildren<{
   className?: string
   itemsClassName?: string
   items?: MenuCustomItem[]
+  disabled?: boolean
   /** Popover position relative to the trigger button. */
   anchor?: PopoverAnchor
 }>
@@ -39,6 +47,7 @@ export default function MenuCustom({
   className,
   itemsClassName = '',
   items = [],
+  disabled,
   anchor = 'bottom-end',
   children,
 }: MenuCustomProps) {
@@ -47,6 +56,7 @@ export default function MenuCustom({
       anchor={anchor}
       trigger={children}
       triggerClassName={className}
+      disabled={disabled}
       className={cn(BASE_CLASSES, itemsClassName)}
     >
       {items.flatMap((item, index) => {
@@ -59,7 +69,7 @@ export default function MenuCustom({
             aria-disabled={item.disabled ? 'true' : undefined}
             data-disabled={item.disabled ? '' : undefined}
             className={cn(
-              'hover:bg-ink-tint focus-visible:bg-ink-tint focus-visible:outline-accent data-disabled:disabled flex items-center gap-2 rounded-sm p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+              'hover:bg-ink-tint focus-visible:bg-ink-tint focus-visible:outline-accent data-disabled:disabled flex items-center gap-2 p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
               item.className || '',
             )}
             onClick={(e) => {
@@ -68,6 +78,16 @@ export default function MenuCustom({
           >
             {item.label}
           </Link>
+        ) : item.type === 'action' ? (
+          <MenuItemButton
+            key={index}
+            type="button"
+            destructive={item.destructive}
+            disabled={item.disabled}
+            onClick={item.onSelect}
+          >
+            {item.label}
+          </MenuItemButton>
         ) : item.disabled ? (
           // Component items get no disabled styling from this wrapper, so
           // disable them via the DOM: no pointer events + aria-disabled.

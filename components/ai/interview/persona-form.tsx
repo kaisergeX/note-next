@@ -26,6 +26,8 @@ import PersonaBioPanel from './persona-bio-panel'
 import PersonaCombobox, {type PersonaComboboxOption} from './persona-combobox'
 import PersonaSlider from './persona-slider'
 import PersonaTags from './persona-tags'
+import {Input} from '~/components/ui/input'
+import Button from '~/components/ui/button'
 
 export type PersonaFormInitial = {
   id: string
@@ -148,14 +150,11 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
     (options: PersonaComboboxOption[]) => (value: string) =>
       options.find((option) => option.value === value)?.label ?? value
 
-  const inputClass =
-    'w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900'
-
   const renderErrors = (errors: readonly unknown[]) => {
     const first = errors[0] as FieldError | undefined
     if (!first) return null
     return (
-      <p className="text-danger mt-1 text-xs">
+      <p role="alert" className="text-destructive mt-1 text-xs">
         {tErrors(first.key, first.params ?? undefined)}
       </p>
     )
@@ -322,16 +321,18 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
         </h2>
 
         {noAccess && (
-          <p className="text-danger text-sm">{t('noAccessError')}</p>
+          <p role="alert" className="text-destructive text-sm">
+            {t('noAccessError')}
+          </p>
         )}
         {globalError && (
-          <p role="alert" className="text-danger text-sm">
+          <p role="alert" className="text-destructive text-sm">
             {globalError}
           </p>
         )}
 
         {mode === 'create' && (
-          <section className="space-y-2 rounded-lg border border-zinc-200 p-4 dark:border-zinc-700">
+          <section className="border-hairline bg-paper-raised space-y-2 rounded-lg border p-4">
             <label htmlFor="persona-seed" className="block text-sm font-medium">
               {t('seed')}
             </label>
@@ -340,19 +341,20 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
               rows={5}
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
-              className={inputClass}
+              className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
               maxLength={10000}
               disabled={generating || saving}
             />
-            <p className="text-muted-foreground text-xs">{t('seedHint')}</p>
+            <p className="text-ink-muted text-xs">{t('seedHint')}</p>
             {seedErrors && seedErrors.length > 0 && (
-              <p role="alert" className="text-danger text-xs">
+              <p role="alert" className="text-destructive text-xs">
                 {tErrors(seedErrors[0].key, seedErrors[0].params ?? undefined)}
               </p>
             )}
-            <button
+            <Button
               type="button"
-              className="button-secondary mt-2"
+              variant="secondary"
+              className="mt-2"
               onClick={handleGenerate}
               disabled={generating || saving}
             >
@@ -362,9 +364,9 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                 <IconSparkles2 size="1.2rem" />
               )}
               {generating ? t('generating') : t('generate')}
-            </button>
+            </Button>
             {(generateOffline || generateError) && (
-              <p role="alert" className="text-danger text-sm">
+              <p role="alert" className="text-destructive text-sm">
                 {generateOffline ? t('bioOfflineError') : t('bioError')}
               </p>
             )}
@@ -389,12 +391,11 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                   >
                     {t('name')}
                   </label>
-                  <input
+                  <Input
                     id="persona-name"
                     type="text"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className={inputClass}
                   />
                   {renderErrors(field.state.meta.errors)}
                 </div>
@@ -411,14 +412,13 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                     >
                       {t('age')}
                     </label>
-                    <input
+                    <Input
                       id="persona-age"
                       type="number"
                       min={1}
                       max={120}
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className={inputClass}
                     />
                     {renderErrors(field.state.meta.errors)}
                   </div>
@@ -450,14 +450,13 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                     >
                       {t('region')}
                     </label>
-                    <input
+                    <Input
                       id="persona-region"
                       type="text"
                       value={field.state.value}
                       onChange={(e) => field.handleChange(e.target.value)}
-                      className={inputClass}
                     />
-                    <p className="text-muted-foreground mt-1 text-xs">
+                    <p className="text-ink-muted mt-1 text-xs">
                       {t('regionHint')}
                     </p>
                     {renderErrors(field.state.meta.errors)}
@@ -489,12 +488,11 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                   >
                     {t('occupation')}
                   </label>
-                  <input
+                  <Input
                     id="persona-occupation"
                     type="text"
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className={inputClass}
                   />
                   {renderErrors(field.state.meta.errors)}
                 </div>
@@ -548,7 +546,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                     labelFor={labelFromOptions(stanceOptions)}
                     label={t('stance')}
                   />
-                  <p className="text-muted-foreground mt-1 text-xs">
+                  <p className="text-ink-muted mt-1 text-xs">
                     {t('stanceHint')}
                   </p>
                   {renderErrors(field.state.meta.errors)}
@@ -570,7 +568,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                     rows={3}
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className={inputClass}
+                    className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                   />
                   {renderErrors(field.state.meta.errors)}
                 </div>
@@ -607,19 +605,19 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
           </div>
         </details>
       </form>
-      <div className="flex-center-between bg-default sticky inset-x-0 bottom-0 z-10 w-full gap-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <div className="container mx-auto border-t border-gray-200 p-4">
+      <div className="flex-center-between bg-paper-raised sticky inset-x-0 bottom-0 z-10 w-full gap-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+        <div className="border-hairline container mx-auto border-t p-4">
           <form.Subscribe selector={(state) => state.isSubmitting}>
             {(isSubmitting) => (
-              <button
+              <Button
                 type="button"
-                className="button"
+                variant="primary"
                 onClick={handleSave}
                 disabled={generating || saving || isSubmitting}
               >
                 <IconSubtitlesAi />{' '}
                 {saving || isSubmitting ? t('starting') : t('start')}
-              </button>
+              </Button>
             )}
           </form.Subscribe>
         </div>

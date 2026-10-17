@@ -14,17 +14,14 @@ import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
 import {setPersonaStatusAction} from '~/app/[locale]/ai/interview/actions'
 import type {PersonaStatus} from '~/db/schema/personas'
+import Button from '~/components/ui/button'
+import {Badge} from '~/components/ui/badge'
+import LinkButton from '~/components/ui/link-button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {PersonaFormInitial} from './persona-form'
 
 type PersonaRosterCardProps = {
   persona: PersonaFormInitial
-}
-
-const STATUS_BADGE_CLASS: Record<PersonaStatus, string> = {
-  draft: 'border-amber-500 text-amber-600 dark:text-amber-400',
-  active: 'border-green-600 text-green-600 dark:text-green-400',
-  archived: 'border-zinc-400 text-zinc-500',
 }
 
 export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
@@ -60,32 +57,25 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
     ...(persona.status === 'draft'
       ? [
           {
-            component: (
-              <button
-                type="button"
-                className="hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50"
-                disabled={isPending}
-                onClick={() => handleStatusChange('active')}
-              >
-                {t('roster.activate')}
-              </button>
-            ),
+            type: 'action' as const,
+            label: t('roster.activate'),
+            disabled: isPending,
+            onSelect: () => handleStatusChange('active'),
           },
         ]
       : []),
     ...(persona.status === 'active'
       ? [
           {
-            component: (
-              <button
-                type="button"
-                className="text-danger hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-4 text-left transition-colors disabled:opacity-50"
-                disabled={isPending}
-                onClick={openArchiveConfirm}
-              >
+            type: 'action' as const,
+            label: (
+              <>
                 <IconArchive size="18" /> {t('roster.archive')}
-              </button>
+              </>
             ),
+            destructive: true,
+            disabled: isPending,
+            onSelect: openArchiveConfirm,
           },
         ]
       : []),
@@ -98,7 +88,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
     gender === 'male' || gender === 'female' ? tGender(gender) : gender
 
   return (
-    <div className="card flex flex-col gap-2 p-4">
+    <div className="border-hairline bg-paper-raised text-ink flex flex-col gap-2 rounded-lg border p-4">
       <div className="flex-center-between gap-2">
         <Link
           href={`/ai/interview/${persona.id}`}
@@ -107,13 +97,9 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
           {persona.name}
         </Link>
         <div className="flex items-center gap-2">
-          <span
-            className={`rounded-full border px-2 py-0.5 text-xs ${STATUS_BADGE_CLASS[persona.status]}`}
-          >
-            {t(`status.${persona.status}`)}
-          </span>
+          <Badge status={persona.status}>{t(`status.${persona.status}`)}</Badge>
           <MenuCustom
-            className="button-secondary button-icon rounded-full p-1"
+            className="border-hairline bg-paper-raised text-ink hover:bg-raised-hover rounded-full border"
             itemsClassName="w-44"
             items={menuItems}
           >
@@ -123,7 +109,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
         </div>
       </div>
 
-      <p className="text-muted-foreground text-sm">
+      <p className="text-ink-muted text-sm">
         {[persona.age, genderLabel, persona.region, persona.occupation]
           .filter((part) => part !== undefined && part !== '')
           .join(' · ')}
@@ -134,7 +120,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
           {persona.backgroundTags.map((tag) => (
             <span
               key={tag}
-              className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs dark:bg-zinc-800"
+              className="border-hairline bg-paper text-ink rounded-full border px-2 py-0.5 text-xs"
             >
               {tag}
             </span>
@@ -143,23 +129,26 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
       )}
 
       {persona.quirksFreetext && (
-        <p className="text-muted-foreground truncate text-sm">
+        <p className="text-ink-muted truncate text-sm">
           {persona.quirksFreetext}
         </p>
       )}
 
       {actionError && (
-        <p className="text-danger text-xs">{t('roster.archiveFailed')}</p>
+        <p className="text-destructive text-xs" role="alert">
+          {t('roster.archiveFailed')}
+        </p>
       )}
 
       {persona.systemPrompt && persona.status !== 'draft' && (
         <div className="mt-auto pt-2">
-          <Link
+          <LinkButton
             href={`/ai/interview/${persona.id}/chat`}
-            className="button-secondary flex-1 text-center text-sm"
+            className="flex-1 text-center"
+            size="sm"
           >
             <IconMessages size="18" /> {t('chat.openChat')}
-          </Link>
+          </LinkButton>
         </div>
       )}
 
@@ -174,16 +163,16 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
         </Dialog.Header>
         <Dialog.Content>{t('roster.confirmArchiveBody')}</Dialog.Content>
         <Dialog.Footer className="justify-end">
-          <button
+          <Button
             type="button"
-            className="button-secondary"
+            variant="secondary"
             onClick={closeArchiveConfirm}
           >
             {t('chat.cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button-danger"
+            variant="danger"
             disabled={isPending}
             onClick={() => {
               closeArchiveConfirm()
@@ -191,7 +180,7 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
             }}
           >
             <IconArchive size="16" /> {t('roster.archive')}
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog>
     </div>
