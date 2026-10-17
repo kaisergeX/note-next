@@ -82,7 +82,7 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
     },
     {
       component: (
-        <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 rounded-sm bg-transparent p-3 text-left font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
+        <SignOutButton>
           <IconLogout /> {signOutLabel}
         </SignOutButton>
       ),
@@ -134,12 +134,10 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
         />
       </Link>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <Button
           variant="secondary"
-          size="md"
           iconOnly
-          className="min-h-11 min-w-11"
           onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
           aria-label="Theme Switcher"
         >
@@ -165,9 +163,8 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
           {/* Mobile menu button */}
           <Button
             variant="ghost"
-            size="md"
             iconOnly
-            className="min-h-11 min-w-11 lg:hidden"
+            className="lg:hidden"
             onClick={openMenuDialog}
             aria-controls="main-menu"
             aria-expanded={isMenuDialogOpen}
@@ -230,8 +227,8 @@ export default function AppHeader({appName, signOutLabel}: NavProps) {
             )}
           </nav>
 
-          <div className="border-hairline border-t">
-            <SignOutButton className="text-destructive hover:bg-destructive hover:text-paper focus-visible:bg-destructive focus-visible:text-paper focus-visible:outline-accent flex w-full items-center gap-2 rounded-md border border-transparent bg-transparent p-3 text-left text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-45">
+          <div className="border-hairline border-t py-2">
+            <SignOutButton className="rounded-lg">
               <IconLogout /> {signOutLabel}
             </SignOutButton>
           </div>

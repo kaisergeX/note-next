@@ -1,6 +1,6 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
+import {cn} from 'cn'
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
@@ -16,6 +16,7 @@ import {
 } from '@tabler/icons-react'
 import type {Editor} from '@tiptap/react'
 import {Fragment, type ReactNode} from 'react'
+import Button from '~/components/ui/button'
 
 type RTEMenuItem =
   | {
@@ -54,7 +55,7 @@ export default function RTECommands({
 
   const modifierKey = navigator.userAgent.includes('Mac OS') ? 'Cmd' : 'Ctrl'
   const iconSize = '1.2rem'
-  const Divider = <div className="mx-0.5 h-4 w-0.5 bg-zinc-300" />
+  const Divider = <div className="bg-hairline-strong mx-0.5 h-4 w-0.5" />
 
   // Menu show up when user select text, text format only.
   const floatingMenu: RTEMenuItem[] = [
@@ -171,7 +172,7 @@ export default function RTECommands({
 
   return (
     <div
-      className={classNames('flex flex-wrap items-center gap-2', className)}
+      className={cn('flex flex-wrap items-center gap-2', className)}
       role="menubar"
     >
       {renderMenu().map(
@@ -182,20 +183,20 @@ export default function RTECommands({
           customItem ? (
             <Fragment key={index.toString()}>{customItem}</Fragment>
           ) : (
-            <button
+            <Button
               key={title}
-              className={classNames(
-                actived ? 'button' : 'button-secondary',
-                Icon ? 'button-icon p-1' : '',
-              )}
+              variant="ghost"
+              size="sm"
+              iconOnly={!!Icon}
+              className={cn(actived && 'bg-ink-tint-strong')}
+              aria-label={`${title}${shortcut ? ` ${shortcut}` : ''}`}
               title={`${title} ${shortcut}`}
-              type="button"
               role="menuitem"
               onClick={action}
               disabled={disabled}
             >
               {Icon || title}
-            </button>
+            </Button>
           ),
       )}
     </div>

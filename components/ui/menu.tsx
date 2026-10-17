@@ -69,7 +69,7 @@ export default function MenuCustom({
             aria-disabled={item.disabled ? 'true' : undefined}
             data-disabled={item.disabled ? '' : undefined}
             className={cn(
-              'hover:bg-ink-tint focus-visible:bg-ink-tint focus-visible:outline-accent data-disabled:disabled flex items-center gap-2 p-3 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+              'hover:bg-ink-tint focus-visible:bg-ink-tint focus-visible:outline-accent data-disabled:disabled flex items-center gap-2 px-3 py-2 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
               item.className || '',
             )}
             onClick={(e) => {

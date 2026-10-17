@@ -1,10 +1,10 @@
 import {IconNotes} from '@tabler/icons-react'
 import {getTranslations} from 'next-intl/server'
 import Image from 'next/image'
-import Link from 'next/link'
 import {redirect} from 'next/navigation'
 import {connection} from 'next/server'
 import {auth} from '~/auth'
+import LinkButton from '~/components/ui/link-button'
 import SwooshImg from '~/public/swoosh.png'
 import {isValidSession} from '~/server-utils'
 import type {PropsWithLocale} from '~/types'
@@ -36,7 +36,7 @@ export default async function Home(props: HomeProps) {
   return (
     <main className="body-h-auto [&>section]:h-svh [&>section]:w-full [&>section]:px-4">
       <section className="flex-center flex-col">
-        <h2 className="text-center text-2xl font-extrabold md:text-4xl">
+        <h2 className="text-center font-serif text-4xl leading-tight font-medium md:text-5xl">
           {t('homepage.title')}
         </h2>
         <p className="mx-auto mb-8 text-justify sm:w-1/2">
@@ -46,15 +46,15 @@ export default async function Home(props: HomeProps) {
           quia ducimus dicta.
         </p>
         <div className="flex-center">
-          <Link href="/eton" className="button-secondary">
+          <LinkButton href="/eton" variant="secondary">
             <span>{t('note.title')}</span>
             <IconNotes />
-          </Link>
+          </LinkButton>
         </div>
       </section>
 
-      <section className="bg-reverse flex-center relative flex-col">
-        <h2 className="mb-8 text-center text-4xl font-extrabold">
+      <section className="bg-ink text-paper flex-center relative flex-col">
+        <h2 className="mb-8 text-center font-serif text-4xl leading-tight font-medium">
           Well, nothing here yet ☁️
         </h2>
         <h3>Stop scrolling!</h3>

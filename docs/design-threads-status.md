@@ -2,7 +2,7 @@
 
 Append one section per finished thread. Only record what the migration guide does NOT already say: owner decisions, deviations from scope, deferred issues, verification gaps. Never log per-file changes that fall inside a thread's listed scope.
 
-Current state: Thread 7 (Misc + final cleanup) route chunk is migrated. The repo-wide legacy utility deletion remains deferred where active usages belong to the separately reserved homepage or out-of-chunk components.
+Current state: Thread 7 (Misc + final cleanup) is complete. The owner authorized the remaining shared cleanup and homepage utility migration; the note-create `btn-light-sweep` remains by request.
 
 ## Thread 1 — App chrome: DONE
 
@@ -129,19 +129,21 @@ Current state: Thread 7 (Misc + final cleanup) route chunk is migrated. The repo
 - `pnpm lint` passes using the bundled Node runtime and fallback pnpm command; TypeScript and full-repo ESLint pass. `pnpm build` passes (76 static pages; Serwist precached 137 URLs). `git diff --check` is clean, and the Thread 6 grep finds no legacy classes or raw zinc/red/gray palette utilities.
 - Final dedicated `ui_reviewer` re-review: PASS at 1440px and 390px, light and dark, for `/en/ai/interview/runs`, `/en/ai/interview/runs/new`, `/en/ai/interview/runs/[runId]`, and `/en/ai/interview/bulk`. Mobile targets are at least 44px; labels are 12px muted; the reviewed focus rings are 2px accent; no horizontal overflow or app console errors.
 
-## Thread 7 — Misc + final cleanup: ROUTE CHUNK DONE
+## Thread 7 — Misc + final cleanup: DONE
 
 ### Deviations / notes
 
-- The marketing homepage remains reserved for the owner's separate design task (Thread 1 binding decision), so legacy shared utilities still used there cannot yet be deleted. Other live references also remain in the editor toolbar, interview chat route, sign-out button, and devtools warning overlay; these are outside Thread 7's assigned files and follow the existing out-of-chunk owner-confirmation rule.
+- Owner later authorized extending the cleanup to the homepage and shared components. Homepage placeholder copy remains intentionally unchanged from the earlier owner decision; only its design-system migration was done here.
+- Kept `btn-light-sweep` on the note-create button at the owner's request. Removed the remaining retired shared utilities and recolored the global scrollbar and code surfaces with semantic tokens.
 - Removed the unused generic `card`, `card-fancy`, `glass`, and bare `shadow-theme` utilities, and removed the `bg-fancy` body/scrollbar cascade after migrating the admin and privacy surfaces.
 - Admin users review was intentionally skipped because the QA user is not an archivist and `/en/admin/users` requires that role.
 
 ### Verification
 
-- `pnpm lint` and `pnpm build` pass; `git diff --check` is clean.
-- Dedicated UI review covered `/en/user` and `/en/trust/privacy` in light/dark at desktop/mobile with no overflow or page console errors. The reviewer prompted compact settings cards; a second review confirmed 96px cards, and the final follow-up added desktop horizontal centering. No third review was run (two-round limit). Keyboard focus sequence and hover states remain unverified.
-- The second review also flagged a 34px desktop header user-menu target; it remains deferred to Thread 1 scope.
+- `pnpm lint` and `pnpm build` pass; `git diff --check` is clean. Repo-wide legacy grep has no retired utilities or raw zinc/red/gray classes in `app/` or `components/`; `btn-light-sweep` is the sole requested retention.
+- Dedicated UI review passed `/en` at 1440px and 390px in light/dark, with Newsreader display headings, no overflow, and no console errors. Homepage placeholder copy remains deferred.
+- The Thread 7 route review covered `/en/user` and `/en/trust/privacy`; the admin page was skipped because it requires archivist access. Keyboard focus sequence and hover states remain unverified. The second review flagged a 34px desktop header user-menu target; it remains deferred to Thread 1 scope.
+- The About page and note editor toolbar could not be visually reviewed because the QA browser session redirected to Google-only login; their code changes passed lint/build.
 
 ## Future (outside migration)
 

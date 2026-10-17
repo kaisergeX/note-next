@@ -1,6 +1,7 @@
 'use client'
-import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
 import {signOut} from 'next-auth/react'
+import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
+import {MenuItemButton} from '~/components/ui/button'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement>
 
@@ -9,13 +10,14 @@ export default function SignOutButton({
   ...props
 }: PropsWithChildren<Props>) {
   return (
-    <button
+    <MenuItemButton
+      className="w-full"
       type="button"
-      className="button"
+      destructive
       onClick={() => void signOut({redirect: true, redirectTo: '/'})}
       {...props}
     >
       {children}
-    </button>
+    </MenuItemButton>
   )
 }

@@ -3,11 +3,13 @@
 import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
 import {
+  IconBraces,
   IconDotsVertical,
-  IconDownload,
   IconEdit,
+  IconMarkdown,
   IconTrash,
 } from '@tabler/icons-react'
+import {cn} from 'cn'
 import {useLocale, useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
@@ -17,10 +19,9 @@ import {
   renameInterviewSessionAction,
 } from '~/app/[locale]/ai/interview/actions'
 import type {ChatSessionSummary} from '~/components/ai/interview/persona-chat-shell'
-import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
-import {cn} from 'cn'
 import Button, {buttonClass, MenuItemButton} from '~/components/ui/button'
 import {Input} from '~/components/ui/input'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 
 type SessionRowProps = {
   personaId: string
@@ -100,20 +101,18 @@ export default function SessionRow({
     {
       type: 'link',
       url: `/api/ai/interview/export/session/${session.id}?format=md&locale=${locale}`,
-      className: 'p-3!',
       label: (
         <>
-          <IconDownload size="16" /> {tExport('report')}
+          <IconMarkdown size="18" /> {tExport('report')}
         </>
       ),
     },
     {
       type: 'link',
       url: `/api/ai/interview/export/session/${session.id}?format=json&locale=${locale}`,
-      className: 'p-3!',
       label: (
         <>
-          <IconDownload size="16" /> {tExport('backupJson')}
+          <IconBraces size="18" /> {tExport('backupJson')}
         </>
       ),
     },
@@ -121,11 +120,10 @@ export default function SessionRow({
       component: (
         <MenuItemButton
           type="button"
-          className="flex w-full items-center gap-2 text-sm"
           disabled={isPending}
           onClick={startRename}
         >
-          <IconEdit size="16" /> {t('rename')}
+          <IconEdit size="18" /> {t('rename')}
         </MenuItemButton>
       ),
     },
@@ -134,11 +132,10 @@ export default function SessionRow({
         <MenuItemButton
           type="button"
           destructive
-          className="flex w-full items-center gap-2 text-sm"
           disabled={isPending}
           onClick={openConfirm}
         >
-          <IconTrash size="16" /> {t('delete')}
+          <IconTrash size="18" /> {t('delete')}
         </MenuItemButton>
       ),
     },
