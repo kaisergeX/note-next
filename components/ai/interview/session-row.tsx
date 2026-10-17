@@ -16,9 +16,11 @@ import {
   deleteInterviewSessionAction,
   renameInterviewSessionAction,
 } from '~/app/[locale]/ai/interview/actions'
-import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {ChatSessionSummary} from '~/components/ai/interview/persona-chat-shell'
-import {classNames} from '@kaiverse/k/utils'
+import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
+import {cn} from 'cn'
+import Button, {buttonClass, MenuItemButton} from '~/components/ui/button'
+import {Input} from '~/components/ui/input'
 
 type SessionRowProps = {
   personaId: string
@@ -117,26 +119,27 @@ export default function SessionRow({
     },
     {
       component: (
-        <button
+        <MenuItemButton
           type="button"
-          className="hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-3 text-left text-sm disabled:opacity-50"
+          className="flex w-full items-center gap-2 text-sm"
           disabled={isPending}
           onClick={startRename}
         >
           <IconEdit size="16" /> {t('rename')}
-        </button>
+        </MenuItemButton>
       ),
     },
     {
       component: (
-        <button
+        <MenuItemButton
           type="button"
-          className="text-danger hover:bg-reverse focus-visible:bg-reverse flex w-full items-center gap-2 p-3 text-left text-sm disabled:opacity-50"
+          destructive
+          className="flex w-full items-center gap-2 text-sm"
           disabled={isPending}
           onClick={openConfirm}
         >
           <IconTrash size="16" /> {t('delete')}
-        </button>
+        </MenuItemButton>
       ),
     },
   ]
@@ -151,7 +154,7 @@ export default function SessionRow({
             saveRename()
           }}
         >
-          <input
+          <Input
             type="text"
             value={editValue}
             onChange={(e) => setEditValue(e.target.value)}
@@ -164,19 +167,19 @@ export default function SessionRow({
             onBlur={cancelRename}
             autoFocus
             aria-label={t('rename')}
-            className="w-full rounded-md border border-zinc-300 px-2 py-1.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="px-2 py-1.5"
           />
         </form>
       ) : (
         <div
-          className={classNames(
+          className={cn(
             'flex items-center gap-1 rounded-md',
-            isActive ? 'bg-zinc-100 dark:bg-zinc-800' : '',
+            isActive ? 'bg-ink-tint' : '',
           )}
         >
           <Link
             href={`/ai/interview/${personaId}/chat?t=${session.id}`}
-            className="min-w-0 flex-1 p-2"
+            className="focus-visible:outline-accent min-w-0 flex-1 p-2 focus-visible:outline-2 focus-visible:outline-offset-2"
             onClick={onSessionNavigate}
           >
             <p
@@ -184,12 +187,12 @@ export default function SessionRow({
             >
               {title}
             </p>
-            <p className="text-muted-foreground truncate text-xs">
+            <p className="text-ink-muted truncate text-xs">
               {session.dateLabel}
             </p>
           </Link>
           <MenuCustom
-            className="button-secondary button-icon rounded-full p-1 not-hover:border-transparent"
+            className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11`}
             // Top-layer anchored popover: body-level portals used to render
             // below a <dialog> top layer, but popover="auto" opens in the top
             // layer itself, so no manual inline positioning is needed.
@@ -203,11 +206,11 @@ export default function SessionRow({
       )}
 
       {actionError && !confirmOpen && (
-        <p className="text-danger px-2 text-xs">{t('actionFailed')}</p>
+        <p className="text-destructive px-2 text-xs">{t('actionFailed')}</p>
       )}
 
       <Dialog
-        className="bg-default m-auto w-[calc(100dvw-2rem)] max-w-sm"
+        className="bg-paper-raised text-ink border-hairline shadow-sheet m-auto w-[calc(100dvw-2rem)] max-w-sm rounded-lg border"
         open={confirmOpen}
         onClose={closeConfirm}
         onMouseDown={(e) => e.stopPropagation()}
@@ -217,21 +220,23 @@ export default function SessionRow({
         </Dialog.Header>
         <Dialog.Content>{t('deleteConfirmBody')}</Dialog.Content>
         <Dialog.Footer className="justify-end">
-          <button
+          <Button
             type="button"
-            className="button-secondary"
+            variant="secondary"
+            className="min-h-11"
             onClick={closeConfirm}
           >
             {t('cancel')}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button-danger"
+            variant="danger"
+            className="min-h-11"
             disabled={isPending}
             onClick={handleDelete}
           >
             <IconTrash size="18" /> {t('delete')}
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog>
     </div>

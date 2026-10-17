@@ -41,7 +41,8 @@ export default function StartInterviewButton({
       <Button
         type="button"
         variant="primary"
-        size="sm"
+        size="md"
+        className="min-h-11"
         onClick={handleStart}
         disabled={isPending}
       >

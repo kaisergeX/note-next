@@ -7,6 +7,7 @@ import {useTranslations} from 'next-intl'
 import {useEffect, useMemo, useRef, useState} from 'react'
 import ChatInput from '~/components/ai/interview/chat-input'
 import ChatMessages from '~/components/ai/interview/chat-messages'
+import Button from '~/components/ui/button'
 
 type PersonaChatProps = {
   personaId: string
@@ -158,7 +159,7 @@ export default function PersonaChat({
       {error && (
         <p
           role="alert"
-          className="text-danger sticky top-0 z-10 flex items-start gap-2 text-sm"
+          className="text-destructive sticky top-0 z-10 flex items-start gap-2 text-sm"
         >
           <span className="wrap-anywhere">
             {isOffline
@@ -168,13 +169,15 @@ export default function PersonaChat({
                 : t('genericError')}
           </span>
           {canRetry && (
-            <button
+            <Button
               type="button"
+              variant="danger"
+              size="md"
               onClick={handleRetry}
-              className="text-danger inline-flex shrink-0 items-center gap-1 self-start rounded-md border border-red-400/70 px-2 py-1 text-xs transition-colors hover:bg-red-500/10 dark:border-red-400/50"
+              className="min-h-11 shrink-0 self-start"
             >
               <IconRefresh size="14" /> {t('retry')}
-            </button>
+            </Button>
           )}
         </p>
       )}
@@ -192,14 +195,17 @@ export default function PersonaChat({
 
       <div className="sticky bottom-0 z-10">
         {!isAtBottom && (
-          <button
+          <Button
             type="button"
+            variant="secondary"
+            size="md"
+            iconOnly
+            className="absolute right-4 bottom-full mb-2 min-h-11 min-w-11"
             aria-label={t('scrollToBottom')}
             onClick={handleJumpToBottom}
-            className="bg-default absolute right-4 bottom-full mb-2 flex size-9 items-center justify-center rounded-full border border-zinc-300 shadow-sm dark:border-zinc-600"
           >
             <IconArrowDown size="18" />
-          </button>
+          </Button>
         )}
         <ChatInput
           value={input}

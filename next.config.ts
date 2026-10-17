@@ -4,6 +4,7 @@ import createNextIntlPlugin from 'next-intl/plugin'
 const nextConfig: NextConfig = {
   transpilePackages: ['@kaiverse/k'],
   cacheComponents: true,
+  partialPrefetching: true,
   cacheLife: {
     neverRevalidate: {
       revalidate: 2592000, // 30 days in seconds

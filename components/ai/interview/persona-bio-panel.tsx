@@ -2,6 +2,7 @@
 
 import {IconLoader2, IconSparkles} from '@tabler/icons-react'
 import {useId} from 'react'
+import Button from '~/components/ui/button'
 
 type PersonaBioPanelProps = {
   bio: string
@@ -49,13 +50,13 @@ export default function PersonaBioPanel({
           value={bio}
           disabled={regenerating}
           onChange={(e) => onBioChange(e.target.value)}
-          className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+          className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
-      <button
+      <Button
         type="button"
-        className="button-secondary"
+        variant="secondary"
         onClick={onRegenerate}
         disabled={regenerating}
       >
@@ -65,10 +66,10 @@ export default function PersonaBioPanel({
           <IconSparkles size="1.2rem" />
         )}
         {regenerating ? labels.drafting : labels.regenerate}
-      </button>
+      </Button>
 
       {(offline || error) && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {offline ? labels.offlineError : labels.error}
         </p>
       )}
@@ -87,7 +88,7 @@ export default function PersonaBioPanel({
             value={systemPrompt}
             disabled={regenerating}
             onChange={(e) => onSystemPromptChange(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
       </details>

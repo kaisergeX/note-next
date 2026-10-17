@@ -1,9 +1,9 @@
 'use client'
 
-import {classNames} from '@kaiverse/k/utils'
 import {IconPlayerStop, IconSend} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {useEffect, useRef} from 'react'
+import Button from '~/components/ui/button'
 
 type ChatInputProps = {
   value: string
@@ -44,13 +44,13 @@ export default function ChatInput({
 
   return (
     <form
-      className="bg-default container mx-auto flex items-end gap-2 border-t border-zinc-200/60 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] dark:border-zinc-700/60"
+      className="bg-paper border-hairline container mx-auto flex items-end gap-2 border-t pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
       onSubmit={(e) => {
         e.preventDefault()
         submit()
       }}
     >
-      <div className="relative min-w-0 flex-1 rounded-lg border border-zinc-300 py-2 focus-within:outline dark:border-zinc-700">
+      <div className="bg-paper-raised border-hairline focus-within:border-accent focus-within:ring-accent/25 relative min-w-0 flex-1 rounded-md border py-2 transition-colors focus-within:ring-2">
         <textarea
           ref={textareaRef}
           value={value}
@@ -63,26 +63,34 @@ export default function ChatInput({
             submit()
           }}
           placeholder={t('inputPlaceholder')}
-          className={classNames(
-            'w-full min-w-0 px-3 text-sm outline-none',
-            'field-sizing-content h-auto max-h-80 min-h-10 resize-none overflow-y-auto transition-[height] [interpolate-size:allow-keywords]',
-            'dark:bg-zinc-900',
-          )}
+          className="text-ink placeholder:text-ink-muted field-sizing-content h-auto max-h-80 min-h-11 w-full min-w-0 resize-none overflow-y-auto bg-transparent px-3 text-sm transition-[height] outline-none [interpolate-size:allow-keywords]"
         />
       </div>
       {value.length > maxLengthHint - 1000 && (
-        <span className="text-muted-foreground self-center text-xs tabular-nums">
+        <span className="text-ink-muted self-center text-xs tabular-nums">
           {value.length}/{maxLengthHint}
         </span>
       )}
       {isBusy ? (
-        <button type="button" className="button-secondary" onClick={onStop}>
+        <Button
+          type="button"
+          variant="secondary"
+          size="md"
+          className="min-h-11"
+          onClick={onStop}
+        >
           <IconPlayerStop size="18" /> {t('stop')}
-        </button>
+        </Button>
       ) : (
-        <button type="submit" className="button" disabled={!value.trim()}>
+        <Button
+          type="submit"
+          variant="primary"
+          size="md"
+          className="min-h-11"
+          disabled={!value.trim()}
+        >
           <IconSend size="18" /> {t('send')}
-        </button>
+        </Button>
       )}
     </form>
   )
