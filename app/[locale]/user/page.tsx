@@ -1,14 +1,10 @@
-import {classNames} from '@kaiverse/k/utils'
-import {
-  IconBrush,
-  IconNoteOff,
-  IconUserCircle,
-  IconUserOff,
-} from '@tabler/icons-react'
+import {cn} from 'cn'
+import {IconNoteOff, IconUserCircle, IconUserOff} from '@tabler/icons-react'
 import type {Route} from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import {Badge} from '~/components/ui/badge'
+import Button from '~/components/ui/button'
 import {requireAuth} from '~/server-utils'
 
 export default async function MyProfile() {
@@ -20,23 +16,15 @@ export default async function MyProfile() {
   const renderSettings = settings.map(({id, name, href}, index) => (
     <Link
       key={id}
-      className={classNames(
-        'card group relative flex min-h-80 flex-col-reverse overflow-hidden transition-colors hover:text-inherit',
+      className={cn(
+        'border-hairline flex-center min-h-24 rounded-lg border p-4 transition-colors',
         index % 2 === 0
-          ? 'bg-default hover:bg-theme duration-500'
-          : 'bg-reverse',
+          ? 'bg-paper-raised hover:bg-raised-hover hover:text-inherit'
+          : 'bg-ink text-paper hover:bg-ink-hover',
       )}
       href={href as Route}
     >
-      {/* {image} */}
-      <h3
-        className={classNames(
-          'px-4 transition-colors duration-200',
-          index % 2 === 0 ? 'group-hover:bg-reverse' : 'group-hover:bg-default',
-        )}
-      >
-        {name}
-      </h3>
+      <h3>{name}</h3>
     </Link>
   ))
 
@@ -45,7 +33,7 @@ export default async function MyProfile() {
       <div className="flex-center py-10">
         {userInfo.image ? (
           <Image
-            className="rounded-full ring-1 ring-gray-900/5"
+            className="border-hairline rounded-full border"
             src={userInfo.image}
             alt="your-profile-avatar"
             width={80}
@@ -66,19 +54,19 @@ export default async function MyProfile() {
       </div>
       <hr />
       <h2>Setting</h2>
-      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(min(16rem,100%),1fr))] gap-4">
+      <div className="mt-4 grid grid-cols-[repeat(auto-fill,minmax(min(16rem,100%),1fr))] justify-center gap-4">
         {renderSettings}
       </div>
       <hr />
 
-      <h2 className="text-danger">Danger Zone</h2>
-      <div className="[&>button]:text-danger mt-4 flex gap-4">
-        <button className="button-secondary" type="button" disabled>
+      <h2 className="text-destructive">Danger Zone</h2>
+      <div className="mt-4 flex flex-wrap gap-4">
+        <Button variant="danger" disabled>
           <IconNoteOff /> Remove all notes
-        </button>
-        <button className="button-secondary" type="button" disabled>
+        </Button>
+        <Button variant="danger" disabled>
           <IconUserOff /> Delete account
-        </button>
+        </Button>
       </div>
     </main>
   )
@@ -89,7 +77,6 @@ const settings = [
     id: 1,
     href: '#',
     name: 'Account Info',
-    image: <IconBrush size="full" />,
   },
   {
     id: 2,

@@ -11,17 +11,17 @@ export default async function Table() {
   const duration = (performance.now() - startTime).toFixed()
 
   return (
-    <div className="mx-auto w-full max-w-xl rounded-lg bg-white/30 p-4 shadow-xl ring-1 ring-gray-900/5 backdrop-blur-lg sm:p-12 dark:bg-transparent dark:shadow-[inset_0_0_6px_#ffffff1a]">
+    <div className="border-hairline bg-paper-raised mx-auto w-full max-w-xl rounded-lg border p-4 sm:p-12">
       <div className="mb-4 flex items-center justify-between">
         <div className="space-y-1">
           <h2 className="text-xl font-semibold">Recent Users</h2>
-          <p className="text-sm text-gray-500">
+          <p className="text-ink-muted text-sm">
             Fetched {users.length} users in {duration}ms
           </p>
         </div>
         <RefreshButton />
       </div>
-      <div className="divide-y divide-gray-900/5">
+      <div className="divide-hairline divide-y">
         {users.map((user) => (
           <div
             key={user.name}
@@ -34,16 +34,16 @@ export default async function Table() {
                   alt={user.name}
                   width={48}
                   height={48}
-                  className="rounded-full ring-1 ring-gray-900/5"
+                  className="border-hairline rounded-full border"
                 />
               )}
 
               <div className="space-y-1">
                 <p className="leading-none font-medium">{user.name}</p>
-                <p className="text-sm text-gray-500">{user.email}</p>
+                <p className="text-ink-muted text-sm">{user.email}</p>
               </div>
             </div>
-            <p className="text-sm text-gray-500">{timeAgo(user.createdAt)}</p>
+            <p className="text-ink-muted text-sm">{timeAgo(user.createdAt)}</p>
           </div>
         ))}
       </div>

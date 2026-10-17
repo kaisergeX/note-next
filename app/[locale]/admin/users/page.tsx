@@ -1,6 +1,5 @@
 import {useTranslations} from 'next-intl'
 import {Suspense} from 'react'
-import FancyHeading from '~/components/ui/fancy-heading'
 import Table from '~/components/table'
 import TablePlaceholder from '~/components/table-placeholder'
 
@@ -9,7 +8,7 @@ export default function Users() {
 
   return (
     <>
-      <FancyHeading className="mb-4" title={t('title')} />
+      <h1 className="mb-4">{t('title')}</h1>
       <Suspense fallback={<TablePlaceholder />}>
         <Table />
       </Suspense>
