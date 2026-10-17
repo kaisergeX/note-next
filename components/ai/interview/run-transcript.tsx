@@ -1,6 +1,7 @@
 import {getTranslations} from 'next-intl/server'
 import ChatBubble from '~/components/ai/interview/chat-bubble'
-import {RUN_STATUS_BADGE_CLASS} from '~/components/ai/interview/run-status'
+import {Badge} from '~/components/ui/badge'
+import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
 import type {RunItemStatus} from '~/db/schema/transcripts'
 
 export type RunResultTurnView = {
@@ -37,18 +38,16 @@ export default async function RunTranscripts({rows}: RunTranscriptsProps) {
   return (
     <section className="space-y-2">
       <h2 className="text-lg font-bold">{t('results')}</h2>
-      <div className="card divide-y divide-zinc-200 p-2 dark:divide-zinc-700">
+      <div className="divide-hairline border-hairline bg-paper-raised divide-y rounded-lg border p-2">
         {rows.map((row) => (
           <details key={row.id} className="px-2 py-2">
-            <summary className="flex cursor-pointer items-center gap-2">
+            <summary className="flex min-h-11 cursor-pointer items-center gap-2">
               <span className="min-w-0 truncate text-sm font-medium">
                 {row.personaName}
               </span>
-              <span
-                className={`rounded-full border px-2 py-0.5 text-xs ${RUN_STATUS_BADGE_CLASS[row.status]}`}
-              >
+              <Badge status={RUN_STATUS_BADGE[row.status]}>
                 {t(`status.${row.status}`)}
-              </span>
+              </Badge>
             </summary>
             <div className="mt-3">
               {row.transcript ? (
@@ -63,7 +62,7 @@ export default async function RunTranscripts({rows}: RunTranscriptsProps) {
                       }
                     >
                       {turn.role !== 'user' && (
-                        <span className="text-muted-foreground mb-0.5 text-xs wrap-anywhere">
+                        <span className="text-ink-muted mb-0.5 text-xs wrap-anywhere">
                           {row.personaName}
                         </span>
                       )}
@@ -71,7 +70,7 @@ export default async function RunTranscripts({rows}: RunTranscriptsProps) {
                         {turn.content}
                       </ChatBubble>
                       {turn.timeLabel && (
-                        <p className="text-muted-foreground mt-0.5 text-xs">
+                        <p className="text-ink-muted mt-0.5 text-xs">
                           {turn.timeLabel}
                         </p>
                       )}
@@ -79,9 +78,7 @@ export default async function RunTranscripts({rows}: RunTranscriptsProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground text-sm">
-                  {t('noTranscript')}
-                </p>
+                <p className="text-ink-muted text-sm">{t('noTranscript')}</p>
               )}
             </div>
           </details>

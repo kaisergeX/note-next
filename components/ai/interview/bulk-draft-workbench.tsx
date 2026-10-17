@@ -4,6 +4,7 @@ import {IconLoader2, IconPlayerStop, IconSparkles} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {useRef, useState, useTransition} from 'react'
+import Button from '~/components/ui/button'
 import {
   generatePersonaCandidateAction,
   type PersonaCandidate,
@@ -173,18 +174,18 @@ export default function BulkDraftWorkbench({
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="card flex flex-col gap-4 p-4">
-        <p className="text-muted-foreground text-sm">{t('introHint')}</p>
+      <div className="border-hairline bg-paper-raised flex flex-col gap-4 rounded-lg border p-4">
+        <p className="text-ink-muted text-sm">{t('introHint')}</p>
 
         <div>
           <div className="mb-1 flex items-baseline justify-between gap-2">
             <label
               htmlFor="bulk-mix-description"
-              className="block text-sm font-medium"
+              className="text-ink-muted block text-xs font-medium"
             >
               {t('mixDescription')}
             </label>
-            <span className="text-muted-foreground text-xs tabular-nums">
+            <span className="text-ink-muted text-xs tabular-nums">
               {t('charCount', {
                 count: mixDescription.length,
                 max: MIX_DESCRIPTION_MAX_CHARS,
@@ -199,7 +200,7 @@ export default function BulkDraftWorkbench({
             disabled={isPending}
             placeholder={t('mixDescriptionPlaceholder')}
             onChange={(e) => setMixDescription(e.target.value)}
-            className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+            className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
 
@@ -207,7 +208,7 @@ export default function BulkDraftWorkbench({
           <div>
             <label
               htmlFor="bulk-batch-size"
-              className="mb-1 block text-sm font-medium"
+              className="text-ink-muted mb-1 block text-xs font-medium"
             >
               {t('batchSize')}
             </label>
@@ -216,7 +217,7 @@ export default function BulkDraftWorkbench({
               value={batchSize}
               disabled={isPending}
               onChange={(e) => setBatchSize(Number(e.target.value))}
-              className="w-full rounded-md border border-zinc-300 px-3 py-2.5 text-sm dark:border-zinc-700 dark:bg-zinc-900"
+              className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none"
             >
               {BATCH_SIZES.map((size) => (
                 <option key={size} value={size}>
@@ -225,9 +226,8 @@ export default function BulkDraftWorkbench({
               ))}
             </select>
           </div>
-          <button
-            type="button"
-            className="button"
+          <Button
+            className="min-h-11"
             disabled={isPending}
             onClick={() => generate('primary')}
           >
@@ -245,20 +245,20 @@ export default function BulkDraftWorkbench({
             ) : (
               t('generate')
             )}
-          </button>
+          </Button>
           {isPending && (
-            <button
-              type="button"
-              className="button-secondary"
+            <Button
+              variant="secondary"
+              className="min-h-11"
               onClick={cancelLoop}
             >
               <IconPlayerStop size="1.2rem" /> {t('cancel')}
-            </button>
+            </Button>
           )}
         </div>
 
         {bannerText && (
-          <p role="alert" className="text-danger text-sm">
+          <p role="alert" className="text-destructive text-sm">
             {bannerText}
           </p>
         )}
@@ -267,9 +267,9 @@ export default function BulkDraftWorkbench({
       <div className="flex flex-col gap-3">
         <div className="flex-center-between gap-2">
           <h2 className="text-lg font-semibold">{t('draftsHeading')}</h2>
-          <button
-            type="button"
-            className="button-secondary text-sm"
+          <Button
+            variant="secondary"
+            className="min-h-11"
             disabled={isPending}
             onClick={() => generate('more')}
           >
@@ -287,12 +287,12 @@ export default function BulkDraftWorkbench({
             ) : (
               t('generateMore')
             )}
-          </button>
+          </Button>
         </div>
         {drafts.length === 0 && skeletonCount === 0 ? (
           <div className="flex-center flex-col gap-1 py-12">
             <h3 className="opacity-80">{t('empty')}</h3>
-            <p className="text-muted-foreground text-sm">{t('emptyHint')}</p>
+            <p className="text-ink-muted text-sm">{t('emptyHint')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-[repeat(auto-fill,minmax(min(20rem,100%),1fr))] gap-4 pb-16">
@@ -312,18 +312,18 @@ export default function BulkDraftWorkbench({
               <div
                 key={`skeleton-${index}`}
                 aria-hidden
-                className="card flex flex-col gap-2 p-4"
+                className="border-hairline bg-paper-raised flex flex-col gap-2 rounded-lg border p-4"
               >
-                <div className="h-5 w-2/3 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-                <div className="h-4 w-1/2 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                <div className="bg-ink-tint h-5 w-2/3 animate-pulse rounded" />
+                <div className="bg-ink-tint h-4 w-1/2 animate-pulse rounded" />
                 <div className="mt-2 flex flex-col gap-2">
-                  <div className="h-1.5 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-                  <div className="h-1.5 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-                  <div className="h-1.5 w-full animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
+                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
+                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
                 </div>
                 <div className="mt-auto flex gap-2 pt-2">
-                  <div className="h-8 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
-                  <div className="h-8 w-16 animate-pulse rounded bg-zinc-200 dark:bg-zinc-700" />
+                  <div className="bg-ink-tint h-8 w-16 animate-pulse rounded" />
+                  <div className="bg-ink-tint h-8 w-16 animate-pulse rounded" />
                 </div>
               </div>
             ))}

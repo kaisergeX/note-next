@@ -9,7 +9,9 @@ import RunTranscripts, {
   type RunResultRow,
   type RunResultTurnView,
 } from '~/components/ai/interview/run-transcript'
-import {RUN_STATUS_BADGE_CLASS} from '~/components/ai/interview/run-status'
+import {Badge} from '~/components/ui/badge'
+import {buttonClass} from '~/components/ui/button'
+import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
 import {getRunById, getRunProgress, listRunItems} from '~/db/helper/runs'
 import {listRunTranscripts} from '~/db/helper/transcripts'
 import type {TranscriptTurn} from '~/db/schema/transcripts'
@@ -152,7 +154,7 @@ export default async function RunDetailPage({
       <div>
         <Link
           href="/ai/interview/runs"
-          className="inline-flex items-center gap-1 text-sm"
+          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <IconArrowLeft size="18" /> {t('backToRuns')}
         </Link>
@@ -161,14 +163,12 @@ export default async function RunDetailPage({
       <div className="flex-center-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <h1 className="text-2xl font-bold">{t('detailTitle')}</h1>
-          <span
-            className={`rounded-full border px-2 py-0.5 text-xs ${RUN_STATUS_BADGE_CLASS[run.status]}`}
-          >
+          <Badge status={RUN_STATUS_BADGE[run.status]}>
             {t(`status.${run.status}`)}
-          </span>
+          </Badge>
         </div>
         <MenuCustom
-          className="button-secondary button-icon shrink-0 rounded-full p-1"
+          className={`${buttonClass({variant: 'secondary', iconOnly: true})} min-h-11 min-w-11 shrink-0`}
           itemsClassName="w-48"
           items={exportMenuItems}
         >
@@ -177,7 +177,7 @@ export default async function RunDetailPage({
         </MenuCustom>
       </div>
 
-      <p className="text-muted-foreground text-sm wrap-anywhere">
+      <p className="text-ink-muted text-sm wrap-anywhere">
         {t('progress', {done: progress.done, total: progress.total})} ·{' '}
         {t('created', {time: created})} ·{' '}
         {t('questions', {count: run.questionScript.length})}

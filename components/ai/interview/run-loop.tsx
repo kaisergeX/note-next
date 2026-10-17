@@ -15,7 +15,9 @@ import {
   runNextStepAction,
 } from '~/app/[locale]/ai/interview/actions'
 import type {RunItemStatus, RunStatus} from '~/db/schema/transcripts'
-import {RUN_STATUS_BADGE_CLASS} from '~/components/ai/interview/run-status'
+import {Badge} from '~/components/ui/badge'
+import Button from '~/components/ui/button'
+import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
 
 export type RunProgressView = {
   total: number
@@ -223,28 +225,20 @@ export default function RunLoop({
         </span>
         <div className="grow" />
         {showStartResume && (
-          <button
-            type="button"
-            className="button text-sm"
-            onClick={() => void runLoop()}
-          >
+          <Button className="min-h-11" onClick={() => void runLoop()}>
             <IconPlayerPlay size="1.2rem" />
             {runStatus === 'pending' ? t('start') : t('resume')}
-          </button>
+          </Button>
         )}
         {loopActive && (
-          <button
-            type="button"
-            className="button-secondary text-sm"
-            onClick={stopLoop}
-          >
+          <Button variant="secondary" className="min-h-11" onClick={stopLoop}>
             <IconPlayerStop size="1.2rem" /> {t('stop')}
-          </button>
+          </Button>
         )}
         {hasFailedItems && (
-          <button
-            type="button"
-            className="button-secondary text-sm"
+          <Button
+            variant="secondary"
+            className="min-h-11"
             onClick={handleRetry}
             disabled={loopActive || retrying}
           >
@@ -254,25 +248,25 @@ export default function RunLoop({
               <IconRefresh size="1.2rem" />
             )}
             {retrying ? t('retrying') : t('retry')}
-          </button>
+          </Button>
         )}
       </div>
 
       {offline && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {t('offline')}
         </p>
       )}
       {stepError && !offline && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           <IconAlertTriangle size="16" className="inline-block" /> {t('error')}
         </p>
       )}
       {paused && !offline && !stepError && (
-        <p className="text-muted-foreground text-sm">{t('stopped')}</p>
+        <p className="text-ink-muted text-sm">{t('stopped')}</p>
       )}
 
-      <div className="card divide-y divide-zinc-200 p-2 dark:divide-zinc-700">
+      <div className="divide-hairline border-hairline bg-paper-raised divide-y rounded-lg border p-2">
         {items.map((item) => (
           <div
             key={item.id}
@@ -281,16 +275,14 @@ export default function RunLoop({
             <div className="min-w-0">
               <p className="text-sm font-medium">{item.personaName}</p>
               {item.error && (
-                <p className="text-danger mt-0.5 text-xs wrap-anywhere">
+                <p className="text-destructive mt-0.5 text-xs wrap-anywhere">
                   {renderItemError(item.error)}
                 </p>
               )}
             </div>
-            <span
-              className={`rounded-full border px-2 py-0.5 text-xs ${RUN_STATUS_BADGE_CLASS[item.status]}`}
-            >
+            <Badge status={RUN_STATUS_BADGE[item.status]}>
               {t(`status.${item.status}`)}
-            </span>
+            </Badge>
           </div>
         ))}
       </div>

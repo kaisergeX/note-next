@@ -7,6 +7,7 @@ import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
+import Button from '~/components/ui/button'
 import {
   createRunAction,
   extractQuestionsAction,
@@ -132,8 +133,6 @@ export default function RunNewForm({personas}: RunNewFormProps) {
     })
   }
 
-  const inputClass =
-    'w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900'
   const busy = creating || isPending
 
   return (
@@ -141,7 +140,7 @@ export default function RunNewForm({personas}: RunNewFormProps) {
       <div>
         <Link
           href="/ai/interview/runs"
-          className="inline-flex items-center gap-1 text-sm"
+          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
         >
           <IconArrowLeft size="18" /> {t('backToRuns')}
         </Link>
@@ -149,25 +148,30 @@ export default function RunNewForm({personas}: RunNewFormProps) {
 
       <h1 className="text-2xl font-bold">{t('new')}</h1>
 
-      {noAccess && <p className="text-danger text-sm">{t('noAccessError')}</p>}
+      {noAccess && (
+        <p className="text-destructive text-sm">{t('noAccessError')}</p>
+      )}
       {submitError && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {submitError === 'offline' ? t('offline') : t('createError')}
         </p>
       )}
       {formError && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {formError === 'script' ? t('scriptRequired') : t('personaRequired')}
         </p>
       )}
       {detectError && (
-        <p role="alert" className="text-danger text-sm">
+        <p role="alert" className="text-destructive text-sm">
           {detectError === 'offline' ? t('offline') : t('extractFailed')}
         </p>
       )}
 
       <div>
-        <label htmlFor="run-script" className="mb-1 block text-sm font-medium">
+        <label
+          htmlFor="run-script"
+          className="text-ink-muted mb-1 block text-xs font-medium"
+        >
           {t('script')}
         </label>
         <textarea
@@ -176,13 +180,13 @@ export default function RunNewForm({personas}: RunNewFormProps) {
           value={script}
           onChange={(e) => setScript(e.target.value)}
           placeholder={t('scriptPlaceholder')}
-          className={inputClass}
+          className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           disabled={busy}
         />
         <div className="mt-2 flex items-center gap-2">
-          <button
-            type="button"
-            className="button-secondary text-sm"
+          <Button
+            variant="secondary"
+            className="min-h-11"
             onClick={handleDetect}
             disabled={busy}
           >
@@ -190,13 +194,16 @@ export default function RunNewForm({personas}: RunNewFormProps) {
               <IconLoader2 className="animate-spin" size="1.2rem" />
             )}
             {detecting ? t('detecting') : t('detect')}
-          </button>
+          </Button>
         </div>
-        <p className="text-muted-foreground mt-1 text-xs">{t('scriptHint')}</p>
+        <p className="text-ink-muted mt-1 text-xs">{t('scriptHint')}</p>
       </div>
 
       <div>
-        <label htmlFor="run-context" className="mb-1 block text-sm font-medium">
+        <label
+          htmlFor="run-context"
+          className="text-ink-muted mb-1 block text-xs font-medium"
+        >
           {t('context')}
         </label>
         <textarea
@@ -206,45 +213,45 @@ export default function RunNewForm({personas}: RunNewFormProps) {
           onChange={(e) => setContext(e.target.value)}
           placeholder={t('contextPlaceholder')}
           maxLength={2000}
-          className={inputClass}
+          className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           disabled={busy}
         />
-        <p className="text-muted-foreground mt-1 text-xs">{t('contextHint')}</p>
+        <p className="text-ink-muted mt-1 text-xs">{t('contextHint')}</p>
       </div>
 
       <fieldset>
-        <legend className="mb-1 text-sm font-medium">{t('personas')}</legend>
-        <p className="text-muted-foreground mb-2 text-xs">
-          {t('personasHint')}
-        </p>
+        <legend className="text-ink-muted mb-1 text-xs font-medium">
+          {t('personas')}
+        </legend>
+        <p className="text-ink-muted mb-2 text-xs">{t('personasHint')}</p>
         {personas.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t('empty')}</p>
+          <p className="text-ink-muted text-sm">{t('empty')}</p>
         ) : (
           <ul className="space-y-1">
             {personas.map((persona) => (
               <li key={persona.id}>
                 <label
-                  className={`flex items-start gap-2 rounded-md px-2 py-2 text-sm ${
+                  className={`flex min-h-11 items-center gap-2 rounded-md px-2 py-2 text-sm ${
                     persona.hasSystemPrompt
-                      ? 'cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800'
+                      ? 'hover:bg-ink-tint cursor-pointer'
                       : 'opacity-60'
                   }`}
                 >
                   <input
                     type="checkbox"
-                    className="mt-1"
+                    className="focus-visible:outline-accent mt-1 focus-visible:outline-2 focus-visible:outline-offset-2"
                     checked={selectedIds.includes(persona.id)}
                     onChange={() => togglePersona(persona.id)}
                     disabled={!persona.hasSystemPrompt || busy}
                   />
                   <span className="min-w-0">
                     <span className="font-medium">{persona.name}</span>
-                    <span className="text-muted-foreground">
+                    <span className="text-ink-muted">
                       {' '}
                       {persona.age ? `· ${persona.age} ` : ''}· {persona.region}
                     </span>
                     {!persona.hasSystemPrompt && (
-                      <span className="text-muted-foreground block text-xs">
+                      <span className="text-ink-muted block text-xs">
                         {t('personaNoPrompt')}
                       </span>
                     )}
@@ -257,19 +264,14 @@ export default function RunNewForm({personas}: RunNewFormProps) {
       </fieldset>
 
       <div>
-        <button
-          type="button"
-          className="button text-sm"
-          onClick={handleSubmit}
-          disabled={busy}
-        >
+        <Button className="min-h-11" onClick={handleSubmit} disabled={busy}>
           {busy && <IconLoader2 className="animate-spin" size="1.2rem" />}
           {busy ? t('creating') : t('create')}
-        </button>
+        </Button>
       </div>
 
       <Dialog
-        className="bg-default m-auto w-[calc(100dvw-2rem)] max-w-sm"
+        className="border-hairline bg-paper-raised text-ink shadow-sheet mx-4 my-auto w-auto max-w-sm border"
         open={confirmOpen}
         onClose={closeConfirm}
         onMouseDown={(e) => e.stopPropagation()}
@@ -279,25 +281,24 @@ export default function RunNewForm({personas}: RunNewFormProps) {
             {t('detect')}
           </Dialog.Title>
         </Dialog.Header>
-        <Dialog.Content className="text-muted-foreground text-sm">
+        <Dialog.Content className="text-ink-muted text-sm">
           {t('detectOverwrite')}
         </Dialog.Content>
         <Dialog.Footer className="justify-end gap-2">
-          <button
-            type="button"
-            className="button-secondary text-sm"
+          <Button
+            variant="secondary"
+            className="min-h-11"
             onClick={closeConfirm}
           >
             {tChat('cancel')}
-          </button>
-          <button
-            type="button"
-            className="button text-sm"
+          </Button>
+          <Button
+            className="min-h-11"
             disabled={detecting || isPending}
             onClick={runDetect}
           >
             {t('detect')}
-          </button>
+          </Button>
         </Dialog.Footer>
       </Dialog>
     </section>

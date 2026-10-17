@@ -10,6 +10,8 @@ interface ButtonProps extends ComponentPropsWithRef<'button'> {
   size?: ButtonSize
   iconOnly?: boolean
   loading?: boolean
+  /** Disable the shared pressed translation for compact menu-row actions. */
+  pressMotion?: boolean
 }
 
 const VARIANTS: Record<ButtonVariant, string> = {
@@ -37,20 +39,23 @@ const ICON_ONLY_SIZES: Record<ButtonSize, string> = {
 const LOADER_SIZES: Record<ButtonSize, number> = {sm: 14, md: 16, lg: 18}
 
 const BASE_CLASSES =
-  'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent font-semibold transition-colors duration-100 active:translate-y-px focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed aria-busy:pointer-events-none aria-busy:opacity-75'
+  'relative inline-flex select-none items-center justify-center whitespace-nowrap rounded-md border border-transparent font-semibold transition-colors duration-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:pointer-events-none disabled:opacity-45 disabled:cursor-not-allowed aria-busy:pointer-events-none aria-busy:opacity-75'
 
 /** Assembles the full class list for a Button: base + variant + size (icon-aware). */
 export function buttonClass({
   variant = 'primary',
   size = 'md',
   iconOnly = false,
+  pressMotion = true,
 }: {
   variant?: ButtonVariant
   size?: ButtonSize
   iconOnly?: boolean
+  pressMotion?: boolean
 } = {}): string {
   return cn(
     BASE_CLASSES,
+    pressMotion && 'active:translate-y-px',
     VARIANTS[variant],
     iconOnly ? ICON_ONLY_SIZES[size] : SIZES[size],
   )
@@ -64,6 +69,7 @@ export default function Button({
   size = 'md',
   iconOnly = false,
   loading = false,
+  pressMotion = true,
   disabled,
   className,
   children,
@@ -75,7 +81,10 @@ export default function Button({
       type={type}
       disabled={disabled || loading}
       aria-busy={loading ? 'true' : undefined}
-      className={cn(buttonClass({variant, size, iconOnly}), className)}
+      className={cn(
+        buttonClass({variant, size, iconOnly, pressMotion}),
+        className,
+      )}
       {...props}
     >
       {loading ? (
@@ -90,7 +99,7 @@ export default function Button({
   )
 }
 
-type MenuItemButtonProps = Omit<ButtonProps, 'variant'> & {
+type MenuItemButtonProps = Omit<ButtonProps, 'variant' | 'pressMotion'> & {
   destructive?: boolean
 }
 
@@ -103,6 +112,7 @@ export function MenuItemButton({
   return (
     <Button
       variant={destructive ? 'danger' : 'ghost'}
+      pressMotion={false}
       className={cn(
         'w-full justify-start rounded-none border-transparent px-3 text-left',
         className,

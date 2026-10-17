@@ -14,7 +14,7 @@ import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
 import {setPersonaStatusAction} from '~/app/[locale]/ai/interview/actions'
 import type {PersonaStatus} from '~/db/schema/personas'
-import Button from '~/components/ui/button'
+import Button, {buttonClass} from '~/components/ui/button'
 import {Badge} from '~/components/ui/badge'
 import LinkButton from '~/components/ui/link-button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
@@ -99,7 +99,11 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
         <div className="flex items-center gap-2">
           <Badge status={persona.status}>{t(`status.${persona.status}`)}</Badge>
           <MenuCustom
-            className="border-hairline bg-paper-raised text-ink hover:bg-raised-hover rounded-full border"
+            className={buttonClass({
+              variant: 'ghost',
+              iconOnly: true,
+              size: 'sm',
+            })}
             itemsClassName="w-44"
             items={menuItems}
           >

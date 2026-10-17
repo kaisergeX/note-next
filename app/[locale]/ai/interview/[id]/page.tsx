@@ -14,6 +14,7 @@ import {getPersonaById} from '~/db/helper/personas'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {isShapedUuid} from '~/lib/ai/id-shape'
 import {requireAuth} from '~/server-utils'
+import {buttonClass} from '~/components/ui/button'
 
 const SLIDER_AXES = [
   {key: 'calm_anxious', start: 'sliderCalm', end: 'sliderAnxious'},
@@ -175,7 +176,11 @@ export default async function PersonaProfilePage({
           <IconEdit size="1.2rem" /> {t('roster.edit')}
         </LinkButton>
         <MenuCustom
-          className="border-hairline bg-paper-raised text-ink hover:bg-raised-hover rounded-full border"
+          className={buttonClass({
+            variant: 'secondary',
+            iconOnly: true,
+            size: 'sm',
+          })}
           itemsClassName="w-48"
           items={exportMenuItems}
         >
