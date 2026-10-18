@@ -1,18 +1,20 @@
 'use client'
 
 import {IconLoader2, IconMessages} from '@tabler/icons-react'
-import {useRouter} from 'next/navigation'
 import {useTranslations} from 'next-intl'
+import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
 import {startInterviewAction} from '~/app/[locale]/ai/interview/actions'
 import Button from '~/components/ui/button'
 
 type StartInterviewButtonProps = {
   personaId: string
+  fullWidth?: boolean
 }
 
 export default function StartInterviewButton({
   personaId,
+  fullWidth = false,
 }: StartInterviewButtonProps) {
   const t = useTranslations('ai.interview')
   const router = useRouter()
@@ -42,7 +44,11 @@ export default function StartInterviewButton({
         type="button"
         variant="primary"
         size="md"
-        className="min-h-11"
+        className={
+          fullWidth
+            ? 'w-full justify-start text-left whitespace-normal'
+            : undefined
+        }
         onClick={handleStart}
         disabled={isPending}
       >

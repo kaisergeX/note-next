@@ -42,6 +42,7 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 ## Special Notes
 
 - Uses `dotenv-cli` for environment variable management in scripts
+- **Visual QA authentication:** `auth.ts` registers a development-only Credentials provider for the existing `qa@test.dev` user. The provider checks the email and ignores the password; the user must already exist in the local database. The current `/[locale]/login` page only renders Google sign-in, so use a same-origin POST to `/api/auth/callback/credentials` with a CSRF token and `email=qa@test.dev` to sign in during browser review. AI interview routes also require a `feature_access` row for `persona-interview`, which the project owner grants manually. QA users and feature grants may not be present on every device/database. If either is missing, ask the owner to provision it, then continue the review after they confirm; do not treat the route as permanently blocked or try to grant access yourself.
 - Parallel notes view: Uses Next.js parallel routes `app/[locale]/(note)/` to serve both modal and full-size note views on the same route
 - Use path aliases `~/*` (defined in tsconfig)
 - Has a custom authentication configuration in `config/auth.ts`
