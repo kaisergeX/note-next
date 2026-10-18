@@ -107,17 +107,15 @@ This is the unit the browser-driven loop advances — one question-step per call
 
 ## Diversity guard (generation-time, not a stored field)
 
-When generating a new persona (single or bulk), pass a summary of the existing
-roster's names + key traits into the generation prompt to steer away from
-near-duplicates. Owner decision (2026-10-09): for **bulk** drafting, unkept
-`draft` candidates ARE included in the guard prompt — the summary reads
-`active` + `draft`, so queued-but-unkept candidates don't regenerate as
-near-dupes across pages; **single** persona generation keeps the active-only
-summary. Archived personas never count. Simple version: names already used + a
-short list of (region, occupation, top personality-slider combo) already
-represented. `background_tags` (including province, now that it lives there)
-should be included in this comparison too, since it's the field most likely to
-catch two personas that are only superficially different.
+The diversity guard is prompt guidance, not a deterministic duplicate check.
+The current roster summary sends existing names, region, occupation, the top
+two personality-slider signals, and `background_tags` (including province) to
+the generation prompt. For **bulk** drafting, unkept `draft` candidates are
+included alongside `active` personas so candidates generated on earlier loop
+steps guide later ones. **Single** persona generation uses active personas
+only. Archived personas never count. This is the current operational
+definition of a near-duplicate; changing the compared signals means changing
+the roster summary and its prompt together.
 
 ## Export shape
 
@@ -165,16 +163,14 @@ session export accepts both single and group transcripts (read-only
 backup/share semantics) even though the UI only exposes it on single
 sessions.
 
-## Open questions (carried from PRD.md, now partly resolved)
+## Resolved schema decisions
 
-- ~~Region granularity~~ — resolved: region stays coarse (dialect signal),
+- Region stays coarse (dialect signal),
   province lives in `background_tags`.
-- ~~Interview stance: enum or text?~~ — resolved: free text with presets.
-- ~~Exact slider set for personality~~ — resolved:
+- Interview stance is free text with presets.
+- The personality slider set is:
   `calm_anxious` / `optimistic_cynical` / `frugal_spendthrift`; interview
   behavior belongs to `interview_stance`.
-- What counts as a "near-duplicate" persona for the diversity guard — name
-  only, or name + trait-combo similarity (now including background_tags).
 
 ## As-built notes (Phase 0)
 
