@@ -62,15 +62,15 @@ Vercel Hobby functions cap at 300s wall-clock with Fluid compute (300s is both t
 - **The open browser tab owns the loop.** It repeatedly calls a `runNextStep(runId)` server action; each call executes exactly one question-step for one persona (well under the route's 60s maxDuration), appends the turn to the transcript, and updates `run_items`. The client loop continues until every item is done.
 - **State lives in the DB, not the tab.** Closing the tab mid-run = the run stalls (`in_progress` with stale `updated_at`; UI shows "stalled — resume"). Resume continues from the last saved turn; unique `(run_id, persona_id)` prevents duplicate transcripts on retry.
 - **Failure policy: skip-and-continue.** A failed step marks its `run_items` row `failed` with the error text; the loop moves to the next persona. A run ending with failed items is flagged partial — the researcher re-runs just the failed personas.
-- **Bulk persona drafting uses the same pattern** — the client requests candidates in small pages (~5 per call) instead of one 50-bio invocation.
+- **Bulk persona drafting uses the same browser-owned pattern** — the client requests one candidate per call, progressively, instead of one long batch invocation. Each call includes the latest active + draft roster summary so earlier candidates guide later ones.
 - **Alternative deliberately not taken for v1:** a small worker process on the PC driving the loop (browser-independent, free of the 300s Hobby function limit). Schema and step granularity are identical either way, so switching later is additive, not a redesign. Deferred because it adds a long-running process to keep alive for v1's two users.
 
 ## Constraints to design around
 
 - **Single-GPU concurrency:** LM Studio serves ~1 request at a time. Batch runs are inherently sequential — surface a real progress indicator (N of 50 done), don't let the UI look stuck.
-- **PC uptime = app uptime:** the backend lives on a home PC. Explicitly deferred, not solved: v0 scope is just the owner + one researcher, and that's accepted as-is for now. v1 must address this properly (health-check ping, a visible "assistant offline" state instead of raw failed requests) — keep the UI hook in place so it's a small addition later, not a redesign, but don't build the actual health-check logic yet.
+- **PC uptime = app uptime:** the backend lives on a home PC. This remains an accepted limitation for the owner and one researcher. The interview UI surfaces backend failures as an offline state; an active health-check is not implemented.
 - **GGUF model swaps:** keep the model name/endpoint in one config value — you'll likely A/B stock `-it` vs StyleTune vs a roleplay finetune, want that to be a one-line change, not a code change.
-- **Rate-limit AI routes:** reuse the existing `@upstash/ratelimit` setup (`config/system.ts`) on AI API routes even though `feature_access` gates entry — the Funnel endpoint is public and server actions are cheap to spam.
+- **Rate-limit AI routes and expensive server actions:** feature access alone does not protect the public Funnel endpoint from repeated calls. This protection is still pending; see BUILD-PLAN.md.
 
 ## Model notes (decided)
 

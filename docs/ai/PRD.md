@@ -4,7 +4,7 @@
 
 A feature that lets a non-technical researcher create AI-driven Vietnamese personas (distinct name, background, personality, region/dialect) and interview them — either one at a time in a live chat, or as a batch of ~50 running the same question set — to produce realistic, diverse simulated interview transcripts.
 
-> **Update note:** built as a new feature inside the owner's existing, already-deployed Next.js note-taking app, not a standalone new app/repo. That host app already solves auth (NextAuth Google SSO), storage (Drizzle + Postgres), and VI/EN localization (next-intl) — this feature reuses all three rather than re-deciding them. See ARCHITECTURE.md's "Integration & isolation" section for what's reused vs. kept isolated. This is a delivery-mechanism change, not a scope change — all Core Features below are unchanged.
+This feature lives inside the owner's existing Next.js app and reuses its authentication (NextAuth Google SSO), storage (Drizzle + Postgres), and VI/EN localization (next-intl). See ARCHITECTURE.md's "Integration & isolation" section for the integration boundaries.
 
 Backend inference runs on the owner's local PC (LM Studio, Gemma 4 26B-A4B or a roleplay finetune) exposed publicly via Tailscale Funnel. Frontend is the host app's existing Next.js deployment on Vercel.
 
@@ -41,8 +41,8 @@ Backend inference runs on the owner's local PC (LM Studio, Gemma 4 26B-A4B or a 
 ### 2. Persona creation — Bulk
 
 - User describes a target mix in plain language or simple distribution controls ("mostly Hanoi, mix of ages, skew lower-income").
-- AI proposes a batch of candidate personas at once.
-- Fast swipe-review UI per candidate: keep / edit / reroll — not a form re-fill.
+- AI generates the requested candidates progressively, one persona per call, using the target mix description.
+- Traditional card-based review for each candidate: keep / edit / reroll / discard — no swipe UI.
 - Diversity guard: existing roster's names/key traits are passed into generation prompts to avoid near-duplicate personas (same archetype, same name pool).
 
 ### 3. Interview — Single (interactive chat)
@@ -66,8 +66,7 @@ Backend inference runs on the owner's local PC (LM Studio, Gemma 4 26B-A4B or a 
 
 ### 5. Export
 
-- Per-persona and per-run export (Markdown and/or CSV): persona traits + full Q&A transcript.
-- This is likely the actual deliverable your friend cares about — build early, not as an afterthought, so gaps in the persona schema surface quickly.
+- Per-persona, per-run, and per-session exports include report Markdown and versioned JSON backups; flat CSV is available for personas and runs, with wide comparison CSV for runs. See PERSONA-SCHEMA.md for the format contract.
 
 ### 6. Auth
 
@@ -78,7 +77,10 @@ Backend inference runs on the owner's local PC (LM Studio, Gemma 4 26B-A4B or a 
 
 - UI in Vietnamese and English (toggle). v1 persona chat is **Vietnamese-only**; a per-run interview-language setting (with EN chat) is deferred — adding it later is one schema column, not a redesign.
 
-## Open questions (to resolve during build)
+## Resolved build decision
 
-- ~~Exact slider set for personality~~ — resolved: `calm_anxious` / `optimistic_cynical` / `frugal_spendthrift`. Interview-behavior axes (talkative, guarded, suspicious) belong to `interview_stance`, not sliders — see PERSONA-SCHEMA.md.
-- What counts as a "near-duplicate" persona for the diversity guard — name only, or name + trait-combo similarity?
+The personality sliders are `calm_anxious` / `optimistic_cynical` /
+`frugal_spendthrift`. Interview-behavior axes (talkative, guarded,
+suspicious) belong to `interview_stance`, not sliders. The current diversity-
+guard summary and its near-duplicate signals are documented in
+PERSONA-SCHEMA.md, the single source for that implementation detail.
