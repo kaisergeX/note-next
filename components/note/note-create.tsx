@@ -33,6 +33,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
       <Button
         variant="secondary"
         className="group btn-light-sweep w-auto gap-0 p-2 transition-all duration-300 max-sm:fixed max-sm:right-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-10 max-sm:h-fit! max-sm:rounded-full sm:hover:gap-2"
+        aria-label={creationBtnMsg}
         onClick={() => startTransition(() => setOpenModal(true))}
       >
         <IconPencilPlus className="sm:group-hover:hidden" />

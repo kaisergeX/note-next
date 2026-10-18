@@ -1,6 +1,7 @@
 import {cn} from 'cn'
 import {IconPalette, IconPaletteOff} from '@tabler/icons-react'
 import {Fragment} from 'react'
+import {useTranslations} from 'next-intl'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
 import PopoverBase from '~/components/ui/popover'
 import Button, {buttonClass} from '~/components/ui/button'
@@ -9,6 +10,7 @@ import {usePersistStore} from '~/store'
 export const NoteThemePicker = ({
   disabled = false,
 }: {disabled?: boolean} = {}) => {
+  const tAccessibility = useTranslations('note.accessibility')
   const {theme, setMutateNoteData} = usePersistStore((s) => ({
     theme: s.mutateNoteData?.theme,
     setMutateNoteData: s.setMutateNoteData,
@@ -36,13 +38,14 @@ export const NoteThemePicker = ({
       component: (
         <button
           className={cn(
-            'block h-8 w-8 rounded-full transition-shadow',
+            'block size-10 rounded-full transition-shadow',
             `picker-${themeName}`,
             theme && theme === themeName
               ? 'ring-2 ring-offset-2'
               : 'ring-offset-1 hover:ring-2',
           )}
           title={themeName}
+          aria-label={tAccessibility('selectTheme', {theme: themeName})}
           type="button"
           onClick={() => setMutateNoteData({theme: themeName})}
           disabled={theme === themeName}
@@ -56,6 +59,7 @@ export const NoteThemePicker = ({
   return (
     <PopoverBase
       trigger={<IconPalette size="18" />}
+      triggerAriaLabel={tAccessibility('chooseTheme')}
       triggerClassName={cn(
         buttonClass({variant: 'secondary', size: 'sm', iconOnly: true}),
         theme ? `border-theme-${theme}` : '',

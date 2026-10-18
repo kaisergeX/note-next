@@ -49,6 +49,16 @@
   position-try: most-block-size flip-block;
 }
 
+@utility touch-target-expand {
+  @media (any-pointer: coarse) {
+    &::after {
+      position: absolute;
+      inset: -0.25rem;
+      content: '';
+    }
+  }
+}
+
 @utility animate-ease-* {
   animation-timing-function: --value([*]);
 }
@@ -259,7 +269,7 @@
       related to this issue https://github.com/vercel/next.js/issues/44295 
       and PR https://github.com/vercel/next.js/pull/46995
     */
-    @apply scroll-pt-16 [scrollbar-gutter:stable] scroll-smooth;
+    @apply scroll-pt-16 scrollbar-gutter-stable scroll-smooth;
   }
 
   body {

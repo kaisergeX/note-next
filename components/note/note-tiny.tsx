@@ -6,6 +6,7 @@ import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
+import {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
@@ -88,12 +89,17 @@ export default function NoteTiny({data}: NoteProps) {
           'hidden group-has-[.note-tiny-menu:popover-open]:flex focus-within:flex hover:flex sm:group-focus-within:flex sm:group-hover:flex',
         )}
       >
-        <button className="p-2" type="button">
+        <span className="p-2" aria-hidden="true">
           <IconPalette size="1rem" />
-        </button>
+        </span>
 
         <MenuCustom
-          className="p-2"
+          ariaLabel={t('accessibility.moreActions')}
+          className={buttonClass({
+            variant: 'ghost',
+            size: 'sm',
+            iconOnly: true,
+          })}
           anchor="top-end"
           itemsClassName={cn(
             'note-tiny-menu',

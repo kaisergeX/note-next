@@ -163,6 +163,7 @@ export default function NoteCustomize({
 
         {!pendingTransition && menuItems.every(({hidden}) => !hidden) && (
           <MenuCustom
+            ariaLabel={t('accessibility.moreActions')}
             className={buttonClass({
               variant: 'ghost',
               size: 'sm',

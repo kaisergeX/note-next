@@ -4,7 +4,10 @@
     "slogan": "Ứng dụng ghi chú thông minh dành cho mọi người.",
     "navigation": {
       "home": "Trang chủ",
-      "back": "Quay lại"
+      "back": "Quay lại",
+      "switchTheme": "Chuyển chủ đề màu sắc",
+      "openMainMenu": "Mở menu chính",
+      "closeMainMenu": "Đóng menu chính"
     },
     "error": {
       "sthWrong": "Có gì đó sai sai!"
@@ -293,6 +296,11 @@
   },
   "note": {
     "title": "Ghi chú",
+    "accessibility": {
+      "chooseTheme": "Chọn giao diện ghi chú",
+      "selectTheme": "Đặt giao diện ghi chú thành {theme}",
+      "moreActions": "Thao tác khác với ghi chú"
+    },
     "about": {
       "title": "Thông tin ứng dụng etoN"
     },

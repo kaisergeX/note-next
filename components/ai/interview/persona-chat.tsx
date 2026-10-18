@@ -200,7 +200,7 @@ export default function PersonaChat({
             variant="secondary"
             size="md"
             iconOnly
-            className="absolute right-4 bottom-full mb-2 min-h-11 min-w-11"
+            className="absolute right-4 bottom-full mb-2"
             aria-label={t('scrollToBottom')}
             onClick={handleJumpToBottom}
           >

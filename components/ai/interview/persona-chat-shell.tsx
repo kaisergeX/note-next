@@ -206,7 +206,7 @@ export default function PersonaChatShell({
             variant="secondary"
             size="md"
             iconOnly
-            className="min-h-11 min-w-11 md:hidden"
+            className="md:hidden"
             aria-label={t('sidebarToggle')}
             aria-expanded={sidebarOpen}
             onClick={openSidebar}

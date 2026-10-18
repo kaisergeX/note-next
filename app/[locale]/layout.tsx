@@ -54,6 +54,7 @@ export default async function LocaleLayout({
 }: LayoutProps<'/[locale]'>) {
   const locale = await getLocale()
   const t = await getTranslations()
+  const tNavigation = await getTranslations('common.navigation')
 
   return (
     <ThemeWrapper
@@ -75,6 +76,11 @@ export default async function LocaleLayout({
             <AppHeader
               appName={t('common.app')}
               signOutLabel={t('auth.signOut')}
+              navigationLabels={{
+                switchTheme: tNavigation('switchTheme'),
+                openMainMenu: tNavigation('openMainMenu'),
+                closeMainMenu: tNavigation('closeMainMenu'),
+              }}
             />
           </Suspense>
           {children}
