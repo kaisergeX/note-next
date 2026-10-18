@@ -4,7 +4,10 @@
     "slogan": "A minimalistic note-taking app for everyone.",
     "navigation": {
       "home": "Homepage",
-      "back": "Go back"
+      "back": "Go back",
+      "switchTheme": "Switch color theme",
+      "openMainMenu": "Open main menu",
+      "closeMainMenu": "Close main menu"
     },
     "error": {
       "sthWrong": "Something went wrong!"
@@ -293,6 +296,11 @@
   },
   "note": {
     "title": "Notes",
+    "accessibility": {
+      "chooseTheme": "Choose note theme",
+      "selectTheme": "Set note theme to {theme}",
+      "moreActions": "More note actions"
+    },
     "about": {
       "title": "About etoN"
     },

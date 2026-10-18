@@ -11,7 +11,9 @@ export default function ScrollTopButton({
 }: PropsWithChildren<
   Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'onClick'>
 >) {
-  const [scroll, scrollTo] = useWindowScroll()
+  const [scroll, scrollTo, viewInfo] = useWindowScroll()
+  const canScroll =
+    typeof window !== 'undefined' && viewInfo.maxViewY > window.innerHeight
 
   return (
     <Button
@@ -22,7 +24,7 @@ export default function ScrollTopButton({
       aria-label="Scroll to top"
       className={cn(
         'shadow-sheet fixed right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] transition-all max-sm:hidden',
-        scroll.y > 200 ? 'visible' : 'invisible translate-y-16',
+        canScroll && scroll.y > 200 ? 'visible' : 'invisible translate-y-16',
       )}
       onClick={() => scrollTo({y: 0})}
       {...props}

@@ -41,16 +41,16 @@ export default async function InterviewPage() {
 
   return (
     <section className="p-4">
-      <div className="flex-center-between mb-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-2xl font-bold">{t('roster.title')}</h1>
-        <div className="flex items-center gap-2">
-          <LinkButton href="/ai/interview/bulk" size="sm">
+        <div className="flex flex-wrap items-center gap-2">
+          <LinkButton href="/ai/interview/bulk">
             <IconSparkles /> {t('bulk.title')}
           </LinkButton>
-          <LinkButton href="/ai/interview/runs" size="sm">
+          <LinkButton href="/ai/interview/runs">
             <IconUsersGroup /> {t('run.title')}
           </LinkButton>
-          <LinkButton href="/ai/interview/new" variant="primary" size="sm">
+          <LinkButton href="/ai/interview/new" variant="primary">
             <IconMan /> {t('roster.newPersona')}
           </LinkButton>
         </div>
@@ -60,7 +60,7 @@ export default async function InterviewPage() {
         <div className="flex-center mt-24 flex-col gap-2">
           <h3 className="opacity-80">{t('roster.empty')}</h3>
           <p className="text-ink-muted text-sm">{t('roster.emptyHint')}</p>
-          <LinkButton href="/ai/interview/new" className="mt-2" size="sm">
+          <LinkButton href="/ai/interview/new" className="mt-2">
             {t('roster.newPersona')}
           </LinkButton>
         </div>

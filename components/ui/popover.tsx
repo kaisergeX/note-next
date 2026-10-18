@@ -49,6 +49,8 @@ export type PopoverBaseProps = {
   anchor?: PopoverAnchor
   /** Content of the trigger button. */
   trigger: ReactNode
+  /** Accessible name for icon-only triggers. */
+  triggerAriaLabel?: string
   triggerClassName?: string
   /** Extra classes on the popover div — visuals live here, in the callers. */
   className?: string
@@ -90,6 +92,7 @@ const subscribeNoop = () => () => {}
 export default function PopoverBase({
   anchor = 'bottom-end',
   trigger,
+  triggerAriaLabel,
   triggerClassName,
   className,
   disabled,
@@ -212,6 +215,7 @@ export default function PopoverBase({
         {...{commandfor: id, command: 'toggle-popover'}}
         popoverTarget={id}
         popoverTargetAction="toggle"
+        aria-label={triggerAriaLabel}
         aria-expanded={open}
         aria-controls={id}
         className={triggerClassName}

@@ -31,7 +31,7 @@ const SIZES: Record<ButtonSize, string> = {
 }
 
 const ICON_ONLY_SIZES: Record<ButtonSize, string> = {
-  sm: 'h-8 w-8 p-0 rounded-full',
+  sm: 'h-8 w-8 p-0 rounded-full touch-target-expand', // increase touch area a bit for touch device while keep the button visually small size.
   md: 'h-10 w-10 p-0 rounded-full',
   lg: 'h-12 w-12 p-0 rounded-full',
 }

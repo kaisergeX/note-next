@@ -33,6 +33,8 @@ export type MenuCustomItem = {
 type MenuCustomProps = PropsWithChildren<{
   /** Trigger button content and classes. */
   className?: string
+  /** Accessible name when the trigger has no visible or screen-reader text. */
+  ariaLabel?: string
   itemsClassName?: string
   items?: MenuCustomItem[]
   disabled?: boolean
@@ -45,6 +47,7 @@ const BASE_CLASSES =
 
 export default function MenuCustom({
   className,
+  ariaLabel,
   itemsClassName = '',
   items = [],
   disabled,
@@ -55,6 +58,7 @@ export default function MenuCustom({
     <PopoverBase
       anchor={anchor}
       trigger={children}
+      triggerAriaLabel={ariaLabel}
       triggerClassName={className}
       disabled={disabled}
       className={cn(BASE_CLASSES, itemsClassName)}
