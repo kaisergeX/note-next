@@ -323,7 +323,7 @@ Do:
 - Use accent for attention (links, focus, selection, active), ink for action (primary buttons).
 - Keep elevation rare: flat cards, lifted sheets.
 - Cap prose at ~70ch.
-- Use the wired token utilities (`bg-paper`, `text-ink`, `border-hairline`, `shadow-sheet`, `font-serif`) and the primitives in `components/ui/`; for old class names consult the mapping in `docs/design-audit.md`.
+- Use the wired token utilities (`bg-paper`, `text-ink`, `border-hairline`, `shadow-sheet`, `font-serif`) and the primitives in `components/ui/`.
 
 Don't:
 

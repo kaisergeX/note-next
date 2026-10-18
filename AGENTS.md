@@ -38,7 +38,6 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 - Tokens are CSS vars in `app/globals.css` (`:root` + `.dark`) mapped via `@theme inline`. Use semantic utilities: `bg-paper`, `bg-paper-raised`, `text-ink`, `text-ink-muted`, `border-hairline`, `text-accent`, `bg-destructive`, `text-success`, `shadow-sheet`, `font-serif`, `bg-dotgrid`. Dark mode is automatic (vars flip) — no `dark:` pair needed for token colors.
 - Primitives live in `components/ui/` (`button.tsx`, `input.tsx`, `badge.tsx`) — use them for new UI instead of raw classes.
 - **Tailwind 4 syntax only.** Never generate v3-era syntax: no `tailwind.config.*` files, no `content`/`safelist` arrays, no `darkMode:` key, no JS theme extensions. Use `@theme`, `@utility`, `@custom-variant`, `@plugin`, `@source inline` in CSS. Custom plugins load via `config/tailwindTypographyPlugin.mjs` + `config/tailwindNoteThemePlugin.mjs`.
-- Legacy classes (`bg-default`, `button*`, `card`, `glass`, `text-danger`, `bg-theme`, `bg-reverse`, `shadow-theme`) exist only until route migration finishes — never use them in new code. Old→new mapping: docs/design-audit.md.
 
 ## Special Notes
 
