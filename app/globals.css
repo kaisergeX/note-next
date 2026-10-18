@@ -86,6 +86,51 @@
   animation: typing-bounce 1.2s ease-in-out infinite;
 }
 
+@utility animate-composer-thinking {
+  @media (prefers-reduced-motion: no-preference) {
+    &:focus-within .composer-orbit-streak {
+      filter: drop-shadow(
+        0 0 3px color-mix(in oklab, var(--accent) 80%, transparent)
+      );
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    border-color: var(--accent) !important;
+  }
+}
+
+@utility composer-orbit-clip {
+  position: absolute;
+  inset: -1px;
+  z-index: 1;
+  overflow: hidden;
+  border-radius: calc(var(--radius-4xl) + 1px);
+  pointer-events: none;
+}
+
+@utility composer-orbit-streak {
+  @media (prefers-reduced-motion: no-preference) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: clamp(96px, 18vw, 144px);
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklab, var(--accent) 35%, transparent) 58%,
+      var(--accent) 82%,
+      var(--paper-raised)
+    );
+    offset-path: inset(1px round calc(var(--radius-4xl) - 1px));
+    offset-anchor: center;
+    offset-rotate: auto;
+    animation: composer-orbit 2.6s linear infinite;
+  }
+}
+
 @utility prose {
   font-family: var(--font-serif);
   font-weight: 400;
@@ -380,5 +425,11 @@
   30% {
     transform: translateY(-3px);
     opacity: 1;
+  }
+}
+
+@keyframes composer-orbit {
+  to {
+    offset-distance: 100%;
   }
 }

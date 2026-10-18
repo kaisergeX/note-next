@@ -3,6 +3,7 @@
 import {IconPlayerStop, IconSend} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {useEffect, useRef} from 'react'
+import {cn} from 'cn'
 import Button from '~/components/ui/button'
 
 type ChatInputProps = {
@@ -44,13 +45,23 @@ export default function ChatInput({
 
   return (
     <form
-      className="bg-paper border-hairline container mx-auto flex items-end gap-2 border-t pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]"
+      className="bg-paper border-hairline container mx-auto flex flex-col gap-2 border-t pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pt-4 sm:pb-[calc(1rem+env(safe-area-inset-bottom))]"
       onSubmit={(e) => {
         e.preventDefault()
         submit()
       }}
     >
-      <div className="bg-paper-raised border-hairline focus-within:border-accent focus-within:ring-accent/25 relative min-w-0 flex-1 rounded-md border py-2 transition-colors focus-within:ring-2">
+      <div
+        className={cn(
+          'bg-paper-raised border-hairline focus-within:border-accent focus-within:ring-accent/25 focus-within:shadow-sheet relative flex min-w-0 items-end gap-2 rounded-4xl border p-2 transition-[border-color,box-shadow] focus-within:ring-2',
+          isBusy && 'animate-composer-thinking',
+        )}
+      >
+        {isBusy && (
+          <span aria-hidden="true" className="composer-orbit-clip">
+            <span className="composer-orbit-streak" />
+          </span>
+        )}
         <textarea
           ref={textareaRef}
           value={value}
@@ -63,35 +74,39 @@ export default function ChatInput({
             submit()
           }}
           placeholder={t('inputPlaceholder')}
-          className="text-ink placeholder:text-ink-muted field-sizing-content h-auto max-h-80 min-h-11 w-full min-w-0 resize-none overflow-y-auto bg-transparent px-3 text-sm transition-[height] outline-none [interpolate-size:allow-keywords]"
+          aria-label={t('inputPlaceholder')}
+          className="text-ink placeholder:text-ink-muted field-sizing-content h-auto max-h-80 min-h-10 min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-2 py-2 text-sm transition-[height] outline-none [interpolate-size:allow-keywords]"
         />
+        {isBusy ? (
+          <Button
+            type="button"
+            variant="secondary"
+            iconOnly
+            aria-label={t('stop')}
+            onClick={onStop}
+          >
+            <IconPlayerStop size="18" />
+          </Button>
+        ) : (
+          <Button
+            type="submit"
+            variant="primary"
+            iconOnly
+            aria-label={t('send')}
+            disabled={!value.trim()}
+          >
+            <IconSend size="18" />
+          </Button>
+        )}
       </div>
-      {value.length > maxLengthHint - 1000 && (
-        <span className="text-ink-muted self-center text-xs tabular-nums">
-          {value.length}/{maxLengthHint}
-        </span>
-      )}
-      {isBusy ? (
-        <Button
-          type="button"
-          variant="secondary"
-          size="md"
-          className="min-h-11"
-          onClick={onStop}
-        >
-          <IconPlayerStop size="18" /> {t('stop')}
-        </Button>
-      ) : (
-        <Button
-          type="submit"
-          variant="primary"
-          size="md"
-          className="min-h-11"
-          disabled={!value.trim()}
-        >
-          <IconSend size="18" /> {t('send')}
-        </Button>
-      )}
+      <div className="text-ink-muted flex min-h-5 items-center justify-between gap-3 px-1 text-xs">
+        <span>{t('keyboardHint')}</span>
+        {value.length > maxLengthHint - 1000 && (
+          <span className="shrink-0 tabular-nums">
+            {value.length}/{maxLengthHint}
+          </span>
+        )}
+      </div>
     </form>
   )
 }

@@ -123,7 +123,7 @@ export default function PersonaChatShell({
           <IconInfoCircle size="18" />
         </Link>
 
-        <StartInterviewButton personaId={personaId} />
+        <StartInterviewButton personaId={personaId} fullWidth />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
@@ -194,6 +194,7 @@ export default function PersonaChatShell({
 
   return (
     <div className="flex min-h-0 w-full grow gap-4">
+      <h1 className="sr-only">{personaName}</h1>
       <aside className="border-hairline hidden max-w-md min-w-0 shrink-0 flex-col border-r sm:basis-1/4 md:flex">
         {renderSidebarContent()}
       </aside>

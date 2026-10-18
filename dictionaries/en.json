@@ -176,6 +176,7 @@
         "openChat": "Chat",
         "emptyState": "Ask your questions in Vietnamese — this persona replies in Vietnamese.",
         "inputPlaceholder": "Type a question in Vietnamese…",
+        "keyboardHint": "Enter to send · Shift+Enter for a new line",
         "send": "Send",
         "stop": "Stop",
         "offline": "Could not reach the AI assistant. Please try again later.",

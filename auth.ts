@@ -97,12 +97,12 @@ const authOptions: NextAuthConfig = {
 
       return session
     },
-    signIn: async ({account, profile}) => {
+    signIn: async ({account, profile, user}) => {
       // DEV-ONLY visual-QA bypass
       if (
         process.env.NODE_ENV === 'development' &&
         account?.provider === 'credentials' &&
-        profile?.email === VISUAL_QA_EMAIL
+        user.email === VISUAL_QA_EMAIL
       ) {
         return true
       }
