@@ -4,6 +4,7 @@ import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
 import {
   IconActivity,
+  IconCheck,
   IconLogout,
   IconMenu2,
   IconMoonStars,
@@ -12,7 +13,6 @@ import {
   IconUserCircle,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
-import type {Route} from 'next'
 import {useSession} from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -46,13 +46,11 @@ export default function AppHeader({
   const pathName = usePathname()
   const localeMatch = pathName.match(/^\/(en|vi)(?=\/|$)/)
   const locale = localeMatch?.[1] ?? 'en'
-  const nextLocale = locale === 'vi' ? 'en' : 'vi'
   const localizedPath = localeMatch
     ? pathName.slice(localeMatch[0].length)
     : pathName === '/'
       ? ''
       : pathName
-  const languageHref = `/${nextLocale}${localizedPath}`
   const isLandingPage = localizedPath === '' || localizedPath === '/'
   const isAuthenticated = status === 'authenticated' && !sessionData?.error
   const userRole = sessionData?.user.role
@@ -107,11 +105,11 @@ export default function AppHeader({
     defaultDirection: 'up',
   })
 
-  const homepagePath = (
+  const homepagePath = `/${locale}/${
     protectedPathnameRegex.test(pathName)
-      ? `/?utm_source=${pathName}&p_r=true`
-      : '/'
-  ) as Route
+      ? `?utm_source=${pathName}&p_r=true`
+      : ''
+  }`
 
   const desktopMenuItems: MenuCustomItem[] = [
     {
@@ -181,13 +179,44 @@ export default function AppHeader({
       </Link>
 
       <div className="flex items-center gap-3">
-        <Link
-          href={languageHref}
-          lang={nextLocale}
-          className="text-ink-muted hover:text-ink focus-visible:outline-accent inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+        <MenuCustom
+          ariaLabel={navigationLabels.languageSwitch}
+          className={cn(
+            buttonClass({variant: 'ghost', size: 'sm'}),
+            'h-11 min-h-11 px-2 sm:h-10 sm:min-h-10',
+          )}
+          itemsClassName="w-48 p-1"
+          items={[
+            {
+              type: 'link',
+              url: `/en${localizedPath}`,
+              lang: 'en',
+              ariaCurrent: locale === 'en' ? 'page' : undefined,
+              className: locale === 'en' ? 'font-semibold' : '',
+              label: (
+                <>
+                  <span className="flex-1">English</span>
+                  {locale === 'en' && <IconCheck size={16} aria-hidden />}
+                </>
+              ),
+            },
+            {
+              type: 'link',
+              url: `/vi${localizedPath}`,
+              lang: 'vi',
+              ariaCurrent: locale === 'vi' ? 'page' : undefined,
+              className: locale === 'vi' ? 'font-semibold' : '',
+              label: (
+                <>
+                  <span className="flex-1">Tiếng Việt</span>
+                  {locale === 'vi' && <IconCheck size={16} aria-hidden />}
+                </>
+              ),
+            },
+          ]}
         >
-          {navigationLabels.languageSwitch}
-        </Link>
+          <span>{locale.toUpperCase()}</span>
+        </MenuCustom>
 
         {!isAuthenticated && isLandingPage && (
           <Link

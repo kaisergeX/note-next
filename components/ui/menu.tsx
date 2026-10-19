@@ -20,7 +20,14 @@ export type MenuCustomItem = {
   disabled?: boolean
   hidden?: boolean
 } & (
-  | {type: 'link'; className?: string; url: string; label: ReactNode}
+  | {
+      type: 'link'
+      className?: string
+      url: string
+      label: ReactNode
+      lang?: string
+      ariaCurrent?: 'page'
+    }
   | {
       type: 'action'
       label: ReactNode
@@ -70,6 +77,8 @@ export default function MenuCustom({
           <Link
             key={index}
             href={item.url}
+            lang={item.lang}
+            aria-current={item.ariaCurrent}
             aria-disabled={item.disabled ? 'true' : undefined}
             data-disabled={item.disabled ? '' : undefined}
             className={cn(
