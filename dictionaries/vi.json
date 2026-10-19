@@ -6,6 +6,7 @@
       "home": "Trang chủ",
       "back": "Quay lại",
       "switchTheme": "Chuyển chủ đề màu sắc",
+      "languageSwitch": "English",
       "openMainMenu": "Mở menu chính",
       "closeMainMenu": "Đóng menu chính"
     },
@@ -328,5 +329,57 @@
       "inspiration": "Cảm hứng mới"
     },
     "delete": "Xóa ghi chú"
+  },
+  "landing": {
+    "navigation": {
+      "login": "Đăng nhập"
+    },
+    "hero": {
+      "lineOne": "Ghi lại suy nghĩ.",
+      "lineTwo": "Mở ra góc nhìn mới.",
+      "description": "Viết trong sổ tay cá nhân, hoặc khám phá một câu hỏi qua các cuộc phỏng vấn AI Persona bằng tiếng Việt.",
+      "createAccount": "Tạo tài khoản",
+      "exploreFeatures": "Khám phá tính năng",
+      "openNotes": "Mở ghi chú"
+    },
+    "interview": {
+      "eyebrow": "Phỏng vấn AI Persona",
+      "title": "Bắt đầu bằng một câu hỏi.",
+      "description": "Tạo persona, đặt câu hỏi và xem lại các cuộc trò chuyện. Hiện đã hỗ trợ trò chuyện bằng tiếng Việt; tiếng Anh sẽ được bổ sung sau.",
+      "action": "Khám phá phỏng vấn",
+      "preview": {
+        "label": "Phỏng vấn persona",
+        "status": "Tiếng Việt · hiện có",
+        "name": "Lan, 34 tuổi · Đà Nẵng",
+        "role": "Chủ cửa hàng · Thân thiện, thận trọng",
+        "prompt": "Khi chọn nơi để mua sắm, điều gì quan trọng nhất với chị?",
+        "reply": "Chắc là cảm giác quen thuộc. Mình biết người bán, cần gì thì hỏi được liền."
+      }
+    },
+    "notes": {
+      "eyebrow": "Ghi chú",
+      "title": "Dành chỗ cho những ý tưởng của riêng bạn.",
+      "description": "Ghi lại điều đang nghĩ và quay lại khi bạn sẵn sàng.",
+      "action": "Khám phá ghi chú",
+      "preview": {
+        "title": "Ghi chú của tôi",
+        "createNote": "Ghi chú mới",
+        "themes": "Chọn màu riêng cho từng ghi chú",
+        "noteOneTitle": "<p>Một ngày thứ Bảy đáng nhớ</p>",
+        "noteOneContent": "<p>Khu chợ buổi sáng vẫn còn yên ắng khi mình đến. <mark>Món hay nhất nằm khuất ở dãy cuối.</mark></p><h3>Lần tới nhớ mang</h3><ul><li>Túi vải</li><li>Hỏi Mai về vườn rau thơm</li></ul><blockquote>Nên đi sớm, trước khi phố xá trở nên ồn ào.</blockquote>",
+        "noteTwoTitle": "<p>Một đoạn mã nhỏ</p>",
+        "noteTwoCaption": "Một bước nhỏ để làm sau.",
+        "noteThreeTitle": "<p>Những thói quen nhỏ</p>",
+        "noteThreeContent": "<p><strong>Buổi sáng:</strong> uống cà phê bên cửa sổ</p><p><em>Buổi tối:</em> để dành một ý nghĩ hay cho ngày mai.</p>",
+        "noteTwoIntro": "Hôm nay, mình sẽ bắt đầu bằng:"
+      }
+    },
+    "upcoming": {
+      "title": "Sắp ra mắt",
+      "description": "Sắp có thêm nhiều cách để bạn khám phá ý tưởng.",
+      "companionTitle": "Trò chuyện cùng bạn đồng hành AI",
+      "companionDescription": "Tạo và tùy chỉnh nhân vật theo vai trò để trò chuyện lâu dài với khả năng ghi nhớ tự nhiên như con người.",
+      "status": "Dự kiến"
+    }
   }
 }

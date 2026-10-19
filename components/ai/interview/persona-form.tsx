@@ -605,7 +605,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
           </div>
         </details>
       </form>
-      <div className="flex-center-between bg-paper-raised sticky inset-x-0 bottom-0 z-10 w-full gap-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
+      <div className="flex-center-between bg-paper sticky inset-x-0 bottom-0 z-10 w-full gap-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <div className="border-hairline container mx-auto border-t p-4">
           <form.Subscribe selector={(state) => state.isSubmitting}>
             {(isSubmitting) => (
