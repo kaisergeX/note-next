@@ -55,6 +55,7 @@ export default async function LocaleLayout({
   const locale = await getLocale()
   const t = await getTranslations()
   const tNavigation = await getTranslations('common.navigation')
+  const tLandingNavigation = await getTranslations('landing.navigation')
 
   return (
     <ThemeWrapper
@@ -80,6 +81,8 @@ export default async function LocaleLayout({
                 switchTheme: tNavigation('switchTheme'),
                 openMainMenu: tNavigation('openMainMenu'),
                 closeMainMenu: tNavigation('closeMainMenu'),
+                languageSwitch: tNavigation('languageSwitch'),
+                login: tLandingNavigation('login'),
               }}
             />
           </Suspense>

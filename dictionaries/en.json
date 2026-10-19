@@ -6,6 +6,7 @@
       "home": "Homepage",
       "back": "Go back",
       "switchTheme": "Switch color theme",
+      "languageSwitch": "Tiếng Việt",
       "openMainMenu": "Open main menu",
       "closeMainMenu": "Close main menu"
     },
@@ -328,5 +329,57 @@
       "inspiration": "New inspiration"
     },
     "delete": "Delete note"
+  },
+  "landing": {
+    "navigation": {
+      "login": "Log in"
+    },
+    "hero": {
+      "lineOne": "Keep your thoughts.",
+      "lineTwo": "Explore new perspectives.",
+      "description": "Write in your own notebook, or explore a question through AI persona interviews in Vietnamese.",
+      "createAccount": "Create an account",
+      "exploreFeatures": "Explore features",
+      "openNotes": "Open your notes"
+    },
+    "interview": {
+      "eyebrow": "AI Persona Interviews",
+      "title": "Start with a question.",
+      "description": "Shape a persona, ask your questions, and review the conversations. Vietnamese chat is available now; English-language chat is planned.",
+      "action": "Explore interviews",
+      "preview": {
+        "label": "Persona interview",
+        "status": "Vietnamese · available now",
+        "name": "Lan, 34 · Da Nang",
+        "role": "Shop owner · Warm, cautious",
+        "prompt": "Khi chọn nơi để mua sắm, điều gì quan trọng nhất với chị?",
+        "reply": "Chắc là cảm giác quen thuộc. Mình biết người bán, cần gì thì hỏi được liền."
+      }
+    },
+    "notes": {
+      "eyebrow": "Notes",
+      "title": "Make space for your own ideas.",
+      "description": "Write something down and return to it when you’re ready.",
+      "action": "Explore Notes",
+      "preview": {
+        "title": "My notes",
+        "createNote": "New note",
+        "themes": "Give each note its own color",
+        "noteOneTitle": "<p>A Saturday worth keeping</p>",
+        "noteOneContent": "<p>The morning market was still quiet when I arrived. <mark>The best finds were tucked away in the back row.</mark></p><h3>Bring next time</h3><ul><li>Canvas tote</li><li>Ask Mai about her herb garden</li></ul><blockquote>Go early, before the streets get loud.</blockquote>",
+        "noteTwoTitle": "<p>A tiny snippet</p>",
+        "noteTwoCaption": "A small step for later.",
+        "noteThreeTitle": "<p>Small rituals</p>",
+        "noteThreeContent": "<p><strong>Morning:</strong> coffee by the window</p><p><em>Evening:</em> leave one good thought for tomorrow.</p>",
+        "noteTwoIntro": "Today, I’ll take one step:"
+      }
+    },
+    "upcoming": {
+      "title": "Coming up",
+      "description": "More ways to explore ideas are on the way.",
+      "companionTitle": "Companion Chat",
+      "companionDescription": "Create and customize role-based characters for ongoing chats with human-like memory.",
+      "status": "Planned"
+    }
   }
 }

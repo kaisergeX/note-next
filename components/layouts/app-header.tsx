@@ -32,6 +32,8 @@ type NavProps = {
     switchTheme: string
     openMainMenu: string
     closeMainMenu: string
+    languageSwitch: string
+    login: string
   }
 }
 
@@ -42,6 +44,16 @@ export default function AppHeader({
 }: NavProps) {
   const {status, data: sessionData} = useSession()
   const pathName = usePathname()
+  const localeMatch = pathName.match(/^\/(en|vi)(?=\/|$)/)
+  const locale = localeMatch?.[1] ?? 'en'
+  const nextLocale = locale === 'vi' ? 'en' : 'vi'
+  const localizedPath = localeMatch
+    ? pathName.slice(localeMatch[0].length)
+    : pathName === '/'
+      ? ''
+      : pathName
+  const languageHref = `/${nextLocale}${localizedPath}`
+  const isLandingPage = localizedPath === '' || localizedPath === '/'
   const isAuthenticated = status === 'authenticated' && !sessionData?.error
   const userRole = sessionData?.user.role
   const profileName = sessionData?.user.name
@@ -169,10 +181,28 @@ export default function AppHeader({
       </Link>
 
       <div className="flex items-center gap-3">
+        <Link
+          href={languageHref}
+          lang={nextLocale}
+          className="text-ink-muted hover:text-ink focus-visible:outline-accent inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+        >
+          {navigationLabels.languageSwitch}
+        </Link>
+
+        {!isAuthenticated && isLandingPage && (
+          <Link
+            href={`/${locale}/login`}
+            className="text-ink-muted hover:text-ink focus-visible:outline-accent inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+          >
+            {navigationLabels.login}
+          </Link>
+        )}
+
         <Button
           variant="secondary"
           size="sm"
           iconOnly
+          className="max-lg:min-h-11 max-lg:min-w-11"
           onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
           aria-label={navigationLabels.switchTheme}
         >
@@ -204,7 +234,7 @@ export default function AppHeader({
               variant="ghost"
               iconOnly
               size="sm"
-              className="lg:hidden"
+              className="max-lg:min-h-11 max-lg:min-w-11 lg:hidden"
               onClick={openMenuDialog}
               aria-controls="main-menu"
               aria-expanded={isMenuDialogOpen}
