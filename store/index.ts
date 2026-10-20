@@ -1,5 +1,6 @@
 import {create} from 'zustand'
 import {persist} from 'zustand/middleware'
+import {isAppearanceId, isAppearanceMode} from '~/lib/appearance'
 import type {PersistedStore} from '~/types/store'
 import {createSystemSlice} from './system'
 import {createNoteSlice} from './note'
@@ -28,7 +29,35 @@ export const usePersistStore = create<PersistedStore>()(
     }),
     {
       name: process.env.SERVICE_NAME ?? 'etoN-app',
-      partialize: ({theme}) => ({theme}),
+      version: 1,
+      partialize: ({mode, appearance}) => ({mode, appearance}),
+      migrate: (persistedState) => {
+        const state = persistedState as
+          {theme?: unknown; mode?: unknown; appearance?: unknown} | undefined
+        const legacyMode =
+          state?.theme === 'light' || state?.theme === 'dark'
+            ? state.theme
+            : 'system'
+
+        return {
+          mode: isAppearanceMode(state?.mode) ? state.mode : legacyMode,
+          appearance: isAppearanceId(state?.appearance)
+            ? state.appearance
+            : 'paper-ink',
+        }
+      },
+      merge: (persistedState, currentState) => {
+        const state = persistedState as
+          {mode?: unknown; appearance?: unknown} | undefined
+
+        return {
+          ...currentState,
+          mode: isAppearanceMode(state?.mode) ? state.mode : 'system',
+          appearance: isAppearanceId(state?.appearance)
+            ? state.appearance
+            : 'paper-ink',
+        }
+      },
       skipHydration: true,
       onRehydrateStorage:
         ({setHasHydrated}) =>

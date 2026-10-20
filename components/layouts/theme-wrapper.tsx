@@ -1,58 +1,36 @@
 'use client'
-import {classNames} from '@kaiverse/k/utils'
-import {Newsreader} from 'next/font/google'
-import {type HtmlHTMLAttributes, type PropsWithChildren, useEffect} from 'react'
+
+import {useEffect} from 'react'
+import {isAppearanceId} from '~/lib/appearance'
 import {usePersistStore, withStorageDOMEvents} from '~/store'
 
-const newsreader = Newsreader({
-  variable: '--font-newsreader',
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  axes: ['opsz'],
-})
-
-export default function ThemeWrapper({
-  className = '',
-  children,
-  ...props
-}: PropsWithChildren<HtmlHTMLAttributes<HTMLElement>>) {
-  const {theme, setTheme} = usePersistStore()
-  const isDarkMode = theme === 'dark'
-  const isDarkSystem =
-    typeof window !== 'undefined' &&
-    window.matchMedia('(prefers-color-scheme: dark)').matches
+export default function ThemeWrapper({children}: React.PropsWithChildren) {
+  const {mode, appearance, hasHydrated} = usePersistStore()
 
   useEffect(() => {
-    if (!theme && isDarkSystem && setTheme) {
-      // If no theme is set, and system is dark.
-      setTheme('dark')
-    }
-  }, [theme, isDarkSystem, setTheme])
-
-  useEffect(() => {
-    // hydrate the presisted store to get state from Storage once
     void usePersistStore.persist.rehydrate()
-    withStorageDOMEvents(usePersistStore)
+    return withStorageDOMEvents(usePersistStore)
   }, [])
 
-  return (
-    <html
-      {...props}
-      className={classNames(
-        className,
-        newsreader.variable,
-        isDarkMode ? 'dark' : '',
-      )}
-    >
-      {/* 
-        Note that dv* will adapts with viewport size (which changes the actual size of element),
-        so we should use with transition for better UX to avoid instant size scaling.
-        eg: scrolling on mobile browsers will hide/show the address bar, which will change the viewport height.
-        ref: https://web.dev/viewport-units/
-      */}
-      <body className="font-inter relative flex min-h-dvh scrollbar-gutter-stable flex-col transition-[height] not-has-[.body-h-auto:first-of-type]:h-dvh">
-        {children}
-      </body>
-    </html>
-  )
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const applyAppearance = () => {
+      if (!hasHydrated) return
+
+      const root = document.documentElement
+      root.dataset.appearance = isAppearanceId(appearance)
+        ? appearance
+        : 'paper-ink'
+      root.classList.toggle(
+        'dark',
+        mode === 'dark' || (mode === 'system' && media.matches),
+      )
+    }
+
+    applyAppearance()
+    media.addEventListener('change', applyAppearance)
+    return () => media.removeEventListener('change', applyAppearance)
+  }, [appearance, hasHydrated, mode])
+
+  return children
 }
