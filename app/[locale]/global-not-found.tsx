@@ -4,6 +4,7 @@ import {IconArrowLeft, IconHome} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import {getLocale, getTranslations} from 'next-intl/server'
 import {Inter} from 'next/font/google'
+import {createAppearanceBootstrapScript} from '~/lib/appearance'
 import LinkButton from '~/components/ui/link-button'
 import GoBackButton from '~/components/navigation/go-back-button'
 
@@ -31,17 +32,24 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
-const darkModeScript = `(function(){try{var s=JSON.parse(localStorage.getItem('${
-  process.env.SERVICE_NAME ?? 'etoN-app'
-}')||'null');var t=s&&s.state&&s.state.theme;if(t==='dark'||(!t&&matchMedia('(prefers-color-scheme: dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`
+const appearanceScript = createAppearanceBootstrapScript(
+  process.env.SERVICE_NAME ?? 'etoN-app',
+)
 
 export default async function GlobalNotFound() {
   const locale = await getLocale()
   const t = await getTranslations('common.navigation')
 
   return (
-    <html lang={locale} className={inter.className} suppressHydrationWarning>
-      <script dangerouslySetInnerHTML={{__html: darkModeScript}} />
+    <html
+      lang={locale}
+      className={inter.className}
+      data-appearance="paper-ink"
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{__html: appearanceScript}} />
+      </head>
       <body className="flex-center bg-paper text-ink h-full flex-col p-4">
         <div className="divide-hairline mb-8 items-stretch gap-4 max-sm:text-center sm:flex sm:divide-x">
           <h1 className="content-center sm:pr-4">404</h1>

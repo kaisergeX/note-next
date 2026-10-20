@@ -1,13 +1,16 @@
 import type {NoteStore} from './note'
+import type {AppearanceId, AppearanceMode} from '~/lib/appearance'
 
 export type SystemState = {
   hasHydrated: boolean
-  theme?: 'light' | 'dark'
+  mode: AppearanceMode
+  appearance: AppearanceId
 }
 
 export type SystemStore = {
   setHasHydrated: (hasHydrated: SystemState['hasHydrated']) => void
-  setTheme: (theme: Exclude<SystemState['theme'], undefined>) => void
+  setMode: (mode: AppearanceMode) => void
+  setAppearance: (appearance: AppearanceId) => void
   resetSystemStore: () => void
 } & SystemState
 

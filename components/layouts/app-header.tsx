@@ -17,7 +17,7 @@ import {useSession} from 'next-auth/react'
 import Image from 'next/image'
 import Link from 'next/link'
 import {usePathname} from 'next/navigation'
-import type {KeyboardEvent} from 'react'
+import {type KeyboardEvent, useEffect, useState} from 'react'
 import Button, {buttonClass} from '~/components/ui/button'
 import {protectedPathnameRegex} from '~/config/auth'
 import {usePersistStore} from '~/store'
@@ -61,10 +61,20 @@ export default function AppHeader({
       ? `https://ui-avatars.com/api/?name=${profileName}`
       : undefined)
 
-  const {isDarkMode, setTheme} = usePersistStore((s) => ({
-    isDarkMode: s.theme === 'dark',
-    setTheme: s.setTheme,
+  const {mode, setMode} = usePersistStore((s) => ({
+    mode: s.mode,
+    setMode: s.setMode,
   }))
+  const [systemPrefersDark, setSystemPrefersDark] = useState(false)
+  const isDarkMode = mode === 'dark' || (mode === 'system' && systemPrefersDark)
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)')
+    const updateSystemMode = () => setSystemPrefersDark(media.matches)
+    updateSystemMode()
+    media.addEventListener('change', updateSystemMode)
+    return () => media.removeEventListener('change', updateSystemMode)
+  }, [])
 
   const [isMenuDialogOpen, {open: openMenuDialog, close: closeMenuDialog}] =
     useDisclosure()
@@ -182,8 +192,8 @@ export default function AppHeader({
         <MenuCustom
           ariaLabel={navigationLabels.languageSwitch}
           className={cn(
-            buttonClass({variant: 'ghost', size: 'sm'}),
-            'h-11 min-h-11 px-2 sm:h-10 sm:min-h-10',
+            buttonClass({variant: 'ghost', size: 'sm', iconOnly: true}),
+            'text-sm',
           )}
           itemsClassName="w-48 p-1"
           items={[
@@ -231,8 +241,7 @@ export default function AppHeader({
           variant="secondary"
           size="sm"
           iconOnly
-          className="max-lg:min-h-11 max-lg:min-w-11"
-          onClick={() => setTheme(isDarkMode ? 'light' : 'dark')}
+          onClick={() => setMode(isDarkMode ? 'light' : 'dark')}
           aria-label={navigationLabels.switchTheme}
         >
           {isDarkMode ? <IconMoonStars /> : <IconSun />}

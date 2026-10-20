@@ -1,14 +1,17 @@
 import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
+import {classNames} from '@kaiverse/k/utils'
 import type {Metadata, Viewport} from 'next'
 import {getLocale, getTranslations} from 'next-intl/server'
 import {Inter} from 'next/font/google'
+import {Newsreader} from 'next/font/google'
 import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
 import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
 import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
+import {createAppearanceBootstrapScript} from '~/lib/appearance'
 import IosSplashLinks from '~/components/ui/ios-splash-screen'
 import {localeRouting} from '~/i18n/routing'
 import '../globals.css'
@@ -48,6 +51,16 @@ export function generateStaticParams() {
 }
 
 const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
+const newsreader = Newsreader({
+  variable: '--font-newsreader',
+  subsets: ['latin'],
+  style: ['normal', 'italic'],
+  axes: ['opsz'],
+})
+
+const appearanceScript = createAppearanceBootstrapScript(
+  process.env.SERVICE_NAME ?? 'etoN-app',
+)
 
 export default async function LocaleLayout({
   children,
@@ -58,41 +71,50 @@ export default async function LocaleLayout({
   const tLandingNavigation = await getTranslations('landing.navigation')
 
   return (
-    <ThemeWrapper
+    <html
       lang={locale}
-      className={inter.variable}
+      className={classNames(inter.variable, newsreader.variable)}
+      data-appearance="paper-ink"
       data-scroll-behavior="smooth"
+      suppressHydrationWarning
     >
-      <ProviderWrapper>
-        <DevtoolsWarnWrapper
-          message={
-            <>
-              <h1>{t('common.devtools.warn')}</h1>
-              <p>{t('common.devtools.description')}</p>
-            </>
-          }
-        >
-          <IosSplashLinks />
-          <Suspense>
-            <AppHeader
-              appName={t('common.app')}
-              signOutLabel={t('auth.signOut')}
-              navigationLabels={{
-                switchTheme: tNavigation('switchTheme'),
-                openMainMenu: tNavigation('openMainMenu'),
-                closeMainMenu: tNavigation('closeMainMenu'),
-                languageSwitch: tNavigation('languageSwitch'),
-                login: tLandingNavigation('login'),
-              }}
-            />
-          </Suspense>
-          {children}
-          <ScrollTopButton />
+      <head>
+        <script dangerouslySetInnerHTML={{__html: appearanceScript}} />
+      </head>
+      <body className="relative flex min-h-dvh scrollbar-gutter-stable flex-col font-sans transition-[height] not-has-[.body-h-auto:first-of-type]:h-dvh">
+        <ThemeWrapper>
+          <ProviderWrapper>
+            <DevtoolsWarnWrapper
+              message={
+                <>
+                  <h1>{t('common.devtools.warn')}</h1>
+                  <p>{t('common.devtools.description')}</p>
+                </>
+              }
+            >
+              <IosSplashLinks />
+              <Suspense>
+                <AppHeader
+                  appName={t('common.app')}
+                  signOutLabel={t('auth.signOut')}
+                  navigationLabels={{
+                    switchTheme: tNavigation('switchTheme'),
+                    openMainMenu: tNavigation('openMainMenu'),
+                    closeMainMenu: tNavigation('closeMainMenu'),
+                    languageSwitch: tNavigation('languageSwitch'),
+                    login: tLandingNavigation('login'),
+                  }}
+                />
+              </Suspense>
+              {children}
+              <ScrollTopButton />
 
-          <Analytics mode="auto" />
-          <SpeedInsights />
-        </DevtoolsWarnWrapper>
-      </ProviderWrapper>
-    </ThemeWrapper>
+              <Analytics mode="auto" />
+              <SpeedInsights />
+            </DevtoolsWarnWrapper>
+          </ProviderWrapper>
+        </ThemeWrapper>
+      </body>
+    </html>
   )
 }
