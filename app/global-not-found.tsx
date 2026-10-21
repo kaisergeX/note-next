@@ -46,6 +46,7 @@ export default async function GlobalNotFound() {
       suppressHydrationWarning
     >
       <head>
+        <meta name="theme-color" content="" />
         <script dangerouslySetInnerHTML={{__html: appearanceScript}} />
       </head>
       <body className="flex-center bg-paper text-ink min-h-dvh flex-col p-4 font-sans">

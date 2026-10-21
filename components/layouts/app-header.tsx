@@ -10,7 +10,7 @@ import {
   IconMoonStars,
   IconSun,
   IconUser,
-  IconUserCircle,
+  IconSettings,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useSession} from 'next-auth/react'
@@ -34,6 +34,7 @@ type NavProps = {
     closeMainMenu: string
     languageSwitch: string
     login: string
+    settings: string
   }
 }
 
@@ -124,10 +125,10 @@ export default function AppHeader({
   const desktopMenuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: '/user',
+      url: `/${locale}/settings/account`,
       label: (
         <>
-          <IconUserCircle /> Profile
+          <IconSettings /> {navigationLabels.settings}
         </>
       ),
     },
@@ -322,11 +323,11 @@ export default function AppHeader({
         <Dialog.Content className="flex flex-col justify-between gap-1">
           <nav aria-label="Main navigation">
             <Link
-              href="/user"
+              href={`/${locale}/settings/account`}
               className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
               onClick={closeMenuDialog}
             >
-              <IconUserCircle /> Profile
+              <IconSettings /> {navigationLabels.settings}
             </Link>
 
             {userRole === 'archivist' && (
