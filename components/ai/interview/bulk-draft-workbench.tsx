@@ -200,7 +200,7 @@ export default function BulkDraftWorkbench({
             disabled={isPending}
             placeholder={t('mixDescriptionPlaceholder')}
             onChange={(e) => setMixDescription(e.target.value)}
-            className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+            className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
 
@@ -217,7 +217,7 @@ export default function BulkDraftWorkbench({
               value={batchSize}
               disabled={isPending}
               onChange={(e) => setBatchSize(Number(e.target.value))}
-              className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none"
+              className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2.5 text-sm focus:ring-2 focus:outline-none"
             >
               {BATCH_SIZES.map((size) => (
                 <option key={size} value={size}>

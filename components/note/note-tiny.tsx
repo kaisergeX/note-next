@@ -69,7 +69,7 @@ export default function NoteTiny({data}: NoteProps) {
           <article
             className={cn(
               'prose sm:prose-lg line-clamp-3 pb-2 font-semibold wrap-anywhere sm:leading-normal',
-              theme ? `prose-${theme}` : 'dark:prose-invert',
+              theme ? `prose-${theme}` : 'prose-appearance',
             )}
             dangerouslySetInnerHTML={{__html: title || ''}}
           />
@@ -77,7 +77,7 @@ export default function NoteTiny({data}: NoteProps) {
         <article
           className={cn(
             'prose line-clamp-10 wrap-anywhere',
-            theme ? `prose-${theme}` : 'dark:prose-invert',
+            theme ? `prose-${theme}` : 'prose-appearance',
           )}
           dangerouslySetInnerHTML={{__html: content || ''}}
         />

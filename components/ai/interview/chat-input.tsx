@@ -53,7 +53,7 @@ export default function ChatInput({
     >
       <div
         className={cn(
-          'bg-paper-raised border-hairline focus-within:border-accent focus-within:ring-accent/25 focus-within:shadow-sheet relative flex min-w-0 items-end gap-2 rounded-4xl border p-2 transition-[border-color,box-shadow] focus-within:ring-2',
+          'bg-paper-raised border-control-border focus-within:border-accent focus-within:ring-accent focus-within:shadow-sheet relative flex min-w-0 items-end gap-2 rounded-4xl border p-2 transition-[border-color,box-shadow] focus-within:ring-2',
           isBusy && 'animate-composer-thinking',
         )}
       >

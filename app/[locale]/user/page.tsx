@@ -3,12 +3,17 @@ import {IconNoteOff, IconUserCircle, IconUserOff} from '@tabler/icons-react'
 import type {Route} from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
+import {NextIntlClientProvider} from 'next-intl'
+import {getLocale, getMessages} from 'next-intl/server'
 import {Badge} from '~/components/ui/badge'
 import Button from '~/components/ui/button'
+import AppearanceSettings from '~/components/settings/appearance-settings'
 import {requireAuth} from '~/server-utils'
 
 export default async function MyProfile() {
   const {userInfo} = await requireAuth()
+  const locale = await getLocale()
+  const messages = await getMessages({locale})
 
   // @todo store user preferences/settings, KV or Postgres?
   // @todo Add a option on setting page for user to choose whether to use Dialog or not.
@@ -58,6 +63,10 @@ export default async function MyProfile() {
         {renderSettings}
       </div>
       <hr />
+      <NextIntlClientProvider messages={{user: messages.user}}>
+        <AppearanceSettings />
+      </NextIntlClientProvider>
+      <hr />
 
       <h2 className="text-destructive">Danger Zone</h2>
       <div className="mt-4 flex flex-wrap gap-4">
@@ -77,11 +86,6 @@ const settings = [
     id: 1,
     href: '#',
     name: 'Account Info',
-  },
-  {
-    id: 2,
-    href: '#',
-    name: 'Theme',
   },
   {
     id: 3,

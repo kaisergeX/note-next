@@ -41,7 +41,7 @@ export default function PersonaSlider({
         aria-label={ariaLabel}
         data-axis={axisKey}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="accent-accent w-full disabled:cursor-not-allowed disabled:opacity-45"
+        className="accent-accent focus-visible:outline-accent h-10 w-full rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
       />
     </div>
   )

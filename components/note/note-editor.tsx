@@ -103,7 +103,7 @@ export default function NoteEditor({
         Placeholder.configure({
           placeholder,
           emptyNodeClass:
-            'first:before:opacity-50 first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
+            'first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
         }),
         Highlight,
         DisableEnter,
@@ -112,7 +112,7 @@ export default function NoteEditor({
         attributes: {
           class: cn(
             'focus:outline-none prose max-w-none',
-            theme ? `prose-${theme}` : 'dark:prose-invert',
+            theme ? `prose-${theme}` : 'prose-appearance',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
           ),

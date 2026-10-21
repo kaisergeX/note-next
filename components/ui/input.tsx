@@ -6,15 +6,14 @@ interface InputProps extends ComponentPropsWithRef<'input'> {
 }
 
 const BASE_CLASSES =
-  'w-full rounded-md border bg-paper-raised px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-muted focus:outline-none focus:ring-2'
+  'min-h-10 w-full rounded-md border bg-paper-raised px-3 py-2 text-sm text-ink transition-colors placeholder:text-ink-muted focus:outline-none focus:ring-2'
 
 const STATE_CLASSES = {
-  valid: 'border-hairline focus:border-accent focus:ring-accent/25',
-  invalid:
-    'border-destructive focus:border-destructive focus:ring-destructive/25',
+  valid: 'border-control-border focus:border-accent focus:ring-accent',
+  invalid: 'border-destructive focus:border-destructive focus:ring-destructive',
 } as const
 
-/** Paper & Ink text input: paper-raised fill, hairline border, accent focus ring. */
+/** Appearance text input: raised paper, contrasting boundary, accent focus ring. */
 export function Input({invalid = false, className, ...props}: InputProps) {
   return (
     <input

@@ -4,7 +4,7 @@ export default function Privacy() {
   return (
     <main className="bg-dotgrid p-4">
       <div className="border-hairline bg-paper-raised shadow-sheet mx-auto w-full max-w-4xl rounded-lg border px-6 py-12 lg:pt-16 lg:pb-28">
-        <article className="prose prose-sm text-ink mx-auto max-w-prose">
+        <article className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose">
           <h1 className="mb-4">etoN Privacy Policy</h1>
           <div className="text-right text-sm">
             Last Update Date: July, 11 2023

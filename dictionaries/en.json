@@ -31,6 +31,44 @@
   "homepage": {
     "title": "Imagine a home page here 🏡"
   },
+  "user": {
+    "appearance": {
+      "title": "Appearance",
+      "description": "Choose how etoN looks. Note colors stay independent.",
+      "presets": "Presets",
+      "names": {
+        "paper-ink": "Paper & Ink",
+        "sepia": "Sepia"
+      },
+      "previewHeading": "A thought for tomorrow",
+      "previewBody": "Leave a little space for something unexpected.",
+      "colorMode": "Color mode",
+      "modes": {
+        "system": "System",
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "descriptions": {
+        "paper-ink": "Cool paper, blue-black ink",
+        "sepia": "Warm paper, softer corners"
+      },
+      "systemStatus": "Following your device · {mode}",
+      "previewTitle": "Preview",
+      "previewPrompt": "Where should I begin?",
+      "previewReply": "Start with one small idea. Give it room to grow.",
+      "previewDescription": "Sample note, conversation, and controls in {preset}. Buttons are for trying the appearance and perform no actions.",
+      "previewNote": "Note",
+      "previewBold": "Bold",
+      "previewItalic": "Italic",
+      "previewHighlight": "Highlight",
+      "previewFormatting": "Text formatting",
+      "previewLink": "Explore this idea",
+      "previewSaved": "Saved just now",
+      "previewChat": "Conversation",
+      "previewMessage": "Write a message…",
+      "previewSend": "Send"
+    }
+  },
   "admin": {
     "title": "Admin Portal",
     "description": "Admin Portal of {serviceName} - {slogan}",
