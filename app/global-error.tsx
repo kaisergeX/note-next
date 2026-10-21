@@ -2,7 +2,7 @@
 
 import './globals.css'
 
-import {Inter} from 'next/font/google'
+import {appearanceFontVariables} from '~/lib/appearance-fonts'
 import {useLayoutEffect} from 'react'
 
 import type {ServerError} from '~/types'
@@ -12,8 +12,6 @@ import {
   syncBrowserThemeColor,
 } from '~/lib/appearance'
 import Button from '~/components/ui/button'
-
-const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
 export default function GlobalError({
   error,
@@ -30,7 +28,11 @@ export default function GlobalError({
   }, [])
 
   return (
-    <html lang="en" className={inter.variable} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={appearanceFontVariables}
+      suppressHydrationWarning
+    >
       <head>
         <meta name="theme-color" content="" />
       </head>

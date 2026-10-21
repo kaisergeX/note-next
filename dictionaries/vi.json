@@ -39,7 +39,9 @@
       "presets": "Phong cách",
       "names": {
         "paper-ink": "Giấy & Mực",
-        "sepia": "Nâu ấm"
+        "sepia": "Nâu ấm",
+        "midnight": "Đêm khuya",
+        "bookish": "Trang sách"
       },
       "previewHeading": "Một ý nghĩ cho ngày mai",
       "previewBody": "Dành một khoảng nhỏ cho những điều bất ngờ.",
@@ -51,7 +53,9 @@
       },
       "descriptions": {
         "paper-ink": "Sắc giấy dịu, mực xanh đen",
-        "sepia": "Giấy ấm, góc bo mềm mại"
+        "sepia": "Giấy ấm, góc bo mềm mại",
+        "midnight": "Giấy tông lạnh, đêm màu than",
+        "bookish": "Giấy xanh dịu, Source Sans 3 & Literata"
       },
       "systemStatus": "Theo thiết bị của bạn · {mode}",
       "previewTitle": "Xem trước",

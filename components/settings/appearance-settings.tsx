@@ -13,9 +13,8 @@ import {useSyncExternalStore} from 'react'
 import Button from '~/components/ui/button'
 import {Input} from '~/components/ui/input'
 import {usePersistStore} from '~/store'
-import type {AppearanceId, AppearanceMode} from '~/lib/appearance'
+import {APPEARANCE_IDS, type AppearanceMode} from '~/lib/appearance'
 
-const appearances: AppearanceId[] = ['paper-ink', 'sepia']
 const modes: AppearanceMode[] = ['system', 'light', 'dark']
 
 function subscribeToColorScheme(onChange: () => void) {
@@ -61,7 +60,7 @@ export default function AppearanceSettings() {
         <fieldset className="min-w-0 xl:w-56 xl:shrink-0">
           <legend className="mb-3 text-sm font-semibold">{t('presets')}</legend>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {appearances.map((id) => (
+            {APPEARANCE_IDS.map((id) => (
               <label key={id} className="min-w-0 cursor-pointer">
                 <input
                   className="peer sr-only"

@@ -5,7 +5,7 @@
 ## User behavior
 
 - Appearance lives at `/[locale]/settings/appearance`, alongside `/[locale]/settings/account`. The desktop user menu and mobile drawer link to Settings. `/[locale]/settings` opens Account; legacy `/[locale]/user` and `/[locale]/user#appearance` links redirect to the matching section. Users select a complete preset; color mode (`system`, `light`, or `dark`) is independent. Defaults are `paper-ink` and `system`.
-- Available presets are **Paper & Ink** and **Sepia**. Both use Inter for UI and Newsreader for writing. Paper & Ink uses 6/8/12/16px radii; Sepia uses 8/10/14/20px and a warm palette. Exact colors live in [app/globals.css](../app/globals.css).
+- Available presets are **Paper & Ink**, **Sepia**, **Midnight**, and **Bookish**. Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight adds cool light paper and charcoal dark surfaces with a quiet blue accent. Bookish uses Source Sans 3 UI and Literata writing on sage/evergreen palettes. Radii are 6/8/12/16px except Sepia's 8/10/14/20px. Exact colors live in [app/globals.css](../app/globals.css).
 - Preset and mode persist in this browser and synchronize across tabs. System mode follows OS changes in the normal app. Account/device synchronization is not implemented.
 - Browser `theme-color` follows the effective paper background, including explicit mode overrides and Sepia. This is a suggested browser UI color; its visible effect depends on browser/platform support. iOS splash artwork remains static.
 - Selection updates the app and shared preview immediately. The preview includes neutral note/prose, conversation, status, and controls. Its buttons demonstrate interaction states without performing actions; the sample input accepts local text. EN/VI labels, radio keyboard behavior, and selected/focus states are supported.
@@ -22,6 +22,7 @@
 - `applyStoredAppearance` must stay self-contained: normal/404 bootstrap scripts serialize its function source, while GlobalError calls it directly. Do not introduce imports or closure dependencies into its body. Keep its ID allowlist aligned with `APPEARANCE_IDS` and store validation.
 - `syncBrowserThemeColor` is also serialized in the startup script and must remain self-contained. It converts the effective CSS `--paper` token to sRGB metadata, with no separate preset palette. ThemeWrapper reapplies it on preference/OS changes and observes head metadata replacement during client navigation. GlobalError calls it directly after applying preferences.
 - Runtime metadata uses `rgb(...)` while viewport fallbacks use hex. Keep their string representations distinct: React's hoisted-meta matching compares content without checking media/data attributes, so an identical string can let React adopt the runtime override and leave a duplicate fallback after navigation.
+- [appearance-fonts.ts](../lib/appearance-fonts.ts) supplies shared font variables for the locale document and standalone global fallbacks. Bookish fonts include Vietnamese and use `preload: false` so their files load when selected rather than being preloaded for all presets. Font choices remain part of the preset, not per-note formatting.
 
 ### Tokens and rendering
 
@@ -62,6 +63,8 @@ The foundation review passed TypeScript/ESLint, Webpack production compilation, 
 
 **Settings follow-up — 2026-10-21:** lint, normal Turbopack production build, Serwist generation, bootstrap checks, and palette contrast checks pass. Browser review passed representative EN/VI Account and Appearance pages at 1440/768/390px, both presets and light/dark/System modes, keyboard focus, mobile drawer navigation, legacy redirects, reload persistence, and cross-tab/OS updates. Minimum measured text contrast was 4.53:1. After the metadata fix described above, repeated redirect/navigation/reload checks retained exactly one runtime color override and two OS fallbacks, with no hydration errors. Coverage was representative rather than every locale/preset/mode/width combination; native browser toolbar tinting was not device-tested.
 
+**Midnight and Bookish — 2026-10-21:** lint, normal production build, and Serwist generation pass. Registry-driven bootstrap validation covers 37 preference cases plus store migration/merge checks for all four IDs. Contrast validation covers all eight preset/light-dark palettes; the two new presets provide at least 15.52:1 ink/paper, 5.22:1 across tested normal-text pairs, and 3.50:1 control boundaries. The generated global 404's minified startup script passes all 24 preset/mode/OS combinations, and its markup includes all four font variables. Browser review passed both new presets in light/dark at 1440/768/390px, representative Vietnamese settings, note editor/dialog, AI form and existing chat; minimum measured text contrast was 5.98:1. Actual Latin/Vietnamese font faces, restoration of the original presets' fonts, keyboard focus/selection, reload/cross-tab/System behavior, and three-tag browser-color metadata passed. Cold-cache first-paint font swapping, native mobile browser chrome, and exhaustive locale/theme coverage outside Settings were not verified; no data writes or AI generation were needed.
+
 ## Limits and deferred work
 
 - Preferences remain browser-local. iOS splash artwork remains static. Actual browser toolbar tinting needs device verification; browser metadata values can be checked in desktop automation.
@@ -80,7 +83,7 @@ The foundation is complete. Continue from the current contract and validation co
 
 - [x] Move Appearance out of Profile into Settings, with separate Account and Appearance routes and responsive section navigation. Remove placeholder setting links; keep existing destructive actions disabled and explain their availability.
 - [x] Match browser chrome metadata to the effective paper background. Keep iOS splash artwork unchanged.
-- Additional presets remain a separate future request; the selected follow-ups above are complete.
+- [x] Add Midnight and Bookish, including Bookish's distinct UI/writing font pair, while retaining independent light/dark/System mode and per-note hues.
 
 ### Optional product decisions — choose scope before implementation
 

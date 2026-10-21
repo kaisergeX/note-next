@@ -39,7 +39,9 @@
       "presets": "Presets",
       "names": {
         "paper-ink": "Paper & Ink",
-        "sepia": "Sepia"
+        "sepia": "Sepia",
+        "midnight": "Midnight",
+        "bookish": "Bookish"
       },
       "previewHeading": "A thought for tomorrow",
       "previewBody": "Leave a little space for something unexpected.",
@@ -51,7 +53,9 @@
       },
       "descriptions": {
         "paper-ink": "Cool paper, blue-black ink",
-        "sepia": "Warm paper, softer corners"
+        "sepia": "Warm paper, softer corners",
+        "midnight": "Cool paper, charcoal nights",
+        "bookish": "Sage paper, Source Sans 3 & Literata"
       },
       "systemStatus": "Following your device · {mode}",
       "previewTitle": "Preview",
