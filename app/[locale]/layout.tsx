@@ -58,9 +58,7 @@ const newsreader = Newsreader({
   axes: ['opsz'],
 })
 
-const appearanceScript = createAppearanceBootstrapScript(
-  process.env.SERVICE_NAME ?? 'etoN-app',
-)
+const appearanceScript = createAppearanceBootstrapScript()
 
 export default async function LocaleLayout({
   children,

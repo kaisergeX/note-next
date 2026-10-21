@@ -316,9 +316,9 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
               </Link>
             )}
         </div>
-        <h2 className="text-xl font-bold">
+        <h1 className="text-xl font-bold">
           {mode === 'create' ? t('newTitle') : t('editTitle')}
-        </h2>
+        </h1>
 
         {noAccess && (
           <p role="alert" className="text-destructive text-sm">
@@ -341,7 +341,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
               rows={5}
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
-              className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+              className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
               maxLength={10000}
               disabled={generating || saving}
             />
@@ -568,7 +568,7 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                     rows={3}
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="border-hairline bg-paper-raised text-ink focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+                    className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                   />
                   {renderErrors(field.state.meta.errors)}
                 </div>

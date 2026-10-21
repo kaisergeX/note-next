@@ -31,6 +31,44 @@
   "homepage": {
     "title": "🏡 Tưởng tượng một trang giới thiệu rất fancy"
   },
+  "user": {
+    "appearance": {
+      "title": "Giao diện",
+      "description": "Chọn diện mạo cho etoN. Màu ghi chú vẫn độc lập.",
+      "presets": "Phong cách",
+      "names": {
+        "paper-ink": "Giấy & Mực",
+        "sepia": "Nâu ấm"
+      },
+      "previewHeading": "Một ý nghĩ cho ngày mai",
+      "previewBody": "Dành một khoảng nhỏ cho những điều bất ngờ.",
+      "colorMode": "Chế độ màu",
+      "modes": {
+        "system": "Theo hệ thống",
+        "light": "Sáng",
+        "dark": "Tối"
+      },
+      "descriptions": {
+        "paper-ink": "Sắc giấy dịu, mực xanh đen",
+        "sepia": "Giấy ấm, góc bo mềm mại"
+      },
+      "systemStatus": "Theo thiết bị của bạn · {mode}",
+      "previewTitle": "Xem trước",
+      "previewPrompt": "Mình nên bắt đầu từ đâu?",
+      "previewReply": "Bắt đầu từ một ý tưởng nhỏ. Cho nó không gian để lớn lên.",
+      "previewDescription": "Ghi chú, trò chuyện và các nút mẫu với phong cách {preset}. Các nút chỉ để thử giao diện, không thực hiện thao tác nào.",
+      "previewNote": "Ghi chú",
+      "previewBold": "In đậm",
+      "previewItalic": "In nghiêng",
+      "previewHighlight": "Tô sáng",
+      "previewFormatting": "Định dạng văn bản",
+      "previewLink": "Khám phá ý tưởng này",
+      "previewSaved": "Vừa lưu",
+      "previewChat": "Trò chuyện",
+      "previewMessage": "Viết tin nhắn…",
+      "previewSend": "Gửi"
+    }
+  },
   "admin": {
     "title": "Trang Quản trị",
     "description": "Trang quản trị của {serviceName} - {slogan}",

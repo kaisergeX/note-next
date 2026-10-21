@@ -1,118 +1,86 @@
 # Appearance Presets
 
-**Status:** Phase 2 complete; Appearance selection and preview remain pending (Phase 3).
-**Scope:** curated, full-app appearance presets
+**Status:** first-release foundation complete on 2026-10-21. This is the current feature contract; [DESIGN.md](../DESIGN.md) defines the app's visual rules. Completed work and validation evidence are archived below.
 
-## Goal
+## User behavior
 
-Let users choose a curated appearance preset for the app. Each preset defines a coherent visual identity across color, typography, and shape, and supports both light and dark mode. Users select among complete presets; they do not mix dimensions or edit individual values.
+- Appearance lives at `/[locale]/user#appearance`. Users select a complete preset; color mode (`system`, `light`, or `dark`) is independent. Defaults are `paper-ink` and `system`.
+- Available presets are **Paper & Ink** and **Sepia**. Both use Inter for UI and Newsreader for writing. Paper & Ink uses 6/8/12/16px radii; Sepia uses 8/10/14/20px and a warm palette. Exact colors live in [app/globals.css](../app/globals.css).
+- Preset and mode persist in this browser and synchronize across tabs. System mode follows OS changes in the normal app. Account/device synchronization is not implemented.
+- Selection updates the app and shared preview immediately. The preview includes neutral note/prose, conversation, status, and controls. Its buttons demonstrate interaction states without performing actions; the sample input accepts local text. EN/VI labels, radio keyboard behavior, and selected/focus states are supported.
+- Per-note hues remain independent. Appearance does not expose individual font/color/shape settings, change note formatting, or add spacing/density presets.
 
-The settings section is called **Appearance**. This is a preset selector, not user customization. “Vibe” can be used informally, but should not be the data model or settings label.
+## Implementation invariants
 
-## Product boundaries
+### Preferences and startup
 
-- A user's selected preset persists across visits and applies throughout the app.
-- Light/dark/system mode remains an independent preference applied to the selected preset.
-- The existing per-note hue system remains independent and unchanged.
-- Seasonal or event decorations are a separate future feature. They must not silently change a user's preset or note colors.
-- The initial persistence model is the existing browser-local Zustand store. Account sync is out of scope unless product requirements change.
+- [lib/appearance.ts](../lib/appearance.ts) owns preset IDs, mode validation, `APPEARANCE_STORAGE_KEY`, and the startup helper. [store/index.ts](../store/index.ts) persists only `mode` and `appearance`, using version 1 under the existing `etoN-app` key. Never derive this key from `SERVICE_NAME` or other server-only branding.
+- Version 0 `theme: light|dark` choices migrate to the same explicit mode. Missing/invalid preferences normalize to System and Paper & Ink. Persist the preference, not an additional effective-mode value; resolve System from `prefers-color-scheme`.
+- The [locale layout](../app/[locale]/layout.tsx) and [global 404](../app/global-not-found.tsx) apply stored preferences through an inline script before paint. [ThemeWrapper](../components/layouts/theme-wrapper.tsx) rehydrates, synchronizes tabs, and follows OS mode changes.
+- [GlobalError](../app/global-error.tsx) uses a layout effect to apply preferences before its client fallback paints. React does not execute an inline script rendered by that client fallback. Global document fallbacks live directly under `app/` and supply their own styles/fonts; regular locale error/not-found pages remain under `[locale]`.
+- `applyStoredAppearance` must stay self-contained: normal/404 bootstrap scripts serialize its function source, while GlobalError calls it directly. Do not introduce imports or closure dependencies into its body. Keep its ID allowlist aligned with `APPEARANCE_IDS` and store validation.
 
-## Preference model
+### Tokens and rendering
 
-Keep color mode and appearance preset as separate preferences:
+Components consume semantic tokens through `@theme inline`; do not add component-specific preset branches. Unknown appearance IDs render Paper & Ink. Root selectors are `:root` for the default, `html[data-appearance='<id>']` for other presets, and `.dark`/`html.dark[data-appearance='<id>']` for effective dark mode. Keep matching `.appearance-preview` selectors consistent with the document palette.
 
-- `mode`: `'system' | 'light' | 'dark'`; default is `'system'`.
-- `appearance`: a validated preset ID; default is `'paper-ink'`.
+| Dimension  | Preset inputs                                                                                                                                           |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Color      | `--paper`, `--paper-raised`, `--ink`, `--ink-muted`, `--hairline`, `--accent`, `--destructive`, `--success`, `--warning`, `--sheet-tint`, in both modes |
+| Typography | `--appearance-font-ui`, `--appearance-font-writing`; support English and Vietnamese                                                                     |
+| Shape      | `--appearance-radius-sm`, `--appearance-radius-md`, `--appearance-radius-lg`, `--appearance-radius-xl`                                                  |
 
-The effective mode is the explicit light/dark choice, or the current `prefers-color-scheme` value when mode is `system`. Store only the user's preference, not a second derived effective-mode value.
+Keep hover/tint, `hairline-strong`, `raised-hover`, sheet shadows, and `muted-foreground` derived or aliased centrally. `--control-border` mixes ink 50% with raised paper for distinguishable form boundaries; decorative hairlines remain subtle. Warning is a separate status role even when the preset's accent is amber.
 
-Existing storage currently has an optional `theme` value (`'light' | 'dark'`). Migration must preserve an existing explicit choice as `mode`, map a missing choice to `system`, and default an absent or unknown appearance ID to `paper-ink`. Keep the current storage key unless implementation reveals a compatibility reason to change it. Cross-tab storage updates should continue to work.
+Neutral prose uses `prose-appearance`; colored notes keep `prose-<hue>`. Editor placeholders retain full foreground contrast. Shared controls use the primitives in `components/ui/`, visible focus indicators, and at least 40px mobile targets.
 
-## Preset contract
+Intentional exceptions are per-note hue palettes/swatches/shadows, monospace code, asset inversion, pill/circle shapes, square menu rows/chat-tail corners, and the large pill chat composer with its matching animation path. These do not become separate appearance controls.
 
-Components consume semantic CSS variables through the Tailwind `@theme inline` mappings in `app/globals.css`. Each preset supplies a coherent set of semantic values for color, typography, and shape. Keep values centralized and derived where practical; avoid component-specific preset branches.
+## Adding or changing a preset
 
-Use one explicit selector contract on `<html>`:
+1. Update the ID registry, store validation as needed, and the self-contained startup helper's allowlist together.
+2. Supply all token dimensions and light/dark values in `app/globals.css`, including matching preview selectors. Preserve derived values and per-note colors.
+3. Add the option to [AppearanceSettings](../components/settings/appearance-settings.tsx) and its labels/descriptions in both dictionaries. Keep mode independent and use the shared preview.
+4. Extend validation scripts for the new ID/palette, then review all preset/mode combinations across settings, notes/editor/dialogs, AI forms/chat, menus, status/disabled/focus states, and global fallbacks. Include English/Vietnamese, keyboard use, and representative desktop/mobile widths.
+5. Record dated measurements and coverage limits. Keep this document current; append implementation history to the archive rather than restoring completed phase instructions here.
 
-- Default appearance values remain the current `:root` values for `paper-ink`.
-- Non-default light values use `html[data-appearance='<id>']`.
-- Non-default dark values use `html.dark[data-appearance='<id>']`.
-- `.dark` continues to represent effective dark mode for existing dark-mode selectors.
+## Validation
 
-Check the exact selectors against cascade order when implemented. A missing or unknown `data-appearance` must render as `paper-ink`.
+```sh
+node --import tsx scripts/appearance-bootstrap.ts
+node --import tsx scripts/appearance-contrast.ts
+pnpm lint
+pnpm build
+```
 
-### Appearance dimensions
+Bootstrap checks cover preferences, legacy migration, unknown/invalid values, storage failure, and agreement with the store key. Contrast checks read the shipped CSS: ink/paper must exceed 12:1, normal semantic text must meet 4.5:1, and form boundaries/focus indicators must meet applicable 3:1 requirements. Also check actual composited backgrounds, typography, geometry, and interactions in the browser; token ratios alone are insufficient.
 
-Each preset defines these dimensions:
+The completed review passed TypeScript/ESLint, Webpack production compilation, and Serwist generation. Default Turbopack compilation hit an environment process/port permission error; see the archived review for exact evidence and limits.
 
-- **Color:** `--paper`, `--paper-raised`, `--ink`, `--ink-muted`, `--hairline`, `--accent`, `--destructive`, `--success`, and `--sheet-tint`, for both light and dark modes.
-- **Typography:** semantic font roles used by the app's interface and default writing presentation. Presets may define a coordinated font system; they do not need to use the same number of font families. The role set stays stable and must cover supported locales and scripts.
-- **Shape:** semantic radius tokens such as `--radius-sm`, `--radius-md`, `--radius-lg`, and `--radius-xl`. Presets may change token values, not component-specific corner rules.
+## Limits and deferred work
 
-Do not add spacing/density changes to initial presets. They affect layout and need a separate product decision and wider review.
+- Preferences remain browser-local. Browser `themeColor` metadata and iOS splash artwork remain static. A production/device smoke check is still useful.
+- The app catchall handles unmatched locale paths. Standalone global 404 markup/bootstrap were checked separately; routing interception was not verified. Real root-error integration was checked for Paper & Ink light/dark; the isolated actual component covered both presets, every mode/OS combination, unknown fallback, and reset callback delivery. These checks do not prove recovery from an underlying server failure.
+- Deferred product work: account sync, a header shortcut to Appearance, and a full interactive preview. Density/spacing presets and optional seasonal decoration need separate scope decisions. Word-style font formatting for selected note text is a separate rich-text feature; per-note hue redesign is also outside this feature.
 
-These current color tokens are derived from the semantic inputs and should not be duplicated in each preset without a demonstrated need:
+## Next-thread handoff
 
-- `--ink-hover`, `--ink-tint`, `--ink-tint-strong`
-- `--hairline-strong`, `--raised-hover`
-- `--sheet-shadow` (derived from `--sheet-tint`)
-- `--muted-foreground` (alias of `--ink-muted`)
+The foundation is complete. Continue from the current contract and validation commands above; use archives only for historical decisions or detailed evidence. These pending items are follow-ups, not unfinished foundation phases.
 
-This inventory is the required preset contract. If shared UI adds a color, font, or shape token, decide whether it is a preset input, derived, or intentionally preset-independent, and update this document.
+### Release checks — start here
 
-The `paper-ink` preset preserves current color, font, and shape values. A preset's writing typography is the default presentation for note content; it is separate from rich-text formatting controls. A future font-family control for selected text (Word-style `Aa`, allowing multiple fonts in one note) is a separate editor feature and is not part of, or a dependency for, Appearance presets. Note hues (`dialog-<hue>`, `prose-<hue>`, picker, shadow, and border utilities) remain per-note colors and are not appearance inputs.
+- [ ] Run the normal `pnpm build` in an environment that permits Turbopack's worker/process behavior, and confirm Serwist generation. The previous successful production compilation used Webpack; do not assume the environment error is an application defect.
+- [ ] Smoke-check the production build on representative desktop and mobile devices: EN/VI, both presets, explicit modes versus the opposite OS preference, System following OS changes, reload persistence, cross-tab updates, keyboard focus, and narrow-screen settings/note/chat geometry. Confirm per-note hues remain independent. Use isolated/local fault checks for global fallbacks; do not deliberately break a shared or production app.
 
-### Phase 2 implementation snapshot
+### Optional product decisions — choose scope before implementation
 
-- **Preferences:** the browser-local Zustand store now persists `mode` (`system`, `light`, or `dark`) and `appearance` (`paper-ink` or `sepia`) under the existing storage key. Version 0 `theme: light|dark` values migrate to the same explicit mode; absent or invalid values fall back to `system` and `paper-ink`. Cross-tab storage events rehydrate the store.
-- **First paint:** an inline bootstrap in the locale root layout reads the same key and applies the appearance and effective color mode before body content paints. Global error and global not-found documents use the same bootstrap helper. The hydrated theme wrapper updates the document root after store rehydration and follows OS color-scheme changes.
-- **Typography:** both presets currently use Inter for UI and Newsreader for default writing presentation. The semantic roles are exposed through `--appearance-font-ui` and `--appearance-font-writing`.
-- **Shape:** `paper-ink` uses 6/8/12/16px for `sm`/`md`/`lg`/`xl` radii. `sepia` uses 8/10/14/20px.
-- **Sepia light inputs:** paper `oklch(0.965 0.022 82)`, raised paper `oklch(0.985 0.012 82)`, ink `oklch(0.245 0.03 55)`, muted ink `oklch(0.42 0.024 55)`, hairline `oklch(0.88 0.022 82)`, accent `oklch(0.49 0.13 62)`.
-- **Sepia dark inputs:** paper `oklch(0.19 0.018 55)`, raised paper `oklch(0.235 0.022 55)`, ink `oklch(0.91 0.016 82)`, muted ink `oklch(0.68 0.022 70)`, hairline `oklch(0.32 0.02 55)`, accent `oklch(0.77 0.12 72)`.
-- Sepia reuses the existing destructive and success inputs. Manually checked primary text pairs are: light ink/paper 14.74:1, muted ink/paper 7.69:1, accent/paper 5.86:1; dark ink/paper 14.16:1, muted ink/paper 6.41:1, accent/paper 8.77:1. Phase 4 still needs broader state and component coverage.
+- [ ] Decide whether preferences should follow a signed-in account across devices. If selected, define local/account precedence, first-login migration, and sign-out behavior before adding persistence changes.
+- [ ] Decide whether browser chrome and iOS splash artwork should follow appearance and effective mode. If selected, define what each supported platform can update and test those behaviors on devices.
+- [ ] Prioritize a header shortcut to Appearance or a richer interactive preview only if they solve a current user need. Current settings selection and compact preview are implemented.
 
-## Contrast and usability checks
+When another preset is requested, follow the existing extension checklist rather than expanding customization controls. Keep completed checks and newly chosen scope current here; leave dated evidence in the archive. A useful opening prompt is: “Read `docs/theme-system.md`, review the pending release checks, and continue the Appearance follow-ups. The foundation is complete.”
 
-For each preset and mode, verify:
+## Archived evidence
 
-- `--ink` on `--paper`: contrast ratio greater than 12:1, matching `DESIGN.md`.
-- `--ink-muted` on `--paper`: at least 4.5:1.
-- Text and controls on `--paper-raised`, including borders and focus indicators, remain distinguishable and usable.
-- Accent, destructive, and success colors are tested in their actual foreground/background combinations. These colors may vary by preset, but must keep their meanings clear and meet applicable contrast requirements.
-- Typography remains readable at supported sizes and locale/script combinations.
-- Shape changes do not clip content, reduce control usability, or break component geometry.
-
-Record tested color pairs and results with each preset review. The two numerical floors do not prove every UI state is usable.
-
-## First preset set
-
-- `paper-ink`: current default appearance, preserving today's values.
-- `sepia`: warm paper, brown-black ink, amber-leaning accent, and a deliberately selected type/shape treatment.
-
-Each preset is a complete, reviewed combination. Add presets deliberately; every one increases design, contrast, typography, and visual QA work in both modes.
-
-## Appearance settings and preview
-
-Add an Appearance section to the user settings page. Users select one complete preset; there are no separate font, shape, or color controls.
-
-Include a compact representative preview in the first release. Each option should show enough examples of its surfaces, type, and shape to make the differences apparent, identify the current selection, and remain usable with keyboard and assistive technology. A full interactive preview can follow later; the initial preview need not reproduce the whole app.
-
-## First-paint behavior
-
-Apply the stored appearance and effective mode before the page is visibly painted, to avoid flashing the default preset or light mode. The pre-paint logic must use the same storage key, migration rules, and unknown-value fallback as the hydrated store.
-
-Keep global error and global not-found documents consistent with the normal application document. Changes to `themeColor` metadata are deferred for the first release unless browser chrome mismatch proves materially confusing; if kept static, document that limitation.
-
-## Compatibility rule
-
-Shared UI must use semantic appearance tokens for colors, typography, and shape. Raw values are acceptable only when intentionally independent of the selected preset (for example, a specific per-note hue) and that exception is clear. Audit existing hard-coded styles as part of implementation rather than assuming the app is already fully tokenized.
-
-## Out of scope
-
-- User-mixed or individually adjustable appearance dimensions.
-- Spacing/density and layout customization.
-- Rich-text font-family formatting for selected text within a note.
-- Seasonal/event decoration (for example, Christmas or Lunar New Year motifs).
-- Account-level preference sync.
-- Per-note hue redesign.
+- [Completed build plan and decisions](archive/theme-system-build-plan-history.md)
+- [Phase 4 measurements, fixes, and coverage limits — 2026-10-21](archive/theme-system-phase4-review-2026-10-21.md)

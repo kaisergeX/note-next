@@ -1,6 +1,10 @@
 import {create} from 'zustand'
 import {persist} from 'zustand/middleware'
-import {isAppearanceId, isAppearanceMode} from '~/lib/appearance'
+import {
+  APPEARANCE_STORAGE_KEY,
+  isAppearanceId,
+  isAppearanceMode,
+} from '~/lib/appearance'
 import type {PersistedStore} from '~/types/store'
 import {createSystemSlice} from './system'
 import {createNoteSlice} from './note'
@@ -28,7 +32,7 @@ export const usePersistStore = create<PersistedStore>()(
       ...createNoteSlice(...store),
     }),
     {
-      name: process.env.SERVICE_NAME ?? 'etoN-app',
+      name: APPEARANCE_STORAGE_KEY,
       version: 1,
       partialize: ({mode, appearance}) => ({mode, appearance}),
       migrate: (persistedState) => {

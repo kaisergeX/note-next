@@ -1,10 +1,15 @@
 'use client'
 
-import '../globals.css'
+import './globals.css'
+
+import {Inter} from 'next/font/google'
+import {useLayoutEffect} from 'react'
 
 import type {ServerError} from '~/types'
-import {createAppearanceBootstrapScript} from '~/lib/appearance'
+import {APPEARANCE_STORAGE_KEY, applyStoredAppearance} from '~/lib/appearance'
 import Button from '~/components/ui/button'
+
+const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
 export default function GlobalError({
   error,
@@ -13,15 +18,14 @@ export default function GlobalError({
   error: ServerError
   reset: () => void
 }) {
-  const appearanceScript = createAppearanceBootstrapScript(
-    process.env.SERVICE_NAME ?? 'etoN-app',
-  )
+  // React renders this fallback on the client after a root-layout failure;
+  // inline scripts are inert there. Apply preferences before the next paint.
+  useLayoutEffect(() => {
+    applyStoredAppearance(APPEARANCE_STORAGE_KEY)
+  }, [])
 
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{__html: appearanceScript}} />
-      </head>
+    <html lang="en" className={inter.variable} suppressHydrationWarning>
       <body className="flex-center bg-paper text-ink h-dvh flex-col gap-4 font-sans">
         <div className="text-center">
           <h1>Something went wrong!</h1>

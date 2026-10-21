@@ -91,7 +91,7 @@ function NoteGalleryPreview({
           <div className="bg-paper-raised border-hairline text-ink-muted absolute -top-2 right-3 z-10 flex items-center gap-1 rounded-lg border p-1 shadow-md">
             <IconBold size={15} />
             <IconItalic size={15} />
-            <span className="text-ink rounded bg-yellow-200 px-1 text-xs font-medium">
+            <span className="text-accent bg-accent/10 rounded px-1 text-xs font-medium">
               <IconHighlight className="inline" size={14} />
             </span>
           </div>

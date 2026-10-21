@@ -1,4 +1,4 @@
-import '../globals.css'
+import './globals.css'
 
 import {IconArrowLeft, IconHome} from '@tabler/icons-react'
 import type {Metadata} from 'next'
@@ -32,9 +32,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 
-const appearanceScript = createAppearanceBootstrapScript(
-  process.env.SERVICE_NAME ?? 'etoN-app',
-)
+const appearanceScript = createAppearanceBootstrapScript()
 
 export default async function GlobalNotFound() {
   const locale = await getLocale()
@@ -43,14 +41,14 @@ export default async function GlobalNotFound() {
   return (
     <html
       lang={locale}
-      className={inter.className}
+      className={inter.variable}
       data-appearance="paper-ink"
       suppressHydrationWarning
     >
       <head>
         <script dangerouslySetInnerHTML={{__html: appearanceScript}} />
       </head>
-      <body className="flex-center bg-paper text-ink h-full flex-col p-4">
+      <body className="flex-center bg-paper text-ink min-h-dvh flex-col p-4 font-sans">
         <div className="divide-hairline mb-8 items-stretch gap-4 max-sm:text-center sm:flex sm:divide-x">
           <h1 className="content-center sm:pr-4">404</h1>
           <h2 className="sm:py-2">This page could not be found.</h2>

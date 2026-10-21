@@ -9,7 +9,7 @@ interface BadgeProps extends ComponentPropsWithRef<'span'> {
 }
 
 const STATUS_CLASSES: Record<BadgeStatus, string> = {
-  draft: 'border-amber-500/40 text-amber-600 dark:text-amber-400',
+  draft: 'border-warning/40 text-warning',
   active: 'border-success/40 text-success',
   archived: 'border-hairline text-ink-muted',
   accent: 'border-accent/40 text-accent',

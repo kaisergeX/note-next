@@ -180,7 +180,7 @@ export default function RunNewForm({personas}: RunNewFormProps) {
           value={script}
           onChange={(e) => setScript(e.target.value)}
           placeholder={t('scriptPlaceholder')}
-          className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           disabled={busy}
         />
         <div className="mt-2 flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function RunNewForm({personas}: RunNewFormProps) {
           onChange={(e) => setContext(e.target.value)}
           placeholder={t('contextPlaceholder')}
           maxLength={2000}
-          className="border-hairline bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent/25 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           disabled={busy}
         />
         <p className="text-ink-muted mt-1 text-xs">{t('contextHint')}</p>

@@ -1,7 +1,9 @@
-# Appearance Presets — Implementation Plan
+# Appearance Presets — Build Plan History
 
-**Status:** Phase 2 complete; Phase 3 is next.  
-**Spec:** [theme-system.md](theme-system.md)
+> Archived on 2026-10-21 after Phases 1–4 completed. This preserves the original planning context, including statements that describe earlier implementation stages. Use [Appearance Presets](../theme-system.md) for the current contract and follow-ups.
+
+**Status:** Phase 4 complete on 2026-10-21; fixes, contrast checks, UI review, and isolated fallback checks passed. See the [review evidence and coverage limits](theme-system-phase4-review-2026-10-21.md).
+**Spec:** [theme-system.md](../theme-system.md)
 
 ## Outcome
 
@@ -11,7 +13,7 @@ Users can select a curated appearance preset in the Appearance settings section.
 
 **Status:** complete.
 
-- **Settings placement:** use the existing user profile settings area. It currently has a `Theme` item with a `#` destination; turn that into the Appearance entry point.
+- **Settings placement:** use the existing user profile settings area. Replace the placeholder Theme card with an Appearance section as the entry point.
 - **Preview:** compact selectable preset cards with a representative surface, interface label, writing sample, and control. A whole-app live preview is deferred.
 - **Persistence:** browser-local Zustand persistence is the first-release assumption; there is no account preference persistence in the current store.
 - **Mode:** preserve light/dark behavior and make system mode explicit as the default preference.
@@ -30,10 +32,10 @@ Users can select a curated appearance preset in the Appearance settings section.
 
 ### Proposed first-preset art direction
 
-| Preset      | Color                                                                           | Typography                                                                            | Shape                                                                   |
-| ----------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| `paper-ink` | Preserve current light/dark values.                                             | Inter UI + Newsreader writing.                                                        | Preserve current 6/8/12/16px radius tokens.                             |
-| `sepia`     | Warm paper, brown-black ink, amber-leaning accent; matching dark values are in `theme-system.md`. | Inter UI + Newsreader writing, shared with `paper-ink` for Phase 2. | Softer, rounder 8/10/14/20px radii. |
+| Preset      | Color                                                                                             | Typography                                                          | Shape                                       |
+| ----------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------- |
+| `paper-ink` | Preserve current light/dark values.                                                               | Inter UI + Newsreader writing.                                      | Preserve current 6/8/12/16px radius tokens. |
+| `sepia`     | Warm paper, brown-black ink, amber-leaning accent; matching dark values are in `theme-system.md`. | Inter UI + Newsreader writing, shared with `paper-ink` for Phase 2. | Softer, rounder 8/10/14/20px radii.         |
 
 The Phase 2 palette values are recorded in `theme-system.md`. Review them in the preset preview and complete broader contrast coverage in Phase 4.
 
@@ -55,7 +57,7 @@ The Phase 2 palette values are recorded in `theme-system.md`. Review them in the
 
 ## Phase 3: Add Appearance selection and preview
 
-**Status:** not started.
+**Status:** complete; owner visual approval and UI reviewer QA passed on 2026-10-21.
 
 - Add an Appearance section to the user settings page.
 - Present each complete preset as one selectable option; do not expose separate color, font, or shape controls.
@@ -63,11 +65,17 @@ The Phase 2 palette values are recorded in `theme-system.md`. Review them in the
 - Clearly identify the selected preset and support keyboard use and accessible labels/state.
 - Keep color mode controls independent from preset selection.
 
-**Exit condition:** users can understand the preset differences from the preview, select one, and see that mode and appearance are independent.
+**Exit condition:** met. Selector, independent mode controls, and the shared preview are implemented. Owner visual approval and UI reviewer QA passed on 2026-10-21.
+
+**Implementation notes:** A compact preset list sits beside one larger shared preview, stacking above it on narrow screens. The preview includes a quiet etoN header, a neutral note editor with a floating bold/italic/highlight toolbar matching the homepage note preview, serif writing, an accent link, and saved feedback; a separate conversation shows user/assistant bubbles, a message input, and a primary Send button. Preview buttons are real focusable controls with hover/press/focus feedback but no action handlers; the input accepts local sample text. Selecting a preset immediately updates the app and preview; color mode remains independent. Preset labels and selection indicators use the surrounding settings appearance. The note sample uses neutral appearance surfaces so per-note hues do not obscure the palette comparison. English and Vietnamese copy are updated. System mode includes the device's current light/dark mode. Previous visual review evidence applies to earlier designs; the owner approved this redesign on 2026-10-21 and UI reviewer QA passed after the message field height fix. Broader app coverage remains in Phase 4.
+
+**Phase 3 review evidence (2026-10-21):** UI reviewer checked `/en/user#appearance` and `/vi/user#appearance` at 1440px, 768px, and 390px, with Paper & Ink and Sepia in light/dark modes and System following OS preference. No Appearance overflow, text contrast failures, missing input labels, or heading skips were found. Keyboard focus and sample button hover/click behavior passed. The sole required fix increased the message input from 38px to 40px. Targeted mobile re-review passed in both locales: the composer fits, typing works, and Send preserves text without performing an action. Toolbar controls have 40px effective touch targets via the shared coarse-pointer expansion. TypeScript, lint, Webpack production build, and Serwist generation pass; the default Turbopack build remains blocked by the environment's process/port permission error. This evidence covers the selector and preview only; Phase 4 remains outstanding.
 
 ## Phase 4: Validate visual and accessibility coverage
 
-**Status:** not started.
+**Status:** complete on 2026-10-21; required appearance contrast, typography, geometry, and representative UI checks pass. Coverage methods and limits are documented in the review record.
+
+**Evidence:** [Phase 4 review record](theme-system-phase4-review-2026-10-21.md).
 
 - Review representative app, note, and AI pages for each preset in both modes.
 - Review dialogs, menus, inputs, disabled controls, selection/focus states, and success/destructive feedback.
@@ -78,7 +86,7 @@ The Phase 2 palette values are recorded in `theme-system.md`. Review them in the
 - Check global error and not-found rendering with every preset and mode.
 - Check narrow viewport and keyboard interaction for the selector and preview.
 
-**Exit condition:** required color pairs pass, readability and geometry are acceptable, preset-specific regressions are resolved, and documented exceptions are intentional.
+**Exit condition:** met. Required color pairs pass, readability and geometry are acceptable, preset regressions are resolved, and documented exceptions are intentional. Fixes cover semantic warning/status colors, control boundaries/focus, neutral prose/placeholders, slider targets, a shared preference key, and global fallback registration/client initialization. Root-layout faults and temporary app fixtures have been removed.
 
 ## First-release acceptance criteria
 
