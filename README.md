@@ -15,23 +15,24 @@
 - [ ] Note: Encrypt contents.
 - [ ] Note: Recover notes that scheduled for deletion.
 - [x] System: PWA supported.
-- [ ] Preferences: Account
+- [ ] Settings: Account
   - [ ] Delete account.
   - [ ] Delete all notes.
-- [ ] Preferences: Note
+- [ ] Settings: Note
   - [ ] Autosave (interval).
   - [x] Commands Menu type (fixed, or bubble & floating).
   - [x] Theme.
 - [ ] Note: Drawable Mode,
 - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.
 - [ ] Note: Link to others.
-- [ ] Landing page.
-- [ ] Preferences: Note - Option to disable modal view and always show full-size notes.[^1]
+- [x] Landing page.
+- [ ] Settings: Note - Option to disable modal view and always show full-size notes.[^1]
 - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
-- [ ] Preferences: Theme.[^3]
-  - [ ] Theme editor & preview - Constantly update new themes.
+- [x] Settings: [Appearance presets, color modes, and interactive preview](docs/theme-system.md).
+- [ ] Settings: Advanced theme customization and seasonal artwork (separate scope).[^3]
 - [ ] Integrate/Link with other apps in the ecosystems.
 - [ ] Replace the old version.
+
 </details>
 
 ## Engines Requirements
@@ -98,4 +99,4 @@ pnpm lint
 
 [^2]: Unlock theme materials and games via the achievement system.
 
-[^3]: Free and allow customizing fonts, theme colors, illustrations, icons, or just choose a seasonal theme. Retro and 2D platforming game theme in progress.
+[^3]: Individual font/color editors, illustrations/icons, seasonal decoration, and retro/game presets.
