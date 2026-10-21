@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import {runInNewContext} from 'node:vm'
 import {
   APPEARANCE_STORAGE_KEY,
+  APPEARANCE_IDS,
   createAppearanceBootstrapScript,
 } from '../lib/appearance'
 import {usePersistStore} from '../store'
@@ -33,7 +34,7 @@ function bootstrap(raw: string | null, osDark = false, storageThrows = false) {
   return {appearance: root.dataset.appearance, dark: classes.has('dark')}
 }
 
-for (const appearance of ['paper-ink', 'sepia']) {
+for (const appearance of APPEARANCE_IDS) {
   for (const mode of ['light', 'dark', 'system']) {
     for (const osDark of [false, true]) {
       assert.deepEqual(
@@ -87,6 +88,17 @@ const merged = options.merge?.(
 )
 assert.equal(merged?.appearance, 'paper-ink')
 assert.equal(merged?.mode, 'system')
+for (const appearance of APPEARANCE_IDS) {
+  assert.equal(
+    options.merge?.({appearance, mode: 'dark'}, usePersistStore.getState())
+      .appearance,
+    appearance,
+  )
+  assert.deepEqual(options.migrate?.({appearance, mode: 'light'}, 0), {
+    appearance,
+    mode: 'light',
+  })
+}
 console.log(
-  'Appearance bootstrap: 25 preference cases plus store key, migration, and invalid-value checks passed.',
+  `Appearance bootstrap: ${APPEARANCE_IDS.length * 6 + 13} preference cases plus store key, migration, and invalid-value checks passed.`,
 )

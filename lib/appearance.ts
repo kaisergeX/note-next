@@ -1,7 +1,12 @@
 // Preserve the browser store's existing key, independent of server-only branding.
 export const APPEARANCE_STORAGE_KEY = 'etoN-app'
 
-export const APPEARANCE_IDS = ['paper-ink', 'sepia'] as const
+export const APPEARANCE_IDS = [
+  'paper-ink',
+  'sepia',
+  'midnight',
+  'bookish',
+] as const
 
 export type AppearanceId = (typeof APPEARANCE_IDS)[number]
 export type AppearanceMode = 'system' | 'light' | 'dark'
@@ -22,7 +27,10 @@ export function applyStoredAppearance(storageKey: string) {
     const saved = raw ? JSON.parse(raw) : null
     const state = saved?.state || {}
     const appearance =
-      state.appearance === 'sepia' || state.appearance === 'paper-ink'
+      state.appearance === 'sepia' ||
+      state.appearance === 'paper-ink' ||
+      state.appearance === 'midnight' ||
+      state.appearance === 'bookish'
         ? state.appearance
         : 'paper-ink'
     let mode = state.mode

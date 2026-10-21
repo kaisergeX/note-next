@@ -246,7 +246,7 @@ Rules:
 
 ## Typography
 
-Two families, strictly separated:
+Two font roles, strictly separated. The following families and type scale describe the default Paper & Ink preset; Sepia and Midnight use the same pair. Bookish uses Source Sans 3 for UI and Literata for writing, with the same sizes and weights.
 
 - **Inter** — all UI chrome: buttons, forms, menus, nav, meta, chat. Loaded via `next/font`.
 - **Newsreader** (Google Fonts, variable, optical sizing) — the voice of writing: note titles, note prose, note-card previews, marketing display text. This pairing is the identity; serif means "you are reading/writing".
@@ -265,7 +265,7 @@ Two families, strictly separated:
 | body-xs       | Inter      | 0.75rem / 400           | meta, pills, counters               |
 | label-md      | Inter      | 0.875rem / 600          | buttons, menu items, inputs' labels |
 
-Prose measure: cap writing surfaces at ~70ch, centered in their container. Weights in use: Inter 400/500/600/700; Newsreader 400/500/600 (+ italic for quotes/em). No third family, no all-caps eyebrows, no tracked-out labels.
+Prose measure: cap writing surfaces at ~70ch, centered in their container. Weights in use: UI 400/500/600/700; writing 400/500/600 (+ italic for quotes/em). Each preset uses one UI family and one writing family; no all-caps eyebrows or tracked-out labels.
 
 ## Layout
 
@@ -321,7 +321,7 @@ Do:
 
 - Reach for paper/paper-raised/ink/hairline tokens first; hue pastels only for note surfaces.
 - Pair every light token with its dark mirror; test both modes.
-- Reserve serif for writing surfaces; if it's chrome, it's Inter.
+- Reserve serif for writing surfaces; chrome uses the preset's UI family.
 - Use accent for attention (links, focus, selection, active), ink for action (primary buttons).
 - Keep elevation rare: flat cards, lifted sheets.
 - Cap prose at ~70ch.
@@ -329,7 +329,7 @@ Do:
 
 Don't:
 
-- Don't add a third font family, all-caps eyebrows, or tracked-out labels.
+- Don't mix additional font families within a preset or add all-caps eyebrows or tracked-out labels.
 - Don't put accent color on large surfaces or primary button fills.
 - Don't use pure black/white or pure gray — neutrals always carry the paper/ink tint.
 - Don't stack shadows on flat cards; lift only floating things.
@@ -380,6 +380,8 @@ Commitments for the custom-primitives stack (no component library):
 
 For preference behavior, preset extension rules, validation, and deferred work, see [Appearance Presets](docs/theme-system.md).
 
-Paper & Ink and Sepia share UI/writing font roles and change semantic color/radius values. Form controls use `border-control-border`; decorative card, menu, and sheet dividers retain `border-hairline`. Warning is a separate semantic status color even where Sepia's accent is amber.
+Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight uses cool paper/charcoal neutrals and a quiet blue accent. Bookish pairs Source Sans 3 UI with Literata writing, pale sage paper, and an evergreen accent; its dark palette is deep green-black. Every preset supplies light/dark colors and preserves the UI/writing roles. Shape remains 6/8/12/16px except Sepia's 8/10/14/20px. Optional Bookish fonts are self-hosted through `next/font`, support Vietnamese, and are not preloaded for other presets.
 
-Per-note hue surfaces, prose palettes, picker swatches, and hue shadows intentionally keep their own colorways. Pills/circles (`rounded-full`), squared chat tails/menu rows, and the large pill composer (`rounded-4xl`, including its orbit animation path) keep functional geometry across presets. Code remains monospace. Image/logo inversion is an asset treatment. Browser `themeColor` metadata and iOS splash artwork remain static first-release limitations.
+Form controls use `border-control-border`; decorative card, menu, and sheet dividers retain `border-hairline`. Warning remains a separate semantic status role across presets.
+
+Per-note hue surfaces, prose palettes, picker swatches, and hue shadows intentionally keep their own colorways. Pills/circles (`rounded-full`), squared chat tails/menu rows, and the large pill composer (`rounded-4xl`, including its orbit animation path) keep functional geometry across presets. Code remains monospace. Image/logo inversion is an asset treatment. Browser `theme-color` follows the effective paper background; iOS splash artwork remains static.

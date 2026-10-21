@@ -3,7 +3,7 @@ import './globals.css'
 import {IconArrowLeft, IconHome} from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import {getLocale, getTranslations} from 'next-intl/server'
-import {Inter} from 'next/font/google'
+import {appearanceFontVariables} from '~/lib/appearance-fonts'
 import {createAppearanceBootstrapScript} from '~/lib/appearance'
 import LinkButton from '~/components/ui/link-button'
 import GoBackButton from '~/components/navigation/go-back-button'
@@ -30,8 +30,6 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
-
 const appearanceScript = createAppearanceBootstrapScript()
 
 export default async function GlobalNotFound() {
@@ -41,7 +39,7 @@ export default async function GlobalNotFound() {
   return (
     <html
       lang={locale}
-      className={inter.variable}
+      className={appearanceFontVariables}
       data-appearance="paper-ink"
       suppressHydrationWarning
     >

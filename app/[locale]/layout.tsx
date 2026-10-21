@@ -1,10 +1,7 @@
 import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
-import {classNames} from '@kaiverse/k/utils'
 import type {Metadata, Viewport} from 'next'
 import {getLocale, getTranslations} from 'next-intl/server'
-import {Inter} from 'next/font/google'
-import {Newsreader} from 'next/font/google'
 import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
 import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
@@ -12,6 +9,7 @@ import ProviderWrapper from '~/components/layouts/provider-wrapper'
 import ScrollTopButton from '~/components/layouts/scroll-top-button'
 import ThemeWrapper from '~/components/layouts/theme-wrapper'
 import {createAppearanceBootstrapScript} from '~/lib/appearance'
+import {appearanceFontVariables} from '~/lib/appearance-fonts'
 import IosSplashLinks from '~/components/ui/ios-splash-screen'
 import {localeRouting} from '~/i18n/routing'
 import '../globals.css'
@@ -50,14 +48,6 @@ export function generateStaticParams() {
   return localeRouting.locales.map((locale) => ({locale}))
 }
 
-const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
-const newsreader = Newsreader({
-  variable: '--font-newsreader',
-  subsets: ['latin'],
-  style: ['normal', 'italic'],
-  axes: ['opsz'],
-})
-
 const appearanceScript = createAppearanceBootstrapScript()
 
 export default async function LocaleLayout({
@@ -71,7 +61,7 @@ export default async function LocaleLayout({
   return (
     <html
       lang={locale}
-      className={classNames(inter.variable, newsreader.variable)}
+      className={appearanceFontVariables}
       data-appearance="paper-ink"
       data-scroll-behavior="smooth"
       suppressHydrationWarning

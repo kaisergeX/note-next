@@ -1,6 +1,7 @@
 import {readFileSync} from 'node:fs'
 import assert from 'node:assert/strict'
 import postcss from 'postcss'
+import {APPEARANCE_IDS} from '../lib/appearance'
 
 // Run with `node --import tsx scripts/appearance-contrast.ts`. Read the shipped tokens,
 // interpolate in Oklab, clip to sRGB, then apply WCAG relative luminance.
@@ -8,8 +9,10 @@ const css = postcss.parse(readFileSync('app/globals.css', 'utf8'))
 const selectors = [
   ':root',
   '.dark',
-  "html[data-appearance='sepia']",
-  "html.dark[data-appearance='sepia']",
+  ...APPEARANCE_IDS.filter((id) => id !== 'paper-ink').flatMap((id) => [
+    `html[data-appearance='${id}']`,
+    `html.dark[data-appearance='${id}']`,
+  ]),
 ]
 const palettes = new Map<string, Record<string, string>>()
 css.walkRules((rule) => {
@@ -81,14 +84,26 @@ const pairs: [string, string, number][] = [
   ['control-border', 'paper-raised', 3],
 ]
 const results: string[][] = []
-for (const appearance of ['paper-ink', 'sepia']) {
+for (const appearance of APPEARANCE_IDS) {
   for (const mode of ['light', 'dark']) {
+    const presetSelector = `html[data-appearance='${appearance}']`
+    const darkPresetSelector = `html.dark[data-appearance='${appearance}']`
+    if (appearance !== 'paper-ink') {
+      assert(
+        palettes.has(presetSelector),
+        `Missing ${appearance} light palette`,
+      )
+      assert(
+        palettes.has(darkPresetSelector),
+        `Missing ${appearance} dark palette`,
+      )
+    }
     const tokens = {
       ...palettes.get(':root'),
       ...(mode === 'dark' ? palettes.get('.dark') : {}),
-      ...(appearance === 'sepia' ? palettes.get(selectors[2]) : {}),
-      ...(appearance === 'sepia' && mode === 'dark'
-        ? palettes.get(selectors[3])
+      ...(appearance !== 'paper-ink' ? palettes.get(presetSelector) : {}),
+      ...(appearance !== 'paper-ink' && mode === 'dark'
+        ? palettes.get(darkPresetSelector)
         : {}),
     }
     results.push(
@@ -106,9 +121,11 @@ for (const appearance of ['paper-ink', 'sepia']) {
   }
 }
 console.log(
-  '| Foreground / background | Minimum | Paper light | Paper dark | Sepia light | Sepia dark |',
+  `| Foreground / background | Minimum | ${APPEARANCE_IDS.flatMap((id) => [`${id} light`, `${id} dark`]).join(' | ')} |`,
 )
-console.log('| --- | ---: | ---: | ---: | ---: | ---: |')
+console.log(
+  `| --- | ---: | ${APPEARANCE_IDS.flatMap(() => ['---:', '---:']).join(' | ')} |`,
+)
 pairs.forEach(([fg, bg, minimum], i) =>
   console.log(
     `| ${fg} / ${bg} | ${minimum}:1 | ${results.map((r) => `${r[i]}:1`).join(' | ')} |`,
