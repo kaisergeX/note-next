@@ -20,7 +20,7 @@ colors:
   success: 'oklch(0.45 0.13 155)'
   success-dark: 'oklch(0.72 0.13 152)'
   theme-color: 'oklch(0.972 0.006 90)'
-  theme-color-dark: 'oklch(0.175 0.012 270)'
+  theme-color-dark: 'oklch(0.185 0.012 270)'
   primary: '{colors.ink}'
   secondary: '{colors.accent}'
   note-card-bg: '#f1f5f9'
@@ -222,19 +222,19 @@ Boldness is spent in exactly one place: the writing surface (serif prose, genero
 
 Two modes, fully mirrored. Neutrals are warm-cool "laid paper" (slightly warm light mode, blue-black-tinted dark mode) — deliberately NOT cream, NOT pure gray.
 
-| Token          | Light           | Dark                   | Usage                                                                       |
-| -------------- | --------------- | ---------------------- | --------------------------------------------------------------------------- |
-| paper          | warm off-white  | deep blue-black        | page background                                                             |
-| paper-raised   | +1 step lighter | +1 step lighter        | cards, inputs, menus, dialogs — anything that sits ON paper                 |
-| ink            | blue-black      | warm white             | all primary text                                                            |
-| ink-muted      | mid blue-gray   | mid gray               | secondary text, placeholders, meta                                          |
-| hairline       | warm gray line  | dark line              | 1px borders everywhere; never black borders                                 |
-| accent         | deep blue       | light blue             | links, focus rings, active/selection states, brand marks — NOT button fills |
-| danger         | deep crimson    | brighter red           | destructive text/borders; hover fill uses white text                        |
-| warning        | deep amber      | light amber            | draft status text; shared by both initial presets                           |
-| control-border | ink/paper mix   | ink/paper mix          | form-control boundaries, 3:1 minimum against paper surfaces                 |
-| success        | deep green      | brighter green         | sync/check states                                                           |
-| theme-color    | = paper         | darker than paper-dark | browser chrome, iOS splash                                                  |
+| Token          | Light           | Dark            | Usage                                                                       |
+| -------------- | --------------- | --------------- | --------------------------------------------------------------------------- |
+| paper          | warm off-white  | deep blue-black | page background                                                             |
+| paper-raised   | +1 step lighter | +1 step lighter | cards, inputs, menus, dialogs — anything that sits ON paper                 |
+| ink            | blue-black      | warm white      | all primary text                                                            |
+| ink-muted      | mid blue-gray   | mid gray        | secondary text, placeholders, meta                                          |
+| hairline       | warm gray line  | dark line       | 1px borders everywhere; never black borders                                 |
+| accent         | deep blue       | light blue      | links, focus rings, active/selection states, brand marks — NOT button fills |
+| danger         | deep crimson    | brighter red    | destructive text/borders; hover fill uses white text                        |
+| warning        | deep amber      | light amber     | draft status text; shared by both initial presets                           |
+| control-border | ink/paper mix   | ink/paper mix   | form-control boundaries, 3:1 minimum against paper surfaces                 |
+| success        | deep green      | brighter green  | sync/check states                                                           |
+| theme-color    | = paper         | = paper-dark    | suggested browser chrome color; iOS splash artwork remains static           |
 
 Rules:
 

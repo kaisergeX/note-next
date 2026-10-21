@@ -20,7 +20,7 @@ function bootstrap(raw: string | null, osDark = false, storageThrows = false) {
     },
   }
   runInNewContext(createAppearanceBootstrapScript(), {
-    document: {documentElement: root},
+    document: {documentElement: root, querySelectorAll: () => []},
     localStorage: {
       getItem: (key: string) => {
         assert.equal(key, APPEARANCE_STORAGE_KEY)

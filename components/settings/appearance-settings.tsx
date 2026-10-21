@@ -57,10 +57,10 @@ export default function AppearanceSettings() {
         <p className="text-ink-muted mt-1 text-sm">{t('description')}</p>
       </div>
 
-      <div className="mt-5 flex max-w-4xl flex-col gap-6 md:flex-row md:items-start">
-        <fieldset className="min-w-0 md:w-56 md:shrink-0">
+      <div className="mt-5 flex max-w-4xl flex-col gap-6 xl:flex-row xl:items-start">
+        <fieldset className="min-w-0 xl:w-56 xl:shrink-0">
           <legend className="mb-3 text-sm font-semibold">{t('presets')}</legend>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-1">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
             {appearances.map((id) => (
               <label key={id} className="min-w-0 cursor-pointer">
                 <input
@@ -135,7 +135,7 @@ export default function AppearanceSettings() {
                       variant="ghost"
                       size="sm"
                       aria-label={t('previewBold')}
-                      className="size-8 rounded-sm p-0"
+                      className="size-10 rounded-sm p-0"
                     >
                       <IconBold size={15} aria-hidden />
                     </Button>
@@ -143,7 +143,7 @@ export default function AppearanceSettings() {
                       variant="ghost"
                       size="sm"
                       aria-label={t('previewItalic')}
-                      className="size-8 rounded-sm p-0"
+                      className="size-10 rounded-sm p-0"
                     >
                       <IconItalic size={15} aria-hidden />
                     </Button>
@@ -151,7 +151,7 @@ export default function AppearanceSettings() {
                       variant="ghost"
                       size="sm"
                       aria-label={t('previewHighlight')}
-                      className="bg-accent/10 text-accent size-8 rounded-sm p-0"
+                      className="bg-accent/10 text-accent size-10 rounded-sm p-0"
                     >
                       <IconHighlight size={15} aria-hidden />
                     </Button>

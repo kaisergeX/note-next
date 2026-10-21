@@ -101,6 +101,7 @@ export default async function LocaleLayout({
                     closeMainMenu: tNavigation('closeMainMenu'),
                     languageSwitch: tNavigation('languageSwitch'),
                     login: tLandingNavigation('login'),
+                    settings: tNavigation('settings'),
                   }}
                 />
               </Suspense>

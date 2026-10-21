@@ -49,5 +49,45 @@ export function applyStoredAppearance(storageKey: string) {
 }
 
 export function createAppearanceBootstrapScript() {
-  return `(${applyStoredAppearance.toString()})(${JSON.stringify(APPEARANCE_STORAGE_KEY)})`
+  return `(${applyStoredAppearance.toString()})(${JSON.stringify(APPEARANCE_STORAGE_KEY)});(${syncBrowserThemeColor.toString()})()`
+}
+
+// Self-contained because this also runs in the pre-paint bootstrap script.
+// Convert the CSS palette to sRGB for browsers whose metadata parser does not
+// accept modern CSS color syntax. CSS remains the only palette source.
+export function syncBrowserThemeColor() {
+  const metas = document.querySelectorAll<HTMLMetaElement>(
+    'meta[name="theme-color"]',
+  )
+  if (!metas.length) return
+  const paper = getComputedStyle(document.documentElement)
+    .getPropertyValue('--paper')
+    .trim()
+  if (!paper) return
+  const canvas = document.createElement('canvas')
+  canvas.width = canvas.height = 1
+  const context = canvas.getContext('2d')
+  if (!context) return
+  context.fillStyle = paper
+  context.fillRect(0, 0, 1, 1)
+  const [r, g, b] = context.getImageData(0, 0, 1, 1).data
+  // React matches hoisted meta tags by their exact content (not their media or
+  // data attributes). Use RGB syntax to keep this runtime-owned tag distinct
+  // from the hex-valued viewport fallbacks, even when the colors are identical.
+  const color = `rgb(${r}, ${g}, ${b})`
+  // Leave React's server metadata intact so hydration can match those tags.
+  // The first matching theme-color wins: this runtime-owned override precedes
+  // the OS-based fallbacks and can be recreated after head reconciliation.
+  let meta = document.querySelector<HTMLMetaElement>(
+    'meta[data-appearance-theme-color]',
+  )
+  if (!meta) {
+    meta = document.createElement('meta')
+    meta.name = 'theme-color'
+    meta.dataset.appearanceThemeColor = ''
+  }
+  if (meta.content !== color) meta.content = color
+  if (document.querySelector('meta[name="theme-color"]') !== meta) {
+    document.head.prepend(meta)
+  }
 }

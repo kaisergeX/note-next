@@ -8,7 +8,8 @@
       "switchTheme": "Chuyển chủ đề màu sắc",
       "languageSwitch": "Đổi ngôn ngữ",
       "openMainMenu": "Mở menu chính",
-      "closeMainMenu": "Đóng menu chính"
+      "closeMainMenu": "Đóng menu chính",
+      "settings": "Cài đặt"
     },
     "error": {
       "sthWrong": "Có gì đó sai sai!"
@@ -67,6 +68,24 @@
       "previewChat": "Trò chuyện",
       "previewMessage": "Viết tin nhắn…",
       "previewSend": "Gửi"
+    },
+    "settings": {
+      "title": "Cài đặt",
+      "navigation": "Các mục cài đặt",
+      "account": "Tài khoản",
+      "appearance": "Giao diện",
+      "accountDescription": "Thông tin và các thao tác với tài khoản của bạn.",
+      "avatar": "Ảnh đại diện tài khoản",
+      "name": "Tên",
+      "email": "Email",
+      "accountActions": "Thao tác tài khoản",
+      "actionsUnavailable": "Các thao tác này hiện chưa khả dụng.",
+      "removeNotes": "Xóa tất cả ghi chú",
+      "deleteAccount": "Xóa tài khoản",
+      "roles": {
+        "archivist": "Quản trị viên",
+        "note-taker": "Người ghi chú"
+      }
     }
   },
   "admin": {
