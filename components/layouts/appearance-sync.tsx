@@ -1,6 +1,5 @@
 'use client'
 
-import {useSession} from 'next-auth/react'
 import {useEffect} from 'react'
 import {
   isAppearancePreference,
@@ -12,14 +11,11 @@ import {
   type AppearanceCache,
 } from '~/lib/appearance-sync'
 import {usePersistStore} from '~/store'
+import {useAppearanceAccount} from './use-appearance-account'
 
 export default function AppearanceSync() {
-  const {data: session, status} = useSession()
   const hydrated = usePersistStore((state) => state.hasHydrated)
-  const account =
-    status === 'authenticated' && !session?.error
-      ? session?.user.email
-      : undefined
+  const account = useAppearanceAccount()
 
   useEffect(() => {
     // Even transient setState calls run the persist middleware. Wait until
