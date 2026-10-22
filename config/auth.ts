@@ -20,7 +20,7 @@ const protectedRoutes = [
   ...protectedAPIRoutes,
   '/eton(/(.*))*',
   '/user(/(.*))*',
-  '/settings(/(.*))*',
+  '/settings/account(/(.*))*',
 ]
 
 /**

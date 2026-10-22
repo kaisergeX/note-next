@@ -92,6 +92,7 @@ export default async function LocaleLayout({
                     languageSwitch: tNavigation('languageSwitch'),
                     login: tLandingNavigation('login'),
                     settings: tNavigation('settings'),
+                    appearance: t('user.appearance.title'),
                   }}
                 />
               </Suspense>

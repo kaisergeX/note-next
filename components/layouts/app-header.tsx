@@ -11,6 +11,7 @@ import {
   IconSun,
   IconUser,
   IconSettings,
+  IconPalette,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useSession} from 'next-auth/react'
@@ -35,6 +36,7 @@ type NavProps = {
     languageSwitch: string
     login: string
     settings: string
+    appearance: string
   }
 }
 
@@ -235,6 +237,17 @@ export default function AppHeader({
             className="text-ink-muted hover:text-ink focus-visible:outline-accent inline-flex min-h-11 items-center justify-center rounded-md px-2 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
           >
             {navigationLabels.login}
+          </Link>
+        )}
+
+        {!isAuthenticated && (
+          <Link
+            href={`/${locale}/settings/appearance`}
+            className={buttonClass({variant: 'ghost', iconOnly: true})}
+            aria-label={navigationLabels.appearance}
+            title={navigationLabels.appearance}
+          >
+            <IconPalette aria-hidden />
           </Link>
         )}
 

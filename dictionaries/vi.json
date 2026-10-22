@@ -36,6 +36,13 @@
     "appearance": {
       "title": "Giao diện",
       "description": "Chọn diện mạo cho etoN. Màu ghi chú vẫn độc lập.",
+      "sync": {
+        "local": "Đã lưu trong trình duyệt này. Đăng nhập để đồng bộ giữa các thiết bị.",
+        "syncing": "Đang đồng bộ giao diện…",
+        "synced": "Đã lưu giao diện vào tài khoản.",
+        "offline": "Đang ngoại tuyến. Thay đổi được giữ trên thiết bị và sẽ đồng bộ khi có kết nối.",
+        "error": "Chưa thể đồng bộ. Lựa chọn được giữ trên thiết bị và sẽ được thử đồng bộ lại."
+      },
       "presets": "Phong cách",
       "names": {
         "paper-ink": "Giấy & Mực",

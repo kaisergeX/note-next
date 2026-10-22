@@ -36,6 +36,13 @@
     "appearance": {
       "title": "Appearance",
       "description": "Choose how etoN looks. Note colors stay independent.",
+      "sync": {
+        "local": "Saved in this browser. Sign in to sync across devices.",
+        "syncing": "Syncing appearance…",
+        "synced": "Appearance saved to your account.",
+        "offline": "Offline. Changes stay on this device and sync when connected.",
+        "error": "Couldn’t sync. Your choice is kept on this device; we’ll retry."
+      },
       "presets": "Presets",
       "names": {
         "paper-ink": "Paper & Ink",

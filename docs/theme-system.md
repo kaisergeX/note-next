@@ -1,12 +1,12 @@
 # Appearance Presets
 
-**Status:** complete as of 2026-10-21: four presets, Settings navigation, browser color matching, and an interactive preview. This is the current feature contract; [DESIGN.md](../DESIGN.md) defines the visual rules. Earlier planning and audit records are linked below.
+**Status:** updated 2026-10-22: four presets, Settings navigation, browser color matching, and an interactive preview. This is the current feature contract; [DESIGN.md](../DESIGN.md) defines the visual rules. Earlier planning and audit records are linked below.
 
 ## User behavior
 
-- Appearance lives at `/[locale]/settings/appearance`, alongside `/[locale]/settings/account`. The desktop user menu and mobile drawer link to Settings. `/[locale]/settings` opens Account; legacy `/[locale]/user` and `/[locale]/user#appearance` links redirect to the matching section. Users select a complete preset; color mode (`system`, `light`, or `dark`) is independent. Defaults are `paper-ink` and `system`.
+- Appearance lives at `/[locale]/settings/appearance`, alongside `/[locale]/settings/account`. Guests can open Appearance from the header palette link; the desktop user menu and mobile drawer link to Settings. Account remains sign-in-only, and guests do not see its navigation item. `/[locale]/settings` opens Appearance; legacy `/[locale]/user` and `/[locale]/user#appearance` links redirect to the matching section. Users select a complete preset; color mode (`system`, `light`, or `dark`) is independent. Defaults are `paper-ink` and `system`.
 - Available presets are **Paper & Ink**, **Sepia**, **Midnight**, and **Bookish**. Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight adds cool light paper and charcoal dark surfaces with a quiet blue accent. Bookish uses Source Sans 3 UI and Literata writing on sage/evergreen palettes. Radii are 6/8/12/16px except Sepia's 8/10/14/20px. Exact colors live in [app/globals.css](../app/globals.css).
-- Preset and mode persist in this browser and synchronize across tabs. System mode follows OS changes in the normal app. Account/device synchronization is not implemented.
+- Guests persist preset and mode in this browser. Signed-in users synchronize both with their account. An existing account preference wins on sign-in; if none exists, the current browser choice initializes it atomically without overwriting another device. System mode follows each device’s OS setting. Sign-out retains the current appearance locally.
 - Browser `theme-color` follows the effective paper background, including explicit mode overrides and Sepia. This is a suggested browser UI color; its visible effect depends on browser/platform support. iOS splash artwork remains static.
 - Selection updates the app and shared preview immediately. The preview has Form, Conversation, and Controls tabs: edit a sample title/body, toggle whole-body bold/italic/highlight, send a local message with a simulated reply/Stop state, and try validation/loading/success/disabled controls and status badges. Preview edits are temporary and remain while comparing presets, modes, or tabs; Reset clears all examples without changing appearance preferences. EN/VI labels and keyboard tab/radio navigation are supported.
 - Per-note hues remain independent. Appearance does not expose individual font/color/shape settings, change note formatting, or add spacing/density presets.
@@ -25,6 +25,15 @@
 - [appearance-fonts.ts](../lib/appearance-fonts.ts) supplies shared font variables for the locale document and standalone global fallbacks. Bookish fonts include Vietnamese and use `preload: false` so their files load when selected rather than being preloaded for all presets. Font choices remain part of the preset, not per-note formatting.
 - [AppearancePreview](../components/settings/appearance-preview.tsx) owns only local demo state. It does not save notes, persist demo text, or call AI endpoints. Tabs retain their examples; Reset remounts the examples and cleans up pending reply/save timers. The chat keeps two seed messages and at most four recent demo messages. FormPreview shows standard title/body fields with whole-body sample formatting; it does not represent the rich-text editor used in real notes.
 
+### Account synchronization
+
+- `user_appearance` stores one preset/mode pair per user, with a cascading foreign key and database checks. Apply the generated migration before deploying this feature.
+- `/api/user/appearance` authenticates every read/write, validates account identity and preference values, rejects cross-origin writes, and returns private/no-store responses. The service worker uses NetworkOnly for this endpoint.
+- `AppearanceSync` runs inside SessionProvider, after browser-store hydration. It immediately uses a per-account local cache and then reconciles with the server. Pending edits survive reloads in `etoN-appearance-account:<email>` and never transfer to another account. Local preference actions increment a transient change counter; storage rehydration and remote updates do not create write loops.
+- Local changes apply immediately. Writes are serialized and a late response cannot clear newer pending edits. Failed/offline writes retry on reconnect, focus, visibility, or the visible-page 60-second interval. Fresh remote reads never replace pending local edits. Once reconnected, the last accepted explicit save wins; concurrent edits are not merged.
+- Other devices refresh on focus and while visible every 60 seconds. This is periodic synchronization, not a realtime subscription. Guest edits make no account API calls. Local caching is best-effort if browser storage is disabled; in that case pending edits cannot survive a reload.
+- Appearance shows localized device/account/offline/retry status. Requests are aborted on session changes and verify the expected account on both sides.
+
 ### Tokens and rendering
 
 Components consume semantic tokens through `@theme inline`; do not add component-specific preset branches. Unknown appearance IDs render Paper & Ink. Root selectors are `:root` for the default, `html[data-appearance='<id>']` for other presets, and `.dark`/`html.dark[data-appearance='<id>']` for effective dark mode. Keep matching `.appearance-preview` selectors consistent with the document palette.
@@ -41,11 +50,17 @@ Neutral prose uses `prose-appearance`; colored notes keep `prose-<hue>`. Editor 
 
 Intentional exceptions are per-note hue palettes/swatches/shadows, monospace code, asset inversion, pill/circle shapes, square menu rows/chat-tail corners, and the large pill chat composer with its matching animation path. These do not become separate appearance controls.
 
+### Verification
+
+- `node --import tsx --test scripts/appearance-sync.test.ts` checks precedence, initialization, offline retry, in-flight edits, stale cross-tab responses, and session isolation.
+- `APPEARANCE_TEST_ORIGIN=http://localhost:3000 node --import tsx --test scripts/appearance-api.test.ts` checks the running development app's public/protected routes and API boundaries using the existing QA account. Apply migrations and provision that account first; keep its preferences idle while the integration check runs.
+- `node --import tsx scripts/appearance-bootstrap.ts` checks startup, invalid values, and legacy preference migration. Browser QA must also verify guest and signed-in choices survive a full reload; sync effects must never write to the persisted store before hydration finishes.
+
 ## Adding or changing a preset
 
 1. Update the ID registry, store validation as needed, and the self-contained startup helper's allowlist together.
 2. Supply all token dimensions and light/dark values in `app/globals.css`, including matching preview selectors. Preserve derived values and per-note colors.
-3. Add labels/descriptions in both dictionaries; [AppearanceSettings](../components/settings/appearance-settings.tsx) lists registry IDs automatically. Register any new fonts in `lib/appearance-fonts.ts` and assign their CSS roles. Keep mode independent and use the shared preview.
+3. Add labels/descriptions in both dictionaries; [AppearanceSettings](../components/settings/appearance-settings.tsx) lists registry IDs automatically. Register any new fonts in `lib/appearance-fonts.ts` and assign their CSS roles. Extend the `user_appearance` preset check with a migration for new IDs. Keep mode independent and use the shared preview.
 4. Extend validation scripts for the new ID/palette, then review all preset/mode combinations across settings, notes/editor/dialogs, AI forms/chat, menus, status/disabled/focus states, and global fallbacks. Include English/Vietnamese, keyboard use, and representative desktop/mobile widths.
 5. Update the concise validation summary and coverage limits here. Use the existing archives for historical context; routine follow-ups do not need separate reports or completed-phase checklists.
 
@@ -80,7 +95,7 @@ The owner accepted the initial release/device checks on this date; that acceptan
 
 Global fallback coverage is limited: standalone 404 markup/bootstrap were checked; the catchall handles normal unmatched locale paths, and standalone 404 routing interception was not verified. Real root-error integration covered Paper & Ink light/dark; isolated component checks covered the original Paper & Ink/Sepia presets, all mode/OS combinations, unknown fallback, and reset callback delivery. The newer presets' root-error integration and recovery from a real server failure remain unverified.
 
-Preferences remain browser-local and iOS splash artwork remains static. Account sync is optional future work; define local/account precedence, first-login migration, and sign-out behavior before implementing it. Dynamic splash artwork also needs separate platform/device scope. Individual font/color editors, selected-text rich-text formatting, density, seasonal decoration, and per-note hue redesign are separate features.
+Appearance preferences synchronize with signed-in accounts and remain browser-local for guests. iOS splash artwork remains static. Dynamic splash artwork also needs separate platform/device scope. Individual font/color editors, selected-text rich-text formatting, density, seasonal decoration, and per-note hue redesign are separate features.
 
 ## Archived evidence
 
