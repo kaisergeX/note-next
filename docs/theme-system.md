@@ -32,7 +32,7 @@
 - `AppearanceSync` runs inside SessionProvider, after browser-store hydration. It immediately uses a per-account local cache and then reconciles with the server. Pending edits survive reloads in `etoN-appearance-account:<email>` and never transfer to another account. Local preference actions increment a transient change counter; storage rehydration and remote updates do not create write loops.
 - Local changes apply immediately. Writes are serialized and a late response cannot clear newer pending edits. Failed/offline writes retry on reconnect, focus, visibility, or the visible-page 60-second interval. Fresh remote reads never replace pending local edits. Once reconnected, the last accepted explicit save wins; concurrent edits are not merged.
 - Other devices refresh on focus and while visible every 60 seconds. This is periodic synchronization, not a realtime subscription. Guest edits make no account API calls. Local caching is best-effort if browser storage is disabled; in that case pending edits cannot survive a reload.
-- Appearance shows localized device/account/offline/retry status. Requests are aborted on session changes and verify the expected account on both sides.
+- Appearance shows localized device/account/offline/retry status. Requests are aborted on confirmed account changes and verify the expected account on both sides. `useAppearanceAccount` keeps the last confirmed identity when an offline/failed Auth.js session refresh returns no client session. A direct, uncached successful session check distinguishes a real sign-out (JSON null/empty session) from a transport failure. The tab remembers its last account in sessionStorage for recovery; this is only a queue owner hint, and every upload is still authenticated and checked by the API. Reconnection also recovers the shared client session UI.
 
 ### Tokens and rendering
 
@@ -54,6 +54,7 @@ Intentional exceptions are per-note hue palettes/swatches/shadows, monospace cod
 
 - `node --import tsx --test scripts/appearance-sync.test.ts` checks precedence, initialization, offline retry, in-flight edits, stale cross-tab responses, and session isolation.
 - `APPEARANCE_TEST_ORIGIN=http://localhost:3000 node --import tsx --test scripts/appearance-api.test.ts` checks the running development app's public/protected routes and API boundaries using the existing QA account. Apply migrations and provision that account first; keep its preferences idle while the integration check runs.
+- `scripts/appearance-offline.browser.mjs` exports `verifyAppearanceOffline(browser, baseURL)` for an existing Playwright Browser against localhost. It verifies Sepia → offline → failed session refresh → Midnight → reconnect, the saved server preference, a separate browser context, reload, transport failure with navigator still online, and confirmed sign-out. It creates isolated contexts and restores the original QA preference. This covers the real auth lifecycle that the queue unit tests cannot simulate.
 - `node --import tsx scripts/appearance-bootstrap.ts` checks startup, invalid values, and legacy preference migration. Browser QA must also verify guest and signed-in choices survive a full reload; sync effects must never write to the persisted store before hydration finishes.
 
 ## Adding or changing a preset
