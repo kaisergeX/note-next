@@ -209,6 +209,14 @@
   background-size: 16px 16px;
 }
 
+@utility scrollbar-hidden {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @utility scrollbar {
   &::-webkit-scrollbar {
     @apply w-4;
