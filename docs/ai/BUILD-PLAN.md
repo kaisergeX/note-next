@@ -9,7 +9,7 @@ Use the archived build history when implementation rationale or chronology is ne
 - [PRD.md](PRD.md) — product scope and user-facing behavior.
 - [ARCHITECTURE.md](ARCHITECTURE.md) — integration boundaries, data flow, and infrastructure decisions.
 - [PERSONA-SCHEMA.md](PERSONA-SCHEMA.md) — database model, diversity guard, and export contracts.
-- [ai-persona-interview-build-plan-history.md](../archive/ai-persona-interview-build-plan-history.md) —
+- [ai-persona-interview-build-history.md](../archive/ai-persona-interview-build-history.md) —
   detailed implementation and decision history.
 
 ## Current status

@@ -379,7 +379,7 @@ Commitments for the custom-primitives stack (no component library):
 
 ## Appearance compatibility exceptions
 
-For preference behavior, preset extension rules, validation, and deferred work, see [Appearance Presets](docs/theme-system.md).
+For the completed preference behavior, preset extension rules, validation, and scope limits, see the archived [Appearance Presets](docs/archive/theme-system/overview.md).
 
 Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight uses cool paper/charcoal neutrals and a quiet blue accent. Bookish pairs Source Sans 3 UI with Literata writing, pale sage paper, and an evergreen accent; its dark palette is deep green-black. Every preset supplies light/dark colors and preserves the UI/writing roles. Shape remains 6/8/12/16px except Sepia's 8/10/14/20px. Optional Bookish fonts are self-hosted through `next/font`, support Vietnamese, and are not preloaded for other presets.
 

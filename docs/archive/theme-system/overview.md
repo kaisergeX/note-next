@@ -1,11 +1,13 @@
 # Appearance Presets
 
-**Status:** updated 2026-10-22: four presets, Settings navigation, browser color matching, and an interactive preview. This is the current feature contract; [DESIGN.md](../DESIGN.md) defines the visual rules. Earlier planning and audit records are linked below.
+> Archived on 2026-10-22 after implementation was completed and accepted. This document preserves the completed feature contract and validation record. [DESIGN.md](../../../DESIGN.md) remains the active design reference.
+
+**Status:** implementation complete and accepted by the owner on 2026-10-22. Four presets, Settings navigation, account synchronization, browser color matching, and the interactive preview are complete. No implementation work remains in this scope. This is the current feature contract; [DESIGN.md](../../../DESIGN.md) defines the visual rules. Planning and audit history are archived below.
 
 ## User behavior
 
 - Appearance lives at `/[locale]/settings/appearance`, alongside `/[locale]/settings/account`. Guests can open Appearance from the header palette link; the desktop user menu and mobile drawer link to Settings. Account remains sign-in-only, and guests do not see its navigation item. `/[locale]/settings` opens Appearance; legacy `/[locale]/user` and `/[locale]/user#appearance` links redirect to the matching section. Users select a complete preset; color mode (`system`, `light`, or `dark`) is independent. Defaults are `paper-ink` and `system`.
-- Available presets are **Paper & Ink**, **Sepia**, **Midnight**, and **Bookish**. Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight adds cool light paper and charcoal dark surfaces with a quiet blue accent. Bookish uses Source Sans 3 UI and Literata writing on sage/evergreen palettes. Radii are 6/8/12/16px except Sepia's 8/10/14/20px. Exact colors live in [app/globals.css](../app/globals.css).
+- Available presets are **Paper & Ink**, **Sepia**, **Midnight**, and **Bookish**. Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight adds cool light paper and charcoal dark surfaces with a quiet blue accent. Bookish uses Source Sans 3 UI and Literata writing on sage/evergreen palettes. Radii are 6/8/12/16px except Sepia's 8/10/14/20px. Exact colors live in [app/globals.css](../../../app/globals.css).
 - Guests persist preset and mode in this browser. Signed-in users synchronize both with their account. An existing account preference wins on sign-in; if none exists, the current browser choice initializes it atomically without overwriting another device. System mode follows each device’s OS setting. Sign-out retains the current appearance locally.
 - Browser `theme-color` follows the effective paper background, including explicit mode overrides and Sepia. This is a suggested browser UI color; its visible effect depends on browser/platform support. iOS splash artwork remains static.
 - Selection updates the app and shared preview immediately. The preview has Form, Conversation, and Controls tabs: edit a sample title/body, toggle whole-body bold/italic/highlight, send a local message with a simulated reply/Stop state, and try validation/loading/success/disabled controls and status badges. Preview edits are temporary and remain while comparing presets, modes, or tabs; Reset clears all examples without changing appearance preferences. EN/VI labels and keyboard tab/radio navigation are supported.
@@ -15,15 +17,15 @@
 
 ### Preferences and startup
 
-- [lib/appearance.ts](../lib/appearance.ts) owns preset IDs, mode validation, `APPEARANCE_STORAGE_KEY`, and the startup helper. [store/index.ts](../store/index.ts) persists only `mode` and `appearance`, using version 1 under the existing `etoN-app` key. Never derive this key from `SERVICE_NAME` or other server-only branding.
+- [lib/appearance.ts](../../../lib/appearance.ts) owns preset IDs, mode validation, `APPEARANCE_STORAGE_KEY`, and the startup helper. [store/index.ts](../../../store/index.ts) persists only `mode` and `appearance`, using version 1 under the existing `etoN-app` key. Never derive this key from `SERVICE_NAME` or other server-only branding.
 - Version 0 `theme: light|dark` choices migrate to the same explicit mode. Missing/invalid preferences normalize to System and Paper & Ink. Persist the preference, not an additional effective-mode value; resolve System from `prefers-color-scheme`.
-- The [locale layout](../app/[locale]/layout.tsx) and [global 404](../app/global-not-found.tsx) apply stored preferences through an inline script before paint. [ThemeWrapper](../components/layouts/theme-wrapper.tsx) rehydrates, synchronizes tabs, and follows OS mode changes.
-- [GlobalError](../app/global-error.tsx) uses a layout effect to apply preferences before its client fallback paints. React does not execute an inline script rendered by that client fallback. Global document fallbacks live directly under `app/` and supply their own styles/fonts; regular locale error/not-found pages remain under `[locale]`.
+- The [locale layout](../../../app/[locale]/layout.tsx) and [global 404](../../../app/global-not-found.tsx) apply stored preferences through an inline script before paint. [ThemeWrapper](../../../components/layouts/theme-wrapper.tsx) rehydrates, synchronizes tabs, and follows OS mode changes.
+- [GlobalError](../../../app/global-error.tsx) uses a layout effect to apply preferences before its client fallback paints. React does not execute an inline script rendered by that client fallback. Global document fallbacks live directly under `app/` and supply their own styles/fonts; regular locale error/not-found pages remain under `[locale]`.
 - `applyStoredAppearance` must stay self-contained: normal/404 bootstrap scripts serialize its function source, while GlobalError calls it directly. Do not introduce imports or closure dependencies into its body. Keep its ID allowlist aligned with `APPEARANCE_IDS` and store validation.
 - `syncBrowserThemeColor` is also serialized in the startup script and must remain self-contained. It converts the effective CSS `--paper` token to sRGB metadata, with no separate preset palette. ThemeWrapper reapplies it on preference/OS changes and observes head metadata replacement during client navigation. GlobalError calls it directly after applying preferences.
 - Runtime metadata uses `rgb(...)` while viewport fallbacks use hex. Keep their string representations distinct: React's hoisted-meta matching compares content without checking media/data attributes, so an identical string can let React adopt the runtime override and leave a duplicate fallback after navigation.
-- [appearance-fonts.ts](../lib/appearance-fonts.ts) supplies shared font variables for the locale document and standalone global fallbacks. Bookish fonts include Vietnamese and use `preload: false` so their files load when selected rather than being preloaded for all presets. Font choices remain part of the preset, not per-note formatting.
-- [AppearancePreview](../components/settings/appearance-preview.tsx) owns only local demo state. It does not save notes, persist demo text, or call AI endpoints. Tabs retain their examples; Reset remounts the examples and cleans up pending reply/save timers. The chat keeps two seed messages and at most four recent demo messages. FormPreview shows standard title/body fields with whole-body sample formatting; it does not represent the rich-text editor used in real notes.
+- [appearance-fonts.ts](../../../lib/appearance-fonts.ts) supplies shared font variables for the locale document and standalone global fallbacks. Bookish fonts include Vietnamese and use `preload: false` so their files load when selected rather than being preloaded for all presets. Font choices remain part of the preset, not per-note formatting.
+- [AppearancePreview](../../../components/settings/appearance-preview.tsx) owns only local demo state. It does not save notes, persist demo text, or call AI endpoints. Tabs retain their examples; Reset remounts the examples and cleans up pending reply/save timers. The chat keeps two seed messages and at most four recent demo messages. FormPreview shows standard title/body fields with whole-body sample formatting; it does not represent the rich-text editor used in real notes.
 
 ### Account synchronization
 
@@ -61,7 +63,7 @@ Intentional exceptions are per-note hue palettes/swatches/shadows, monospace cod
 
 1. Update the ID registry, store validation as needed, and the self-contained startup helper's allowlist together.
 2. Supply all token dimensions and light/dark values in `app/globals.css`, including matching preview selectors. Preserve derived values and per-note colors.
-3. Add labels/descriptions in both dictionaries; [AppearanceSettings](../components/settings/appearance-settings.tsx) lists registry IDs automatically. Register any new fonts in `lib/appearance-fonts.ts` and assign their CSS roles. Extend the `user_appearance` preset check with a migration for new IDs. Keep mode independent and use the shared preview.
+3. Add labels/descriptions in both dictionaries; [AppearanceSettings](../../../components/settings/appearance-settings.tsx) lists registry IDs automatically. Register any new fonts in `lib/appearance-fonts.ts` and assign their CSS roles. Extend the `user_appearance` preset check with a migration for new IDs. Keep mode independent and use the shared preview.
 4. Extend validation scripts for the new ID/palette, then review all preset/mode combinations across settings, notes/editor/dialogs, AI forms/chat, menus, status/disabled/focus states, and global fallbacks. Include English/Vietnamese, keyboard use, and representative desktop/mobile widths.
 5. Update the concise validation summary and coverage limits here. Use the existing archives for historical context; routine follow-ups do not need separate reports or completed-phase checklists.
 
@@ -76,7 +78,7 @@ pnpm build
 
 Bootstrap checks cover preferences, legacy migration, unknown/invalid values, storage failure, and agreement with the store key. Contrast checks read the shipped CSS: ink/paper must exceed 12:1, normal semantic text must meet 4.5:1, and form boundaries/focus indicators must meet applicable 3:1 requirements. Also check actual composited backgrounds, typography, geometry, and interactions in the browser; token ratios alone are insufficient.
 
-Latest validation — **2026-10-21**:
+Recorded build/browser validation — **2026-10-21** (not rerun for the documentation closeout):
 
 | Area                | Evidence                                                                                                                                                                                                                                                                              |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -86,19 +88,18 @@ Latest validation — **2026-10-21**:
 | Appearance behavior | Reload/cross-tab persistence, System following OS changes, explicit overrides, font restoration, localized navigation, and legacy redirects pass. Browser metadata retains one runtime override and two OS fallbacks without hydration errors.                                        |
 | Interactive preview | Keyboard tabs, formatting/edit preservation, validation/loading/success, disabled controls, long-message wrapping, reduced motion, Stop, and Reset during pending timers pass. Demo interactions made no API requests.                                                                |
 
-The owner accepted the initial release/device checks on this date; that acceptance is not an independently recorded device matrix. Browser coverage above is representative, not every locale/preset/mode/tab/route combination.
+Owner device acceptance — **2026-10-22**: on iOS, native browser toolbar colors updated with the selected preset. Bookish showed font swapping and some layout movement on a slow connection; the owner accepted this behavior with the current on-demand font loading. Font-loading optimization is optional future work. This is owner-reported evidence, not an independently recorded device matrix.
 
-## Remaining checks and scope limits
+## Accepted coverage and scope limits
 
-- [ ] Check Bookish's first-paint font swapping with a cold cache or slow connection.
-- [ ] Check native browser toolbar colors on real Android/iOS devices.
-- [ ] Verify preview announcements with screen-reader software.
+The owner closed this feature without requesting further validation. These coverage limits are retained for reference, not as an outstanding release checklist:
 
-Global fallback coverage is limited: standalone 404 markup/bootstrap were checked; the catchall handles normal unmatched locale paths, and standalone 404 routing interception was not verified. Real root-error integration covered Paper & Ink light/dark; isolated component checks covered the original Paper & Ink/Sepia presets, all mode/OS combinations, unknown fallback, and reset callback delivery. The newer presets' root-error integration and recovery from a real server failure remain unverified.
+- Browser coverage is representative, not every locale/preset/mode/tab/route combination. Real Android toolbar colors and screen-reader preview announcements were not verified.
+- Global fallbacks: standalone 404 markup/bootstrap were checked, but routing interception was not verified (normal unmatched locale paths use the catchall). Real root-error integration covered Paper & Ink light/dark; isolated checks covered Paper & Ink/Sepia across modes/OS preferences, unknown fallback, and reset callback delivery. Midnight/Bookish root-error integration and recovery from a real server failure were not verified.
 
-Appearance preferences synchronize with signed-in accounts and remain browser-local for guests. iOS splash artwork remains static. Dynamic splash artwork also needs separate platform/device scope. Individual font/color editors, selected-text rich-text formatting, density, seasonal decoration, and per-note hue redesign are separate features.
+iOS splash artwork remains static. Dynamic splash artwork, individual font/color editors, selected-text rich-text formatting, density, seasonal decoration, and per-note hue redesign are separate features.
 
 ## Archived evidence
 
-- [Completed build plan and decisions](archive/theme-system-build-plan-history.md)
-- [Phase 4 measurements, fixes, and coverage limits — 2026-10-21](archive/theme-system-phase4-review-2026-10-21.md)
+- [Completed build plan and decisions](build-history.md)
+- [Phase 4 measurements, fixes, and coverage limits — 2026-10-21](validation.md)
