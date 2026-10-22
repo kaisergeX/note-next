@@ -16,7 +16,7 @@ import {
   type FocusPosition,
 } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect} from 'react'
+import {useEffect, type ReactNode} from 'react'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
 import {usePersistStore} from '~/store'
 import {useDebounced} from '~/util/hooks'
@@ -43,6 +43,9 @@ type NoteEditorProps = {
   limitCharacter?: number
 
   commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
+  compactToolbar?: boolean
+  toolbarLeading?: ReactNode
+  toolbarTrailing?: ReactNode
   disableDefaultEnter?: boolean
   tabIndex?: string
   autofocus?: FocusPosition
@@ -69,6 +72,9 @@ export default function NoteEditor({
   limitCharacter,
 
   commandTypes,
+  compactToolbar = false,
+  toolbarLeading,
+  toolbarTrailing,
   disableDefaultEnter = false,
   tabIndex = '',
   autofocus = false,
@@ -102,7 +108,7 @@ export default function NoteEditor({
         }),
         Placeholder.configure({
           placeholder,
-          emptyNodeClass:
+          emptyEditorClass:
             'first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
         }),
         Highlight,
@@ -172,6 +178,9 @@ export default function NoteEditor({
       )}
       editor={textEditor}
       menuType="fixed"
+      compact={compactToolbar}
+      leadingActions={toolbarLeading}
+      trailingActions={toolbarTrailing}
     />
   )
 

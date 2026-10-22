@@ -16,6 +16,7 @@ import {
   useState,
   useTransition,
   type RefObject,
+  type ReactNode,
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {usePersistStore} from '~/store'
@@ -30,6 +31,7 @@ export type NoteCustomizeProps = {
   onDeleteSuccess?: () => void
   scrollContainerRef?: RefObject<HTMLElement | null>
   scrollTopCtrl?: boolean
+  details?: ReactNode
 }
 
 function isScrollableY(el?: HTMLElement | null) {
@@ -53,6 +55,7 @@ export default function NoteCustomize({
   onDeleteSuccess,
   scrollContainerRef,
   scrollTopCtrl = false,
+  details,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
   const {noteId, theme} = usePersistStore((s) => ({
@@ -145,6 +148,7 @@ export default function NoteCustomize({
       </div>
 
       <div className="flex items-center gap-2">
+        {details}
         {type === 'update' && (
           <div className="flex items-center gap-1 text-xs font-medium">
             {isLoading ? (
@@ -154,7 +158,11 @@ export default function NoteCustomize({
               </>
             ) : (
               <>
-                <IconCheck className="text-success" size="1.2rem" />{' '}
+                <IconCheck
+                  className="text-success saturate-150"
+                  size="1.2rem"
+                  strokeWidth={3}
+                />{' '}
                 {t('status.synced')}
               </>
             )}
