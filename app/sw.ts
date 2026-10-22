@@ -15,6 +15,8 @@ declare global {
 declare const self: ServiceWorkerGlobalScope
 
 const isAiApiRoute = ({url}: {url: URL}) => url.pathname.startsWith('/api/ai/')
+const isAppearanceApiRoute = ({url}: {url: URL}) =>
+  url.pathname === '/api/user/appearance'
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -31,5 +33,7 @@ const serwist = new Serwist({
 // POST are registered separately. /api/auth/* behavior is untouched.
 serwist.registerCapture(isAiApiRoute, new NetworkOnly(), 'GET')
 serwist.registerCapture(isAiApiRoute, new NetworkOnly(), 'POST')
+serwist.registerCapture(isAppearanceApiRoute, new NetworkOnly(), 'GET')
+serwist.registerCapture(isAppearanceApiRoute, new NetworkOnly(), 'PUT')
 
 serwist.addEventListeners()

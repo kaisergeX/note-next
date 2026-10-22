@@ -11,6 +11,24 @@ export const APPEARANCE_IDS = [
 export type AppearanceId = (typeof APPEARANCE_IDS)[number]
 export type AppearanceMode = 'system' | 'light' | 'dark'
 
+export type AppearancePreference = {
+  appearance: AppearanceId
+  mode: AppearanceMode
+}
+
+export function isAppearancePreference(
+  value: unknown,
+): value is AppearancePreference {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'appearance' in value &&
+    isAppearanceId(value.appearance) &&
+    'mode' in value &&
+    isAppearanceMode(value.mode)
+  )
+}
+
 export function isAppearanceId(value: unknown): value is AppearanceId {
   return APPEARANCE_IDS.some((id) => id === value)
 }

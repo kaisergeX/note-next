@@ -1,13 +1,11 @@
 import {getLocale, getTranslations} from 'next-intl/server'
 import {NextIntlClientProvider} from 'next-intl'
 import SettingsNavigation from '~/components/settings/settings-navigation'
-import {requireAuth} from '~/server-utils'
 
 export default async function SettingsLayout({
   children,
 }: React.PropsWithChildren) {
   const locale = await getLocale()
-  await requireAuth(`/${locale}/login`)
   const t = await getTranslations('user.settings')
   return (
     <main className="mx-auto w-full max-w-7xl p-4 pb-12 sm:pt-8">
