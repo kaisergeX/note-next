@@ -1,6 +1,6 @@
 # Appearance Phase 4 review
 
-> Archived validation evidence. Measurements and coverage limits describe the 2026-10-21 implementation; use [Appearance Presets](../theme-system.md) for current guidance.
+> Archived validation evidence. Measurements and coverage limits describe the 2026-10-21 implementation; use [Appearance Presets](overview.md) for the completed feature contract and acceptance record.
 
 Date: 2026-10-21. Presets: Paper & Ink and Sepia; modes: light and dark.
 

@@ -1,9 +1,9 @@
 # Appearance Presets — Build Plan History
 
-> Archived on 2026-10-21 after Phases 1–4 completed. This preserves the original planning context, including statements that describe earlier implementation stages. Use [Appearance Presets](../theme-system.md) for the current contract and follow-ups.
+> Archived on 2026-10-21 after Phases 1–4 completed. This preserves the original planning context, including statements that describe earlier implementation stages. Use [Appearance Presets](overview.md) for the completed feature contract.
 
-**Status:** Phase 4 complete on 2026-10-21; fixes, contrast checks, UI review, and isolated fallback checks passed. See the [review evidence and coverage limits](theme-system-phase4-review-2026-10-21.md).
-**Spec:** [theme-system.md](../theme-system.md)
+**Status:** Phase 4 complete on 2026-10-21; fixes, contrast checks, UI review, and isolated fallback checks passed. See the [review evidence and coverage limits](validation.md).
+**Spec:** [Appearance Presets overview](overview.md)
 
 ## Outcome
 
@@ -75,7 +75,7 @@ The Phase 2 palette values are recorded in `theme-system.md`. Review them in the
 
 **Status:** complete on 2026-10-21; required appearance contrast, typography, geometry, and representative UI checks pass. Coverage methods and limits are documented in the review record.
 
-**Evidence:** [Phase 4 review record](theme-system-phase4-review-2026-10-21.md).
+**Evidence:** [Phase 4 review record](validation.md).
 
 - Review representative app, note, and AI pages for each preset in both modes.
 - Review dialogs, menus, inputs, disabled controls, selection/focus states, and success/destructive feedback.

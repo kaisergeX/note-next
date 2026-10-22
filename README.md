@@ -13,7 +13,7 @@
 <sup>List in order of priority</sup>
 
 - [ ] Note: Encrypt contents.
-- [ ] Note: Recover notes that scheduled for deletion.
+- [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — planned.
 - [x] System: PWA supported.
 - [ ] Settings: Account
   - [ ] Delete account.
@@ -28,12 +28,16 @@
 - [x] Landing page.
 - [ ] Settings: Note - Option to disable modal view and always show full-size notes.[^1]
 - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
-- [x] Settings: [Appearance presets, color modes, and interactive preview](docs/theme-system.md).
+- [x] Settings: [Appearance presets, color modes, account sync, and interactive preview](docs/archive/theme-system/overview.md) — complete; accepted 2026-10-22.
 - [ ] Settings: Advanced theme customization and seasonal artwork (separate scope).[^3]
 - [ ] Integrate/Link with other apps in the ecosystems.
 - [ ] Replace the old version.
 
 </details>
+
+## Documentation
+
+Keep active feature plans directly under `docs/`, or in a feature folder when several documents are needed. Completed features belong in `docs/archive/`: use descriptive standalone filenames for single documents, and a feature folder for multiple documents. Use `overview.md` as a feature folder's entry point; fold routine follow-ups into existing documents instead of adding dated reports.
 
 ## Engines Requirements
 
