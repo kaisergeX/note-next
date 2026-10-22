@@ -15,15 +15,15 @@ import {
   useId,
   useRef,
   useState,
-  type FormEvent,
   type KeyboardEvent,
+  type SubmitEventHandler,
 } from 'react'
 import {Badge} from '~/components/ui/badge'
 import Button from '~/components/ui/button'
 import {Input} from '~/components/ui/input'
 import type {AppearanceId} from '~/lib/appearance'
 
-const tabs = ['note', 'chat', 'controls'] as const
+const tabs = ['form', 'chat', 'controls'] as const
 type PreviewTab = (typeof tabs)[number]
 
 export default function AppearancePreview({
@@ -33,7 +33,7 @@ export default function AppearancePreview({
 }) {
   const t = useTranslations('user.appearance')
   const id = useId()
-  const [tab, setTab] = useState<PreviewTab>('note')
+  const [tab, setTab] = useState<PreviewTab>('form')
   const [resetCount, setResetCount] = useState(0)
   const tabRefs = useRef<Partial<Record<PreviewTab, HTMLButtonElement | null>>>(
     {},
@@ -124,8 +124,8 @@ export default function AppearancePreview({
               hidden={tab !== value}
               className="min-h-96 p-4 sm:p-5"
             >
-              {value === 'note' ? (
-                <NotePreview />
+              {value === 'form' ? (
+                <FormPreview />
               ) : value === 'chat' ? (
                 <ChatPreview />
               ) : (
@@ -139,7 +139,7 @@ export default function AppearancePreview({
   )
 }
 
-function NotePreview() {
+function FormPreview() {
   const t = useTranslations('user.appearance')
   const id = useId()
   const [title, setTitle] = useState<string | null>(null)
@@ -154,7 +154,7 @@ function NotePreview() {
       <div className="border-hairline flex flex-wrap items-center justify-between gap-2 border-b p-3">
         <span className="text-ink-muted inline-flex items-center gap-2 text-xs font-medium">
           <IconFileText size={15} aria-hidden />
-          {t('previewNote')}
+          {t('previewForm')}
         </span>
         <div
           role="group"
@@ -189,14 +189,14 @@ function NotePreview() {
       </div>
       <div className="space-y-3 p-4">
         <Input
-          aria-label={t('interactive.noteTitle')}
+          aria-label={t('interactive.formTitle')}
           maxLength={100}
           value={title ?? t('previewHeading')}
           onChange={(event) => setTitle(event.target.value)}
           className="font-serif text-xl font-medium"
         />
         <textarea
-          aria-label={t('interactive.noteBody')}
+          aria-label={t('interactive.formBody')}
           aria-describedby={`${id}-format-hint`}
           value={body ?? t('previewBody')}
           maxLength={1500}
@@ -218,7 +218,7 @@ function NotePreview() {
       </div>
       <p className="border-hairline text-ink-muted flex items-center gap-2 border-t px-4 py-3 text-xs">
         <IconCheck className="text-success shrink-0" size={14} aria-hidden />
-        {t('interactive.localNote')}
+        {t('interactive.localEdits')}
       </p>
     </div>
   )
@@ -246,7 +246,7 @@ function ChatPreview() {
     if (element) element.scrollTop = element.scrollHeight
   }, [messages, replying])
 
-  function send(event: FormEvent<HTMLFormElement>) {
+  const send: SubmitEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
     const text = draft.trim()
     if (!text || replying) return
@@ -287,7 +287,7 @@ function ChatPreview() {
           <p
             key={message.id}
             className={cn(
-              'max-w-4/5 rounded-xl px-4 py-3 break-words whitespace-pre-wrap',
+              'max-w-4/5 rounded-xl px-4 py-3 wrap-break-word whitespace-pre-wrap',
               message.role === 'user'
                 ? 'bg-ink text-paper self-end rounded-br-sm'
                 : 'border-hairline bg-paper-raised rounded-bl-sm border',
@@ -354,7 +354,7 @@ function ControlsPreview() {
     [],
   )
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  const save: SubmitEventHandler<HTMLFormElement> = (event) => {
     event.preventDefault()
     if (saving) return
     setSaved(false)

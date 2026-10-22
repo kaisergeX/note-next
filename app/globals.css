@@ -450,6 +450,18 @@
 }
 
 @layer components {
+  input::placeholder,
+  textarea::placeholder {
+    opacity: 0.75;
+    font-weight: 400;
+  }
+
+  /* Empty note hints keep their hue, but never read like written content. */
+  .ProseMirror > :first-child[data-placeholder]::before {
+    opacity: 0.65;
+    font-weight: 400;
+  }
+
   .k-dialog {
     @apply bg-paper-raised text-ink border-hairline m-[revert] border;
 
