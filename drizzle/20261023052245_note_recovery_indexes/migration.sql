@@ -1,0 +1,2 @@
+CREATE INDEX "notes_owner_trash_deadline_idx" ON "notes" ("author_id","pending_deleted_at" DESC NULLS LAST,"id" DESC NULLS LAST) WHERE "pending_deleted_at" IS NOT NULL;--> statement-breakpoint
+CREATE INDEX "notes_expiry_deadline_idx" ON "notes" ("pending_deleted_at","id") WHERE "pending_deleted_at" IS NOT NULL;

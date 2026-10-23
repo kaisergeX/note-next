@@ -1,57 +1,49 @@
 'use server'
 
 import {updateTag} from 'next/cache'
-import {db} from '~/db'
-import {getNoteCacheKey, getNoteListCacheKey} from '~/db/helper'
-import {deleteNote, updateNote} from '~/db/helper/notes'
+import {getNoteMutationCacheKeys} from '~/db/helper'
+import {noteRepository} from '~/db/helper/notes'
 import {
-  notesTable,
-  type DisallowedUpdateNoteKeys,
-  type NewNote,
-  type Note,
-  type UpdateNote,
-} from '~/db/schema/notes'
+  noteMutationSucceeded,
+  type NoteMutationResult,
+} from '~/lib/notes/lifecycle'
 import {requireAuth} from '~/server-utils'
 
-const FILTER_NOTE_KEYS = Object.freeze([
-  'id',
-  'authorId',
-  'createdAt',
-  'updatedAt',
-] satisfies DisallowedUpdateNoteKeys[])
-
-export async function createNoteAction(noteData: NewNote) {
-  const {session} = await requireAuth()
-  const email = session.user.email
-  await db.insert(notesTable).values(noteData)
-  updateTag(getNoteListCacheKey(email))
+async function commit(
+  operation: () => Promise<NoteMutationResult>,
+  ownerId: string,
+): Promise<NoteMutationResult> {
+  try {
+    const result = await operation()
+    if (noteMutationSucceeded(result)) {
+      for (const tag of getNoteMutationCacheKeys(ownerId, result.note.id))
+        updateTag(tag)
+    }
+    return result
+  } catch {
+    // Database exceptions may include note bodies in SQL parameters.
+    console.error('Note mutation failed')
+    return {status: 'retryable_error'}
+  }
 }
-
-export async function mutateNoteAction(noteId: string, noteData: Note) {
-  const {session} = await requireAuth()
-  const email = session.user.email
-
-  const updateData: UpdateNote = Object.fromEntries(
-    Object.entries(noteData).filter(
-      ([k]) =>
-        !FILTER_NOTE_KEYS.includes(
-          k as DisallowedUpdateNoteKeys, // this also makes sure all disallowed keys are included in FILTER_NOTE_KEYS
-        ),
-    ),
+export async function createNoteAction(input: unknown) {
+  const {userInfo} = await requireAuth()
+  return commit(
+    () => noteRepository.createNote(userInfo.id, input),
+    userInfo.id,
   )
-
-  if (Object.keys(updateData).length === 0) return
-
-  await updateNote(noteId, updateData)
-  updateTag(getNoteListCacheKey(email))
-  updateTag(getNoteCacheKey(noteId))
 }
-
+export async function mutateNoteAction(noteId: string, input: unknown) {
+  const {userInfo} = await requireAuth()
+  return commit(
+    () => noteRepository.updateNote(userInfo.id, noteId, input),
+    userInfo.id,
+  )
+}
 export async function deleteNoteAction(noteId: string) {
-  if (!noteId) return
-
-  const {session} = await requireAuth()
-  const email = session.user.email
-  await deleteNote(noteId)
-  updateTag(getNoteListCacheKey(email))
+  const {userInfo} = await requireAuth()
+  return commit(
+    () => noteRepository.deleteActiveNote(userInfo.id, noteId),
+    userInfo.id,
+  )
 }

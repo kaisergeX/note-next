@@ -3,11 +3,13 @@
 import {IconDotsVertical, IconPalette, IconTrash} from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useTranslations} from 'next-intl'
-import Link from 'next/link'
-import {useTransition} from 'react'
+import {Link} from '~/i18n/navigation'
+import {useState, useTransition} from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
+import {performNoteMutation} from '~/lib/notes/client-mutation'
+import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 
@@ -18,6 +20,7 @@ type NoteProps = {
 export default function NoteTiny({data}: NoteProps) {
   const {id: noteId, title, content, theme} = data
   const [pendingTransition, startTransition] = useTransition()
+  const [deleteError, setDeleteError] = useState(false)
   const setMutateNoteData = usePersistStore((state) => state.setMutateNoteData)
   const t = useTranslations('note')
 
@@ -29,7 +32,12 @@ export default function NoteTiny({data}: NoteProps) {
     }
 
     startTransition(async () => {
-      await deleteNoteAction(noteId)
+      setDeleteError(false)
+      const result = await performNoteMutation(() => deleteNoteAction(noteId))
+      if (!noteMutationSucceeded(result)) {
+        setDeleteError(true)
+        return
+      }
     })
   }
 
@@ -83,6 +91,11 @@ export default function NoteTiny({data}: NoteProps) {
         />
       </Link>
 
+      {deleteError && (
+        <p role="alert" className="text-destructive px-4 pb-10">
+          {t('status.deleteFailed')}
+        </p>
+      )}
       <div
         className={cn(
           'text-ink-muted absolute inset-x-0 bottom-0 w-full cursor-default justify-between p-2 transition',

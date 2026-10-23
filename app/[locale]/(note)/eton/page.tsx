@@ -31,7 +31,7 @@ export default async function Notes({params}: PropsWithLocale) {
             {genRandom(noteMsgs.editor.emptyPlaceholder)}
           </h3>
           <NextIntlClientProvider messages={{note: noteMsgs}}>
-            <NoteCreateEditor authorId={userInfo.id} />
+            <NoteCreateEditor />
           </NextIntlClientProvider>
         </div>
       </main>
@@ -42,7 +42,7 @@ export default async function Notes({params}: PropsWithLocale) {
     <main className="body-h-auto p-4 max-sm:pt-0">
       <NextIntlClientProvider messages={{note: noteMsgs}}>
         <div className="mb-4 flex justify-end">
-          <NoteCreateEditor authorId={userInfo.id} />
+          <NoteCreateEditor />
         </div>
         <div className="grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] grid-rows-[masonry] gap-4 pb-16">
           {renderNoteList}

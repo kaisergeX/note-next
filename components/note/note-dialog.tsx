@@ -2,7 +2,7 @@ import {Dialog} from '@kaiverse/k/ui'
 import {cn} from 'cn'
 import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
 import {useMessages, useTranslations} from 'next-intl'
-import Link from 'next/link'
+import {Link} from '~/i18n/navigation'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import {useRandomString} from '~/util/hooks'
@@ -13,6 +13,7 @@ import NoteEditor from './note-editor'
 type NoteDialogProps = {
   type?: NoteCustomizeProps['type']
   loading?: boolean
+  error?: string
   open?: boolean
   onClose: () => void
   onDeleteSuccess?: () => unknown
@@ -21,6 +22,7 @@ type NoteDialogProps = {
 export default function NoteDialog({
   type = 'update',
   loading,
+  error,
   open = false,
   onClose,
   onDeleteSuccess,
@@ -47,7 +49,19 @@ export default function NoteDialog({
         'backdrop:bg-paper/50 backdrop:backdrop-blur',
       )}
       open={open}
-      onClose={onClose}
+      preventClose
+      onKeyDownCapture={(event) => {
+        if (
+          event.key === 'Escape' &&
+          !event.currentTarget.querySelector(':popover-open')
+        ) {
+          event.preventDefault()
+          if (!loading) onClose()
+        }
+      }}
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget && !loading) onClose()
+      }}
       aria-labelledby={`dialog-note-title-${type}-${mutateNoteData?.id || 'new'}`}
     >
       <div
@@ -85,6 +99,7 @@ export default function NoteDialog({
         initialValue={mutateNoteData?.title}
         onChange={(value) => setMutateNoteData({title: value})}
         placeholder={t('editor.title')}
+        ariaLabel={t('editor.title')}
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
         disableDefaultEnter
@@ -98,14 +113,22 @@ export default function NoteDialog({
         editorClassName="h-full sm:min-h-[40dvh]"
         initialValue={mutateNoteData?.content}
         placeholder={emptyPlaceholders}
+        ariaLabel={t('editor.body')}
         commandTypes="bubble-floating"
         onChange={(value) => setMutateNoteData({content: value})}
         loading={loading}
       />
 
+      {error && (
+        <p role="alert" className="text-destructive px-4">
+          {error}
+        </p>
+      )}
+
       <NoteCustomize
         className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme || 'slate'}`}
         type={type}
+        error={!!error}
         onDeleteSuccess={onDeleteSuccess}
         loading={loading}
         scrollTopCtrl

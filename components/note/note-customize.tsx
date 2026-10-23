@@ -19,6 +19,8 @@ import {
   type ReactNode,
 } from 'react'
 import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
+import {performNoteMutation} from '~/lib/notes/client-mutation'
+import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
@@ -27,6 +29,7 @@ import {NoteThemePicker} from './note-theme-picker'
 export type NoteCustomizeProps = {
   className?: string
   loading?: boolean
+  error?: boolean
   type: 'update' | 'create'
   onDeleteSuccess?: () => void
   scrollContainerRef?: RefObject<HTMLElement | null>
@@ -51,6 +54,7 @@ function isScrollableY(el?: HTMLElement | null) {
 export default function NoteCustomize({
   className = '',
   loading,
+  error,
   type,
   onDeleteSuccess,
   scrollContainerRef,
@@ -58,6 +62,7 @@ export default function NoteCustomize({
   details,
 }: NoteCustomizeProps) {
   const [pendingTransition, startTransition] = useTransition()
+  const [deleteError, setDeleteError] = useState(false)
   const {noteId, theme} = usePersistStore((s) => ({
     noteId: s.mutateNoteData?.id,
     theme: s.mutateNoteData?.theme,
@@ -100,7 +105,12 @@ export default function NoteCustomize({
     }
 
     startTransition(async () => {
-      await deleteNoteAction(noteId)
+      setDeleteError(false)
+      const result = await performNoteMutation(() => deleteNoteAction(noteId))
+      if (!noteMutationSucceeded(result)) {
+        setDeleteError(true)
+        return
+      }
       onDeleteSuccess?.()
     })
   }
@@ -132,6 +142,11 @@ export default function NoteCustomize({
         className,
       )}
     >
+      {deleteError && (
+        <p role="alert" className="text-destructive">
+          {t('status.deleteFailed')}
+        </p>
+      )}
       <div className="flex items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
 
@@ -156,6 +171,8 @@ export default function NoteCustomize({
                 <IconLoader2 className="animate-spin" size="1.2rem" />{' '}
                 {t('status.syncing')}
               </>
+            ) : error || deleteError ? (
+              <span className="text-destructive">{t('status.failed')}</span>
             ) : (
               <>
                 <IconCheck

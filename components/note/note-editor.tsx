@@ -38,6 +38,7 @@ type NoteEditorProps = {
   defaultTheme?: boolean
 
   placeholder?: string
+  ariaLabel?: string
   showCount?: boolean
   countClassName?: string
   limitCharacter?: number
@@ -67,6 +68,7 @@ export default function NoteEditor({
   defaultTheme = false,
 
   placeholder,
+  ariaLabel,
   showCount = false,
   countClassName = '',
   limitCharacter,
@@ -117,12 +119,15 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: cn(
-            'focus:outline-none prose max-w-none',
+            'prose max-w-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
             theme ? `prose-${theme}` : 'prose-appearance',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,
           ),
           tabindex: tabIndex,
+          role: 'textbox',
+          'aria-label': ariaLabel || placeholder || id,
+          'aria-multiline': String(!disableDefaultEnter),
         },
       },
       content: initialValue || '',
@@ -143,7 +148,7 @@ export default function NoteEditor({
       autofocus: autofocus,
       immediatelyRender: false,
     },
-    [id, theme, loading, disabled],
+    [id, theme, loading, disabled, ariaLabel, placeholder],
   )
 
   const charCountStorage = textEditor?.storage?.characterCount as
