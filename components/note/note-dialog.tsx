@@ -16,7 +16,7 @@ type NoteDialogProps = {
   error?: string
   open?: boolean
   onClose: () => void
-  onDeleteSuccess?: () => unknown
+  onMoveToTrash?: () => unknown
 }
 
 export default function NoteDialog({
@@ -25,7 +25,7 @@ export default function NoteDialog({
   error,
   open = false,
   onClose,
-  onDeleteSuccess,
+  onMoveToTrash,
 }: NoteDialogProps) {
   const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
     mutateNoteData: s.mutateNoteData,
@@ -129,7 +129,7 @@ export default function NoteDialog({
         className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme || 'slate'}`}
         type={type}
         error={!!error}
-        onDeleteSuccess={onDeleteSuccess}
+        onMoveToTrash={onMoveToTrash}
         loading={loading}
         scrollTopCtrl
       />

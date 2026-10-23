@@ -19,6 +19,7 @@ const protectedRoutes = [
   ...archivistRoutes,
   ...protectedAPIRoutes,
   '/eton(/(.*))*',
+  '/trash(/(.*))*',
   '/user(/(.*))*',
   '/settings/account(/(.*))*',
 ]

@@ -430,7 +430,34 @@
       "note": "New note",
       "inspiration": "New inspiration"
     },
-    "delete": "Delete note"
+    "delete": "Delete note",
+    "trash": {
+      "title": "Trash",
+      "move": "Move to Trash",
+      "moveFailed": "Could not move your note to Trash. Your draft is still here. Try again.",
+      "retention": "Recover notes within 30 days.",
+      "back": "Back to Notes",
+      "backTrash": "Back to Trash",
+      "untitled": "Untitled note",
+      "expires": "Recover before {date}",
+      "restore": "Restore",
+      "delete": "Delete permanently",
+      "restoreNamed": "Restore “{title}”",
+      "deleteNamed": "Delete “{title}” permanently",
+      "confirmTitle": "Delete permanently?",
+      "confirmBody": "“{title}” will be permanently deleted. You cannot recover it.",
+      "cancel": "Cancel",
+      "actionFailed": "Could not complete this action. Try again.",
+      "changed": "This note has changed or is no longer available. Refresh Trash and try again.",
+      "offline": "Offline. This view may be outdated. Connect to refresh or make changes.",
+      "completed": "Trash updated.",
+      "emptyTitle": "Trash is empty",
+      "emptyBody": "Notes you move to Trash will appear here.",
+      "readOnly": "Read-only preview · In Trash",
+      "loading": "Loading Trash…",
+      "loadFailed": "Could not load Trash. Please try again.",
+      "retry": "Try again"
+    }
   },
   "landing": {
     "navigation": {

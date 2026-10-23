@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto'
 import {test} from 'node:test'
 import postgres from 'postgres'
 import {drizzle} from 'drizzle-orm/postgres-js'
-import {eq, and} from 'drizzle-orm'
+import {eq, and, sql} from 'drizzle-orm'
 import {createNoteRepository} from '../db/repositories/notes'
 import {usersTable} from '../db/schema/users'
 import {notesTable} from '../db/schema/notes'
@@ -29,6 +29,19 @@ function success(result: NoteMutationResult) {
 }
 
 test('authenticated app reads reconcile active/trash/restore/delete without cached note snapshots', async () => {
+  const cron = await fetch(`${origin}/api/cron/note-cleanup`, {
+    redirect: 'manual',
+  })
+  assert.ok(
+    [401, 503].includes(cron.status),
+    'Cron requires its own secret, never a login redirect',
+  )
+  assert.match(cron.headers.get('cache-control') ?? '', /no-store/)
+  const cronHead = await fetch(`${origin}/api/cron/note-cleanup`, {
+    method: 'HEAD',
+    redirect: 'manual',
+  })
+  assert.equal(cronHead.status, 405, 'HEAD must not invoke cleanup')
   const client = postgres(process.env.DATABASE_URL!, {max: 1})
   const db = drizzle({client})
   const repo = createNoteRepository(db)
@@ -55,6 +68,13 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
       'Ask the owner to provision qa@test.dev; this test never creates it',
     )
     ownerId = user.id
+    const guest = await fetch(`${origin}/en/trash`, {redirect: 'manual'})
+    assert.ok(
+      guest.status === 307
+        ? /login/.test(guest.headers.get('location') ?? '')
+        : (await guest.text()).includes('/login'),
+      'Trash requires authentication',
+    )
     const csrf = await fetch(`${origin}/api/auth/csrf`)
     receive(csrf)
     const {csrfToken} = await csrf.json()
@@ -113,6 +133,17 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
       }),
     )
     assert.equal((await api()).status, 404)
+    const trashList = () => fetch(`${origin}/en/trash`, {headers: headers()})
+    const preview = () =>
+      fetch(`${origin}/en/trash/${note.id}`, {headers: headers()})
+    assert.ok(
+      (await (await trashList()).text()).includes(draftMarker),
+      'Trash list shows recoverable notes',
+    )
+    assert.ok(
+      (await (await preview()).text()).includes(draftMarker),
+      'Dedicated preview shows recoverable content',
+    )
     for (const full of [false, true]) {
       const html = await (await page(full)).text()
       assert.ok(
@@ -123,10 +154,25 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
     success(await repo.restoreNote(user.id, note.id, trash.deadlineToken))
     assert.equal((await (await api()).json()).title, draftMarker)
     assert.ok(
+      !(await (await trashList()).text()).includes(draftMarker),
+      'Restored note leaves Trash',
+    )
+    assert.ok(
+      !(await (await preview()).text()).includes(draftMarker),
+      'Restored note is unavailable in Trash preview',
+    )
+    assert.ok(
       (await (await page()).text()).includes(draftMarker),
       'Restoration must expose the saved draft, not the old active content',
     )
-    success(await repo.deleteActiveNote(user.id, note.id))
+    const deletedCycle = success(await repo.moveNoteToTrash(user.id, note.id))
+    success(
+      await repo.permanentlyDeleteTrashedNote(
+        user.id,
+        note.id,
+        deletedCycle.deadlineToken,
+      ),
+    )
     assert.equal((await api()).status, 404)
     assert.ok(!(await (await page()).text()).includes(draftMarker))
     const missing = await fetch(`${origin}/api/note/${randomUUID()}`, {
@@ -138,6 +184,23 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
     assert.equal(missing.status, 404)
     assert.equal(invalid.status, 404)
     assert.deepEqual(await invalid.json(), await missing.json())
+    const expiredMarker = `expired-${randomUUID()}`
+    const expired = success(
+      await repo.createNote(user.id, {title: expiredMarker}),
+    )
+    noteId = expired.id
+    success(await repo.moveNoteToTrash(user.id, expired.id))
+    await db
+      .update(notesTable)
+      .set({pendingDeleteAt: sql`now() - interval '1 second'`})
+      .where(
+        and(eq(notesTable.id, expired.id), eq(notesTable.authorId, user.id)),
+      )
+    assert.ok(!(await (await trashList()).text()).includes(expiredMarker))
+    const expiredPreview = await fetch(`${origin}/en/trash/${expired.id}`, {
+      headers: headers(),
+    })
+    assert.ok(!(await expiredPreview.text()).includes(expiredMarker))
   } finally {
     if (noteId && ownerId)
       await db
