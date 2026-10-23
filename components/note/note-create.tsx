@@ -1,15 +1,20 @@
 'use client'
 
 import {IconPencilPlus, IconSparkles} from '@tabler/icons-react'
-import {useMessages} from 'next-intl'
+import {useMessages, useTranslations} from 'next-intl'
 import {useState, useTransition} from 'react'
 import {createNoteAction} from '~/app/[locale]/(note)/eton/actions'
 import Button from '~/components/ui/button'
 import {usePersistStore} from '~/store'
+import {performNoteMutation} from '~/lib/notes/client-mutation'
+import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
+import {pickNoteContent} from '~/lib/notes/validation'
 import {useRandomString} from '~/util/hooks'
 import NoteDialog from './note-dialog'
 
-export default function NoteCreateEditor({authorId}: {authorId: string}) {
+export default function NoteCreateEditor() {
+  const [error, setError] = useState(false)
+  const t = useTranslations('note')
   const [isTransitionPending, startTransition] = useTransition()
   const [openModal, setOpenModal] = useState(false)
   const {mutateNoteData, setMutateNoteData} = usePersistStore((state) => ({
@@ -22,7 +27,13 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
   const handleCloseModal = () =>
     startTransition(async () => {
       if (mutateNoteData && (mutateNoteData.title || mutateNoteData.content)) {
-        await createNoteAction({...mutateNoteData, authorId})
+        setError(false)
+        const input = pickNoteContent(mutateNoteData)
+        const result = await performNoteMutation(() => createNoteAction(input))
+        if (!noteMutationSucceeded(result)) {
+          setError(true)
+          return
+        }
       }
       setOpenModal(false)
       setMutateNoteData(undefined)
@@ -50,6 +61,7 @@ export default function NoteCreateEditor({authorId}: {authorId: string}) {
       <NoteDialog
         open={openModal}
         type="create"
+        error={error ? t('status.saveFailed') : undefined}
         loading={isTransitionPending}
         onClose={handleCloseModal}
       />

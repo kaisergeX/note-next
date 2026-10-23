@@ -1,7 +1,11 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 'use client'
 
-import {useRouter} from 'next/navigation'
+import {useTranslations} from 'next-intl'
+import {useRouter} from '~/i18n/navigation'
+import {performNoteMutation} from '~/lib/notes/client-mutation'
+import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
+import {pickNoteContent} from '~/lib/notes/validation'
 import {useEffect, useLayoutEffect, useState, useTransition} from 'react'
 import NoteDialog from '~/components/note/note-dialog'
 import type {Note} from '~/db/schema/notes'
@@ -12,7 +16,9 @@ import {mutateNoteAction} from '../../actions'
 type NoteDetailProps = {noteData: Note}
 
 export default function NoteDetailModal({noteData}: NoteDetailProps) {
+  const t = useTranslations('note')
   const router = useRouter()
+  const [saveError, setSaveError] = useState(false)
   const [openModal, setOpenModal] = useState(false)
   const [isPendingTransition, startTransition] = useTransition()
   const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
@@ -36,7 +42,15 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
           'pendingDeleteAt',
         ])
       ) {
-        await mutateNoteAction(noteData.id, mutateNoteData)
+        setSaveError(false)
+        const input = pickNoteContent(mutateNoteData)
+        const result = await performNoteMutation(() =>
+          mutateNoteAction(noteData.id, input),
+        )
+        if (!noteMutationSucceeded(result)) {
+          setSaveError(true)
+          return
+        }
       }
 
       await handleCloseModal()
@@ -59,6 +73,7 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   return (
     <NoteDialog
       open={openModal}
+      error={saveError ? t('status.saveFailed') : undefined}
       onClose={handleSubmit}
       loading={isPendingTransition}
       onDeleteSuccess={handleCloseModal}

@@ -14,10 +14,22 @@ export const NOTE_CACHE_KEY_PART = 'note'
 //   10 * 60, // 10 mins
 // ).result
 
-export function getNoteCacheKey(noteId: string): string {
-  return `${NOTE_CACHE_KEY_PART}-${noteId}`
+export function getNoteCacheKey(ownerId: string, noteId: string): string {
+  return `${NOTE_CACHE_KEY_PART}-${ownerId}-${noteId}`
 }
 
-export function getNoteListCacheKey(email: string): string {
-  return `${NOTE_CACHE_KEY_PART}-list-${email}`
+export function getNoteListCacheKey(ownerId: string): string {
+  return `${NOTE_CACHE_KEY_PART}-list-${ownerId}`
+}
+
+export function getNoteTrashCacheKey(ownerId: string): string {
+  return `${NOTE_CACHE_KEY_PART}-trash-${ownerId}`
+}
+
+export function getNoteMutationCacheKeys(ownerId: string, noteId: string) {
+  return [
+    getNoteListCacheKey(ownerId),
+    getNoteTrashCacheKey(ownerId),
+    getNoteCacheKey(ownerId, noteId),
+  ]
 }

@@ -7,7 +7,10 @@ import {
   IconWindowMinimize,
 } from '@tabler/icons-react'
 import {useMessages, useTranslations} from 'next-intl'
-import {useRouter} from 'next/navigation'
+import {useRouter} from '~/i18n/navigation'
+import {performNoteMutation} from '~/lib/notes/client-mutation'
+import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
+import {pickNoteContent} from '~/lib/notes/validation'
 import {useEffect, useLayoutEffect, useState, useTransition} from 'react'
 import Button from '~/components/ui/button'
 import NoteCustomize from '~/components/note/note-customize'
@@ -22,6 +25,7 @@ type NoteDetailProps = {noteData: Note}
 
 export default function NoteDetail({noteData}: NoteDetailProps) {
   const router = useRouter()
+  const [saveError, setSaveError] = useState(false)
   const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
   const [isPending, startTransition] = useTransition()
   const [isToolbarDocked, setIsToolbarDocked] = useState(false)
@@ -50,7 +54,15 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           'pendingDeleteAt',
         ])
       ) {
-        await mutateNoteAction(noteData.id, mutateNoteData)
+        setSaveError(false)
+        const input = pickNoteContent(mutateNoteData)
+        const result = await performNoteMutation(() =>
+          mutateNoteAction(noteData.id, input),
+        )
+        if (!noteMutationSucceeded(result)) {
+          setSaveError(true)
+          return
+        }
       }
 
       window.history.length > 1 ? router.back() : router.push('/eton')
@@ -131,7 +143,8 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           editorClassName="text-lg font-semibold sm:text-xl"
           initialValue={mutateNoteData?.title || noteData?.title || ''}
           onChange={(value) => setMutateNoteData({title: value})}
-          placeholder="Title"
+          placeholder={t('editor.title')}
+          ariaLabel={t('editor.title')}
           limitCharacter={NOTE_TITLE_MAX_LENGTH}
           showCount
           countClassName="text-ink-muted opacity-100"
@@ -159,6 +172,7 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
           }}
           initialValue={mutateNoteData?.content || noteData?.content || ''}
           placeholder={emptyPlaceholders}
+          ariaLabel={t('editor.body')}
           commandTypes="always-fixed"
           compactToolbar
           toolbarLeading={
@@ -225,8 +239,14 @@ export default function NoteDetail({noteData}: NoteDetailProps) {
         />
       </div>
 
+      {saveError && (
+        <p role="alert" className="text-destructive px-4">
+          {t('status.saveFailed')}
+        </p>
+      )}
       <NoteCustomize
         type="update"
+        error={saveError}
         details={
           <span className="group text-ink-muted cursor-default text-xs tabular-nums">
             <span className="opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden">
