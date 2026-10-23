@@ -15,6 +15,7 @@ import {
   type NoteMutationResult,
 } from '../lib/notes/lifecycle'
 import {getNoteMutationCacheKeys} from '../db/helper'
+import {createNoteCleanupRepository} from '../db/repositories/note-cleanup'
 
 const url = process.env.NOTES_TEST_DATABASE_URL
 assert.ok(
@@ -32,6 +33,7 @@ if (process.env.DATABASE_URL)
 const client = postgres(url, {max: 5, onnotice: () => {}})
 const db = drizzle({client})
 const repo = createNoteRepository(db)
+const cleanup = createNoteCleanupRepository(db)
 const owners: string[] = []
 let alice: string
 let bob: string
@@ -140,10 +142,6 @@ test('missing or empty mutation IDs never broaden a write to every owned note', 
       'invalid_input',
     )
     assert.equal(
-      (await repo.deleteActiveNote(alice, id)).status,
-      'invalid_input',
-    )
-    assert.equal(
       (await repo.moveNoteToTrash(alice, id)).status,
       'invalid_input',
     )
@@ -164,7 +162,6 @@ test('foreign-owned and absent rows have the same read/mutation outcomes in ever
       (await repo.updateNote(bob, id, {title: 'Attack'})).status,
       'unavailable',
     )
-    assert.equal((await repo.deleteActiveNote(bob, id)).status, 'unavailable')
     assert.equal((await repo.moveNoteToTrash(bob, id)).status, 'unavailable')
   }
   const trashed = success(await repo.moveNoteToTrash(alice, note.id))
@@ -229,10 +226,6 @@ test('atomic draft trash preserves metadata and elapsed retention across DST; re
     assert.ok(!(await r.getListNote(alice)).some((row) => row.id === note.id))
     assert.equal(
       (await r.updateNote(alice, note.id, {title: 'Stale save'})).status,
-      'unavailable',
-    )
-    assert.equal(
-      (await r.deleteActiveNote(alice, note.id)).status,
       'unavailable',
     )
     const restored = success(
@@ -511,4 +504,128 @@ test('migration installs distinct owner-order and due-expiry indexes; cache tags
     getNoteMutationCacheKeys(bob, 'same-note'),
   )
   assert.equal(getNoteMutationCacheKeys(alice, 'same-note').length, 3)
+})
+
+async function drainExpiredFixtures() {
+  while ((await cleanup.deleteExpiredBatch(100)).length === 100) {
+    // Only this explicitly disposable test database may be swept by these tests.
+  }
+}
+
+test('cleanup uses database deadlines across owners; active/restored/future notes survive', async () => {
+  await drainExpiredFixtures()
+  const restored = success(
+    await repo.moveNoteToTrash(alice, (await fixture()).id),
+  )
+  success(await repo.restoreNote(alice, restored.id, restored.deadlineToken))
+  const rows = await db
+    .insert(notesTable)
+    .values([
+      {authorId: alice, title: 'Active'},
+      {
+        authorId: bob,
+        pendingDeleteAt: sql`statement_timestamp() + interval '1 hour'`,
+      },
+      {authorId: alice, pendingDeleteAt: sql`statement_timestamp()`},
+      {
+        authorId: bob,
+        pendingDeleteAt: sql`statement_timestamp() - interval '1 second'`,
+      },
+      {
+        authorId: alice,
+        isArchived: true,
+        pendingDeleteAt: sql`statement_timestamp() - interval '45 days'`,
+      },
+    ])
+    .returning()
+  const removed = await cleanup.deleteExpiredBatch(100, (identities) => {
+    assert.ok(
+      identities.every(
+        (row) => Object.keys(row).sort().join() === 'authorId,id',
+      ),
+    )
+  })
+  assert.deepEqual(
+    new Set(removed.map((row) => row.id)),
+    new Set(rows.slice(2).map((row) => row.id)),
+  )
+  assert.deepEqual(
+    new Set(removed.map((row) => row.authorId)),
+    new Set([alice, bob]),
+  )
+  assert.ok(await repo.getNote(alice, rows[0].id))
+  assert.ok(await repo.getTrashNote(bob, rows[1].id))
+  assert.ok(await repo.getNote(alice, restored.id))
+  assert.equal((await cleanup.deleteExpiredBatch(100)).length, 0)
+})
+
+test('cleanup enforces batch limits and overlapping workers delete each expired row once', async () => {
+  await drainExpiredFixtures()
+  for (const limit of [0, -1, 101, 1.5, NaN, Infinity])
+    await assert.rejects(cleanup.deleteExpiredBatch(limit), RangeError)
+  const rows = await db
+    .insert(notesTable)
+    .values(
+      Array.from({length: 205}, (_, i) => ({
+        authorId: i % 2 ? alice : bob,
+        pendingDeleteAt: sql`statement_timestamp() - interval '1 day'`,
+      })),
+    )
+    .returning({id: notesTable.id})
+  const workers = await Promise.all([
+    cleanup.deleteExpiredBatch(100),
+    cleanup.deleteExpiredBatch(100),
+  ])
+  assert.ok(workers.every((batch) => batch.length === 100))
+  const remaining = await cleanup.deleteExpiredBatch(100)
+  assert.equal(remaining.length, 5)
+  const removed = [...workers.flat(), ...remaining].map((row) => row.id)
+  assert.equal(new Set(removed).size, 205)
+  assert.deepEqual(new Set(removed), new Set(rows.map((row) => row.id)))
+  assert.equal((await cleanup.deleteExpiredBatch(100)).length, 0)
+})
+
+test('cleanup skips locked rows and rechecks current eligibility after a concurrent change', async () => {
+  await drainExpiredFixtures()
+  const note = await fixture()
+  await db
+    .update(notesTable)
+    .set({pendingDeleteAt: sql`statement_timestamp() - interval '1 day'`})
+    .where(eq(notesTable.id, note.id))
+  await db.transaction(async (tx) => {
+    await tx.execute(
+      sql`SELECT id FROM ${notesTable} WHERE id = ${note.id} FOR UPDATE`,
+    )
+    assert.equal((await cleanup.deleteExpiredBatch(100)).length, 0)
+    await tx
+      .update(notesTable)
+      .set({pendingDeleteAt: null})
+      .where(eq(notesTable.id, note.id))
+  })
+  assert.equal((await cleanup.deleteExpiredBatch(100)).length, 0)
+  assert.ok(await repo.getNote(alice, note.id))
+})
+
+test('failed invalidation rolls back the batch; retry safely deletes it', async () => {
+  await drainExpiredFixtures()
+  const note = await fixture()
+  await db
+    .update(notesTable)
+    .set({pendingDeleteAt: sql`statement_timestamp() - interval '1 day'`})
+    .where(eq(notesTable.id, note.id))
+  await assert.rejects(
+    cleanup.deleteExpiredBatch(100, () => {
+      throw new Error('Invalidation unavailable')
+    }),
+  )
+  assert.equal(
+    (await db.select().from(notesTable).where(eq(notesTable.id, note.id)))
+      .length,
+    1,
+  )
+  assert.deepEqual(
+    (await cleanup.deleteExpiredBatch(100)).map((row) => row.id),
+    [note.id],
+  )
+  assert.equal((await cleanup.deleteExpiredBatch(100)).length, 0)
 })

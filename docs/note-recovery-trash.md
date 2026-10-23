@@ -1,6 +1,6 @@
 # Note Recovery and Trash
 
-**Status:** Phase 1 complete (2026-10-23). Trash UI and cleanup are pending. Existing delete buttons still permanently delete owned active notes.
+**Status:** Phases 1–3 implemented (2026-10-23). Trash and recovery ship together; deployed cleanup remains Phase 4.
 
 ## Behavior
 
@@ -34,15 +34,12 @@ Reuse `pendingDeleteAt` as the permanent-deletion **deadline**, independent of `
 
 The [index migration](../drizzle/20261023052245_note_recovery_indexes/migration.sql) was tested **only in the disposable database**; app/production migration is pending. Local audit: **4 notes, zero deadlines**, unchanged after fixture cleanup. Audit legacy deadlines and index-locking impact on each deployment target before rollout.
 
-## Next: phases 2–3 together
+## Phases 2–3 delivered
 
-1. Expose authenticated lifecycle actions using the existing helpers/outcomes/tags; replace temporary active-note hard deletion in cards and both editors.
-2. Add `app/[locale]/(note)/trash/page.tsx` and `trash/[id]/page.tsx` outside the `eton` modal layout. Register `/trash` in [auth configuration](../config/auth.ts); authenticate pages/actions independently.
-3. Build list, safe read-only preview, restore, named irreversible-delete confirmation, navigation, and localized feedback. Preserve note hues.
-4. Refresh on focus/visibility return and nearest expiry. Any future content cache must enforce owner isolation, transition invalidation, and current eligibility.
-5. Audit [service-worker caching](../app/sw.ts) for note HTML/RSC/API responses and verify offline/reconnect behavior. Do not persist bodies or trash mutations in the appearance store.
-
-**Release gate:** ship trashing and recovery UI together. Verify draft → trash → preview → restore in both editors, confirmation cancel/confirm, empty states, stale requests, failure/retry, and ordinary/modal/full/API visibility. Run the required `ui-build` review.
+- Authenticated lifecycle actions replace active-note hard deletion in cards and both editors. Trashing snapshots the latest draft; failure keeps it open, success leaves without another save.
+- `/trash` and `/trash/[id]` provide owner-scoped lists, safe read-only previews, restore, and named permanent-delete confirmation outside the modal layout.
+- EN/VI navigation, empty/pending/error/offline states, note hues, accessible dialogs, and local expiry display are included. Focus, visibility, reconnect, and nearest-deadline events refresh eligibility using database time.
+- The service worker excludes note HTML/RSC/API reads and mutations from caching, removes legacy cached note responses, and filters unresolved route templates from precaching. No note bodies enter the appearance store.
 
 ## Phase 4: cleanup
 
@@ -50,7 +47,7 @@ Choose/configure a daily deployment scheduler. Use a secret-protected endpoint a
 
 ## Verification
 
-Phase 1 passed **12 regression tests, 1 HTTP test, lint, build, formatting, and browser review**. Coverage includes two owners, payload/ID validation, preservation, expiry, stale tokens, races, and read freshness. Browser coverage: EN/VI, 390/768/1440, Paper & Ink light/dark. Other presets and rapid Escape during loading remain unverified.
+**15 regression tests, 1 HTTP test, lint, build, and formatting pass**. Coverage includes two owners, validation, preservation, expiry, stale tokens, races, read freshness, Trash visibility, summaries, and network policy. A production-worker browser check verified installation, selective legacy-cache removal, offline note read/mutation rejection, and reconnect. UI review passed EN/VI, 390/768/1440, light/dark, atomic modal draft/theme trash (one request), full-editor failure/retry, read-only preview, restore, and confirmed permanent-delete failure/retry. Full keyboard traversal, extra presets, and live expiry timing remain unverified in-browser; expiry and read denial are covered by automated tests.
 
 ```sh
 # Dedicated loopback DB with _test in its name; never the app DB

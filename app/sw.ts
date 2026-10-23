@@ -1,6 +1,7 @@
 import {defaultCache} from '@serwist/next/worker'
 import type {PrecacheEntry, SerwistGlobalConfig} from 'serwist'
 import {NetworkOnly, Serwist} from 'serwist'
+import {isNoteNetworkPath, isPrecacheablePath} from '~/lib/notes/network-policy'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -18,22 +19,50 @@ const isAiApiRoute = ({url}: {url: URL}) => url.pathname.startsWith('/api/ai/')
 const isAppearanceApiRoute = ({url}: {url: URL}) =>
   url.pathname === '/api/user/appearance'
 
+const isNoteRoute = ({url, sameOrigin}: {url: URL; sameOrigin: boolean}) =>
+  sameOrigin && isNoteNetworkPath(url.pathname)
 const serwist = new Serwist({
-  precacheEntries: self.__SW_MANIFEST,
+  precacheEntries: self.__SW_MANIFEST?.filter((entry) =>
+    isPrecacheablePath(
+      new URL(
+        typeof entry === 'string' ? entry : entry.url,
+        self.location.origin,
+      ).pathname,
+    ),
+  ),
   skipWaiting: true,
   clientsClaim: true,
   navigationPreload: true,
-  runtimeCaching: defaultCache,
+  runtimeCaching: [
+    // First match wins. Protect bodies and mutations before generic runtime rules.
+    {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'GET'},
+    {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'POST'},
+    {matcher: isAiApiRoute, handler: new NetworkOnly(), method: 'GET'},
+    {matcher: isAiApiRoute, handler: new NetworkOnly(), method: 'POST'},
+    {matcher: isAppearanceApiRoute, handler: new NetworkOnly(), method: 'GET'},
+    {matcher: isAppearanceApiRoute, handler: new NetworkOnly(), method: 'PUT'},
+    ...defaultCache,
+  ],
   disableDevLogs: true,
 })
 
-// AI API routes (live LM Studio streams) must never be cached or served from
-// cache — PWA runtime caching and a streaming response don't mix. NetworkOnly
-// passes fetches straight through. Each route matches one method, so GET and
-// POST are registered separately. /api/auth/* behavior is untouched.
-serwist.registerCapture(isAiApiRoute, new NetworkOnly(), 'GET')
-serwist.registerCapture(isAiApiRoute, new NetworkOnly(), 'POST')
-serwist.registerCapture(isAppearanceApiRoute, new NetworkOnly(), 'GET')
-serwist.registerCapture(isAppearanceApiRoute, new NetworkOnly(), 'PUT')
+// Remove note responses cached by older workers, without clearing other assets.
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    (async () => {
+      for (const name of await caches.keys()) {
+        const cache = await caches.open(name)
+        for (const request of await cache.keys()) {
+          const url = new URL(request.url)
+          if (
+            url.origin === self.location.origin &&
+            isNoteNetworkPath(url.pathname)
+          )
+            await cache.delete(request)
+        }
+      }
+    })(),
+  )
+})
 
 serwist.addEventListeners()

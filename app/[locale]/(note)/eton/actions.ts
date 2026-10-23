@@ -40,10 +40,37 @@ export async function mutateNoteAction(noteId: string, input: unknown) {
     userInfo.id,
   )
 }
-export async function deleteNoteAction(noteId: string) {
+export async function moveNoteToTrashAction(noteId: string, draft?: unknown) {
   const {userInfo} = await requireAuth()
   return commit(
-    () => noteRepository.deleteActiveNote(userInfo.id, noteId),
+    () => noteRepository.moveNoteToTrash(userInfo.id, noteId, draft),
+    userInfo.id,
+  )
+}
+
+export async function restoreNoteAction(
+  noteId: string,
+  deadlineToken: unknown,
+) {
+  const {userInfo} = await requireAuth()
+  return commit(
+    () => noteRepository.restoreNote(userInfo.id, noteId, deadlineToken),
+    userInfo.id,
+  )
+}
+
+export async function permanentlyDeleteNoteAction(
+  noteId: string,
+  deadlineToken: unknown,
+) {
+  const {userInfo} = await requireAuth()
+  return commit(
+    () =>
+      noteRepository.permanentlyDeleteTrashedNote(
+        userInfo.id,
+        noteId,
+        deadlineToken,
+      ),
     userInfo.id,
   )
 }

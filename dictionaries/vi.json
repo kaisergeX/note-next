@@ -430,7 +430,34 @@
       "note": "Ghi chú mới",
       "inspiration": "Cảm hứng mới"
     },
-    "delete": "Xóa ghi chú"
+    "delete": "Xóa ghi chú",
+    "trash": {
+      "title": "Thùng rác",
+      "move": "Chuyển vào thùng rác",
+      "moveFailed": "Không thể chuyển ghi chú vào thùng rác. Bản nháp vẫn còn ở đây. Vui lòng thử lại.",
+      "retention": "Khôi phục ghi chú trong vòng 30 ngày.",
+      "back": "Về ghi chú",
+      "backTrash": "Về thùng rác",
+      "untitled": "Ghi chú chưa có tiêu đề",
+      "expires": "Khôi phục trước {date}",
+      "restore": "Khôi phục",
+      "delete": "Xóa vĩnh viễn",
+      "restoreNamed": "Khôi phục “{title}”",
+      "deleteNamed": "Xóa vĩnh viễn “{title}”",
+      "confirmTitle": "Xóa vĩnh viễn?",
+      "confirmBody": "“{title}” sẽ bị xóa vĩnh viễn. Bạn không thể khôi phục ghi chú này.",
+      "cancel": "Hủy",
+      "actionFailed": "Không thể thực hiện thao tác. Vui lòng thử lại.",
+      "changed": "Ghi chú đã thay đổi hoặc không còn khả dụng. Hãy làm mới thùng rác và thử lại.",
+      "offline": "Đang ngoại tuyến. Nội dung này có thể đã cũ. Hãy kết nối để làm mới hoặc thao tác.",
+      "completed": "Đã cập nhật thùng rác.",
+      "emptyTitle": "Thùng rác trống",
+      "emptyBody": "Ghi chú chuyển vào thùng rác sẽ xuất hiện ở đây.",
+      "readOnly": "Bản xem trước chỉ đọc · Trong thùng rác",
+      "loading": "Đang tải thùng rác…",
+      "loadFailed": "Không thể tải thùng rác. Vui lòng thử lại.",
+      "retry": "Thử lại"
+    }
   },
   "landing": {
     "navigation": {

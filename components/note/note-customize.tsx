@@ -14,13 +14,9 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useTransition,
   type RefObject,
   type ReactNode,
 } from 'react'
-import {deleteNoteAction} from '~/app/[locale]/(note)/eton/actions'
-import {performNoteMutation} from '~/lib/notes/client-mutation'
-import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
@@ -31,7 +27,7 @@ export type NoteCustomizeProps = {
   loading?: boolean
   error?: boolean
   type: 'update' | 'create'
-  onDeleteSuccess?: () => void
+  onMoveToTrash?: () => void
   scrollContainerRef?: RefObject<HTMLElement | null>
   scrollTopCtrl?: boolean
   details?: ReactNode
@@ -56,13 +52,11 @@ export default function NoteCustomize({
   loading,
   error,
   type,
-  onDeleteSuccess,
+  onMoveToTrash,
   scrollContainerRef,
   scrollTopCtrl = false,
   details,
 }: NoteCustomizeProps) {
-  const [pendingTransition, startTransition] = useTransition()
-  const [deleteError, setDeleteError] = useState(false)
   const {noteId, theme} = usePersistStore((s) => ({
     noteId: s.mutateNoteData?.id,
     theme: s.mutateNoteData?.theme,
@@ -70,7 +64,7 @@ export default function NoteCustomize({
   const t = useTranslations('note')
   const ref = useRef<HTMLDivElement>(null)
   const [scrollable, setScrollable] = useState(false)
-  const isLoading = loading || pendingTransition
+  const isLoading = loading
 
   const getScrollContainer = () =>
     scrollContainerRef?.current
@@ -99,33 +93,17 @@ export default function NoteCustomize({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scrollTopCtrl])
 
-  const handleDeleteNote = () => {
-    if (!noteId) {
-      return
-    }
-
-    startTransition(async () => {
-      setDeleteError(false)
-      const result = await performNoteMutation(() => deleteNoteAction(noteId))
-      if (!noteMutationSucceeded(result)) {
-        setDeleteError(true)
-        return
-      }
-      onDeleteSuccess?.()
-    })
-  }
-
   const menuItems: MenuCustomItem[] = [
     {
       type: 'action',
       label: (
         <>
-          <IconTrash size="1.2rem" /> {t('delete')}
+          <IconTrash size="1.2rem" /> {t('trash.move')}
         </>
       ),
-      destructive: true,
-      onSelect: handleDeleteNote,
-      disabled: isLoading,
+      destructive: false,
+      onSelect: () => onMoveToTrash?.(),
+      disabled: isLoading || !onMoveToTrash,
       hidden: type !== 'update' || !noteId,
     },
   ]
@@ -142,11 +120,6 @@ export default function NoteCustomize({
         className,
       )}
     >
-      {deleteError && (
-        <p role="alert" className="text-destructive">
-          {t('status.deleteFailed')}
-        </p>
-      )}
       <div className="flex items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
 
@@ -171,7 +144,7 @@ export default function NoteCustomize({
                 <IconLoader2 className="animate-spin" size="1.2rem" />{' '}
                 {t('status.syncing')}
               </>
-            ) : error || deleteError ? (
+            ) : error ? (
               <span className="text-destructive">{t('status.failed')}</span>
             ) : (
               <>
@@ -186,7 +159,7 @@ export default function NoteCustomize({
           </div>
         )}
 
-        {!pendingTransition && menuItems.every(({hidden}) => !hidden) && (
+        {menuItems.every(({hidden}) => !hidden) && (
           <MenuCustom
             ariaLabel={t('accessibility.moreActions')}
             className={buttonClass({

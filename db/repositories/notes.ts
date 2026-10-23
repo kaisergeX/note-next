@@ -109,19 +109,6 @@ export function createNoteRepository(db: NoteDatabase) {
         .returning(projection),
     )
   }
-  // Temporary phase-1 adapter. Remove when public deletion switches to Trash.
-  async function deleteActiveNote(
-    ownerId: string,
-    noteId: string,
-  ): Promise<NoteMutationResult> {
-    if (!valid(ownerId, noteId)) return {status: 'invalid_input'}
-    return result(
-      await db
-        .delete(notesTable)
-        .where(and(owned(ownerId, noteId), active))
-        .returning(projection),
-    )
-  }
   async function moveNoteToTrash(
     ownerId: string,
     noteId: string,
@@ -175,14 +162,22 @@ export function createNoteRepository(db: NoteDatabase) {
       ? {status: 'conflict'}
       : {status: 'unavailable'}
   }
+  async function getServerTime() {
+    const [clock] = await db
+      .select({
+        now: sql<number>`extract(epoch from clock_timestamp())::double precision * 1000`,
+      })
+      .from(sql`(select 1) as clock`)
+    return clock.now
+  }
   return {
+    getServerTime,
     getNote,
     getListNote,
     getTrashNote,
     getTrashNotes,
     createNote,
     updateNote,
-    deleteActiveNote,
     moveNoteToTrash,
     restoreNote: (ownerId: string, noteId: string, deadline: unknown) =>
       mutateTrash(ownerId, noteId, deadline, false),

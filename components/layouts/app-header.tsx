@@ -12,6 +12,7 @@ import {
   IconUser,
   IconSettings,
   IconPalette,
+  IconTrash,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useSession} from 'next-auth/react'
@@ -37,6 +38,7 @@ type NavProps = {
     login: string
     settings: string
     appearance: string
+    trash: string
   }
 }
 
@@ -125,6 +127,15 @@ export default function AppHeader({
   }`
 
   const desktopMenuItems: MenuCustomItem[] = [
+    {
+      type: 'link',
+      url: `/${locale}/trash`,
+      label: (
+        <>
+          <IconTrash /> {navigationLabels.trash}
+        </>
+      ),
+    },
     {
       type: 'link',
       url: `/${locale}/settings/account`,
@@ -335,6 +346,13 @@ export default function AppHeader({
         </header>
         <Dialog.Content className="flex flex-col justify-between gap-1">
           <nav aria-label="Main navigation">
+            <Link
+              href={`/${locale}/trash`}
+              className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
+              onClick={closeMenuDialog}
+            >
+              <IconTrash /> {navigationLabels.trash}
+            </Link>
             <Link
               href={`/${locale}/settings/account`}
               className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
