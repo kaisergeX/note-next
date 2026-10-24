@@ -13,7 +13,7 @@
 <sup>List in order of priority</sup>
 
 - [ ] Note: Encrypt contents.
-- [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — implemented and locally verified; production cleanup verification requires separate approval.
+- [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — deployed; local checks, production recovery flow, manual cleanup, and endpoint protection pass. Automatic scheduled cleanup verification remains pending.
 - [x] System: PWA supported.
 - [ ] Settings: Account
   - [ ] Delete account.
