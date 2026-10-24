@@ -41,7 +41,7 @@ export default function NoteDialog({
   return (
     <Dialog
       className={cn(
-        'flex min-h-80 flex-col rounded-lg max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
+        'min-h-80 flex-col rounded-lg open:flex max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
         'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-2/3 2xl:max-w-(--breakpoint-xl)',
         noteTheme
           ? `dialog-${noteTheme} shadow-xl max-sm:shadow-none shadow-theme-${noteTheme}`

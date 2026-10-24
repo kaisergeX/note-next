@@ -13,7 +13,7 @@
 <sup>List in order of priority</sup>
 
 - [ ] Note: Encrypt contents.
-- [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — planned.
+- [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — implemented and locally verified; production cleanup verification requires separate approval.
 - [x] System: PWA supported.
 - [ ] Settings: Account
   - [ ] Delete account.

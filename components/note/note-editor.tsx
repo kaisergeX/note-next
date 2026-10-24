@@ -119,7 +119,7 @@ export default function NoteEditor({
       editorProps: {
         attributes: {
           class: cn(
-            'prose max-w-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent',
+            'focus:outline-none prose max-w-none',
             theme ? `prose-${theme}` : 'prose-appearance',
             loading ? 'opacity-80 cursor-progress' : '',
             editorClassName,

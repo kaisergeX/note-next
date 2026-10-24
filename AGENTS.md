@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle ORM with PostgreSQL. The project uses pnpm as the package manager and follows a monorepo-style structure for a single application.
+This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle ORM with PostgreSQL. The project uses pnpm as the package manager.
 
 ## Key Commands
 
@@ -17,26 +17,27 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 ## Database Setup
 
 1. Copy `.env.example` to `.env.local`
-2. Set required environment variables including `DATABASE_URL`
-3. Run `pnpm db:gen` to generate migrations
-4. Run `pnpm db:migrate` to apply migrations
-5. Run `pnpm db:seed` to populate with sample data
+2. Set `DATABASE_URL` for the app/seed and `POSTGRES_URL_NON_POOLING` for Drizzle migrations to the same intended local database.
+3. Run `pnpm db:migrate` to apply checked-in migrations. Use `pnpm db:gen` only when generating a new migration for a schema change.
+4. Optionally run `pnpm db:seed`; it inserts sample users only when the users table is empty.
 
 ## Framework Details
 
+Library/compiler/tooling versions are declared in `package.json`.
+
 - Next.js 16, App Router with locale routing under `app/[locale]/`
-- TypeScript 7.0+
+- TypeScript
 - Tailwind CSS 4.3+
 - Drizzle ORM 1.0.0-rc.4 with PostgreSQL (Schema: `db/schema/`)
 - Authentication via NextAuth.js 5.0.0-beta.32
 - Tiptap editor for rich text editing
-- State management: Zustand stores (check `lib/stores/`)
+- State management: Zustand stores (check `store/`)
 
 ## Design System
 
-- `DESIGN.md` (repo root) is the source of truth for the app's look ("Paper & Ink"). Read it before any UI change.
-- Tokens are CSS vars in `app/globals.css` (`:root` + `.dark`) mapped via `@theme inline`. Use semantic utilities: `bg-paper`, `bg-paper-raised`, `text-ink`, `text-ink-muted`, `border-hairline`, `text-accent`, `bg-destructive`, `text-success`, `shadow-sheet`, `font-serif`, `bg-dotgrid`. Dark mode is automatic (vars flip) — no `dark:` pair needed for token colors.
-- Primitives live in `components/ui/` (`button.tsx`, `input.tsx`, `badge.tsx`) — use them for new UI instead of raw classes.
+- `DESIGN.md` (repo root) is the source of truth for the app's look. Read it before any UI change.
+- Tokens are CSS vars in `app/globals.css` (`:root` + `.dark`) mapped via `@theme inline`. Dark mode is automatic (vars flip) — no `dark:` pair needed for token colors.
+- Primitives live in `components/ui/` (`button.tsx`, `input.tsx`, `badge.tsx`, etc) — use them for new UI instead of raw classes.
 - **Tailwind 4 syntax only.** Never generate v3-era syntax: no `tailwind.config.*` files, no `content`/`safelist` arrays, no `darkMode:` key, no JS theme extensions. Use `@theme`, `@utility`, `@custom-variant`, `@plugin`, `@source inline` in CSS. Custom plugins load via `config/tailwindTypographyPlugin.mjs` + `config/tailwindNoteThemePlugin.mjs`.
 
 ## Special Notes
@@ -45,8 +46,8 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 - **Visual QA authentication:** `auth.ts` registers a development-only Credentials provider for the existing `qa@test.dev` user. The provider checks the email and ignores the password; the user must already exist in the local database. The current `/[locale]/login` page only renders Google sign-in, so use a same-origin POST to `/api/auth/callback/credentials` with a CSRF token and `email=qa@test.dev` to sign in during browser review. AI interview routes also require a `feature_access` row for `persona-interview`, which the project owner grants manually. QA users and feature grants may not be present on every device/database. If either is missing, ask the owner to provision it, then continue the review after they confirm; do not treat the route as permanently blocked or try to grant access yourself.
 - Parallel notes view: Uses Next.js parallel routes `app/[locale]/(note)/` to serve both modal and full-size note views on the same route
 - Use path aliases `~/*` (defined in tsconfig)
-- Has a custom authentication configuration in `config/auth.ts`
-- Implements localization using next-intl 4.13.7
+- NextAuth configuration lives in `auth.ts`; protected-route patterns live in `config/auth.ts`
+- Implements localization using next-intl
 - Utilizes serwist for PWA support (Service worker: `app/sw.ts` → `public/sw.js`)
 - Uses `server-only` package for server-side rendering
 - **AI features** (`app/[locale]/ai/`): Implementing. Shared parent for AI-driven features, isolated from the note-taking domain. Persona interview lives at
@@ -62,8 +63,7 @@ This is a Next.js 16+ application using TypeScript, Tailwind CSS, and Drizzle OR
 ## Important Constraints
 
 - Import paths must not use path aliases in `db/schema/*.ts` (required by Drizzle)
-- Service worker must use `serwist.ts` entry point, output to `public/sw.js`
-- ESLint disables `no-undef` as Next.js types are injected globally during dev
+- Service worker entry point is `app/sw.ts`, configured in `serwist.config.js`, with output at `public/sw.js`
 
 <!-- BEGIN:nextjs-agent-rules -->
 

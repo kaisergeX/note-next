@@ -3,7 +3,6 @@
 import {useState} from 'react'
 import {useTranslations} from 'next-intl'
 import {Link, useRouter} from '~/i18n/navigation'
-import {buttonClass} from '~/components/ui/button'
 import type {TrashItem} from '~/lib/notes/text'
 import TrashActions from './trash-actions'
 import ExpiryDate from './expiry-date'
@@ -74,14 +73,8 @@ export default function TrashList({
         </ul>
       ) : (
         <section className="bg-dotgrid border-hairline rounded-xl border px-4 py-16 text-center">
-          <h2 className="font-serif text-2xl">{t('emptyTitle')}</h2>
+          <h2 className="font-serif text-xl">{t('emptyTitle')}</h2>
           <p className="text-ink-muted mt-2 text-sm">{t('emptyBody')}</p>
-          <Link
-            href="/eton"
-            className={`${buttonClass({variant: 'secondary'})} mt-6`}
-          >
-            {t('back')}
-          </Link>
         </section>
       )}
     </>

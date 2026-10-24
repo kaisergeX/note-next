@@ -395,7 +395,12 @@
   },
   "note": {
     "title": "Ghi chú",
+    "collections": {
+      "all": "Tất cả ghi chú",
+      "deleted": "Đã xóa gần đây"
+    },
     "accessibility": {
+      "collections": "Các nhóm ghi chú",
       "chooseTheme": "Chọn giao diện ghi chú",
       "selectTheme": "Đặt giao diện ghi chú thành {theme}",
       "moreActions": "Thao tác khác với ghi chú"
@@ -451,9 +456,9 @@
       "changed": "Ghi chú đã thay đổi hoặc không còn khả dụng. Hãy làm mới thùng rác và thử lại.",
       "offline": "Đang ngoại tuyến. Nội dung này có thể đã cũ. Hãy kết nối để làm mới hoặc thao tác.",
       "completed": "Đã cập nhật thùng rác.",
-      "emptyTitle": "Thùng rác trống",
-      "emptyBody": "Ghi chú chuyển vào thùng rác sẽ xuất hiện ở đây.",
-      "readOnly": "Bản xem trước chỉ đọc · Trong thùng rác",
+      "emptyTitle": "Không có ghi chú đã xóa",
+      "emptyBody": "Ghi chú đã xóa sẽ xuất hiện ở đây trong 30 ngày.",
+      "readOnly": "Bản xem trước chỉ đọc",
       "loading": "Đang tải thùng rác…",
       "loadFailed": "Không thể tải thùng rác. Vui lòng thử lại.",
       "retry": "Thử lại"

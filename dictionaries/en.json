@@ -395,7 +395,12 @@
   },
   "note": {
     "title": "Notes",
+    "collections": {
+      "all": "All notes",
+      "deleted": "Recently deleted"
+    },
     "accessibility": {
+      "collections": "Note collections",
       "chooseTheme": "Choose note theme",
       "selectTheme": "Set note theme to {theme}",
       "moreActions": "More note actions"
@@ -451,9 +456,9 @@
       "changed": "This note has changed or is no longer available. Refresh Trash and try again.",
       "offline": "Offline. This view may be outdated. Connect to refresh or make changes.",
       "completed": "Trash updated.",
-      "emptyTitle": "Trash is empty",
-      "emptyBody": "Notes you move to Trash will appear here.",
-      "readOnly": "Read-only preview · In Trash",
+      "emptyTitle": "No deleted notes",
+      "emptyBody": "Deleted notes appear here for 30 days.",
+      "readOnly": "Read-only preview",
       "loading": "Loading Trash…",
       "loadFailed": "Could not load Trash. Please try again.",
       "retry": "Try again"

@@ -55,7 +55,7 @@ export default function NoteTiny({data}: NoteProps) {
           <IconTrash size="1rem" /> {t('trash.move')}
         </>
       ),
-      destructive: false,
+      destructive: true,
       disabled: pendingTransition,
       onSelect: handleDeleteNote,
     },
