@@ -9,7 +9,10 @@
       "languageSwitch": "Đổi ngôn ngữ",
       "openMainMenu": "Mở menu chính",
       "closeMainMenu": "Đóng menu chính",
-      "settings": "Cài đặt"
+      "settings": "Cài đặt",
+      "navigation": "Điều hướng chính",
+      "notes": "Ghi chú",
+      "ai": "Phỏng vấn AI"
     },
     "error": {
       "sthWrong": "Có gì đó sai sai!"
@@ -401,6 +404,10 @@
     },
     "accessibility": {
       "collections": "Các nhóm ghi chú",
+      "pinSidebar": "Ghim thanh bên",
+      "unpinSidebar": "Bỏ ghim thanh bên",
+      "expandSidebar": "Mở rộng thanh bên",
+      "collapseSidebar": "Thu gọn thanh bên",
       "chooseTheme": "Chọn giao diện ghi chú",
       "selectTheme": "Đặt giao diện ghi chú thành {theme}",
       "moreActions": "Thao tác khác với ghi chú"
