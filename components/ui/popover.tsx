@@ -37,6 +37,7 @@ import {
   useState,
   useSyncExternalStore,
   type MouseEvent,
+  type KeyboardEvent,
   type ReactNode,
   type ToggleEvent,
 } from 'react'
@@ -57,6 +58,8 @@ export type PopoverBaseProps = {
   disabled?: boolean
   /** A click on an enabled `a`/`button` inside the popover closes it. */
   closeOnSelect?: boolean
+  /** Optional arrow/Home/End/typeahead navigation for disclosure link lists. */
+  keyboardNavigation?: boolean
   onToggle?: (open: boolean) => void
   /** Explicit popover id; defaults to a sanitized `useId()`. */
   id?: string
@@ -97,6 +100,7 @@ export default function PopoverBase({
   className,
   disabled,
   closeOnSelect = true,
+  keyboardNavigation = false,
   onToggle,
   id: explicitId,
   children,
@@ -108,6 +112,47 @@ export default function PopoverBase({
 
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const triggerRef = useRef<HTMLButtonElement | null>(null)
+  const search = useRef({text: '', at: 0})
+
+  const navigationItems = () =>
+    Array.from(
+      popoverRef.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled])',
+      ) ?? [],
+    ).filter(
+      (item) =>
+        item.getAttribute('aria-disabled') !== 'true' &&
+        !item.closest('[aria-disabled="true"]') &&
+        item.getClientRects().length > 0,
+    )
+
+  const handleNavigation = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (!keyboardNavigation || event.altKey || event.ctrlKey || event.metaKey)
+      return
+    const items = navigationItems()
+    if (!items.length) return
+    const index = items.indexOf(document.activeElement as HTMLElement)
+    let target: HTMLElement | undefined
+    if (event.key === 'ArrowDown') target = items[(index + 1) % items.length]
+    else if (event.key === 'ArrowUp')
+      target = items[(index - 1 + items.length) % items.length]
+    else if (event.key === 'Home') target = items[0]
+    else if (event.key === 'End') target = items.at(-1)
+    else if (event.key.length === 1 && event.key !== ' ') {
+      const now = performance.now()
+      const key = event.key.toLocaleLowerCase()
+      const previous = now - search.current.at < 500 ? search.current.text : ''
+      const text = previous === key ? key : previous + key
+      search.current = {text, at: now}
+      target = [...items.slice(index + 1), ...items.slice(0, index + 1)].find(
+        (item) => item.textContent?.trim().toLocaleLowerCase().startsWith(text),
+      )
+    }
+    if (target) {
+      event.preventDefault()
+      target.focus()
+    }
+  }
 
   // Chrome does not expose implicit aria-expanded on commandfor buttons, so
   // mirror the popover state explicitly.
@@ -219,6 +264,18 @@ export default function PopoverBase({
         aria-expanded={open}
         aria-controls={id}
         className={triggerClassName}
+        onKeyDown={(event) => {
+          if (
+            !keyboardNavigation ||
+            !['ArrowDown', 'ArrowUp'].includes(event.key)
+          )
+            return
+          event.preventDefault()
+          popoverRef.current?.showPopover()
+          search.current = {text: '', at: 0}
+          const items = navigationItems()
+          ;(event.key === 'ArrowUp' ? items.at(-1) : items[0])?.focus()
+        }}
       >
         {trigger}
       </button>
@@ -228,6 +285,7 @@ export default function PopoverBase({
         id={id}
         popover="auto"
         onClick={handlePopoverClick}
+        onKeyDown={handleNavigation}
         onToggle={(e) => {
           const isOpen = (e as ToggleEvent<HTMLDivElement>).newState === 'open'
           setOpen(isOpen)

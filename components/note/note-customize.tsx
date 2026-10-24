@@ -101,7 +101,7 @@ export default function NoteCustomize({
           <IconTrash size="1.2rem" /> {t('trash.move')}
         </>
       ),
-      destructive: false,
+      destructive: true,
       onSelect: () => onMoveToTrash?.(),
       disabled: isLoading || !onMoveToTrash,
       hidden: type !== 'update' || !noteId,

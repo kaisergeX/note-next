@@ -93,7 +93,6 @@ export default async function LocaleLayout({
                     login: tLandingNavigation('login'),
                     settings: tNavigation('settings'),
                     appearance: t('user.appearance.title'),
-                    trash: t('note.trash.title'),
                   }}
                 />
               </Suspense>

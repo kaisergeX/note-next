@@ -1,6 +1,7 @@
 'use client'
 
 import {useTranslations} from 'next-intl'
+import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
 import {Link, useRouter} from '~/i18n/navigation'
 import type {LifecycleNote} from '~/lib/notes/lifecycle'
@@ -24,9 +25,24 @@ export default function TrashPreview({
   const eligible = Date.parse(note.deadlineToken!) > now
   return (
     <div className="space-y-6">
-      <Link className={buttonClass({variant: 'ghost'})} href="/trash">
-        {t('backTrash')}
-      </Link>
+      <div className="flex items-center gap-3">
+        <Link
+          className={cn(
+            buttonClass({variant: 'ghost', iconOnly: true}),
+            'shrink-0',
+          )}
+          href="/trash"
+          aria-label={t('backTrash')}
+          title={t('backTrash')}
+        >
+          <IconArrowLeft aria-hidden />
+        </Link>
+        {eligible && (
+          <h1 className="min-w-0 font-serif text-2xl wrap-anywhere sm:text-3xl">
+            {noteText(note.title) || t('untitled')}
+          </h1>
+        )}
+      </div>
       {!online && (
         <p role="status" className="text-ink-muted text-sm">
           {t('offline')}
@@ -40,9 +56,6 @@ export default function TrashPreview({
         <>
           <header className="space-y-3">
             <p className="text-ink-muted text-sm">{t('readOnly')}</p>
-            <h1 className="font-serif text-2xl wrap-anywhere sm:text-3xl">
-              {noteText(note.title) || t('untitled')}
-            </h1>
             <p className="text-ink-muted text-sm">
               <ExpiryDate deadline={note.deadlineToken!} />
             </p>

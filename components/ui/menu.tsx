@@ -5,9 +5,8 @@
  * (components/ui/popover.tsx), which owns all fallback/keyboard/a11y behavior.
  *
  * Deliberately NO role="menu"/menuitem here: this is a disclosure pattern —
- * keyboard support is Tab/Shift+Tab to move between items and Esc to close,
- * per the ARIA APG disclosure guidance. Do not add menu roles unless
- * arrow-key navigation is implemented (menu roles require menu semantics).
+ * Tab/Shift+Tab move between items and Esc closes the disclosure. Optional
+ * Arrow/Home/End/typeahead navigation supplements normal link semantics.
  */
 
 import {cn} from 'cn'
@@ -63,6 +62,7 @@ export default function MenuCustom({
 }: MenuCustomProps) {
   return (
     <PopoverBase
+      keyboardNavigation
       anchor={anchor}
       trigger={children}
       triggerAriaLabel={ariaLabel}

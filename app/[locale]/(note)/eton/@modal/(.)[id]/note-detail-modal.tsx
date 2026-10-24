@@ -44,18 +44,20 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
   const handleSubmit = () => {
     if (operation.current || leaving.current) return
     operation.current = true
-    startTransition(async () => {
+    const input =
+      mutateNoteData &&
+      !isEqualNonNestedObj(noteData, mutateNoteData, [
+        'createdAt',
+        'updatedAt',
+        'pendingDeleteAt',
+      ])
+        ? pickNoteContent(mutateNoteData)
+        : undefined
+
+    const submit = async () => {
       try {
-        if (
-          mutateNoteData &&
-          !isEqualNonNestedObj(noteData, mutateNoteData, [
-            'createdAt',
-            'updatedAt',
-            'pendingDeleteAt',
-          ])
-        ) {
+        if (input) {
           setSaveError(false)
-          const input = pickNoteContent(mutateNoteData)
           const result = await performNoteMutation(() =>
             mutateNoteAction(noteData.id, input),
           )
@@ -69,7 +71,14 @@ export default function NoteDetailModal({noteData}: NoteDetailProps) {
       } finally {
         operation.current = false
       }
-    })
+    }
+
+    if (input) {
+      startTransition(submit)
+      return
+    }
+
+    void submit()
   }
 
   const handleTrash = () => {

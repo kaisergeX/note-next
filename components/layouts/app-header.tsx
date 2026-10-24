@@ -12,7 +12,6 @@ import {
   IconUser,
   IconSettings,
   IconPalette,
-  IconTrash,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useSession} from 'next-auth/react'
@@ -38,7 +37,6 @@ type NavProps = {
     login: string
     settings: string
     appearance: string
-    trash: string
   }
 }
 
@@ -129,15 +127,6 @@ export default function AppHeader({
   const desktopMenuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: `/${locale}/trash`,
-      label: (
-        <>
-          <IconTrash /> {navigationLabels.trash}
-        </>
-      ),
-    },
-    {
-      type: 'link',
       url: `/${locale}/settings/account`,
       label: (
         <>
@@ -186,12 +175,15 @@ export default function AppHeader({
     >
       <Link
         href={homepagePath}
-        className="text-2xl font-medium max-lg:hidden md:text-4xl"
+        className="focus-visible:outline-accent text-2xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 max-lg:hidden md:text-4xl"
       >
         <span className="text-accent inline-block font-serif">{appName}</span>
       </Link>
 
-      <Link href={homepagePath} className="lg:hidden">
+      <Link
+        href={homepagePath}
+        className="focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden"
+      >
         <Image
           className="dark:invert"
           src="/favicon.svg"
@@ -297,7 +289,7 @@ export default function AppHeader({
               variant="ghost"
               iconOnly
               size="sm"
-              className="max-lg:min-h-11 max-lg:min-w-11 lg:hidden"
+              className="lg:hidden"
               onClick={openMenuDialog}
               aria-controls="main-menu"
               aria-expanded={isMenuDialogOpen}
@@ -346,13 +338,6 @@ export default function AppHeader({
         </header>
         <Dialog.Content className="flex flex-col justify-between gap-1">
           <nav aria-label="Main navigation">
-            <Link
-              href={`/${locale}/trash`}
-              className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
-              onClick={closeMenuDialog}
-            >
-              <IconTrash /> {navigationLabels.trash}
-            </Link>
             <Link
               href={`/${locale}/settings/account`}
               className="flex items-center gap-2 rounded-md p-3 text-base font-medium"

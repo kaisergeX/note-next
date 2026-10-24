@@ -1,388 +1,159 @@
 ---
-version: 'alpha'
-name: 'Paper & Ink'
-description: 'A desk, not a dashboard: warm-cool paper, blue-black ink, serif writing surfaces, one fountain-pen blue accent from the note-hue family, fully mirrored dark mode.'
-colors:
-  paper: 'oklch(0.972 0.006 90)'
-  paper-raised: 'oklch(0.985 0.004 90)'
-  paper-dark: 'oklch(0.185 0.012 270)'
-  paper-raised-dark: 'oklch(0.225 0.014 270)'
-  ink: 'oklch(0.24 0.018 270)'
-  ink-dark: 'oklch(0.90 0.008 90)'
-  ink-muted: 'oklch(0.44 0.014 270)'
-  ink-muted-dark: 'oklch(0.62 0.012 270)'
-  hairline: 'oklch(0.895 0.006 90)'
-  hairline-dark: 'oklch(0.30 0.014 270)'
-  accent: 'oklch(0.50 0.16 255)'
-  accent-dark: 'oklch(0.78 0.12 255)'
-  danger: 'oklch(0.50 0.19 25)'
-  danger-dark: 'oklch(0.70 0.17 22)'
-  success: 'oklch(0.45 0.13 155)'
-  success-dark: 'oklch(0.72 0.13 152)'
-  theme-color: 'oklch(0.972 0.006 90)'
-  theme-color-dark: 'oklch(0.185 0.012 270)'
-  primary: '{colors.ink}'
-  secondary: '{colors.accent}'
-  note-card-bg: '#f1f5f9'
-  note-card-text: '#1e293b'
-  note-swatch: '#94a3b8'
-typography:
-  display-serif:
-    fontFamily: Newsreader
-    fontSize: 2.25rem
-    fontWeight: 500
-    lineHeight: 1.15
-  headline-lg:
-    fontFamily: Inter
-    fontSize: 1.5rem
-    fontWeight: 700
-  headline-md:
-    fontFamily: Inter
-    fontSize: 1.25rem
-    fontWeight: 700
-  headline-sm:
-    fontFamily: Inter
-    fontSize: 1.125rem
-    fontWeight: 600
-  note-title:
-    fontFamily: Newsreader
-    fontSize: 1.25rem
-    fontWeight: 600
-  prose-body:
-    fontFamily: Newsreader
-    fontSize: 1.0625rem
-    fontWeight: 400
-    lineHeight: 1.7
-  prose-lg:
-    fontFamily: Newsreader
-    fontSize: 1.25rem
-    fontWeight: 400
-    lineHeight: 1.6
-  body-md:
-    fontFamily: Inter
-    fontSize: 1rem
-    fontWeight: 400
-    lineHeight: 1.5
-  body-sm:
-    fontFamily: Inter
-    fontSize: 0.875rem
-    fontWeight: 400
-    lineHeight: 1.5
-  body-xs:
-    fontFamily: Inter
-    fontSize: 0.75rem
-    fontWeight: 400
-  label-md:
-    fontFamily: Inter
-    fontSize: 0.875rem
-    fontWeight: 600
-rounded:
-  sm: 6px
-  md: 8px
-  lg: 12px
-  xl: 16px
-  full: 9999px
-spacing:
-  xs: 8px
-  sm: 12px
-  md: 16px
-  lg: 24px
-  xl: 32px
-  header: 64px
-components:
-  button-primary:
-    backgroundColor: '{colors.ink}'
-    textColor: '{colors.paper}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  button-primary-dark:
-    backgroundColor: '{colors.ink-dark}'
-    textColor: '{colors.paper-dark}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  button-secondary:
-    backgroundColor: '{colors.paper}'
-    textColor: '{colors.ink}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  button-ghost:
-    backgroundColor: '{colors.paper}'
-    textColor: '{colors.ink}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  button-danger:
-    backgroundColor: '{colors.paper}'
-    textColor: '{colors.danger}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  button-danger-dark:
-    backgroundColor: '{colors.paper-dark}'
-    textColor: '{colors.danger-dark}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 10px
-  input:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.md}'
-    padding: 8px
-  input-dark:
-    backgroundColor: '{colors.paper-raised-dark}'
-    textColor: '{colors.ink-dark}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.md}'
-    padding: 8px
-  card:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.lg}'
-    padding: 16px
-  card-dark:
-    backgroundColor: '{colors.paper-raised-dark}'
-    textColor: '{colors.ink-dark}'
-    rounded: '{rounded.lg}'
-    padding: 16px
-  note-card:
-    backgroundColor: '{colors.note-card-bg}'
-    textColor: '{colors.note-card-text}'
-    typography: '{typography.note-title}'
-    rounded: '{rounded.lg}'
-    padding: 16px
-  menu:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    typography: '{typography.label-md}'
-    rounded: '{rounded.md}'
-    padding: 8px
-  dialog:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    rounded: '{rounded.lg}'
-    padding: 16px
-  chat-bubble-user:
-    backgroundColor: '{colors.ink}'
-    textColor: '{colors.paper}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.xl}'
-    padding: 8px
-  chat-bubble-user-dark:
-    backgroundColor: '{colors.ink-dark}'
-    textColor: '{colors.paper-dark}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.xl}'
-    padding: 8px
-  chat-bubble-assistant:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.xl}'
-    padding: 8px
-  chat-bubble-assistant-dark:
-    backgroundColor: '{colors.paper-raised-dark}'
-    textColor: '{colors.ink-dark}'
-    typography: '{typography.body-sm}'
-    rounded: '{rounded.xl}'
-    padding: 8px
-  status-badge:
-    backgroundColor: '{colors.paper-raised}'
-    textColor: '{colors.ink}'
-    typography: '{typography.body-xs}'
-    rounded: '{rounded.full}'
-    padding: 8px
-  app-header:
-    height: 64px
-    padding: 16px
-  link:
-    textColor: '{colors.accent}'
-    typography: '{typography.body-sm}'
-  link-dark:
-    textColor: '{colors.accent-dark}'
-    typography: '{typography.body-sm}'
+version: alpha
+name: Design System
+description: Shared interface principles, appearance contracts, and component guidance.
+omitted:
+  - section: colors
+    reason: Runtime values are maintained in app/globals.css.
+  - section: typography
+    reason: Font loading and role mappings are maintained in lib/appearance-fonts.ts and app/globals.css.
+  - section: spacing
+    reason: Shared spacing utilities and component layouts supply implementation values.
+  - section: rounded
+    reason: Preset radius values are maintained in app/globals.css.
+  - section: components
+    reason: Shared primitives supply component styles and states.
 ---
 
-# Paper & Ink — Note Next Design System
+# Design System
+
+Format: [DESIGN.md specification](https://github.com/google-labs-code/design.md/blob/main/docs/spec.md).
 
 ## Overview
 
-Concept: **a desk, not a dashboard**. Note Next is a writing app; the interface should feel like fine stationery on a quiet desk — warm-cool paper surfaces, blue-black ink, one fountain-pen blue accent, and the writing surface (serif prose in the note editor) as the single hero. Chrome stays quiet so words stand out.
+This document defines the design contract for the whole application: notes, AI features, settings, and future features.
+Prioritize readable content, clear task hierarchy, predictable interaction, and continuity across appearances.
+Appearance presets express different visual identities; no single preset defines the application's universal aesthetic.
 
-- **Notes** (`/eton/*`): paper surfaces, pastel per-note colorways (the 12-hue system, unchanged — it is the identity's playful layer), Tiptap editing in serif.
-- **AI** (`/ai/*`): same paper system, no pastels, utilitarian forms, messenger chat in sans.
-- Stack: Next.js 16, Tailwind CSS 4, custom primitives (native Popover API menus, `<dialog>`-based modals). No component library.
+This contract governs implementation. Linked code supplies executable values and APIs, not proof of compliance.
+Treat conflicts as implementation gaps; do not weaken a requirement or invent an exception to match existing code.
+Token values are intentionally maintained in code rather than duplicated in this document.
 
-Boldness is spent in exactly one place: the writing surface (serif prose, generous measure, calm margins). Everything else — chrome, buttons, forms — stays disciplined and nearly invisible.
+- [Global styles](app/globals.css): semantic tokens, preset mappings, typography, shape, elevation, and motion.
+- [Appearance definitions](lib/appearance.ts): preset identity and color mode; [font definitions](lib/appearance-fonts.ts): font loading.
+- [Shared primitives](components/ui/): reusable controls; [appearance preview](components/settings/appearance-preview.tsx): representative states.
 
 ## Colors
 
-Two modes, fully mirrored. Neutrals are warm-cool "laid paper" (slightly warm light mode, blue-black-tinted dark mode) — deliberately NOT cream, NOT pure gray.
+Choose colors by semantic purpose. A preset may change their values while preserving their meaning.
+The existing `paper` and `ink` names identify surface and foreground roles across all appearances.
 
-| Token          | Light           | Dark            | Usage                                                                       |
-| -------------- | --------------- | --------------- | --------------------------------------------------------------------------- |
-| paper          | warm off-white  | deep blue-black | page background                                                             |
-| paper-raised   | +1 step lighter | +1 step lighter | cards, inputs, menus, dialogs — anything that sits ON paper                 |
-| ink            | blue-black      | warm white      | all primary text                                                            |
-| ink-muted      | mid blue-gray   | mid gray        | secondary text, placeholders, meta                                          |
-| hairline       | warm gray line  | dark line       | 1px borders everywhere; never black borders                                 |
-| accent         | deep blue       | light blue      | links, focus rings, active/selection states, brand marks — NOT button fills |
-| danger         | deep crimson    | brighter red    | destructive text/borders; hover fill uses white text                        |
-| warning        | deep amber      | light amber     | draft status text; independent of the accent hue                            |
-| control-border | ink/paper mix   | ink/paper mix   | form-control boundaries, 3:1 minimum against paper surfaces                 |
-| success        | deep green      | brighter green  | sync/check states                                                           |
-| theme-color    | = paper         | = paper-dark    | suggested browser chrome color; iOS splash artwork remains static           |
+| Role | Usage |
+| --- | --- |
+| `paper`, `paper-raised` | Application canvas and contained surfaces. Keep adjacent surfaces distinguishable. |
+| `ink`, `ink-muted` | Main content and supporting text. Muted text must remain readable. |
+| `accent` | Interactive emphasis, links, selection, and focus. Its hue belongs to the preset. |
+| `destructive`, `warning`, `success` | Destructive actions and semantic status; meaning must remain consistent across presets. |
+| `control-border`, `hairline` | Identifiable control boundaries and quieter structural dividers, respectively. |
 
-Rules:
-
-- Primary actions are **ink on paper** (solid ink button), not accent-colored. Accent is for attention (links, focus, selection), never for volume.
-- The accent hue belongs to the note-hue family (blue), tying UI to the note colorways; brand marks move to accent blue.
-- Empty/fancy states use the **dot-grid motif**: 1px hairline dots on a 16px grid (graph paper), not color gradients.
-- Prose links: accent, underlined on hover only.
-- Token aliases: `primary` = ink (solid action), `secondary` = accent (attention). Tools that expect a `primary` color get the ink action color, not the accent.
+- Primary actions must be distinguishable from supporting actions; consume the shared button variant rather than assigning a page-specific fill.
+- Hover, active, selected, invalid, and disabled treatments must remain distinguishable in both color modes.
+- Links within prose need a recognizable treatment beyond color alone. Status also needs text or an equivalent non-color cue.
+- Per-note colors are a separate content choice. Preserve their surface, prose, swatch, border, and shadow roles from
+  [note theme definitions](config/tailwindTheme.ts); do not spread note hues into unrelated application chrome.
 
 ## Typography
 
-Two font roles, strictly separated. The following families and type scale describe the default Paper & Ink preset; Sepia and Midnight use the same pair. Bookish uses Source Sans 3 for UI and Literata for writing, with the same sizes and weights.
-
-- **Inter** — all UI chrome: buttons, forms, menus, nav, meta, chat. Loaded via `next/font`.
-- **Newsreader** (Google Fonts, variable, optical sizing) — the voice of writing: note titles, note prose, note-card previews, marketing display text. This pairing is the identity; serif means "you are reading/writing".
-
-| Token         | Family     | Size / Weight           | Used for                            |
-| ------------- | ---------- | ----------------------- | ----------------------------------- |
-| display-serif | Newsreader | 2.25rem / 500, lh 1.15  | marketing hero                      |
-| headline-lg   | Inter      | 1.5rem / 700            | page h1 at `sm:`                    |
-| headline-md   | Inter      | 1.25rem / 700           | page h1 base                        |
-| headline-sm   | Inter      | 1.125rem / 600          | h2, section titles                  |
-| note-title    | Newsreader | 1.25rem / 600           | note titles, note-card titles       |
-| prose-body    | Newsreader | 1.0625rem / 400, lh 1.7 | note body text                      |
-| prose-lg      | Newsreader | 1.25rem / 400, lh 1.6   | large prose contexts                |
-| body-md       | Inter      | 1rem / 400              | chat transcript, long sans text     |
-| body-sm       | Inter      | 0.875rem / 400          | dominant UI text                    |
-| body-xs       | Inter      | 0.75rem / 400           | meta, pills, counters               |
-| label-md      | Inter      | 0.875rem / 600          | buttons, menu items, inputs' labels |
-
-Prose measure: cap writing surfaces at ~70ch, centered in their container. Weights in use: UI 400/500/600/700; writing 400/500/600 (+ italic for quotes/em). Each preset uses one UI family and one writing family; no all-caps eyebrows or tracked-out labels.
+- Define a UI family and a writing family per preset; preserve these roles when changing families.
+- UI text covers navigation, controls, labels, metadata, forms, and chat. Writing text covers note titles, prose, and previews.
+- Consume `font-sans` and the writing alias `font-serif`; use `prose-appearance` for neutral writing and `prose-<hue>` for colored notes.
+  Code remains monospace. Font choices belong to the preset, not individual components.
+- Establish hierarchy through a small, consistent type scale and weight system. Avoid competing display styles and long uppercase labels.
+- Preserve user-authored emphasis. Provide comfortable line spacing and readable line lengths without imposing one width on every feature.
+- Support English and Vietnamese, text resizing, fallback fonts, and wrapping. Do not truncate essential content or action labels.
+- Load optional preset fonts on demand; changing appearance must preserve content, editing state, and control usability.
 
 ## Layout
 
-- Page gutter `p-4`; AI list/form pages: `container mx-auto` + `space-y-4`.
-- Global header: sticky, 64px, solid paper with hairline bottom border; adds a soft sheet shadow only after scroll. Hides on scroll-down, returns on scroll-up.
-- Notes list: CSS masonry — `repeat(auto-fill, minmax(min(17rem, 100%), 1fr))` + `grid-rows-[masonry]`, gap-4.
-- AI chat: two-pane flex — sidebar `basis-1/4 max-w-md` hairline right border; mobile: 85vw drawer + top bar.
-- Editors: sticky top bars, sticky bottom toolbars; full-page note wraps content in a rounded-xl sheet on `sm:`.
-- Safe areas: `env(safe-area-inset-*)` on body top, composer bottoms, affixes; `viewportFit: cover`.
-- Scroll: `scrollbar-gutter: stable`, `scroll-pt-16`, slim custom scrollbars, smooth.
-- Empty states: dot-grid paper, centered serif invitation + one action.
+- Organize each view around its task: primary content first, related controls nearby, secondary information subordinate.
+- Use shared spacing utilities consistently; tighter spacing groups related items, larger gaps separate sections.
+- Let content and available space determine breakpoints. Adapt navigation and toolbars without removing essential actions.
+- Reflow at narrow widths and zoom without page-wide horizontal scrolling; genuinely two-dimensional content may scroll within its own region.
+- Keep reading, editing, and conversation measures appropriate to their task. Do not force cards, forms, and editors into one container width.
+- Sticky headers, toolbars, and composers must respect safe areas and leave focused controls and relevant content visible.
+- Preserve logical reading and tab order in grids and masonry layouts. Visual placement must not change interaction order.
+- Empty states explain the situation and offer a relevant next action. Loading states reserve useful space and avoid disruptive layout shifts.
 
 ## Elevation & Depth
 
-One elevation signature, used sparingly — **sheet lift**: a soft two-layer shadow (tight 1px contact + wide diffuse) plus a hairline ring. Reserved for: menus, dialogs, sticky bars/toolbars, the scrolled header. Shadows tint with ink (blue-black), never pure black.
-
-- Cards: flat, hairline border, no resting shadow; `hover:`/`focus-within:` lifts via sheet shadow.
-- Note cards keep their hue-tinted shadows (`hue-500/20`) — the colorways' signature.
-- Dialogs: native `<dialog>`, backdrop = paper at 50% + blur; dialog sheet gets full lift.
-- Directional sticky-bar shadows allowed for bars/toolbars glued to an edge.
+- Use surface contrast, spacing, and borders to establish grouping before adding shadows.
+- Elevation communicates overlap or attachment: popovers, dialogs, sticky controls, and focused interaction surfaces.
+- Use shared elevation tokens such as `shadow-sheet`; tune their appearance centrally rather than stacking local shadows.
+- Resting content cards and buttons should not compete with overlays for prominence.
+- Note surfaces may retain hue-tinted shadows. Modal backdrops must distinguish the active layer while preserving context.
 
 ## Shapes
 
-Radius carries hierarchy (never one radius for everything):
-
-| Token          | Value | Used for                                        |
-| -------------- | ----- | ----------------------------------------------- |
-| `rounded.sm`   | 6px   | small controls: checkbox, radio, kbd, tag input |
-| `rounded.md`   | 8px   | buttons, inputs, menus, tooltips                |
-| `rounded.lg`   | 12px  | cards, dialogs, sheets                          |
-| `rounded.xl`   | 16px  | note sheets, chat bubbles                       |
-| `rounded.full` | pill  | status pills, avatars, swatches, icon buttons   |
-
-Hairline 1px borders dominate; icon-only buttons are circles. Chat bubbles keep one squared tail corner. Note cards may flatten to pill swatches when hue-coded.
+- Use semantic radius roles consistently: small details, controls, containers, and larger surfaces.
+- Presets may change the radius scale. Individual pages must not invent a competing scale.
+- Preserve functional geometry: circular swatches, pill badges, menu rows, chat tails, and composer contours.
+- Icon buttons must remain recognizable controls; visual shape must not reduce the hit area.
+- Full-screen mobile dialogs may use square outer corners; inset dialogs use the shared container shape.
 
 ## Components
 
-- **Buttons** — five variants × three sizes + icon buttons. Sizes: sm 32px (text-xs), md 40px default (body-sm/600), lg 48px (body-md/600); icon variants are square (40/32px). Primary: solid ink fill, paper text; hover lightens fill ~12%; active returns to base ink and presses down 1px. Secondary: paper-raised fill, hairline border; hover darkens border + tints fill. Ghost: transparent; hover ink 6% tint. Danger: ghost with danger text/border; hover fills danger with paper text. Link: accent text, underline on hover, no padding. States: focus-visible = 2px accent ring offset 2px; disabled = opacity 0.45 + not-allowed; loading = spinner replaces the leading icon, `aria-busy="true"`, interaction off, width preserved. Buttons are flat — no shadows; the press IS the feedback. Rules: one primary per view region; icon-only buttons carry `aria-label`; danger only for destructive confirms; buttons never use accent color (accent = attention, ink = action).
-- **Inputs** — paper-raised fill, control-border boundary, rounded-md, px-3 py-2, body-sm, minimum 40px height; focus: accent border + solid 2px accent ring. Invalid controls use the destructive border/ring. One shared implementation; labels above (body-xs, ink-muted), errors below in danger with `role="alert"`.
-- **Cards** — paper-raised, hairline border, rounded-lg, p-4; note cards recolor via hue classes and may drop the border.
-- **Menus/popovers** — `PopoverBase`/`MenuCustom` on the native Popover API + CSS anchor positioning; menu sheet = paper-raised, rounded-md, lift shadow; items p-3 rounded-sm, hover paper-raised-on-paper (subtle ink 6% tint), arrow-key roving focus required.
-- **Dialogs** — native `<dialog>`, rounded-lg, lift shadow, backdrop paper/50 + blur; header/content/footer p-4; destructive confirmations use button-danger.
-- **Badges** — status pills: pill radius, paper-raised fill, hairline border, body-xs, role-colored text (warning draft, success active, ink-muted archived).
-- **Chat** — user bubble: ink fill, paper text; assistant: paper-raised + hairline; both rounded-xl with one tail corner, body-sm sans; composer: paper-raised input with inner Send/Stop, sticky hairline-top bar.
-- **Tiptap toolbars** — sans UI: menu sheet with button-icon toggles (active = ink 10% tint), fixed/bubble/floating modes.
-- **Theme picker** — popover of the 12 hue circles (28px, `rounded-full`), active swatch gets accent ring.
-- **Loading** — brand mark pulse for route loads; small inline spinners for actions; `animate-pulse` skeletons for lists; 3 bouncing typing dots in chat.
-- **Errors/feedback** — inline `role="alert"` in danger below the control; async success uses `role="status"`; no toast system until needed (then: bottom-center sheet-lift banner, `role="status"`).
+Reuse a primitive before adding a variant, and add a shared variant before duplicating a component.
+Component behavior and semantic roles stay consistent across presets; appearance comes from shared tokens.
+
+| Need | Selection and requirements |
+| --- | --- |
+| Actions | [Button](components/ui/button.tsx): primary for the task's main action, secondary for supporting actions, ghost for low-emphasis controls, danger for destructive actions, link for text-like presentation. Use real links for navigation. |
+| Destructive actions | Name the outcome explicitly. Match confirmation or recovery to the action's consequences; do not style ordinary actions as dangerous. |
+| Form fields | [Input](components/ui/input.tsx): persistent associated labels, nearby help/error text, and invalid state. Placeholders supplement labels. |
+| Note editing | [Editor](components/note/note-editor.tsx) and [formatting toolbar](components/ui/rte-commands.tsx): preserve authored content, selection, and editing state. Toolbar controls use UI typography. |
+| Disclosures | [MenuCustom](components/ui/menu.tsx) for action/link lists; [PopoverBase](components/ui/popover.tsx) for custom non-modal content. Preserve native links/buttons and normal tab order. |
+| Dialogs | Reuse the native-dialog wrapper shown in [note dialogs](components/note/note-dialog.tsx). Use a modal only when the task requires interruption; provide a name, dismissal, focus containment, and focus restoration. |
+| Status | [Badge](components/ui/badge.tsx) for compact labels. Use text with semantic status styling; badges do not replace error explanations or recovery actions. |
+| Conversation | Reuse [chat bubbles](components/ai/interview/chat-bubble.tsx) and [composer](components/ai/interview/chat-input.tsx). Distinguish participants, preserve readable messages, and expose Send/Stop state clearly. |
+
+- Define default, hover, focus, active/selected, disabled, loading, error, and success states where relevant.
+- Pending actions announce progress and prevent duplicate submission without discarding user input.
+- Explain failures near their cause and offer recovery. Preserve entered content when an operation fails.
 
 ## Do's and Don'ts
 
-Do:
-
-- Reach for paper/paper-raised/ink/hairline tokens first; hue pastels only for note surfaces.
-- Pair every light token with its dark mirror; test both modes.
-- Reserve serif for writing surfaces; chrome uses the preset's UI family.
-- Use accent for attention (links, focus, selection, active), ink for action (primary buttons).
-- Keep elevation rare: flat cards, lifted sheets.
-- Cap prose at ~70ch.
-- Use the wired token utilities (`bg-paper`, `text-ink`, `border-hairline`, `shadow-sheet`, `font-serif`) and the primitives in `components/ui/`.
-
-Don't:
-
-- Don't mix additional font families within a preset or add all-caps eyebrows or tracked-out labels.
-- Don't put accent color on large surfaces or primary button fills.
-- Don't use pure black/white or pure gray — neutrals always carry the paper/ink tint.
-- Don't stack shadows on flat cards; lift only floating things.
-- Don't color AI pages with note hues; pastels belong to notes.
-- Don't invent new radii; the five-step scale covers all cases.
-- Don't generate Tailwind v3-era syntax (`tailwind.config.*`, `content`/`safelist` arrays, `darkMode` key) — this repo is Tailwind 4 CSS-first: `@theme`, `@utility`, `@custom-variant`, `@plugin`, `@source inline`.
-
-## Dark Mode
-
-Class-based: `.dark` on `<html>` via `@custom-variant dark (&:where(.dark, .dark *))`; Zustand persisted store with `prefers-color-scheme` fallback. Dark mode is "lamp-lit desk": blue-black paper, warm-white ink — never gray-on-gray. Every token has a `-dark` mirror; surfaces step up (paper → paper-raised) instead of using overlays. Browser chrome follows `theme-color`.
-
-## Note Colorways
-
-Unchanged and protected — the 12 DB-backed hues (slate, zinc, stone, red, orange, yellow, green, cyan, blue, purple, pink, rose) × 5 roles, generated by `config/tailwindTheme.ts`, safelisted via `@source inline`:
-
-- `dialog-<hue>`: surface hue-100 + text hue-800 (dark: /80)
-- `prose-<hue>`: per-note prose colors with the active preset's writing font
-- `picker-<hue>`: swatch hue-400
-- `shadow-theme-<hue>`: hue-500/20 shadow
-- `border-theme-<hue>`: hue-400 border
-
-Pastels live only on notes. Prose uses the active writing family with 400/600 weights and italics for quotes; appearance presets do not replace per-note colors.
-
-## Motion
-
-Restrained, action-answered, scroll-aware; no animation plugin, hand-rolled `@keyframes`:
-
-- Scroll-driven: sticky-bar shadows, affix appearance via `animation-timeline: scroll()`.
-- Menus: `@starting-style` scale 0.97→1 + fade, 100ms ease-out, `allow-discrete`.
-- Buttons: press-down 0.5px on active; no hover scale.
-- Chat: 3 bouncing dots, 1.2s infinite.
-- Note navigation: `ViewTransition`.
-- Non-user-triggered motion: one orchestrated moment max per page (route-load mark pulse). Respect `prefers-reduced-motion`: disable scroll-driven and looping animations.
+- Do resolve presentation through semantic tokens and shared components; keep token values in their implementation sources.
+- Do extend a shared role explicitly when a real need is uncovered. Do not use one-off values or preset-name branches in feature components.
+- Do keep visual emphasis proportional to importance. Do not confuse a preset's personality with a different interaction model.
+- Do report implementation gaps separately. Do not describe an accessibility failure as an intentional aesthetic exception.
+- Do use the CSS-first styling setup in [global styles](app/globals.css); do not introduce a parallel theme configuration.
 
 ## Accessibility
 
-Commitments for the custom-primitives stack (no component library):
+The baseline is [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) across all presets and modes.
 
-- Keyboard: every menu supports Arrow/Home/End + typeahead (roving focus); comboboxes implement `aria-expanded`, `aria-activedescendant`, arrow navigation, selection announcement (WAI-ARIA APG patterns).
-- Tabs: Left/Right/Home/End navigation, roving focus, and linked tab/panel semantics. Interactive preview examples retain local state across tabs and appearance changes.
-- Dialogs: native `<dialog>` focus trap + Escape + focus restore; `aria-labelledby` on every dialog.
-- Live regions: errors `role="alert"`, async success `role="status"`; never communicate state by color alone.
-- Focus: visible 2px accent ring on all interactive elements (`focus-visible`), never removed.
-- Contrast: ink on paper and paper on ink exceed 12:1; ink-muted text minimum 4.5:1 in both modes; hue-800 on hue-100 note pairs verified per hue.
-- Touch targets ≥ 40px on mobile; `prefers-reduced-motion` respected.
-- When a hand-rolled widget's keyboard/a11y cost exceeds its visual uniqueness, adopt headless behavior libs (`@react-aria` hooks or `@base-ui/react`) for that widget only — visuals stay custom.
+- Use semantic HTML, accessible names, associated labels, meaningful headings, and logical keyboard navigation.
+- Every interactive element needs a visible focus indicator that is not hidden by sticky or overlapping content.
+  Note-writing surfaces may use a clearly visible caret without an added outline; toolbar controls and ordinary fields retain explicit focus treatment.
+- Normal text needs at least 4.5:1 contrast; WCAG-defined large text needs 3:1. Essential control boundaries and state indicators need applicable 3:1 contrast.
+  Evaluate actual rendered backgrounds, including note hues, transparency, and interaction states.
+- Standalone mobile controls need at least 40px hit areas; prefer 44px where practical. Expanded hit areas must not overlap adjacent targets.
+  Inline links follow WCAG target-size exceptions rather than forcing oversized text lines.
+- Use disclosure semantics for ordinary link/action lists. Arrow/Home/End/typeahead may supplement Tab navigation; do not add ARIA menu roles without the full menu interaction pattern.
+- Tabs and comboboxes follow their respective [ARIA patterns](https://www.w3.org/WAI/ARIA/apg/patterns/), including state, focus management, and keyboard operation.
+- Announce errors and asynchronous status appropriately (`role="alert"` or `role="status"`); avoid repetitive announcements.
+- Preserve usability with text enlargement, browser zoom, forced colors, and keyboard-only input. Never make hover the only way to reveal an action.
 
-## Appearance compatibility exceptions
+## Motion
 
-For the completed preference behavior, preset extension rules, validation, and scope limits, see the archived [Appearance Presets](docs/archive/theme-system/overview.md).
+- Animate to explain a transition, acknowledge input, or communicate progress; keep content and controls stable.
+- Share motion definitions and timing. Do not give each component its own motion language or add motion solely to express a preset.
+- Honor `prefers-reduced-motion`: remove nonessential movement, scroll-driven effects, and looping animation; retain a static indication of progress or state.
+- Do not rely on animation alone to convey information, delay access to controls, or introduce flashing effects.
 
-Paper & Ink, Sepia, and Midnight use Inter for UI and Newsreader for writing. Midnight uses cool paper/charcoal neutrals and a quiet blue accent. Bookish pairs Source Sans 3 UI with Literata writing, pale sage paper, and an evergreen accent; its dark palette is deep green-black. Every preset supplies light/dark colors and preserves the UI/writing roles. Shape remains 6/8/12/16px except Sepia's 8/10/14/20px. Optional Bookish fonts are self-hosted through `next/font`, support Vietnamese, and are not preloaded for other presets.
+## Appearance presets
 
-Form controls use `border-control-border`; decorative card, menu, and sheet dividers retain `border-hairline`. Warning remains a separate semantic status role across presets.
+- An appearance is one complete selectable preset. Seasonal styles use the same contract; there is no separate decoration system.
+- Presets may vary palette, UI/writing fonts, radius scale, and elevation treatment while preserving semantics, content hierarchy, and component behavior.
+- Color mode remains independent (`system`, `light`, `dark`). Every preset supplies both light and dark presentations.
+- The [preset registry](lib/appearance.ts) defines available choices. Paper & Ink is the default preset, not a restriction on other presets' visual identity.
+- Keep per-note hue choices independent. Changing appearance must not rewrite notes, reset forms, lose focus, or clear preview examples.
+- Keep root and [preview](components/settings/appearance-preview.tsx) token mappings equivalent. Browser chrome follows the effective canvas color; iOS splash artwork remains static.
 
-Per-note hue surfaces, prose palettes, picker swatches, and hue shadows intentionally keep their own colorways. Pills/circles (`rounded-full`), squared chat tails/menu rows, and the large pill composer (`rounded-4xl`, including its orbit animation path) keep functional geometry across presets. Code remains monospace. Image/logo inversion is an asset treatment. Browser `theme-color` follows the effective paper background; iOS splash artwork remains static.
+### Adding or changing a preset
+
+1. Define its visual intent and complete semantic palette, font roles, shapes, elevation, and interaction-state treatment.
+2. Reuse the shared contract; implement values centrally. Keep registry/startup validation, [stored preferences](db/schema/user-appearance.ts), font loading, and localized labels aligned.
+3. Verify light/dark modes, English/Vietnamese, keyboard/focus behavior, contrast, reduced motion, narrow layouts, and representative component states.
+   Use [contrast checks](scripts/appearance-contrast.ts) as supporting evidence; token ratios alone do not establish accessibility.
+4. Record genuine new design decisions here. Keep preset values in code and implementation defects outside this guideline.
