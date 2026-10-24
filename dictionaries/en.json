@@ -9,7 +9,10 @@
       "languageSwitch": "Change language",
       "openMainMenu": "Open main menu",
       "closeMainMenu": "Close main menu",
-      "settings": "Settings"
+      "settings": "Settings",
+      "navigation": "Main navigation",
+      "notes": "Notes",
+      "ai": "AI interview"
     },
     "error": {
       "sthWrong": "Something went wrong!"
@@ -401,6 +404,10 @@
     },
     "accessibility": {
       "collections": "Note collections",
+      "pinSidebar": "Pin sidebar",
+      "unpinSidebar": "Unpin sidebar",
+      "expandSidebar": "Expand sidebar",
+      "collapseSidebar": "Collapse sidebar",
       "chooseTheme": "Choose note theme",
       "selectTheme": "Set note theme to {theme}",
       "moreActions": "More note actions"

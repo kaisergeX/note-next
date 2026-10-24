@@ -57,6 +57,11 @@ export default async function LocaleLayout({
   const t = await getTranslations()
   const tNavigation = await getTranslations('common.navigation')
   const tLandingNavigation = await getTranslations('landing.navigation')
+  const appNavigationLabels = {
+    navigation: tNavigation('navigation'),
+    notes: tNavigation('notes'),
+    ai: tNavigation('ai'),
+  }
 
   return (
     <html
@@ -86,6 +91,7 @@ export default async function LocaleLayout({
                   appName={t('common.app')}
                   signOutLabel={t('auth.signOut')}
                   navigationLabels={{
+                    ...appNavigationLabels,
                     switchTheme: tNavigation('switchTheme'),
                     openMainMenu: tNavigation('openMainMenu'),
                     closeMainMenu: tNavigation('closeMainMenu'),

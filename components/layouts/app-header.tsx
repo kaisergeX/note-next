@@ -25,6 +25,12 @@ import {usePersistStore} from '~/store'
 import {useScrollDirection} from '~/util/hooks'
 import SignOutButton from '../auth/signout-button'
 import MenuCustom, {type MenuCustomItem} from '../ui/menu'
+import {
+  getAppNavigation,
+  isNavigationActive,
+  isNoteCollectionPath,
+  type AppNavigationLabels,
+} from './app-navigation'
 
 type NavProps = {
   appName: string
@@ -37,7 +43,7 @@ type NavProps = {
     login: string
     settings: string
     appearance: string
-  }
+  } & AppNavigationLabels
 }
 
 export default function AppHeader({
@@ -119,9 +125,7 @@ export default function AppHeader({
   })
 
   const homepagePath = `/${locale}/${
-    protectedPathnameRegex.test(pathName)
-      ? `?utm_source=${pathName}&p_r=true`
-      : ''
+    protectedPathnameRegex.test(pathName) ? `?utm_source=${pathName}` : ''
   }`
 
   const desktopMenuItems: MenuCustomItem[] = [
@@ -170,30 +174,58 @@ export default function AppHeader({
       className={cn(
         'bg-paper border-hairline animate-header-shadow sticky inset-x-0 top-0 z-20 w-full border-b transition-transform',
         'flex h-16 items-center justify-between gap-4 p-4',
-        scrollDirection === 'down' ? '-translate-y-full' : '',
+        scrollDirection === 'down' && !isNoteCollectionPath(localizedPath)
+          ? '-translate-y-full'
+          : '',
       )}
     >
-      <Link
-        href={homepagePath}
-        className="focus-visible:outline-accent text-2xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 max-lg:hidden md:text-4xl"
-      >
-        <span className="text-accent inline-block font-serif">{appName}</span>
-      </Link>
+      <div className="flex min-w-0 items-center gap-4">
+        <Link
+          href={homepagePath}
+          className="focus-visible:outline-accent text-2xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 max-lg:hidden md:text-4xl"
+        >
+          <span className="text-accent inline-block font-serif">{appName}</span>
+        </Link>
 
-      <Link
-        href={homepagePath}
-        className="focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden"
-      >
-        <Image
-          className="dark:invert"
-          src="/favicon.svg"
-          alt={appName}
-          loading="eager"
-          width={48}
-          height={48}
-        />
-      </Link>
+        <Link
+          href={homepagePath}
+          className="focus-visible:outline-accent focus-visible:outline-2 focus-visible:outline-offset-2 lg:hidden"
+        >
+          <Image
+            className="dark:invert"
+            src="/favicon.svg"
+            alt={appName}
+            loading="eager"
+            width={48}
+            height={48}
+          />
+        </Link>
 
+        {isAuthenticated && (
+          <nav
+            aria-label={navigationLabels.navigation}
+            className="hidden items-center gap-1 lg:flex"
+          >
+            {getAppNavigation(navigationLabels).map(({href, label}) => (
+              <Link
+                key={href}
+                href={`/${locale}${href}`}
+                aria-current={
+                  isNavigationActive(localizedPath, href) ? 'page' : undefined
+                }
+                className={cn(
+                  'focus-visible:outline-accent inline-flex h-10 items-center gap-2 px-2 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+                  isNavigationActive(localizedPath, href)
+                    ? 'text-ink font-bold'
+                    : 'text-ink-muted hover:text-ink',
+                )}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+        )}
+      </div>
       <div className="flex items-center gap-3">
         <MenuCustom
           ariaLabel={navigationLabels.languageSwitch}
@@ -337,7 +369,25 @@ export default function AppHeader({
           </div>
         </header>
         <Dialog.Content className="flex flex-col justify-between gap-1">
-          <nav aria-label="Main navigation">
+          <nav aria-label={navigationLabels.navigation}>
+            {getAppNavigation(navigationLabels).map(({href, label}) => (
+              <Link
+                key={href}
+                href={`/${locale}${href}`}
+                aria-current={
+                  isNavigationActive(localizedPath, href) ? 'page' : undefined
+                }
+                className={cn(
+                  'focus-visible:outline-accent flex min-h-11 w-full items-center gap-2 px-3 py-2 text-base whitespace-normal transition-colors focus-visible:outline-2 focus-visible:outline-offset-2',
+                  isNavigationActive(localizedPath, href)
+                    ? 'text-ink font-bold'
+                    : 'text-ink-muted hover:text-ink',
+                )}
+                onClick={closeMenuDialog}
+              >
+                {label}
+              </Link>
+            ))}
             <Link
               href={`/${locale}/settings/account`}
               className="flex items-center gap-2 rounded-md p-3 text-base font-medium"
