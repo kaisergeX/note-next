@@ -7,6 +7,7 @@ export type SystemState = {
   mode: AppearanceMode
   appearance: AppearanceId
   appearanceSyncStatus: AppearanceSyncStatus
+  appearanceSaveNotice: boolean
   appearanceChangeId: number
 }
 

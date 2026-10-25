@@ -1,10 +1,11 @@
 import {isAppearancePreference, type AppearancePreference} from './appearance'
 
 export type AppearanceSyncStatus =
-  'local' | 'syncing' | 'synced' | 'offline' | 'error'
+  'local' | 'pending' | 'syncing' | 'synced' | 'offline' | 'error'
 export type AppearanceCache = AppearancePreference & {
   id: string
   pending: boolean
+  saveAfter?: number
 }
 
 export function isAppearanceCache(value: unknown): value is AppearanceCache {
@@ -13,11 +14,14 @@ export function isAppearanceCache(value: unknown): value is AppearanceCache {
     'id' in value &&
     typeof value.id === 'string' &&
     'pending' in value &&
-    typeof value.pending === 'boolean'
+    typeof value.pending === 'boolean' &&
+    (!('saveAfter' in value) ||
+      (typeof value.saveAfter === 'number' && Number.isFinite(value.saveAfter)))
   )
 }
 
 type SyncOptions = {
+  saveDelayMs?: number
   current: () => AppearancePreference
   apply: (value: AppearancePreference) => void
   readCache: () => AppearanceCache | null
@@ -28,6 +32,7 @@ type SyncOptions = {
     initialize: boolean,
   ) => Promise<AppearancePreference>
   status: (value: AppearanceSyncStatus) => void
+  saved?: () => void
   online: () => boolean
   newId: () => string
 }
@@ -37,8 +42,16 @@ export function createAppearanceSync(options: SyncOptions) {
   let stopped = false
   let running: Promise<void> | null = null
   let again = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let writing = false
   const cached = options.readCache()
+  let lastSaved: AppearancePreference | null =
+    cached && !cached.pending ? cached : null
   if (cached) options.apply(cached)
+
+  function same(a: AppearancePreference, b: AppearancePreference) {
+    return a.appearance === b.appearance && a.mode === b.mode
+  }
 
   function remember(value: AppearancePreference, pending: boolean) {
     const previous = options.readCache()
@@ -52,7 +65,15 @@ export function createAppearanceSync(options: SyncOptions) {
     ) {
       return previous
     }
-    const entry = {...value, pending, id: options.newId()}
+    const entry: AppearanceCache = {
+      appearance: value.appearance,
+      mode: value.mode,
+      pending,
+      id: options.newId(),
+      ...(pending
+        ? {saveAfter: Date.now() + (options.saveDelayMs ?? 1500)}
+        : {}),
+    }
     options.writeCache(entry)
     return entry
   }
@@ -60,16 +81,37 @@ export function createAppearanceSync(options: SyncOptions) {
   async function reconcile() {
     do {
       again = false
+      clearTimeout(timer)
+      timer = undefined
       if (!options.online()) {
         options.status('offline')
         return
       }
-      options.status('syncing')
       const pending = options.readCache()
+      const remaining = (pending?.saveAfter ?? 0) - Date.now()
+      if (pending?.pending && remaining > 0) {
+        options.status('pending')
+        // Share the deadline through the cache so other tabs and focus events
+        // cannot flush the preview before the user has stopped selecting.
+        timer = setTimeout(() => {
+          timer = undefined
+          void sync()
+        }, remaining)
+        return
+      }
       let remote: AppearancePreference | null
+      let didSave = false
       if (pending?.pending) {
-        remote = await options.writeRemote(pending, false)
+        options.status('syncing')
+        writing = true
+        try {
+          remote = await options.writeRemote(pending, false)
+        } finally {
+          writing = false
+        }
         if (stopped) return
+        didSave = true
+        lastSaved = remote
         // A newer local/tab edit may have arrived while the save was in flight.
         if (options.readCache()?.id !== pending.id) {
           again = true
@@ -86,8 +128,15 @@ export function createAppearanceSync(options: SyncOptions) {
           continue
         }
         if (!remote) {
-          remote = await options.writeRemote(options.current(), true)
+          options.status('syncing')
+          writing = true
+          try {
+            remote = await options.writeRemote(options.current(), true)
+          } finally {
+            writing = false
+          }
           if (stopped) return
+          didSave = true
           if (
             options.readCache()?.id !== pending?.id ||
             options.readCache()?.pending
@@ -97,9 +146,11 @@ export function createAppearanceSync(options: SyncOptions) {
           }
         }
       }
+      lastSaved = remote
       remember(remote, false)
       options.apply(remote)
       options.status('synced')
+      if (didSave) options.saved?.()
     } while (again && !stopped)
   }
 
@@ -111,7 +162,8 @@ export function createAppearanceSync(options: SyncOptions) {
     }
     running = reconcile()
       .catch(() => {
-        if (!stopped) options.status(options.online() ? 'error' : 'offline')
+        if (!stopped && !timer)
+          options.status(options.online() ? 'error' : 'offline')
       })
       .finally(() => {
         running = null
@@ -123,11 +175,30 @@ export function createAppearanceSync(options: SyncOptions) {
     sync,
     change(value: AppearancePreference) {
       if (stopped) return
+      const previous = options.readCache()
+      if (previous && same(previous, value)) return
+      clearTimeout(timer)
+      timer = undefined
+      if (!writing && lastSaved && same(lastSaved, value)) {
+        remember(value, false)
+        options.status(options.online() ? 'synced' : 'offline')
+        return
+      }
       remember(value, true)
+      options.status(options.online() ? 'pending' : 'offline')
+      // A read or save already in flight must also respect the new deadline.
+      const remaining = options.saveDelayMs ?? 1500
+      if (remaining > 0 && options.online()) {
+        timer = setTimeout(() => {
+          timer = undefined
+          void sync()
+        }, remaining)
+      }
       void sync()
     },
     stop() {
       stopped = true
+      clearTimeout(timer)
     },
   }
 }

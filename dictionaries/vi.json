@@ -40,6 +40,7 @@
       "title": "Giao diện",
       "description": "Chọn diện mạo cho etoN. Màu ghi chú vẫn độc lập.",
       "sync": {
+        "pending": "Thay đổi đang chờ… Sẽ lưu khi bạn chọn xong.",
         "local": "Đã lưu trong trình duyệt này. Đăng nhập để đồng bộ giữa các thiết bị.",
         "syncing": "Đang đồng bộ giao diện…",
         "synced": "Đã lưu giao diện vào tài khoản.",
