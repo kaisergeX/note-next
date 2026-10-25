@@ -6,6 +6,7 @@ export const initSystemState: SystemState = {
   mode: 'system',
   appearance: 'paper-ink',
   appearanceSyncStatus: 'local',
+  appearanceSaveNotice: false,
   appearanceChangeId: 0,
 }
 

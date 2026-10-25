@@ -41,12 +41,21 @@ export async function verifyAppearanceOffline(
       })
     })
     await page.reload()
-    await page
-      .getByText('Appearance saved to your account.', {exact: true})
-      .waitFor()
+    await page.waitForFunction(() => {
+      const cache = JSON.parse(
+        localStorage.getItem('etoN-appearance-account:qa@test.dev') || 'null',
+      )
+      return cache && !cache.pending
+    })
     original = (
       await page.evaluate(async (url) => (await fetch(url)).json(), endpoint)
     ).preference
+    if (original?.appearance === 'sepia') {
+      await choose('Bookish')
+      await page
+        .getByText('Appearance saved to your account.', {exact: true})
+        .waitFor()
+    }
     await choose('Sepia')
     await page
       .getByText('Appearance saved to your account.', {exact: true})
@@ -97,9 +106,15 @@ export async function verifyAppearanceOffline(
     try {
       const otherPage = await second.newPage()
       await otherPage.goto(`${baseURL}/en/settings/appearance`)
-      await otherPage
-        .getByText('Appearance saved to your account.', {exact: true})
-        .waitFor()
+      await otherPage.waitForFunction(
+        () => document.documentElement.dataset.appearance === 'midnight',
+      )
+      assert.equal(
+        await otherPage
+          .getByText('Appearance saved to your account.', {exact: true})
+          .count(),
+        0,
+      )
       assert.equal(
         await otherPage.evaluate(
           () => document.documentElement.dataset.appearance,
@@ -112,9 +127,15 @@ export async function verifyAppearanceOffline(
     }
 
     await page.reload()
-    await page
-      .getByText('Appearance saved to your account.', {exact: true})
-      .waitFor()
+    await page.waitForFunction(
+      () => document.documentElement.dataset.appearance === 'midnight',
+    )
+    assert.equal(
+      await page
+        .getByText('Appearance saved to your account.', {exact: true})
+        .count(),
+      0,
+    )
     assert.equal((await state()).appearance, 'midnight')
     logs.push({step: 'reload', appearance: 'midnight'})
 

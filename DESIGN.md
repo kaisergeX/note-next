@@ -62,6 +62,7 @@ The existing `paper` and `ink` names identify surface and foreground roles acros
 - Preserve user-authored emphasis. Provide comfortable line spacing and readable line lengths without imposing one width on every feature.
 - Support English and Vietnamese, text resizing, fallback fonts, and wrapping. Do not truncate essential content or action labels.
 - Load optional preset fonts on demand; changing appearance must preserve content, editing state, and control usability.
+- The header wordmark and its appearance preview follow the preset's writing font, with the shared `text-wordmark` scale and ink color. Presets may adjust the wordmark's optical alignment through `--appearance-wordmark-offset-y`.
 
 ## Layout
 

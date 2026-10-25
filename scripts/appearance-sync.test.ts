@@ -26,9 +26,12 @@ function fixture(initial: AppearanceCache | null = null) {
   let online = true
   let id = 0
   let cacheWrites = 0
+  let saveNotices = 0
   let state: AppearanceSyncStatus = 'local'
+  const statuses: AppearanceSyncStatus[] = []
   const writes: {value: AppearancePreference; initialize: boolean}[] = []
   const options = {
+    saveDelayMs: 0,
     current: () => local,
     apply: (value: AppearancePreference) => {
       local = {appearance: value.appearance, mode: value.mode}
@@ -47,6 +50,10 @@ function fixture(initial: AppearanceCache | null = null) {
     },
     status: (value: AppearanceSyncStatus) => {
       state = value
+      statuses.push(value)
+    },
+    saved: () => {
+      saveNotices++
     },
     online: () => online,
     newId: () => String(++id),
@@ -54,6 +61,8 @@ function fixture(initial: AppearanceCache | null = null) {
   return {
     options,
     writes,
+    statuses,
+    saveNotices: () => saveNotices,
     local: () => local,
     cache: () => cache,
     cacheWrites: () => cacheWrites,
@@ -74,6 +83,7 @@ test('existing account preference replaces guest choice without writing to accou
   assert.deepEqual(f.local(), saved)
   assert.equal(f.writes.length, 0)
   assert.equal(f.status(), 'synced')
+  assert.equal(f.saveNotices(), 0)
 })
 
 test('account with no preference initializes from guest choice', async () => {
@@ -83,6 +93,7 @@ test('account with no preference initializes from guest choice', async () => {
   assert.deepEqual(f.local(), guest)
   assert.equal(f.writes[0].initialize, true)
   assert.deepEqual(f.writes[0].value, guest)
+  assert.equal(f.saveNotices(), 1)
 })
 
 test('another device creating the preference during initialization wins', async () => {
@@ -206,4 +217,79 @@ test('pending account A edits cannot be written by an account B controller', asy
   assert.equal(a.cache()?.pending, true)
   assert.equal(b.writes.length, 0)
   assert.deepEqual(b.local(), saved)
+})
+
+test('rapid previews restart the delay and focus refreshes cannot save early', async (t) => {
+  t.mock.timers.enable({apis: ['Date', 'setTimeout']})
+  const f = fixture()
+  f.options.saveDelayMs = 1500
+  const sync = createAppearanceSync(f.options)
+  t.after(() => sync.stop())
+  await sync.sync()
+  sync.change(guest)
+  await sync.sync()
+  assert.equal(f.status(), 'pending')
+  t.mock.timers.tick(1000)
+  sync.change(next)
+  await sync.sync()
+  t.mock.timers.tick(1499)
+  await sync.sync()
+  assert.equal(f.writes.length, 0)
+  t.mock.timers.tick(1)
+  await sync.sync()
+  assert.equal(f.writes.length, 1)
+  assert.equal(f.writes[0].value.appearance, next.appearance)
+  assert.equal(f.status(), 'synced')
+  assert.equal(f.saveNotices(), 1)
+  await sync.sync()
+  assert.equal(f.saveNotices(), 1)
+})
+
+test('returning to the saved preference cancels the pending save', async (t) => {
+  t.mock.timers.enable({apis: ['Date', 'setTimeout']})
+  const f = fixture()
+  f.options.saveDelayMs = 1500
+  const sync = createAppearanceSync(f.options)
+  t.after(() => sync.stop())
+  await sync.sync()
+  sync.change(next)
+  await sync.sync()
+  sync.change(saved)
+  assert.equal(f.status(), 'synced')
+  assert.equal(f.cache()?.pending, false)
+  t.mock.timers.tick(1500)
+  await sync.sync()
+  assert.equal(f.writes.length, 0)
+})
+
+test('background reads and unchanged selections never announce saving', async () => {
+  const f = fixture()
+  const sync = createAppearanceSync(f.options)
+  await sync.sync()
+  sync.change(saved)
+  await sync.sync()
+  assert.equal(f.writes.length, 0)
+  assert.equal(f.statuses.includes('syncing'), false)
+  assert.equal(f.statuses.includes('pending'), false)
+})
+
+test('another tab respects the shared preview deadline', async (t) => {
+  t.mock.timers.enable({apis: ['Date', 'setTimeout']})
+  const f = fixture()
+  f.options.saveDelayMs = 1500
+  const first = createAppearanceSync(f.options)
+  t.after(() => first.stop())
+  await first.sync()
+  first.change(next)
+  await first.sync()
+  const second = createAppearanceSync(f.options)
+  t.after(() => second.stop())
+  await second.sync()
+  assert.equal(f.status(), 'pending')
+  assert.equal(f.writes.length, 0)
+  first.stop()
+  t.mock.timers.tick(1500)
+  await second.sync()
+  assert.equal(f.writes.length, 1)
+  assert.deepEqual(f.local(), next)
 })

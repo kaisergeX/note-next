@@ -32,6 +32,7 @@ export default function AppearanceSettings() {
   const mode = usePersistStore((state) => state.mode)
   const setMode = usePersistStore((state) => state.setMode)
   const syncStatus = usePersistStore((state) => state.appearanceSyncStatus)
+  const saveNotice = usePersistStore((state) => state.appearanceSaveNotice)
   const systemMode = useSyncExternalStore(
     subscribeToColorScheme,
     getSystemMode,
@@ -47,8 +48,13 @@ export default function AppearanceSettings() {
       <div className="max-w-2xl">
         <h2 id="appearance-title">{t('title')}</h2>
         <p className="text-ink-muted mt-1 text-sm">{t('description')}</p>
-        <p role="status" className="text-ink-muted mt-2 text-xs">
-          {t(`sync.${syncStatus}`)}
+        <p
+          role="status"
+          className={`mt-2 min-h-4 text-xs ${syncStatus === 'synced' ? 'text-success' : 'text-ink-muted'}`}
+        >
+          {syncStatus !== 'synced' || saveNotice
+            ? t(`sync.${syncStatus}`)
+            : null}
         </p>
       </div>
       <div className="mt-5 flex max-w-4xl flex-col gap-6 xl:flex-row xl:items-start">

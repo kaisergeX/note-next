@@ -22,12 +22,16 @@ export default function AppearanceSync() {
     // rehydration so defaults cannot overwrite the saved browser preference.
     if (!hydrated) return
     if (!account) {
-      usePersistStore.setState({appearanceSyncStatus: 'local'})
+      usePersistStore.setState({
+        appearanceSyncStatus: 'local',
+        appearanceSaveNotice: false,
+      })
       return
     }
     const key = `etoN-appearance-account:${account}`
     let memory: AppearanceCache | null = null
     let applying = false
+    let noticeTimer: ReturnType<typeof setTimeout> | undefined
     const controller = new AbortController()
     const current = () => {
       const {appearance, mode} = usePersistStore.getState()
@@ -104,8 +108,24 @@ export default function AppearanceSync() {
         if (!saved) throw new Error('Missing saved appearance')
         return saved
       },
-      status: (appearanceSyncStatus) =>
-        usePersistStore.setState({appearanceSyncStatus}),
+      status(appearanceSyncStatus) {
+        if (appearanceSyncStatus !== 'synced') {
+          clearTimeout(noticeTimer)
+          usePersistStore.setState({
+            appearanceSyncStatus,
+            appearanceSaveNotice: false,
+          })
+        } else {
+          usePersistStore.setState({appearanceSyncStatus})
+        }
+      },
+      saved() {
+        clearTimeout(noticeTimer)
+        usePersistStore.setState({appearanceSaveNotice: true})
+        noticeTimer = setTimeout(() => {
+          usePersistStore.setState({appearanceSaveNotice: false})
+        }, 3000)
+      },
       online: () => navigator.onLine,
       newId: () => crypto.randomUUID(),
     })
@@ -137,6 +157,8 @@ export default function AppearanceSync() {
     refresh()
     return () => {
       sync.stop()
+      clearTimeout(noticeTimer)
+      usePersistStore.setState({appearanceSaveNotice: false})
       controller.abort()
       unsubscribe()
       window.clearInterval(interval)

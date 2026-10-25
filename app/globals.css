@@ -34,11 +34,18 @@
   --shadow-sheet: var(--sheet-shadow);
   --font-serif: var(--appearance-font-writing);
   --font-sans: var(--appearance-font-ui);
+  --text-wordmark: 1.75rem;
+  --text-wordmark--line-height: 1;
   /* DESIGN.md Shapes: sm 6 / md 8 / lg 12 / xl 16 (Tailwind defaults differ) */
   --radius-sm: var(--appearance-radius-sm);
   --radius-md: var(--appearance-radius-md);
   --radius-lg: var(--appearance-radius-lg);
   --radius-xl: var(--appearance-radius-xl);
+}
+
+@utility wordmark-align {
+  position: relative;
+  top: var(--appearance-wordmark-offset-y);
 }
 
 @utility position-anchor-* {
@@ -255,6 +262,11 @@
 }
 
 @layer base {
+  :root,
+  .appearance-preview {
+    --appearance-wordmark-offset-y: 0em;
+  }
+
   :root * {
     @apply scrollbar;
   }
@@ -342,8 +354,9 @@
   html[data-appearance='midnight'],
   .appearance-preview[data-appearance-preview='midnight'] {
     --appearance-font-ui:
-      var(--font-inter, ui-sans-serif), ui-sans-serif, system-ui, sans-serif;
-    --appearance-font-writing: var(--font-newsreader, Georgia), Georgia, serif;
+      var(--font-google-sans, ui-sans-serif), ui-sans-serif, system-ui,
+      sans-serif;
+    --appearance-font-writing: var(--appearance-font-ui);
     --appearance-radius-sm: 6px;
     --appearance-radius-md: 8px;
     --appearance-radius-lg: 12px;
@@ -380,6 +393,8 @@
       var(--font-source-sans, ui-sans-serif), ui-sans-serif, system-ui,
       sans-serif;
     --appearance-font-writing: var(--font-literata, Georgia), Georgia, serif;
+    /* Center Literata's visible letters rather than its taller font box. */
+    --appearance-wordmark-offset-y: -0.125em;
     --appearance-radius-sm: 6px;
     --appearance-radius-md: 8px;
     --appearance-radius-lg: 12px;

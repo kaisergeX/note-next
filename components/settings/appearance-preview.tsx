@@ -70,7 +70,7 @@ export default function AppearancePreview({
         className="appearance-preview border-hairline bg-paper text-ink overflow-hidden rounded-xl border font-sans"
       >
         <div className="border-hairline flex flex-wrap items-center justify-between gap-2 border-b px-4 py-2">
-          <span className="text-accent font-serif text-lg font-semibold">
+          <span className="text-ink text-wordmark wordmark-align font-serif font-medium tracking-tight">
             etoN
           </span>
           <Button

@@ -182,9 +182,9 @@ export default function AppHeader({
       <div className="flex min-w-0 items-center gap-4">
         <Link
           href={homepagePath}
-          className="focus-visible:outline-accent text-2xl font-medium focus-visible:outline-2 focus-visible:outline-offset-2 max-lg:hidden md:text-4xl"
+          className="focus-visible:outline-accent text-ink text-wordmark wordmark-align inline-flex items-center font-serif font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 max-lg:hidden"
         >
-          <span className="text-accent inline-block font-serif">{appName}</span>
+          {appName}
         </Link>
 
         <Link
