@@ -17,6 +17,7 @@ export default async function AccountPage({
   const messages = await getMessages()
   const params = await searchParams
   const count = await accountRepository.activeNoteCount(userInfo.id)
+  const trash = await noteRepository.getTrashSummary(userInfo.id)
   const serverNow = await noteRepository.getServerTime()
   return (
     <section aria-labelledby="account-title" className="max-w-3xl">
@@ -51,6 +52,8 @@ export default async function AccountPage({
           ownerId={userInfo.id}
           email={userInfo.email}
           activeCount={count}
+          trashCount={trash.count}
+          nextTrashExpiry={trash.nextExpiry?.toISOString()}
           verifiedAt={session.accountDeleteVerifiedAt}
           serverNow={serverNow}
           returning={params.confirmDelete === '1'}

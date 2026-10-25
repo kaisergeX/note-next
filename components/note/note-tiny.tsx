@@ -3,7 +3,7 @@
 import {IconDotsVertical, IconPalette, IconTrash} from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useTranslations} from 'next-intl'
-import {Link, useRouter} from '~/i18n/navigation'
+import {Link} from '~/i18n/navigation'
 import {useState, useTransition} from 'react'
 import {moveNoteToTrashAction} from '~/app/[locale]/(note)/eton/actions'
 import {buttonClass} from '~/components/ui/button'
@@ -12,14 +12,13 @@ import {performNoteMutation} from '~/lib/notes/client-mutation'
 import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import type {Note} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
+import NoteCard, {NoteCardSummary} from './note-card'
 
 type NoteProps = {
   data: Note
 }
 
 export default function NoteTiny({data}: NoteProps) {
-  const router = useRouter()
-  const [removed, setRemoved] = useState(false)
   const {id: noteId, title, content, theme} = data
   const [pendingTransition, startTransition] = useTransition()
   const [deleteError, setDeleteError] = useState(false)
@@ -42,8 +41,8 @@ export default function NoteTiny({data}: NoteProps) {
         setDeleteError(true)
         return
       }
-      setRemoved(true)
-      router.refresh()
+      // The action returns the refreshed list. Keep this card mounted until
+      // that commit removes its ViewTransition boundary and animates the gap.
     })
   }
 
@@ -61,18 +60,8 @@ export default function NoteTiny({data}: NoteProps) {
     },
   ]
 
-  if (removed) return null
-
   return (
-    <div
-      className={cn(
-        'group relative rounded-lg',
-        'transition-shadow',
-        theme
-          ? `dialog-${theme} shadow-theme-${theme}`
-          : 'bg-paper-raised border-hairline hover:shadow-sheet focus-within:shadow-sheet border',
-      )}
-    >
+    <NoteCard theme={theme}>
       <Link
         className="block h-full p-4 pb-10"
         href={`${isPreferFullView ? '/full' : ''}/eton/${noteId}`}
@@ -81,22 +70,7 @@ export default function NoteTiny({data}: NoteProps) {
           theme && setMutateNoteData({theme})
         }}
       >
-        {title && (
-          <article
-            className={cn(
-              'prose sm:prose-lg line-clamp-3 font-semibold wrap-anywhere sm:leading-normal',
-              theme ? `prose-${theme}` : 'prose-appearance',
-            )}
-            dangerouslySetInnerHTML={{__html: title || ''}}
-          />
-        )}
-        <article
-          className={cn(
-            'prose line-clamp-10 pt-3 wrap-anywhere',
-            theme ? `prose-${theme}` : 'prose-appearance',
-          )}
-          dangerouslySetInnerHTML={{__html: content || ''}}
-        />
+        <NoteCardSummary title={title} content={content} theme={theme} />
       </Link>
 
       {deleteError && (
@@ -132,6 +106,6 @@ export default function NoteTiny({data}: NoteProps) {
           <IconDotsVertical size="1rem" />
         </MenuCustom>
       </div>
-    </div>
+    </NoteCard>
   )
 }

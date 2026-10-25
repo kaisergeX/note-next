@@ -140,9 +140,14 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
       (await (await trashList()).text()).includes(draftMarker),
       'Trash list shows recoverable notes',
     )
+    const previewResponse = await preview()
+    const previewHtml = await previewResponse.text()
     assert.ok(
-      (await (await preview()).text()).includes(draftMarker),
-      'Dedicated preview shows recoverable content',
+      (previewResponse.redirected &&
+        new URL(previewResponse.url).pathname === '/en/trash') ||
+        /NEXT_REDIRECT;replace;\/en\/trash;307;/.test(previewHtml) ||
+        /content="0;url=\/en\/trash"/.test(previewHtml),
+      'Legacy preview route redirects to Trash, including a streamed redirect',
     )
     for (const full of [false, true]) {
       const html = await (await page(full)).text()

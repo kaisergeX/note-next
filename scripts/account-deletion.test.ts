@@ -315,3 +315,274 @@ test('account deletion serializes behind note writes and refuses later writes fo
     0,
   )
 })
+
+test('Restore all restores only this owner’s recoverable notes and preserves note metadata', async () => {
+  const alice = await owner()
+  const bob = await owner()
+  const future = new Date(Date.now() + 100000)
+  const [active, archived, encrypted, expired, other] = await db
+    .insert(notesTable)
+    .values([
+      {
+        authorId: alice.id,
+        title: 'Bulk restore active',
+        content: 'Keep body',
+        theme: 'pink',
+        pendingDeleteAt: future,
+      },
+      {
+        authorId: alice.id,
+        title: 'Bulk restore archived',
+        isArchived: true,
+        pendingDeleteAt: future,
+      },
+      {
+        authorId: alice.id,
+        title: 'Bulk restore encrypted',
+        isEncrypted: true,
+        theme: 'encrypted',
+        pendingDeleteAt: future,
+      },
+      {
+        authorId: alice.id,
+        title: 'Expired',
+        pendingDeleteAt: new Date(Date.now() - 10000),
+      },
+      {authorId: bob.id, title: 'Other owner trash', pendingDeleteAt: future},
+    ])
+    .returning()
+  const preview = await account.previewTrash(alice.id)
+  assert.equal(preview.count, 3)
+  assert.equal((await notes.getTrashSummary(alice.id)).count, 3)
+  const result = await account.restoreAllTrash(alice.id, preview.snapshot)
+  assert.equal(result?.status, 'success')
+  assert.ok(result && 'count' in result)
+  assert.equal(result.count, 3)
+  const restored = await notes.getListNote(alice.id)
+  assert.equal(restored.length, 3)
+  for (const original of [active, archived, encrypted]) {
+    const current = restored.find((row) => row.id === original.id)!
+    for (const field of [
+      'title',
+      'content',
+      'theme',
+      'isArchived',
+      'isEncrypted',
+      'authorId',
+    ] as const)
+      assert.equal(current[field], original[field])
+    assert.equal(current.createdAt.getTime(), original.createdAt.getTime())
+    assert.equal(current.pendingDeleteAt, null)
+  }
+  assert.equal((await notes.getTrashSummary(alice.id)).count, 0)
+  assert.equal(await notes.getNote(alice.id, expired.id), null)
+  assert.equal((await notes.getTrashNotes(bob.id))[0].id, other.id)
+})
+
+test('Empty Trash permanently deletes confirmed recoverable rows, preserving active notes, other owners and account preferences', async () => {
+  const alice = await owner()
+  const bob = await owner()
+  await dependencies(alice.id)
+  const future = new Date(Date.now() + 100000)
+  const rows = await db
+    .insert(notesTable)
+    .values([
+      {authorId: alice.id, title: 'Keep active'},
+      {authorId: alice.id, title: 'Delete trash', pendingDeleteAt: future},
+      {
+        authorId: alice.id,
+        title: 'Delete archived trash',
+        isArchived: true,
+        pendingDeleteAt: future,
+      },
+      {
+        authorId: alice.id,
+        title: 'Expired pending cleanup',
+        pendingDeleteAt: new Date(Date.now() - 10000),
+      },
+      {
+        authorId: bob.id,
+        title: 'Keep other owner trash',
+        pendingDeleteAt: future,
+      },
+    ])
+    .returning()
+  const preview = await account.previewTrash(alice.id)
+  assert.equal(preview.count, 2)
+  const result = await account.emptyTrash(alice.id, preview.snapshot)
+  assert.equal(result?.status, 'success')
+  assert.ok(result && 'count' in result)
+  assert.equal(result.count, 2)
+  assert.equal((await notes.getListNote(alice.id))[0].id, rows[0].id)
+  const remaining = await db
+    .select()
+    .from(notesTable)
+    .where(eq(notesTable.authorId, alice.id))
+  assert.deepEqual(
+    new Set(remaining.map((row) => row.id)),
+    new Set([rows[0].id, rows[3].id]),
+  )
+  assert.equal((await notes.getTrashNotes(bob.id))[0].id, rows[4].id)
+  assert.equal(
+    (await db.select().from(usersTable).where(eq(usersTable.id, alice.id)))
+      .length,
+    1,
+  )
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(featureAccessTable)
+        .where(eq(featureAccessTable.userId, alice.id))
+    ).length,
+    1,
+  )
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(userAppearanceTable)
+        .where(eq(userAppearanceTable.userId, alice.id))
+    ).length,
+    1,
+  )
+  assert.equal(
+    (await account.emptyTrash(alice.id, preview.snapshot))?.status,
+    'conflict',
+  )
+})
+
+test('bulk confirmation rejects added notes, changed trash cycles, expired notes, malformed snapshots and another owner’s snapshot', async () => {
+  const alice = await owner()
+  const bob = await owner()
+  const [note] = await db
+    .insert(notesTable)
+    .values({
+      authorId: alice.id,
+      title: 'Cycle',
+      pendingDeleteAt: new Date(Date.now() + 100000),
+    })
+    .returning()
+  const initial = await account.previewTrash(alice.id)
+  assert.equal(
+    (await account.emptyTrash(bob.id, initial.snapshot))?.status,
+    'conflict',
+  )
+  for (const snapshot of [
+    undefined,
+    null,
+    '',
+    'invalid',
+    {snapshot: initial.snapshot},
+  ])
+    assert.equal(
+      (await account.emptyTrash(alice.id, snapshot))?.status,
+      'invalid_input',
+    )
+  const cycle = (await notes.getTrashNote(alice.id, note.id))!
+  assert.equal(
+    (await notes.restoreNote(alice.id, note.id, cycle.deadlineToken)).status,
+    'success',
+  )
+  await delay(2)
+  assert.equal(
+    (await notes.moveNoteToTrash(alice.id, note.id)).status,
+    'success',
+  )
+  assert.equal(
+    (await account.emptyTrash(alice.id, initial.snapshot))?.status,
+    'conflict',
+  )
+  const next = await account.previewTrash(alice.id)
+  const [added] = await db
+    .insert(notesTable)
+    .values({
+      authorId: alice.id,
+      title: 'Added later',
+      pendingDeleteAt: new Date(Date.now() + 100000),
+    })
+    .returning()
+  assert.equal(
+    (await account.restoreAllTrash(alice.id, next.snapshot))?.status,
+    'conflict',
+  )
+  assert.equal((await notes.getTrashNotes(alice.id)).length, 2)
+  const beforeExpiry = await account.previewTrash(alice.id)
+  await db
+    .update(notesTable)
+    .set({pendingDeleteAt: sql`clock_timestamp() - interval '1 second'`})
+    .where(eq(notesTable.id, added.id))
+  assert.equal(
+    (await account.emptyTrash(alice.id, beforeExpiry.snapshot))?.status,
+    'conflict',
+  )
+  assert.equal((await notes.getTrashSummary(alice.id)).count, 1)
+  assert.equal(
+    (
+      await db
+        .select()
+        .from(notesTable)
+        .where(eq(notesTable.authorId, alice.id))
+    ).length,
+    2,
+  )
+})
+
+test('simultaneous Restore all and Empty Trash have one winner and cannot reuse an old confirmation', async () => {
+  const alice = await owner()
+  await db.insert(notesTable).values({
+    authorId: alice.id,
+    title: 'Race',
+    pendingDeleteAt: new Date(Date.now() + 100000),
+  })
+  const preview = await account.previewTrash(alice.id)
+  const results = await Promise.all([
+    account.restoreAllTrash(alice.id, preview.snapshot),
+    account.emptyTrash(alice.id, preview.snapshot),
+  ])
+  assert.equal(
+    results.filter((result) => result?.status === 'success').length,
+    1,
+  )
+  assert.equal(
+    results.filter((result) => result?.status === 'conflict').length,
+    1,
+  )
+  assert.equal((await notes.getTrashSummary(alice.id)).count, 0)
+  const empty = await account.previewTrash(alice.id)
+  const noOp = await account.emptyTrash(alice.id, empty.snapshot)
+  assert.equal(noOp?.status, 'success')
+  assert.ok(noOp && 'count' in noOp)
+  assert.equal(noOp.count, 0)
+})
+
+test('failed Empty Trash rolls back the whole confirmed batch', async () => {
+  const alice = await owner()
+  const rows = await db
+    .insert(notesTable)
+    .values([
+      {
+        authorId: alice.id,
+        title: 'First',
+        pendingDeleteAt: new Date(Date.now() + 100000),
+      },
+      {
+        authorId: alice.id,
+        title: 'Blocked',
+        pendingDeleteAt: new Date(Date.now() + 100000),
+      },
+    ])
+    .returning()
+  const preview = await account.previewTrash(alice.id)
+  await db.execute(
+    sql`CREATE TABLE trash_bulk_blocker (note_id uuid REFERENCES notes(id))`,
+  )
+  try {
+    await db.execute(sql`INSERT INTO trash_bulk_blocker VALUES (${rows[1].id})`)
+    await assert.rejects(() => account.emptyTrash(alice.id, preview.snapshot))
+    assert.equal((await notes.getTrashSummary(alice.id)).count, 2)
+    assert.deepEqual(await account.previewTrash(alice.id), preview)
+  } finally {
+    await db.execute(sql`DROP TABLE trash_bulk_blocker`)
+  }
+})

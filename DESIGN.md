@@ -102,7 +102,7 @@ Component behavior and semantic roles stay consistent across presets; appearance
 | Form fields | [Input](components/ui/input.tsx): persistent associated labels, nearby help/error text, and invalid state. Placeholders supplement labels. |
 | Note editing | [Editor](components/note/note-editor.tsx) and [formatting toolbar](components/ui/rte-commands.tsx): preserve authored content, selection, and editing state. Toolbar controls use UI typography. |
 | Disclosures | [MenuCustom](components/ui/menu.tsx) for action/link lists; [PopoverBase](components/ui/popover.tsx) for custom non-modal content. Preserve native links/buttons and normal tab order. |
-| Dialogs | Reuse the native-dialog wrapper shown in [note dialogs](components/note/note-dialog.tsx). Use a modal only when the task requires interruption; provide a name, dismissal, focus containment, and focus restoration. |
+| Dialogs | Use `Dialog` from `@kaiverse/k/ui`, as in [note dialogs](components/note/note-dialog.tsx). Confirmations use [ConfirmationDialog](components/ui/confirmation-dialog.tsx), which adds focus restoration and pending-action dismissal protection to that library component. Inspect these before adding another implementation; preserve library motion and reduced-motion support. Use a modal only when the task requires interruption; provide a name, dismissal, focus containment, and focus restoration. |
 | Status | [Badge](components/ui/badge.tsx) for compact labels. Use text with semantic status styling; badges do not replace error explanations or recovery actions. |
 | Conversation | Reuse [chat bubbles](components/ai/interview/chat-bubble.tsx) and [composer](components/ai/interview/chat-input.tsx). Distinguish participants, preserve readable messages, and expose Send/Stop state clearly. |
 
@@ -127,7 +127,7 @@ The baseline is [WCAG 2.2 AA](https://www.w3.org/TR/WCAG22/) across all presets 
   Note-writing surfaces may use a clearly visible caret without an added outline; toolbar controls and ordinary fields retain explicit focus treatment.
 - Normal text needs at least 4.5:1 contrast; WCAG-defined large text needs 3:1. Essential control boundaries and state indicators need applicable 3:1 contrast.
   Evaluate actual rendered backgrounds, including note hues, transparency, and interaction states.
-- Standalone mobile controls need at least 40px hit areas; prefer 44px where practical. Expanded hit areas must not overlap adjacent targets.
+- Standalone mobile controls need at least 40px hit areas. Expanded hit areas must not overlap adjacent targets.
   Inline links follow WCAG target-size exceptions rather than forcing oversized text lines.
 - Use disclosure semantics for ordinary link/action lists. Arrow/Home/End/typeahead may supplement Tab navigation; do not add ARIA menu roles without the full menu interaction pattern.
 - Tabs and comboboxes follow their respective [ARIA patterns](https://www.w3.org/WAI/ARIA/apg/patterns/), including state, focus management, and keyboard operation.
