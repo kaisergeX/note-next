@@ -4,8 +4,11 @@ import NextAuth, {type NextAuthConfig} from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
 import GoogleProvider, {type GoogleProfile} from 'next-auth/providers/google'
 import {AUTH_ERROR_CODE} from './constants'
-import {addUser, getCachedUser, getUser} from './db/helper/users'
-import {RoleEnum, type NewUser} from './db/schema/users'
+import {cookies} from 'next/headers'
+import {addUser, getUser, getUserById} from './db/helper/users'
+import {type NewUser} from './db/schema/users'
+import {matchesSessionUser} from './lib/auth/session-identity'
+import {DELETE_INTENT_COOKIE, decodeDeleteIntent} from './lib/account/reauth'
 
 const VISUAL_QA_EMAIL = 'qa@test.dev'
 
@@ -14,6 +17,7 @@ const authOptions: NextAuthConfig = {
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID ?? '',
       clientSecret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+      checks: ['pkce', 'state'],
     }),
     // DEV-ONLY visual-QA bypass — remove before any production deploy.
     // Gate on NODE_ENV: `pnpm dev` (`next dev`) sets it to 'development';
@@ -50,34 +54,41 @@ const authOptions: NextAuthConfig = {
       : []),
   ],
   callbacks: {
-    jwt: async ({token, user}) => {
-      // @todo force update token when role changes
-
-      if (user?.email) token.email = user.email
-
-      if (token.email) {
-        try {
-          const userInfo = await getCachedUser(token.email)
-          if (!userInfo) {
-            token.error = AUTH_ERROR_CODE.USER_NOT_FOUND
-            console.error(
-              `[auth callbacks] User with email ${token.email} not found`,
-            )
-            return token
+    jwt: async ({token, user, account}) => {
+      try {
+        if (user?.email) {
+          const userInfo = await getUser(user.email)
+          if (!userInfo) return null
+          token.userId = userInfo.id
+          token.email = userInfo.email
+          delete token.accountDeleteVerifiedAt
+          delete token.error
+          if (account?.provider === 'google') {
+            const cookieStore = await cookies()
+            const raw = cookieStore.get(DELETE_INTENT_COOKIE)?.value
+            if (raw) {
+              const intent = await decodeDeleteIntent(raw)
+              cookieStore.delete(DELETE_INTENT_COOKIE)
+              if (
+                !intent ||
+                intent.userId !== userInfo.id ||
+                intent.email !== userInfo.email
+              )
+                return null
+              token.accountDeleteVerifiedAt = Date.now()
+            }
           }
-
-          if (!userInfo.role) {
-            console.error(`[auth callbacks] User ${token.email} role not found`)
-          }
-
-          token.role = userInfo.role || RoleEnum['note-taker']
-        } catch (error) {
-          console.log('[auth callbacks]', error)
-          token.role = RoleEnum['note-taker']
         }
+        // Do not recover a legacy token by email. Deleted IDs never become valid again.
+        if (!token.userId) return null
+        const userInfo = await getUserById(token.userId)
+        if (!matchesSessionUser(token.userId, userInfo)) return null
+        token.role = userInfo!.role
+        return token
+      } catch {
+        console.error('Session identity verification failed')
+        return null
       }
-
-      return token
     },
     session: ({session, token}) => {
       if (token.error) {
@@ -91,9 +102,12 @@ const authOptions: NextAuthConfig = {
       }
 
       if (session.user) {
+        session.user.id = token.userId!
         session.user.role = token.role
         session.user.email = token.email
       }
+
+      session.accountDeleteVerifiedAt = token.accountDeleteVerifiedAt
 
       return session
     },
@@ -121,6 +135,22 @@ const authOptions: NextAuthConfig = {
 
       if (account?.provider === 'google') {
         const googleProfile = profile as GoogleProfile
+        const raw = (await cookies()).get(DELETE_INTENT_COOKIE)?.value
+        if (raw) {
+          const intent = await decodeDeleteIntent(raw)
+          const userInfo = intent ? await getUserById(intent.userId) : null
+          if (
+            !intent ||
+            !userInfo ||
+            googleProfile.email !== intent.email ||
+            userInfo.email !== intent.email
+          ) {
+            ;(await cookies()).delete(DELETE_INTENT_COOKIE)
+            return `/${intent?.locale ?? 'en'}/settings/account?deleteVerification=failed`
+          }
+          // Reverification must never create or switch accounts.
+          return true
+        }
         const newUsers: NewUser = {
           name: googleProfile.name,
           email: googleProfile.email,
@@ -139,4 +169,4 @@ const authOptions: NextAuthConfig = {
   },
 }
 
-export const {auth, handlers} = NextAuth(authOptions)
+export const {auth, handlers, signIn, signOut} = NextAuth(authOptions)

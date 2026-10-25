@@ -1,7 +1,11 @@
 import {defaultCache} from '@serwist/next/worker'
 import type {PrecacheEntry, SerwistGlobalConfig} from 'serwist'
 import {NetworkOnly, Serwist} from 'serwist'
-import {isNoteNetworkPath, isPrecacheablePath} from '~/lib/notes/network-policy'
+import {
+  isAccountNetworkPath,
+  isNoteNetworkPath,
+  isPrecacheablePath,
+} from '~/lib/notes/network-policy'
 
 // This declares the value of `injectionPoint` to TypeScript.
 // `injectionPoint` is the string that will be replaced by the
@@ -34,6 +38,24 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    {
+      matcher: ({url, sameOrigin}) =>
+        sameOrigin && isAccountNetworkPath(url.pathname),
+      handler: new NetworkOnly(),
+      method: 'GET',
+    },
+    {
+      matcher: ({url, sameOrigin}) =>
+        sameOrigin && isAccountNetworkPath(url.pathname),
+      handler: new NetworkOnly(),
+      method: 'POST',
+    },
+    {
+      matcher: ({url, sameOrigin}) =>
+        sameOrigin && isAccountNetworkPath(url.pathname),
+      handler: new NetworkOnly(),
+      method: 'DELETE',
+    },
     // First match wins. Protect bodies and mutations before generic runtime rules.
     {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'GET'},
     {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'POST'},
@@ -56,7 +78,8 @@ self.addEventListener('activate', (event) => {
           const url = new URL(request.url)
           if (
             url.origin === self.location.origin &&
-            isNoteNetworkPath(url.pathname)
+            (isNoteNetworkPath(url.pathname) ||
+              isAccountNetworkPath(url.pathname))
           )
             await cache.delete(request)
         }

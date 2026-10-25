@@ -5,8 +5,18 @@ export function isNoteNetworkPath(pathname: string) {
   )
 }
 
+export function isAccountNetworkPath(pathname: string) {
+  return /^\/(?:api\/(?:auth|user)(?:[/.]|$)|(?:(?:en|vi)\/)?(?:settings\/account|user\/info)(?:[/.]|$))/.test(
+    pathname,
+  )
+}
+
 // Build manifests can include unresolved App Router templates; those return 404
 // and would reject the entire worker install. Keep concrete, public assets only.
 export function isPrecacheablePath(pathname: string) {
-  return !isNoteNetworkPath(pathname) && !/\[|\]|%5b|%5d/i.test(pathname)
+  return (
+    !isNoteNetworkPath(pathname) &&
+    !isAccountNetworkPath(pathname) &&
+    !/\[|\]|%5b|%5d/i.test(pathname)
+  )
 }

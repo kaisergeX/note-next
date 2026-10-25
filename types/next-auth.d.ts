@@ -10,6 +10,7 @@ declare module 'next-auth' {
   interface Session extends Omit<DefaultSession, 'user'> {
     user: User
     error?: AuthServerError
+    accountDeleteVerifiedAt?: number
   }
 
   /**
@@ -17,6 +18,7 @@ declare module 'next-auth' {
    * or the second parameter of the `session` callback, when using a database.
    */
   interface User extends Omit<DefaultUser, 'email'> {
+    id: string
     email: string
     role: Role
   }
@@ -24,6 +26,8 @@ declare module 'next-auth' {
 
 declare module 'next-auth/jwt' {
   interface JWT extends DefaultJWT {
+    userId?: string
+    accountDeleteVerifiedAt?: number
     role: Role
     error?: AuthServerError
   }

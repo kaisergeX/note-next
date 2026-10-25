@@ -1,6 +1,5 @@
 import {eq} from 'drizzle-orm'
 import {db} from '~/db'
-import {getUser} from '~/db/helper/users'
 import {userAppearanceTable} from '~/db/schema/user-appearance'
 import {isAppearancePreference} from '~/lib/appearance'
 import {defineAuthRoute} from '~/server-utils'
@@ -12,15 +11,13 @@ export const GET = defineAuthRoute(async ({request, session}) => {
   if (request.nextUrl.searchParams.get('account') !== account) {
     return Response.json({error: 'Account changed'}, {status: 409})
   }
-  const user = await getUser(account)
-  if (!user) return Response.json({error: 'Unauthorized'}, {status: 401})
   const [preference] = await db
     .select({
       appearance: userAppearanceTable.appearance,
       mode: userAppearanceTable.mode,
     })
     .from(userAppearanceTable)
-    .where(eq(userAppearanceTable.userId, user.id))
+    .where(eq(userAppearanceTable.userId, session.user.id))
   return Response.json(
     {account, preference: preference ?? null},
     {headers: privateHeaders},
@@ -54,9 +51,11 @@ export const PUT = defineAuthRoute(async ({request, session}) => {
   if (body.account !== account) {
     return Response.json({error: 'Account changed'}, {status: 409})
   }
-  const user = await getUser(account)
-  if (!user) return Response.json({error: 'Unauthorized'}, {status: 401})
-  const values = {userId: user.id, appearance: body.appearance, mode: body.mode}
+  const values = {
+    userId: session.user.id,
+    appearance: body.appearance,
+    mode: body.mode,
+  }
   if (body.initialize) {
     // A second device signing in must never replace an existing preference.
     await db.insert(userAppearanceTable).values(values).onConflictDoNothing()
@@ -79,6 +78,6 @@ export const PUT = defineAuthRoute(async ({request, session}) => {
       mode: userAppearanceTable.mode,
     })
     .from(userAppearanceTable)
-    .where(eq(userAppearanceTable.userId, user.id))
+    .where(eq(userAppearanceTable.userId, session.user.id))
   return Response.json({account, preference}, {headers: privateHeaders})
 })

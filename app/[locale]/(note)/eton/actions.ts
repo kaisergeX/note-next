@@ -2,7 +2,8 @@
 
 import {updateTag} from 'next/cache'
 import {getNoteMutationCacheKeys} from '~/db/helper'
-import {noteRepository} from '~/db/helper/notes'
+import {accountRepository} from '~/db/helper/account'
+import type {createNoteRepository} from '~/db/repositories/notes'
 import {
   noteMutationSucceeded,
   type NoteMutationResult,
@@ -10,11 +11,15 @@ import {
 import {requireAuth} from '~/server-utils'
 
 async function commit(
-  operation: () => Promise<NoteMutationResult>,
+  operation: (
+    repo: ReturnType<typeof createNoteRepository>,
+  ) => Promise<NoteMutationResult>,
   ownerId: string,
 ): Promise<NoteMutationResult> {
   try {
-    const result = await operation()
+    const result = (await accountRepository.mutateNote(ownerId, operation)) ?? {
+      status: 'unavailable' as const,
+    }
     if (noteMutationSucceeded(result)) {
       for (const tag of getNoteMutationCacheKeys(ownerId, result.note.id))
         updateTag(tag)
@@ -28,22 +33,19 @@ async function commit(
 }
 export async function createNoteAction(input: unknown) {
   const {userInfo} = await requireAuth()
-  return commit(
-    () => noteRepository.createNote(userInfo.id, input),
-    userInfo.id,
-  )
+  return commit((repo) => repo.createNote(userInfo.id, input), userInfo.id)
 }
 export async function mutateNoteAction(noteId: string, input: unknown) {
   const {userInfo} = await requireAuth()
   return commit(
-    () => noteRepository.updateNote(userInfo.id, noteId, input),
+    (repo) => repo.updateNote(userInfo.id, noteId, input),
     userInfo.id,
   )
 }
 export async function moveNoteToTrashAction(noteId: string, draft?: unknown) {
   const {userInfo} = await requireAuth()
   return commit(
-    () => noteRepository.moveNoteToTrash(userInfo.id, noteId, draft),
+    (repo) => repo.moveNoteToTrash(userInfo.id, noteId, draft),
     userInfo.id,
   )
 }
@@ -54,7 +56,7 @@ export async function restoreNoteAction(
 ) {
   const {userInfo} = await requireAuth()
   return commit(
-    () => noteRepository.restoreNote(userInfo.id, noteId, deadlineToken),
+    (repo) => repo.restoreNote(userInfo.id, noteId, deadlineToken),
     userInfo.id,
   )
 }
@@ -65,12 +67,8 @@ export async function permanentlyDeleteNoteAction(
 ) {
   const {userInfo} = await requireAuth()
   return commit(
-    () =>
-      noteRepository.permanentlyDeleteTrashedNote(
-        userInfo.id,
-        noteId,
-        deadlineToken,
-      ),
+    (repo) =>
+      repo.permanentlyDeleteTrashedNote(userInfo.id, noteId, deadlineToken),
     userInfo.id,
   )
 }
