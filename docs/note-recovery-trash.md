@@ -9,13 +9,13 @@
 
 ## Behavior and scope
 
-- Move saved notes to Trash for **30 days**, without confirmation. Editor trash atomically saves the current title/body/theme; success closes without another save, while failure retains the draft.
+- Move individual saved notes to Trash for **30 days**, without confirmation. Editor trash atomically saves the current title/body/theme; success closes without another save, while failure retains the draft.
 - `/trash` lists newest first with title/excerpt, expiry, read-only preview, Restore, and named, confirmed Delete permanently. `/trash/[id]` is separate from the note modal layout.
 - Restore preserves content, theme, flags, ID, and creation date, then returns to Notes without opening an editor.
 - Ordinary, modal, full-page, and API reads deny trashed, expired, missing, or foreign-owned notes. Expiry ends access even when physical cleanup is delayed.
 - EN/VI include empty/pending/error/offline states and local expiry display. All notes / Recently deleted use a desktop sidebar and mobile selector. Eligibility refreshes on focus, visibility, reconnect, and the nearest deadline.
 
-Excluded: bulk actions/Empty Trash, search, configurable retention, version history, archive management, offline mutation queues, account deletion, and recovery of previously hard-deleted notes. Visual rules live in [DESIGN.md](../DESIGN.md).
+Bulk Move all notes to Trash and account deletion are implemented separately; see the accepted [account data actions contract](archive/account-data-actions.md). Empty Trash, Restore all, search, configurable retention, version history, archive management, offline mutation queues, and recovery of previously hard-deleted notes remain outside this recovery scope. Visual rules live in [DESIGN.md](../DESIGN.md).
 
 ## Data contract
 
@@ -52,7 +52,7 @@ Further production access requires explicit approval of the target, actions, and
 
 ## Verification evidence
 
-**Production, 2026-10-24 — `https://noteverse.vercel.app`:**
+**Production, 2026-10-24:**
 
 - Owner confirms deployment, migration, production secret setup, and create/trash/preview/restore.
 - Owner-triggered Vercel Run returned HTTP 200: `Note cleanup { ok: true, deleted: 0, batches: 1, bounded: false }`, corroborated by the dashboard screenshot.

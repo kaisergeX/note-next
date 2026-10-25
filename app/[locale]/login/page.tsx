@@ -2,6 +2,7 @@ import type {Metadata} from 'next'
 import {getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {redirect} from 'next/navigation'
+import {connection} from 'next/server'
 import {auth} from '~/auth'
 import SignInButton from '~/components/auth/signin-button'
 import {isValidSession} from '~/server-utils'
@@ -20,6 +21,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Login() {
+  // Auth.js can generate request-specific cryptographic values even for guests.
+  await connection()
   const t = await getTranslations('auth')
   const session = await auth()
 

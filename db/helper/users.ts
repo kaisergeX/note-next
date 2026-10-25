@@ -39,6 +39,12 @@ export async function getUser(email: string) {
   return result[0]
 }
 
+// Session validity must always use an uncached immutable ID lookup.
+export async function getUserById(id: string) {
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, id))
+  return user ?? null
+}
+
 export async function getCachedUser(email: string) {
   'use cache'
 

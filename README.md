@@ -15,9 +15,9 @@
 - [ ] Note: Encrypt contents.
 - [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — deployed; local checks, production recovery flow, manual cleanup, and endpoint protection pass. Automatic scheduled cleanup verification remains pending.
 - [x] System: PWA supported.
-- [ ] Settings: Account
-  - [ ] Delete account.
-  - [ ] Delete all notes.
+- [x] Settings: [Account data actions](docs/archive/account-data-actions.md) — implemented and accepted; validation coverage and remaining manual checks are recorded in the archive.
+  - [x] Delete account after Google verification and exact email confirmation.
+  - [x] Move all notes to Trash with 30-day recovery.
 - [ ] Settings: Note
   - [ ] Autosave (interval).
   - [x] Commands Menu type (fixed, or bubble & floating).
@@ -28,7 +28,7 @@
 - [x] Landing page.
 - [ ] Settings: Note - Option to disable modal view and always show full-size notes.[^1]
 - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
-- [x] Settings: [Appearance presets, color modes, account sync, and interactive preview](docs/archive/theme-system/overview.md) — complete; accepted 2026-10-22.
+- [x] Settings: [Appearance presets, color modes, account sync, and interactive preview](docs/archive/theme-system/overview.md).
 - [ ] Settings: Advanced theme customization and seasonal artwork (separate scope).[^3]
 - [ ] Integrate/Link with other apps in the ecosystems.
 - [ ] Replace the old version.

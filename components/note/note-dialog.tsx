@@ -2,6 +2,7 @@ import {Dialog} from '@kaiverse/k/ui'
 import {cn} from 'cn'
 import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
 import {useMessages, useTranslations} from 'next-intl'
+import {useLayoutEffect, useRef} from 'react'
 import {Link} from '~/i18n/navigation'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
@@ -27,6 +28,13 @@ export default function NoteDialog({
   onClose,
   onMoveToTrash,
 }: NoteDialogProps) {
+  const dialogRef = useRef<HTMLDialogElement>(null)
+  useLayoutEffect(() => {
+    const dialog = dialogRef.current
+    // Cached routes disconnect effects without removing their DOM. Close before
+    // the browser drops the top layer so the dialog can become modal again.
+    return () => dialog?.close()
+  }, [])
   const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
     mutateNoteData: s.mutateNoteData,
     setMutateNoteData: s.setMutateNoteData,
@@ -40,6 +48,7 @@ export default function NoteDialog({
 
   return (
     <Dialog
+      ref={dialogRef}
       className={cn(
         'min-h-80 flex-col rounded-lg open:flex max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
         'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-2/3 2xl:max-w-(--breakpoint-xl)',

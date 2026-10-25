@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server'
-import {getCachedUser} from '~/db/helper/users'
+import {getUserById} from '~/db/helper/users'
 import {defineAuthRoute} from '~/server-utils'
 
 // export const config = {
@@ -20,7 +20,9 @@ export const GET = defineAuthRoute(async ({session}) => {
   //   return rateLimitErrResponse()
   // }
 
-  const email = session.user.email
-  const userInfo = await getCachedUser(email)
-  return NextResponse.json(userInfo, {status: 200})
+  const userInfo = await getUserById(session.user.id)
+  return NextResponse.json(userInfo, {
+    status: userInfo ? 200 : 401,
+    headers: {'Cache-Control': 'private, no-store'},
+  })
 })

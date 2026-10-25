@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "test:account": "node --env-file=.env.local scripts/run-account-tests.mjs",
+    "test:account:http": "node --env-file=.env.local --conditions=react-server --import tsx --test scripts/account-http.test.ts",
     "dev": "next dev",
     "build": "next build && serwist build",
     "start": "next start",

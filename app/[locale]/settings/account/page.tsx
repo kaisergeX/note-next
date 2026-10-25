@@ -1,14 +1,23 @@
-import {IconNoteOff, IconUserCircle, IconUserOff} from '@tabler/icons-react'
+import {IconUserCircle} from '@tabler/icons-react'
 import Image from 'next/image'
-import {getLocale, getTranslations} from 'next-intl/server'
+import {getLocale, getMessages, getTranslations} from 'next-intl/server'
+import {NextIntlClientProvider} from 'next-intl'
 import {Badge} from '~/components/ui/badge'
-import Button from '~/components/ui/button'
+import AccountActions from '~/components/settings/account-actions'
+import {accountRepository} from '~/db/helper/account'
+import {noteRepository} from '~/db/helper/notes'
 import {requireAuth} from '~/server-utils'
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: PageProps<'/[locale]/settings/account'>) {
   const locale = await getLocale()
-  const {userInfo} = await requireAuth(`/${locale}/login`)
+  const {userInfo, session} = await requireAuth(`/${locale}/login`)
   const t = await getTranslations('user.settings')
+  const messages = await getMessages()
+  const params = await searchParams
+  const count = await accountRepository.activeNoteCount(userInfo.id)
+  const serverNow = await noteRepository.getServerTime()
   return (
     <section aria-labelledby="account-title" className="max-w-3xl">
       <h2 id="account-title">{t('account')}</h2>
@@ -37,22 +46,17 @@ export default async function AccountPage() {
         </dl>
         <Badge className="capitalize">{t(`roles.${userInfo.role}`)}</Badge>
       </div>
-      <section aria-labelledby="account-actions-title" className="mt-8">
-        <h3 id="account-actions-title" className="text-destructive">
-          {t('accountActions')}
-        </h3>
-        <p className="text-ink-muted mt-2 text-sm">{t('actionsUnavailable')}</p>
-        <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="danger" disabled>
-            <IconNoteOff aria-hidden />
-            {t('removeNotes')}
-          </Button>
-          <Button variant="danger" disabled>
-            <IconUserOff aria-hidden />
-            {t('deleteAccount')}
-          </Button>
-        </div>
-      </section>
+      <NextIntlClientProvider messages={{user: messages.user}}>
+        <AccountActions
+          ownerId={userInfo.id}
+          email={userInfo.email}
+          activeCount={count}
+          verifiedAt={session.accountDeleteVerifiedAt}
+          serverNow={serverNow}
+          returning={params.confirmDelete === '1'}
+          verificationFailed={params.deleteVerification === 'failed'}
+        />
+      </NextIntlClientProvider>
     </section>
   )
 }
