@@ -26,6 +26,8 @@ import {
   publishAccountDataEvent,
 } from '~/lib/account/client-events'
 import {usePersistStore} from '~/store'
+import {useTrashRefresh} from '~/components/note/trash/use-trash-refresh'
+import BaseConfirmationDialog from '~/components/ui/confirmation-dialog'
 
 function ConfirmationDialog({
   open,
@@ -42,31 +44,15 @@ function ConfirmationDialog({
   onClose: () => void
   children: ReactNode
 }) {
-  const ref = useRef<HTMLDialogElement>(null)
   const titleId = useId()
   const descriptionId = useId()
-  useEffect(() => {
-    const dialog = ref.current
-    if (!open || !dialog) return
-    const previous = document.activeElement
-    dialog.showModal()
-    dialog.querySelector<HTMLButtonElement>('[data-cancel]')?.focus()
-    return () => {
-      dialog.close()
-      if (previous instanceof HTMLElement && previous.isConnected)
-        previous.focus()
-    }
-  }, [open])
   return (
-    <dialog
-      ref={ref}
-      aria-labelledby={titleId}
-      aria-describedby={descriptionId}
-      onCancel={(event) => {
-        event.preventDefault()
-        if (!busy) onClose()
-      }}
-      className="bg-paper-raised text-ink border-hairline shadow-sheet backdrop:bg-paper/50 m-auto max-h-full w-full max-w-lg overflow-y-auto rounded-lg border p-6 backdrop:backdrop-blur max-sm:mx-3 max-sm:w-auto"
+    <BaseConfirmationDialog
+      open={open}
+      busy={busy}
+      labelledBy={titleId}
+      describedBy={descriptionId}
+      onRequestClose={onClose}
     >
       <h2 id={titleId} className="text-lg font-semibold">
         {title}
@@ -75,7 +61,7 @@ function ConfirmationDialog({
         {description}
       </p>
       {children}
-    </dialog>
+    </BaseConfirmationDialog>
   )
 }
 
@@ -83,6 +69,8 @@ export default function AccountActions({
   ownerId,
   email,
   activeCount,
+  trashCount,
+  nextTrashExpiry,
   verifiedAt,
   serverNow,
   returning,
@@ -91,6 +79,8 @@ export default function AccountActions({
   ownerId: string
   email: string
   activeCount: number
+  trashCount: number
+  nextTrashExpiry?: string
   verifiedAt?: number
   serverNow: number
   returning: boolean
@@ -99,6 +89,7 @@ export default function AccountActions({
   const t = useTranslations('user.settings.dataActions')
   const locale = useLocale()
   const router = useRouter()
+  useTrashRefresh(serverNow, nextTrashExpiry ? [nextTrashExpiry] : [])
   const [dialog, setDialog] = useState<'trash' | 'delete' | null>(
     returning || verificationFailed ? 'delete' : null,
   )
@@ -222,7 +213,7 @@ export default function AccountActions({
       window.location.replace(`/${locale}/account-deleted`)
     }, true)
 
-  const buttonClass = 'h-auto min-h-11 max-w-full whitespace-normal py-2.5'
+  const buttonClass = 'max-w-full whitespace-normal'
   return (
     <section aria-labelledby="account-actions-title" className="mt-8">
       <h3 id="account-actions-title">{t('title')}</h3>
@@ -238,7 +229,7 @@ export default function AccountActions({
               className="text-accent underline underline-offset-4"
               href="/trash"
             >
-              {t('viewTrash')}
+              {t('viewTrashCount', {count: trashCount})}
             </Link>
           </div>
           {movedCount !== undefined && (
@@ -336,7 +327,7 @@ export default function AccountActions({
               {t.rich('verifyBody', {
                 email,
                 account: (chunks) => (
-                  <strong className="bg-ink-tint text-ink rounded-sm px-1 box-decoration-clone font-semibold select-text">
+                  <strong className="bg-ink-tint text-ink rounded-sm box-decoration-clone px-1 font-semibold select-text">
                     {chunks}
                   </strong>
                 ),
@@ -365,7 +356,7 @@ export default function AccountActions({
             <Input
               id={emailId}
               type="email"
-              className="mt-2 min-h-11"
+              className="mt-2"
               value={confirmation}
               onChange={(event) => setConfirmation(event.target.value)}
               aria-describedby={emailHelpId}

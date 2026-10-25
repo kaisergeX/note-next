@@ -2,6 +2,7 @@
 
 import {useEffect} from 'react'
 import {useSession} from 'next-auth/react'
+import {useRouter} from 'next/navigation'
 import {
   ACCOUNT_EVENT_KEY,
   clearDeletedAccountBrowserData,
@@ -9,6 +10,7 @@ import {
 import {usePersistStore} from '~/store'
 
 export default function AccountDataSync() {
+  const router = useRouter()
   const {data: session} = useSession()
   const id = session?.user?.id
   const email = session?.user?.email
@@ -25,6 +27,10 @@ export default function AccountDataSync() {
           !('type' in value)
         )
           return
+        if (value.type === 'trash-updated') {
+          router.refresh()
+          return
+        }
         if (value.type !== 'notes-trashed' && value.type !== 'account-deleted')
           return
         usePersistStore.getState().setMutateNoteData(undefined)
@@ -41,6 +47,6 @@ export default function AccountDataSync() {
     }
     window.addEventListener('storage', onStorage)
     return () => window.removeEventListener('storage', onStorage)
-  }, [id, email])
+  }, [id, email, router])
   return null
 }

@@ -1,4 +1,5 @@
 import 'server-only'
+import {createHash} from 'node:crypto'
 
 import {and, count, eq, isNull, sql} from 'drizzle-orm'
 import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js'
@@ -11,10 +12,23 @@ import {
   type NoteMutationResult,
 } from '../../lib/notes/lifecycle'
 import {createNoteRepository} from './notes'
+import type {TrashIdentity, TrashPreview} from '../../lib/notes/trash-bulk'
 
-type AccountDatabase = Pick<PostgresJsDatabase, 'select' | 'transaction'>
+type AccountDatabase = Pick<
+  PostgresJsDatabase,
+  'select' | 'transaction' | 'insert' | 'update' | 'delete'
+>
 
 export function createAccountRepository(db: AccountDatabase) {
+  function trashSnapshot(ownerId: string, items: TrashIdentity[]) {
+    return createHash('sha256')
+      .update(JSON.stringify([ownerId, items]))
+      .digest('hex')
+  }
+  async function previewTrash(ownerId: string): Promise<TrashPreview> {
+    const items = await createNoteRepository(db).getTrashIdentities(ownerId)
+    return {count: items.length, snapshot: trashSnapshot(ownerId, items)}
+  }
   async function activeNoteCount(ownerId: string) {
     const [row] = await db
       .select({count: count()})
@@ -79,10 +93,39 @@ export function createAccountRepository(db: AccountDatabase) {
     })
   }
 
+  async function mutateAllTrash(
+    ownerId: string,
+    expectedSnapshot: unknown,
+    remove: boolean,
+  ) {
+    if (
+      typeof expectedSnapshot !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(expectedSnapshot)
+    )
+      return {status: 'invalid_input' as const}
+    return withOwner(ownerId, async (tx) => {
+      const repo = createNoteRepository(tx)
+      const items = await repo.getTrashIdentities(ownerId)
+      if (trashSnapshot(ownerId, items) !== expectedSnapshot)
+        return {status: 'conflict' as const}
+      const affected = await repo.mutateTrashBatch(ownerId, items, remove)
+      return {
+        status: 'success' as const,
+        count: affected.length,
+        ids: affected.map((row) => row.id),
+      }
+    })
+  }
+
   return {
     activeNoteCount,
     moveAllNotesToTrash,
     deleteAccount,
+    previewTrash,
+    restoreAllTrash: (ownerId: string, snapshot: unknown) =>
+      mutateAllTrash(ownerId, snapshot, false),
+    emptyTrash: (ownerId: string, snapshot: unknown) =>
+      mutateAllTrash(ownerId, snapshot, true),
     mutateNote: (
       ownerId: string,
       run: (

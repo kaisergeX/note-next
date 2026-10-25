@@ -2,7 +2,7 @@ export const ACCOUNT_EVENT_KEY = 'etoN-account-data-event'
 
 export type AccountDataEvent = {
   ownerId: string
-  type: 'notes-trashed' | 'account-deleted'
+  type: 'notes-trashed' | 'account-deleted' | 'trash-updated'
 }
 
 export function publishAccountDataEvent(event: AccountDataEvent) {

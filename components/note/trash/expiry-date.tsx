@@ -10,15 +10,10 @@ export default function ExpiryDate({deadline}: {deadline: string}) {
     () => Intl.DateTimeFormat().resolvedOptions().timeZone,
     () => 'UTC',
   )
-  return (
-    <time dateTime={deadline}>
-      {t('expires', {
-        date: format.dateTime(new Date(deadline), {
-          dateStyle: 'medium',
-          timeStyle: 'short',
-          timeZone,
-        }),
-      })}
-    </time>
-  )
+  const date = format.dateTime(new Date(deadline), {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone,
+  })
+  return <time dateTime={deadline}>{t('expires', {date})}</time>
 }

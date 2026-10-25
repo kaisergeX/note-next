@@ -1,3 +1,5 @@
+import type {NoteTheme} from '~/db/schema/notes'
+
 // Plain-text summaries only. React escapes the result; never insert it as HTML.
 export function noteText(html: string | null) {
   return (html ?? '')
@@ -31,4 +33,5 @@ export type TrashItem = {
   title: string
   excerpt: string
   deadlineToken: string
+  theme?: NoteTheme | null
 }

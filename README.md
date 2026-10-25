@@ -18,6 +18,7 @@
 - [x] Settings: [Account data actions](docs/archive/account-data-actions.md) — implemented and accepted; validation coverage and remaining manual checks are recorded in the archive.
   - [x] Delete account after Google verification and exact email confirmation.
   - [x] Move all notes to Trash with 30-day recovery.
+- [x] Note: [Restore all and Empty Trash](docs/archive/trash-bulk-actions.md) — implemented with recoverable counts and read-only card previews; validation is recorded in the archive.
 - [ ] Settings: Note
   - [ ] Autosave (interval).
   - [x] Commands Menu type (fixed, or bubble & floating).

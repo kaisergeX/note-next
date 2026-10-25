@@ -4,6 +4,7 @@ import {getMessages, getTranslations} from 'next-intl/server'
 import {ViewTransition} from 'react'
 import NoteCollectionLayout from '~/components/note/note-collection-layout'
 import {requireAuth} from '~/server-utils'
+import {genRandom} from '~/util'
 
 export const instant = false
 
@@ -24,7 +25,9 @@ export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
   return (
     <NextIntlClientProvider messages={{note: noteMessages}}>
       <ViewTransition>
-        <NoteCollectionLayout>{children}</NoteCollectionLayout>
+        <NoteCollectionLayout creationLabel={genRandom(noteMessages.creation)}>
+          {children}
+        </NoteCollectionLayout>
       </ViewTransition>
     </NextIntlClientProvider>
   )

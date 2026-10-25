@@ -1,6 +1,16 @@
 import 'server-only'
 
-import {and, desc, eq, getTableColumns, gt, isNull, sql} from 'drizzle-orm'
+import {
+  and,
+  count,
+  desc,
+  eq,
+  getTableColumns,
+  gt,
+  isNull,
+  min,
+  sql,
+} from 'drizzle-orm'
 import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js'
 import {
   NOTE_RETENTION_SECONDS,
@@ -15,6 +25,7 @@ import {
   trashDraftSchema,
 } from '~/lib/notes/validation'
 import {notesTable} from '../schema/notes'
+import type {TrashIdentity} from '../../lib/notes/trash-bulk'
 
 type NoteDatabase = Pick<
   PostgresJsDatabase,
@@ -78,6 +89,70 @@ export function createNoteRepository(db: NoteDatabase) {
       .from(notesTable)
       .where(and(owned(ownerId), recoverable))
       .orderBy(desc(notesTable.pendingDeleteAt), desc(notesTable.id))
+  }
+  async function getTrashSummary(ownerId: string) {
+    const [summary] = await db
+      .select({count: count(), nextExpiry: min(notesTable.pendingDeleteAt)})
+      .from(notesTable)
+      .where(
+        and(
+          owned(ownerId),
+          gt(notesTable.pendingDeleteAt, sql`clock_timestamp()`),
+        ),
+      )
+    return summary
+  }
+  async function getTrashIdentities(ownerId: string): Promise<TrashIdentity[]> {
+    if (!validOwner(ownerId)) return []
+    return db
+      .select({
+        id: notesTable.id,
+        deadlineToken: sql<string>`${projection.deadlineToken}`,
+      })
+      .from(notesTable)
+      .where(
+        and(
+          owned(ownerId),
+          gt(notesTable.pendingDeleteAt, sql`clock_timestamp()`),
+        ),
+      )
+      .orderBy(notesTable.id)
+  }
+  // Called within the owner transaction, using server-read identities. Exact
+  // deadlines protect each trash cycle; the statement clock excludes expiry.
+  async function mutateTrashBatch(
+    ownerId: string,
+    items: TrashIdentity[],
+    remove: boolean,
+  ) {
+    if (
+      !validOwner(ownerId) ||
+      items.some(
+        (item) =>
+          !valid(ownerId, item.id) ||
+          !deadlineSchema.safeParse(item.deadlineToken).success,
+      )
+    )
+      throw new Error('Invalid trash batch')
+    if (!items.length) return []
+    const values = sql.join(
+      items.map(
+        (item) => sql`(${item.id}::uuid, ${item.deadlineToken}::timestamptz)`,
+      ),
+      sql`, `,
+    )
+    const predicate = and(
+      owned(ownerId),
+      gt(notesTable.pendingDeleteAt, sql`clock_timestamp()`),
+      sql`(${notesTable.id}, ${notesTable.pendingDeleteAt}) IN (VALUES ${values})`,
+    )
+    return remove
+      ? db.delete(notesTable).where(predicate).returning({id: notesTable.id})
+      : db
+          .update(notesTable)
+          .set({pendingDeleteAt: null})
+          .where(predicate)
+          .returning({id: notesTable.id})
   }
   async function createNote(
     ownerId: string,
@@ -176,6 +251,9 @@ export function createNoteRepository(db: NoteDatabase) {
     getListNote,
     getTrashNote,
     getTrashNotes,
+    getTrashSummary,
+    getTrashIdentities,
+    mutateTrashBatch,
     createNote,
     updateNote,
     moveNoteToTrash,

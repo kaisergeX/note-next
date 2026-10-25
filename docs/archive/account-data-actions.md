@@ -12,6 +12,8 @@
 - Re-registering with the same Google email creates a new internal user ID and empty account. Old sessions cannot attach to it.
 - Restore all, Empty Trash, exports, and an account recovery period are outside this change.
 
+Follow-up implementation: [Trash bulk actions](trash-bulk-actions.md) adds Restore all, Empty Trash, recoverable counts, and read-only card previews.
+
 The Clear your notes section uses a trash-bin action icon and always shows View Trash beside the active count. Its green completion message stays inside that section, above the account-deletion divider. It has no timeout; it clears on full reload or when starting another bulk move, and may persist across client navigation.
 
 ## Authentication and consistency

@@ -32,8 +32,10 @@ function readPin() {
 
 export default function NoteCollectionLayout({
   children,
+  creationLabel,
 }: {
   children: ReactNode
+  creationLabel: string
 }) {
   const t = useTranslations('note')
   const locale = useLocale()
@@ -111,7 +113,7 @@ export default function NoteCollectionLayout({
               <IconChevronDown size={16} aria-hidden />
             </MenuCustom>
           </div>
-          {isNotes && <NoteCreateEditor />}
+          {isNotes && <NoteCreateEditor creationLabel={creationLabel} />}
         </header>
         {children}
       </div>

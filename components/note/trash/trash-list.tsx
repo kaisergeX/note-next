@@ -1,24 +1,33 @@
 'use client'
 
-import {useState} from 'react'
+import {useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
-import {Link, useRouter} from '~/i18n/navigation'
+import {useRouter} from '~/i18n/navigation'
+import Button from '~/components/ui/button'
+import NoteCard, {NoteCardSummary} from '~/components/note/note-card'
 import type {TrashItem} from '~/lib/notes/text'
 import TrashActions from './trash-actions'
 import ExpiryDate from './expiry-date'
 import {useTrashRefresh} from './use-trash-refresh'
+import TrashBulkActions from './trash-bulk-actions'
+import styles from './trash-layout.module.css'
+import TrashPreviewDialog from './trash-preview-dialog'
 
 export default function TrashList({
   items,
   serverNow,
+  ownerId,
 }: {
   items: TrashItem[]
   serverNow: number
+  ownerId: string
 }) {
   const t = useTranslations('note.trash')
   const router = useRouter()
   const [removed, setRemoved] = useState<string[]>([])
-  const [status, setStatus] = useState('')
+  const [selected, setSelected] = useState<{item: TrashItem; request: number}>()
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const previewRequest = useRef(0)
   const {now, online} = useTrashRefresh(
     serverNow,
     items.map((item) => item.deadlineToken),
@@ -30,44 +39,60 @@ export default function TrashList({
   )
   return (
     <>
-      <p role="status" className="text-ink-muted text-sm">
-        {!online ? t('offline') : status}
-      </p>
+      <TrashBulkActions
+        ownerId={ownerId}
+        count={visible.length}
+        online={online}
+        onComplete={() => router.refresh()}
+      />
+      {!online && (
+        <p role="status" className="text-ink-muted text-sm">
+          {t('offline')}
+        </p>
+      )}
       {visible.length ? (
-        <ul className="divide-hairline border-hairline divide-y border-y">
+        <ul className={`${styles.grid} grid gap-4`}>
           {visible.map((item) => (
-            <li
-              key={`${item.id}:${item.deadlineToken}`}
-              className="flex flex-col justify-between gap-4 py-5 sm:flex-row"
-            >
-              <div className="min-w-0 flex-1 space-y-2">
-                <Link
-                  href={`/trash/${item.id}`}
-                  className="text-ink focus-visible:outline-accent inline-flex min-h-10 items-center font-serif text-xl wrap-anywhere hover:underline focus-visible:outline-2"
+            <li key={`${item.id}:${item.deadlineToken}`} className="min-w-0">
+              <NoteCard theme={item.theme} className="flex h-full flex-col">
+                <Button
+                  variant="ghost"
+                  pressMotion={false}
+                  className="block h-auto w-full flex-1 p-4 text-left font-normal whitespace-normal"
+                  aria-label={t('previewNamed', {
+                    title: item.title || t('untitled'),
+                  })}
+                  onClick={() => {
+                    setSelected({item, request: ++previewRequest.current})
+                    setPreviewOpen(true)
+                  }}
                 >
-                  {item.title || t('untitled')}
-                </Link>
-                {item.excerpt && (
-                  <p className="text-ink-muted line-clamp-2 text-sm wrap-anywhere">
-                    {item.excerpt}
+                  <NoteCardSummary
+                    title={item.title || t('untitled')}
+                    content={item.excerpt}
+                    theme={item.theme}
+                    plainText
+                    compact
+                  />
+                </Button>
+                <footer className="flex items-center justify-between gap-2 px-3 pt-1 pb-2">
+                  <p className="text-ink-muted min-w-0 text-xs">
+                    <ExpiryDate deadline={item.deadlineToken} />
                   </p>
-                )}
-                <p className="text-ink-muted text-xs">
-                  <ExpiryDate deadline={item.deadlineToken} />
-                </p>
-              </div>
-              <TrashActions
-                item={item}
-                disabled={!online}
-                onComplete={() => {
-                  setRemoved((previous) => [
-                    ...previous,
-                    `${item.id}:${item.deadlineToken}`,
-                  ])
-                  setStatus(t('completed'))
-                  router.refresh()
-                }}
-              />
+                  <TrashActions
+                    item={item}
+                    compact
+                    disabled={!online}
+                    onComplete={() => {
+                      setRemoved((previous) => [
+                        ...previous,
+                        `${item.id}:${item.deadlineToken}`,
+                      ])
+                      router.refresh()
+                    }}
+                  />
+                </footer>
+              </NoteCard>
             </li>
           ))}
         </ul>
@@ -76,6 +101,29 @@ export default function TrashList({
           <h2 className="font-serif text-xl">{t('emptyTitle')}</h2>
           <p className="text-ink-muted mt-2 text-sm">{t('emptyBody')}</p>
         </section>
+      )}
+      {selected && (
+        <TrashPreviewDialog
+          key={selected.request}
+          item={selected.item}
+          ownerId={ownerId}
+          open={previewOpen}
+          online={online}
+          available={visible.some(
+            (item) =>
+              item.id === selected.item.id &&
+              item.deadlineToken === selected.item.deadlineToken,
+          )}
+          onClose={() => setPreviewOpen(false)}
+          onComplete={() => {
+            setPreviewOpen(false)
+            setRemoved((previous) => [
+              ...previous,
+              `${selected.item.id}:${selected.item.deadlineToken}`,
+            ])
+            router.refresh()
+          }}
+        />
       )}
     </>
   )
