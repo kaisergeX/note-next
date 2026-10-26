@@ -20,7 +20,7 @@
   - [x] Move all notes to Trash with 30-day recovery.
 - [x] Note: [Restore all and Empty Trash](docs/archive/trash-bulk-actions.md) — implemented with recoverable counts and read-only card previews; validation is recorded in the archive.
 - [ ] Settings: Note
-  - [ ] Autosave (interval).
+  - [ ] [Editor rebuild, autosave, local recovery, and conflict handling](docs/note-editor/overview.md) — planning; HTML retained, future E2EE/offline constraints recorded separately.
   - [x] Commands Menu type (fixed, or bubble & floating).
   - [x] Theme.
 - [ ] Note: Drawable Mode,
@@ -39,6 +39,8 @@
 ## Documentation
 
 Keep active feature plans directly under `docs/`, or in a feature folder when several documents are needed. Completed features belong in `docs/archive/`: use descriptive standalone filenames for single documents, and a feature folder for multiple documents. Use `overview.md` as a feature folder's entry point; fold routine follow-ups into existing documents instead of adding dated reports.
+
+- [Note editor and persistence roadmap](docs/note-editor/overview.md): accepted direction, staged implementation, open decisions, and future encryption/offline constraints.
 
 ## Engines Requirements
 
