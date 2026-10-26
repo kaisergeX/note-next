@@ -16,7 +16,15 @@ export default function NoteReadOnly({
 }) {
   const editor = useEditor(
     {
-      extensions: [StarterKit, Highlight],
+      extensions: [
+        StarterKit.configure({
+          link: false,
+          underline: false,
+          listKeymap: false,
+          trailingNode: false,
+        }),
+        Highlight,
+      ],
       content: content ?? '',
       editable: false,
       immediatelyRender: false,

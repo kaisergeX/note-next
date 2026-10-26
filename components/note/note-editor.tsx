@@ -1,20 +1,17 @@
 'use client'
 
 import {cn} from 'cn'
-import CharacterCount, {
-  type CharacterCountStorage,
-} from '@tiptap/extension-character-count'
+import CharacterCount from '@tiptap/extension-character-count'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import {PluginKey} from '@tiptap/pm/state'
 import {
-  BubbleMenu,
   EditorContent,
   Extension,
-  FloatingMenu,
   useEditor,
   type FocusPosition,
 } from '@tiptap/react'
+import {BubbleMenu, FloatingMenu} from '@tiptap/react/menus'
 import StarterKit from '@tiptap/starter-kit'
 import {useEffect, type ReactNode} from 'react'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
@@ -104,7 +101,13 @@ export default function NoteEditor({
   const textEditor = useEditor(
     {
       extensions: [
-        StarterKit,
+        // Keep the v2 schema and keyboard behavior during the dependency upgrade.
+        StarterKit.configure({
+          link: false,
+          underline: false,
+          listKeymap: false,
+          trailingNode: false,
+        }),
         CharacterCount.configure({
           limit: limitCharacter || EDITOR_CONTENT_LIMIT,
         }),
@@ -147,12 +150,13 @@ export default function NoteEditor({
       editable: !disabled && !loading,
       autofocus: autofocus,
       immediatelyRender: false,
+      // Counts and toolbar active/disabled states currently read on render.
+      shouldRerenderOnTransaction: true,
     },
     [id, theme, loading, disabled, ariaLabel, placeholder],
   )
 
-  const charCountStorage = textEditor?.storage?.characterCount as
-    CharacterCountStorage | undefined
+  const charCountStorage = textEditor?.storage.characterCount
   const characterCount = charCountStorage?.characters() || 0
   const wordCount = charCountStorage?.words() || 0
   const [characterCountDebounced] = useDebounced(characterCount, 400)
@@ -198,7 +202,6 @@ export default function NoteEditor({
           menuClassNames?.bubbleMenu || '',
         )}
         editor={textEditor}
-        tippyOptions={{duration: 100}}
       >
         <RTECommands editor={textEditor} menuType="bubble" />
       </BubbleMenu>
@@ -210,7 +213,6 @@ export default function NoteEditor({
           menuClassNames?.floatingMenu || '',
         )}
         editor={textEditor}
-        tippyOptions={{duration: 100}}
       >
         <RTECommands editor={textEditor} menuType="floating" />
       </FloatingMenu>

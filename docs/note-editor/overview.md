@@ -1,6 +1,6 @@
 # Note editor and persistence roadmap
 
-Status: planning, 2026-10-26. No implementation or deployment is implied by these documents.
+Status: Phase 0 complete, 2026-10-27, for the authorized Tiptap dependency upgrade and migration verification. The user confirmed Vietnamese typing and save/reopen work, with undo/redo unchanged from before. Independent visual review found no upgrade-specific regression; its REVISE finding concerns a pre-existing code-block contrast defect tracked for Phase 1. Unrelated dependency advisories remain documented. Stages 1 and later are planning only. No deployment is included.
 
 ## Read order
 
@@ -33,7 +33,7 @@ Each document separates accepted direction from proposed details and open decisi
 | 3 | Conflict resolution UX | Same-field conflicts preserve work; stale resolutions rejected; keep-both and use-version paths verified. Ship stages 2–3 together if needed to avoid unsafe overwrites. |
 | Later | Search, full offline operation, E2EE, drawing | Separate detailed designs and authorization. None is a prerequisite for stages 0–3. |
 
-Do not equate sequencing with permission to implement all future stages. The current request is to create planning documents.
+Do not equate sequencing with permission to implement all future stages. Current implementation authorization covers Phase 0 using the latest stable Tiptap release. See [Phase 0 evidence](editor.md#phase-0-implementation-and-verification) for versions, advisories, checks, and limitations.
 
 ## Existing contracts to preserve
 
