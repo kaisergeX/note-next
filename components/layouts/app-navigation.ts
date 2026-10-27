@@ -14,9 +14,17 @@ export function getAppNavigation(labels: AppNavigationLabels) {
 }
 
 export function isNoteCollectionPath(path: string) {
-  return path === '/eton' || path === '/trash'
+  return (
+    path === '/eton' ||
+    path === '/collection/drafts' ||
+    path === '/collection/trash'
+  )
 }
 
 export function isNavigationActive(path: string, href: string) {
-  return path === href || path.startsWith(`${href}/`)
+  return (
+    (href === '/eton' && path.startsWith('/collection/')) ||
+    path === href ||
+    path.startsWith(`${href}/`)
+  )
 }

@@ -228,7 +228,7 @@ export default function RTECommands({
         'bg-paper/50 text-ink border-hairline @container/note-toolbar sticky top-0 z-30 flex shrink-0 flex-wrap items-center gap-0 py-2 font-sans backdrop-blur-sm',
         layout === 'document'
           ? '-mx-4 mb-4 px-4 transition-[box-shadow,border-radius] duration-200 ease-out motion-reduce:transition-none'
-          : 'border-b px-0 sm:px-2 lg:px-3',
+          : 'border-b px-0 max-sm:grid max-sm:grid-cols-[1fr_auto] sm:px-2 lg:px-3',
         layout === 'document' &&
           (docked ? 'shadow-sheet rounded-b-xl' : 'sm:rounded-t-xl'),
       )}
@@ -237,154 +237,171 @@ export default function RTECommands({
       data-editor-toolbar="fixed"
     >
       {leadingActions}
-      <div className="hidden shrink-0 lg:block">
-        <PopoverBase
-          trigger={
-            <>
-              <span className="text-sm font-semibold">
-                {editor?.isActive('heading') ? (
-                  `H${editor.getAttributes('heading').level}`
-                ) : (
-                  <IconTypography size={20} />
-                )}
-              </span>
-              <IconChevronDown size={12} />
-            </>
-          }
-          triggerAriaLabel={t('textStyle')}
-          triggerClassName={buttonClass({variant: 'ghost'})}
-          disabled={blocked}
-          anchor="bottom-start"
-          keyboardNavigation
-          className={popoverClass}
-        >
-          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
-            {t('textStyle')}
-          </p>
-          {styles}
-        </PopoverBase>
-      </div>
-      <div className={groupClass} role="group" aria-label={t('emphasis')}>
-        {emphasis.map((tool) => (
-          <ToolButton key={tool.label} {...tool} disabled={blocked} />
-        ))}
-      </div>
       <div
-        className={cn(groupClass, 'hidden lg:flex')}
-        role="group"
-        aria-label={t('blocks')}
+        className={
+          layout === 'dialog'
+            ? 'contents max-sm:col-span-2 max-sm:row-start-2 max-sm:flex max-sm:items-center'
+            : 'contents'
+        }
       >
-        {blocks.map((tool) => (
-          <ToolButton key={tool.label} {...tool} disabled={blocked} />
-        ))}
-      </div>
-      <div
-        className={cn(groupClass, 'hidden @5xl/note-toolbar:flex')}
-        role="group"
-        aria-label={t('more')}
-      >
-        {extra.map((tool) => (
-          <ToolButton key={tool.label} {...tool} disabled={blocked} />
-        ))}
-        <ToolButton
-          label={t('clearMarks')}
-          icon={<IconClearFormatting size={20} />}
-          disabled={blocked}
-          action={() => editor?.chain().focus().unsetAllMarks().run()}
-        />
-        <ToolButton
-          label={t('clearBlocks')}
-          icon={<IconClearAll size={20} />}
-          disabled={blocked}
-          action={() => editor?.chain().focus().clearNodes().run()}
-        />
-      </div>
-      <div className={groupClass} role="group" aria-label={t('history')}>
-        <ToolButton
-          label={t('undo')}
-          icon={<IconArrowBackUp size={20} />}
-          disabled={blocked || !editor?.can().undo()}
-          action={() => editor?.chain().focus().undo().run()}
-        />
-        <ToolButton
-          label={t('redo')}
-          icon={<IconArrowForwardUp size={20} />}
-          disabled={blocked || !editor?.can().redo()}
-          action={() => editor?.chain().focus().redo().run()}
-        />
-      </div>
-      <PopoverBase
-        trigger={<IconDots size={20} />}
-        triggerAriaLabel={t('format')}
-        triggerClassName={cn(
-          buttonClass({variant: 'ghost', iconOnly: true}),
-          'shrink-0 rounded-md @5xl/note-toolbar:hidden',
-        )}
-        disabled={blocked}
-        anchor="bottom-end"
-        keyboardNavigation
-        className={popoverClass}
-      >
-        <section
-          className="border-hairline mb-2 border-b pb-2 lg:hidden"
-          aria-label={t('textStyle')}
-        >
-          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
-            {t('textStyle')}
-          </p>
-          {styles}
-        </section>
-        <section
-          className="border-hairline mb-2 border-b pb-2 lg:hidden"
+        <div className="hidden shrink-0 lg:block">
+          <PopoverBase
+            trigger={
+              <>
+                <span className="text-sm font-semibold">
+                  {editor?.isActive('heading') ? (
+                    `H${editor.getAttributes('heading').level}`
+                  ) : (
+                    <IconTypography size={20} />
+                  )}
+                </span>
+                <IconChevronDown size={12} />
+              </>
+            }
+            triggerAriaLabel={t('textStyle')}
+            triggerClassName={buttonClass({variant: 'ghost'})}
+            disabled={blocked}
+            anchor="bottom-start"
+            keyboardNavigation
+            className={popoverClass}
+          >
+            <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+              {t('textStyle')}
+            </p>
+            {styles}
+          </PopoverBase>
+        </div>
+        <div className={groupClass} role="group" aria-label={t('emphasis')}>
+          {emphasis.map((tool) => (
+            <ToolButton key={tool.label} {...tool} disabled={blocked} />
+          ))}
+        </div>
+        <div
+          className={cn(groupClass, 'hidden lg:flex')}
+          role="group"
           aria-label={t('blocks')}
         >
-          <p className="text-ink-muted px-2 pb-2 text-xs font-medium">
-            {t('blocks')}
-          </p>
-          <div className="grid grid-cols-2 gap-1">
-            {blocks.map((tool) => (
-              <ToolButton
-                key={tool.label}
-                {...tool}
-                expanded
-                disabled={blocked}
-              />
-            ))}
-          </div>
-        </section>
-        <section aria-label={t('more')}>
-          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
-            {t('more')}
-          </p>
-          <div className="grid grid-cols-2 gap-1">
-            {extra.map((tool) => (
-              <ToolButton
-                key={tool.label}
-                {...tool}
-                expanded
-                disabled={blocked}
-              />
-            ))}
-          </div>
-        </section>
-        <div className="border-hairline mt-2 grid grid-cols-2 gap-1 border-t pt-2">
+          {blocks.map((tool) => (
+            <ToolButton key={tool.label} {...tool} disabled={blocked} />
+          ))}
+        </div>
+        <div
+          className={cn(groupClass, 'hidden @5xl/note-toolbar:flex')}
+          role="group"
+          aria-label={t('more')}
+        >
+          {extra.map((tool) => (
+            <ToolButton key={tool.label} {...tool} disabled={blocked} />
+          ))}
           <ToolButton
             label={t('clearMarks')}
             icon={<IconClearFormatting size={20} />}
-            expanded
             disabled={blocked}
             action={() => editor?.chain().focus().unsetAllMarks().run()}
           />
           <ToolButton
             label={t('clearBlocks')}
             icon={<IconClearAll size={20} />}
-            expanded
             disabled={blocked}
             action={() => editor?.chain().focus().clearNodes().run()}
           />
         </div>
-      </PopoverBase>
-      {viewAction && <div className="ml-auto flex shrink-0">{viewAction}</div>}
+        <div className={groupClass} role="group" aria-label={t('history')}>
+          <ToolButton
+            label={t('undo')}
+            icon={<IconArrowBackUp size={20} />}
+            disabled={blocked || !editor?.can().undo()}
+            action={() => editor?.chain().focus().undo().run()}
+          />
+          <ToolButton
+            label={t('redo')}
+            icon={<IconArrowForwardUp size={20} />}
+            disabled={blocked || !editor?.can().redo()}
+            action={() => editor?.chain().focus().redo().run()}
+          />
+        </div>
+        <PopoverBase
+          trigger={<IconDots size={20} />}
+          triggerAriaLabel={t('format')}
+          triggerClassName={cn(
+            buttonClass({variant: 'ghost', iconOnly: true}),
+            'shrink-0 rounded-md @5xl/note-toolbar:hidden',
+          )}
+          disabled={blocked}
+          anchor="bottom-end"
+          keyboardNavigation
+          className={popoverClass}
+        >
+          <section
+            className="border-hairline mb-2 border-b pb-2 lg:hidden"
+            aria-label={t('textStyle')}
+          >
+            <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+              {t('textStyle')}
+            </p>
+            {styles}
+          </section>
+          <section
+            className="border-hairline mb-2 border-b pb-2 lg:hidden"
+            aria-label={t('blocks')}
+          >
+            <p className="text-ink-muted px-2 pb-2 text-xs font-medium">
+              {t('blocks')}
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {blocks.map((tool) => (
+                <ToolButton
+                  key={tool.label}
+                  {...tool}
+                  expanded
+                  disabled={blocked}
+                />
+              ))}
+            </div>
+          </section>
+          <section aria-label={t('more')}>
+            <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+              {t('more')}
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              {extra.map((tool) => (
+                <ToolButton
+                  key={tool.label}
+                  {...tool}
+                  expanded
+                  disabled={blocked}
+                />
+              ))}
+            </div>
+          </section>
+          <div className="border-hairline mt-2 grid grid-cols-2 gap-1 border-t pt-2">
+            <ToolButton
+              label={t('clearMarks')}
+              icon={<IconClearFormatting size={20} />}
+              expanded
+              disabled={blocked}
+              action={() => editor?.chain().focus().unsetAllMarks().run()}
+            />
+            <ToolButton
+              label={t('clearBlocks')}
+              icon={<IconClearAll size={20} />}
+              expanded
+              disabled={blocked}
+              action={() => editor?.chain().focus().clearNodes().run()}
+            />
+          </div>
+        </PopoverBase>
+      </div>
+      {viewAction && (
+        <div
+          className={cn(
+            'ml-auto flex shrink-0',
+            layout === 'dialog' && 'max-sm:col-start-2 max-sm:row-start-1',
+          )}
+        >
+          {viewAction}
+        </div>
+      )}
     </div>
   )
 }

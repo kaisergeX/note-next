@@ -23,6 +23,14 @@ export const createNoteSlice: StateCreator<NoteStore> = (set, get) => ({
         ? Object.assign({}, get().mutateNoteData, newData)
         : undefined,
       ...(!newData ? {noteSession: undefined, editorCharCount: {}} : {}),
+      ...(newData && get().noteSession
+        ? {
+            noteSession: {
+              ...get().noteSession!,
+              generation: (get().noteSession?.generation ?? 0) + 1,
+            },
+          }
+        : {}),
     }),
   setEditorCharCount: (editorId, charCount) =>
     set(({editorCharCount}) => ({

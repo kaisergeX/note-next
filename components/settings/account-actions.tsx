@@ -28,6 +28,11 @@ import {
 import {usePersistStore} from '~/store'
 import {useTrashRefresh} from '~/components/note/trash/use-trash-refresh'
 import BaseConfirmationDialog from '~/components/ui/confirmation-dialog'
+import {
+  pauseAccountDrafts,
+  removeAccountRecovery,
+  requestAccountExit,
+} from '~/lib/notes/session-sync'
 
 function ConfirmationDialog({
   open,
@@ -170,7 +175,7 @@ export default function AccountActions({
         )
         return
       }
-      usePersistStore.getState().setMutateNoteData(undefined)
+      await pauseAccountDrafts(ownerId)
       publishAccountDataEvent({ownerId, type: 'notes-trashed'})
       setCount(0)
       setMovedCount(result.count)
@@ -201,6 +206,12 @@ export default function AccountActions({
         return
       }
       clearDeletedAccountBrowserData(email)
+      let localRecoveryFailed = false
+      try {
+        await removeAccountRecovery(ownerId)
+      } catch {
+        localRecoveryFailed = true
+      }
       usePersistStore.getState().setMutateNoteData(undefined)
       publishAccountDataEvent({ownerId, type: 'account-deleted'})
       // Database deletion already invalidates every old session. Cookie cleanup is
@@ -210,7 +221,9 @@ export default function AccountActions({
       } catch {
         /* Continue to confirmation. */
       }
-      window.location.replace(`/${locale}/account-deleted`)
+      window.location.replace(
+        `/${locale}/account-deleted${localRecoveryFailed ? '?localRecovery=failed' : ''}`,
+      )
     }, true)
 
   const buttonClass = 'max-w-full whitespace-normal'
@@ -227,7 +240,7 @@ export default function AccountActions({
             </p>
             <Link
               className="text-accent underline underline-offset-4"
-              href="/trash"
+              href="/collection/trash"
             >
               {t('viewTrashCount', {count: trashCount})}
             </Link>
@@ -397,6 +410,7 @@ export default function AccountActions({
               loading={pending}
               onClick={() =>
                 run(async () => {
+                  if (!(await requestAccountExit())) return
                   const result = await beginAccountDeletionAction(
                     locale,
                     ownerId,

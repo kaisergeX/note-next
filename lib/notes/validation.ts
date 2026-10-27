@@ -10,7 +10,7 @@ const contentFields = {
     .string()
     .max(NOTE_TITLE_MAX_LENGTH * 3)
     .nullable(),
-  content: z.string().nullable(),
+  content: z.string().max(262144).nullable(),
   theme: z.enum(themePgEnum.enumValues).nullable(),
 }
 // No archive/encryption editing controls exist yet; preserve those flags.
@@ -20,6 +20,21 @@ export const editNoteSchema = createNoteSchema.refine((value) =>
 )
 export const trashDraftSchema = z.strictObject(contentFields)
 export const deadlineSchema = z.iso.datetime({precision: 6})
+export const syncRequestSchema = z
+  .strictObject({
+    ownerId: noteIdSchema,
+    noteId: noteIdSchema.nullable(),
+    creationId: z.uuid(),
+    mutationId: z.uuid(),
+    expectedRevision: z.uuid().nullable(),
+    content: trashDraftSchema,
+    kind: z.enum(['save', 'trash']),
+  })
+  .refine((value) =>
+    value.noteId
+      ? value.expectedRevision !== null
+      : value.kind === 'save' && value.expectedRevision === null,
+  )
 export type NoteContentInput = z.infer<typeof createNoteSchema>
 
 // Client projection only; the server validates independently.

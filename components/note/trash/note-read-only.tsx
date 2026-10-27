@@ -10,9 +10,11 @@ import type {NoteTheme} from '~/db/schema/notes'
 export default function NoteReadOnly({
   content,
   theme,
+  className,
 }: {
   content: string | null
   theme: NoteTheme | null
+  className?: string
 }) {
   const editor = useEditor(
     {
@@ -36,6 +38,7 @@ export default function NoteReadOnly({
       className={cn(
         'prose max-w-prose wrap-anywhere',
         theme ? `prose-${theme}` : 'prose-appearance',
+        className,
       )}
     >
       {editor ? <EditorContent editor={editor} /> : <p>{noteText(content)}</p>}

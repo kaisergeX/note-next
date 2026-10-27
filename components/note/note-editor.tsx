@@ -78,6 +78,9 @@ export default function NoteEditor({
   exposeStorage,
 }: NoteEditorProps) {
   const theme = usePersistStore((state) => state.mutateNoteData?.theme)
+  const editorVersion = usePersistStore(
+    (state) => state.noteSession?.editorVersion ?? 0,
+  )
   const setEditorCharCount = usePersistStore(
     (state) => state.setEditorCharCount,
   )
@@ -127,6 +130,18 @@ export default function NoteEditor({
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
   })
+
+  useEffect(() => {
+    if (
+      editorVersion &&
+      editor &&
+      editor.getHTML() !== (initialValue || '<p></p>')
+    ) {
+      editor.commands.setContent(initialValue || '', {emitUpdate: false})
+    }
+    // External updates are recovery/reconciliation, never acknowledgements.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editor, editorVersion])
 
   useEffect(() => {
     if (editor && editor.isEditable !== (!disabled && !loading)) {

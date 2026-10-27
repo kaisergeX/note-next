@@ -7,11 +7,12 @@ import {IconRestore, IconTrash} from '@tabler/icons-react'
 import Button from '~/components/ui/button'
 import ConfirmationDialog from '~/components/ui/confirmation-dialog'
 import {Input} from '~/components/ui/input'
+import CollectionTitle from '~/components/note/collection-title'
 import {
   previewTrashAction,
   restoreAllTrashAction,
   emptyTrashAction,
-} from '~/app/[locale]/(note)/trash/actions'
+} from '~/app/[locale]/(note)/collection/trash/actions'
 import {EMPTY_TRASH_PHRASES, type TrashPreview} from '~/lib/notes/trash-bulk'
 import {publishAccountDataEvent} from '~/lib/account/client-events'
 
@@ -29,6 +30,7 @@ export default function TrashBulkActions({
   onComplete: () => void
 }) {
   const t = useTranslations('note.trash.bulk')
+  const tCollections = useTranslations('note.collections')
   const locale = useLocale()
   const phrase = EMPTY_TRASH_PHRASES[locale]
   const [mode, setMode] = useState<Mode>('restore')
@@ -125,14 +127,12 @@ export default function TrashBulkActions({
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p
-          id={countId}
-          data-trash-count
-          tabIndex={-1}
-          className="text-ink-muted focus-visible:outline-accent text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
-          {t('count', {count})}
-        </p>
+        <CollectionTitle
+          title={tCollections('deleted')}
+          count={count}
+          countLabel={t('count', {count})}
+          countId={countId}
+        />
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
