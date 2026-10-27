@@ -6,6 +6,7 @@ import {
   IconCheck,
   IconDotsVertical,
   IconLoader2,
+  IconPencil,
   IconTexture,
   IconTrash,
 } from '@tabler/icons-react'
@@ -20,6 +21,7 @@ import {
 import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
+import {noteDraftChanged} from './use-note-session'
 import {NoteThemePicker} from './note-theme-picker'
 
 export type NoteCustomizeProps = {
@@ -61,6 +63,9 @@ export default function NoteCustomize({
     noteId: s.mutateNoteData?.id,
     theme: s.mutateNoteData?.theme,
   }))
+  const draft = usePersistStore((state) => state.mutateNoteData)
+  const session = usePersistStore((state) => state.noteSession)
+  const dirty = session ? noteDraftChanged(draft, session.baseline) : false
   const t = useTranslations('note')
   const ref = useRef<HTMLDivElement>(null)
   const [scrollable, setScrollable] = useState(false)
@@ -128,36 +133,47 @@ export default function NoteCustomize({
           size="sm"
           iconOnly
           className={theme ? `border-theme-${theme}` : ''}
-          title="Illustration, Texture"
+          title={t('editor.texture')}
           disabled
         >
           <IconTexture size="18" />
         </Button>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
         {details}
-        {type === 'update' && (
-          <div className="flex items-center gap-1 text-xs font-medium">
-            {isLoading ? (
-              <>
-                <IconLoader2 className="animate-spin" size="1.2rem" />{' '}
-                {t('status.syncing')}
-              </>
-            ) : error ? (
-              <span className="text-destructive">{t('status.failed')}</span>
-            ) : (
-              <>
-                <IconCheck
-                  className="text-success saturate-150"
-                  size="1.2rem"
-                  strokeWidth={3}
-                />{' '}
-                {t('status.synced')}
-              </>
-            )}
-          </div>
-        )}
+        <div
+          role="status"
+          className="flex items-center gap-1 text-xs font-medium"
+        >
+          {isLoading ? (
+            <>
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="1.2rem"
+              />
+              {t(
+                session?.operation === 'trash'
+                  ? 'status.moving'
+                  : 'status.saving',
+              )}
+            </>
+          ) : error ? (
+            <span className="text-destructive">{t('status.failed')}</span>
+          ) : dirty ? (
+            <>
+              <IconPencil size="1rem" aria-hidden />
+              {t('status.pending')}
+            </>
+          ) : type === 'create' ? (
+            t('status.draft')
+          ) : (
+            <>
+              <IconCheck className="text-success" size="1.2rem" />
+              {t('status.saved')}
+            </>
+          )}
+        </div>
 
         {menuItems.every(({hidden}) => !hidden) && (
           <MenuCustom
@@ -171,7 +187,7 @@ export default function NoteCustomize({
             disabled={isLoading}
             itemsClassName={cn(
               'rounded-lg bg-paper-raised border border-hairline',
-              `shadow-none shadow-theme-${theme || 'slate'}`,
+              'shadow-sheet',
             )}
             items={menuItems}
           >
@@ -184,7 +200,7 @@ export default function NoteCustomize({
         <Button
           variant="secondary"
           iconOnly
-          aria-label="Scroll to top"
+          aria-label={t('editor.scrollTop')}
           className={cn(
             'absolute right-4 bottom-4 transition-all will-change-transform',
             'animate-affix-appear [--affix-y-from:2] [animation-range-end:6rem] [animation-range-start:2rem]',

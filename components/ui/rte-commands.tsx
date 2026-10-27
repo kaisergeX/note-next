@@ -4,353 +4,387 @@ import {cn} from 'cn'
 import {
   IconArrowBackUp,
   IconArrowForwardUp,
-  IconBlockquote,
   IconBold,
-  IconClearAll,
-  IconClearFormatting,
-  IconCode,
-  IconChevronLeft,
-  IconChevronRight,
-  IconH1,
-  IconHighlight,
   IconItalic,
+  IconUnderline,
+  IconHighlight,
+  IconChevronDown,
+  IconTypography,
+  IconList,
+  IconListNumbers,
+  IconBlockquote,
+  IconCode,
   IconStrikethrough,
+  IconClearFormatting,
+  IconClearAll,
+  IconSeparator,
+  IconDots,
 } from '@tabler/icons-react'
-import type {Editor} from '@tiptap/react'
-import {Fragment, useEffect, useRef, useState, type ReactNode} from 'react'
-import Button from '~/components/ui/button'
+import {useEditorState, type Editor} from '@tiptap/react'
+import {useTranslations} from 'next-intl'
+import type {ReactNode} from 'react'
+import Button, {buttonClass} from './button'
+import PopoverBase from './popover'
 
-type RTEMenuItem =
-  | {
-      Icon?: ReactNode
-      title: string
-      shortcut?: string
-      action: () => boolean
-      actived?: boolean
-      disabled?: boolean
-      customItem?: ReactNode
-    }
-  | {
-      Icon?: ReactNode
-      title?: string
-      shortcut?: string
-      action?: () => boolean
-      actived?: boolean
-      disabled?: boolean
-      customItem: ReactNode
-    }
-
-export type RTECommandsProps = {
-  className?: string
+type Props = {
   editor: Editor | null
-  menuType?: 'fixed' | 'bubble' | 'floating'
-  compact?: boolean
+  disabled?: boolean
+  target?: string
   leadingActions?: ReactNode
-  trailingActions?: ReactNode
+  viewAction?: ReactNode
+  layout?: 'dialog' | 'document'
+  docked?: boolean
 }
 
-function getToolbarButtons(toolbar: HTMLElement) {
-  return Array.from(
-    toolbar.querySelectorAll<HTMLButtonElement>('button'),
-  ).filter(
-    (button) =>
-      !button.disabled &&
-      !button.closest('[inert]') &&
-      button.getClientRects().length > 0,
+type Tool = {
+  label: string
+  icon: ReactNode
+  active?: boolean
+  action: () => unknown
+}
+function ToolButton({
+  label,
+  icon,
+  active,
+  action,
+  disabled,
+  expanded = false,
+}: Tool & {disabled?: boolean; expanded?: boolean}) {
+  return (
+    <Button
+      variant="ghost"
+      iconOnly={!expanded}
+      disabled={disabled}
+      className={cn(
+        'shrink-0 rounded-md',
+        expanded &&
+          'h-auto min-h-10 justify-start px-2 py-2 text-xs whitespace-normal',
+        active && 'bg-accent/10 text-accent',
+      )}
+      aria-label={label}
+      title={label}
+      aria-pressed={active}
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={action}
+    >
+      {icon}
+      {expanded && <span className="text-left">{label}</span>}
+    </Button>
   )
 }
 
 export default function RTECommands({
-  className = '',
   editor,
-  menuType,
-  compact = false,
+  disabled,
+  target,
   leadingActions,
-  trailingActions,
-}: RTECommandsProps) {
-  const toolbarRef = useRef<HTMLDivElement>(null)
-  const stripRef = useRef<HTMLDivElement>(null)
-  const [overflow, setOverflow] = useState({left: false, right: false})
-
-  useEffect(() => {
-    const strip = stripRef.current
-    if (!compact || !strip) return
-
-    const updateOverflow = () => {
-      const left = strip.scrollLeft > 1
-      const right = strip.scrollLeft + strip.clientWidth < strip.scrollWidth - 1
-      setOverflow((previous) =>
-        previous.left === left && previous.right === right
-          ? previous
-          : {left, right},
-      )
-    }
-    const observer = new ResizeObserver(updateOverflow)
-    observer.observe(strip)
-    strip.addEventListener('scroll', updateOverflow, {passive: true})
-    return () => {
-      observer.disconnect()
-      strip.removeEventListener('scroll', updateOverflow)
-    }
-  }, [compact, editor])
-
-  useEffect(() => {
-    const toolbar = toolbarRef.current
-    if (!compact || !toolbar) return
-
-    const buttons = getToolbarButtons(toolbar)
-    const current =
-      buttons.find((button) => button === document.activeElement) ??
-      buttons.find((button) => button.tabIndex === 0) ??
-      buttons[0]
-    for (const button of buttons) {
-      button.tabIndex = button === current ? 0 : -1
-    }
-  }, [
-    compact,
+  viewAction,
+  layout = 'dialog',
+  docked = false,
+}: Props) {
+  const t = useTranslations('note.editor.tools')
+  useEditorState({
     editor,
-    leadingActions,
-    trailingActions,
-    overflow.left,
-    overflow.right,
-  ])
-
-  if (!editor) {
-    return <></>
-  }
-
-  const modifierKey = navigator.userAgent.includes('Mac OS') ? 'Cmd' : 'Ctrl'
-  const iconSize = '1.2rem'
-  const Divider = (
-    <div
-      aria-hidden="true"
-      className={cn(
-        'bg-hairline-strong mx-0.5 h-4 w-0.5 shrink-0',
-        compact && 'mx-1 w-px',
-      )}
-    />
+    selector: ({editor}) =>
+      editor
+        ? {
+            selection:
+              editor.state.selection.from + ':' + editor.state.selection.to,
+            marks: editor.state.storedMarks?.map((mark) => mark.type.name),
+            active: [
+              'bold',
+              'italic',
+              'underline',
+              'highlight',
+              'strike',
+              'code',
+              'paragraph',
+              'heading',
+              'bulletList',
+              'orderedList',
+              'blockquote',
+              'codeBlock',
+            ].map((name) => editor.isActive(name)),
+            heading: editor.getAttributes('heading').level,
+            undo: editor.can().undo(),
+            redo: editor.can().redo(),
+          }
+        : null,
+  })
+  // Session pending state owns read-only behavior. Child editor options update
+  // in an effect; reading isEditable here can stay stale after a failed save
+  // until another transaction, leaving the toolbar incorrectly disabled.
+  const blocked = disabled || !editor
+  const emphasis: Tool[] = [
+    {
+      label: t('bold'),
+      icon: <IconBold size={20} />,
+      active: editor?.isActive('bold'),
+      action: () => editor?.chain().focus().toggleBold().run(),
+    },
+    {
+      label: t('italic'),
+      icon: <IconItalic size={20} />,
+      active: editor?.isActive('italic'),
+      action: () => editor?.chain().focus().toggleItalic().run(),
+    },
+    {
+      label: t('underline'),
+      icon: <IconUnderline size={20} />,
+      active: editor?.isActive('underline'),
+      action: () => editor?.chain().focus().toggleUnderline().run(),
+    },
+    {
+      label: t('highlight'),
+      icon: <IconHighlight size={20} />,
+      active: editor?.isActive('highlight'),
+      action: () => editor?.chain().focus().toggleHighlight().run(),
+    },
+  ]
+  const blocks: Tool[] = [
+    {
+      label: t('bulletList'),
+      icon: <IconList size={20} />,
+      active: editor?.isActive('bulletList'),
+      action: () => editor?.chain().focus().toggleBulletList().run(),
+    },
+    {
+      label: t('orderedList'),
+      icon: <IconListNumbers size={20} />,
+      active: editor?.isActive('orderedList'),
+      action: () => editor?.chain().focus().toggleOrderedList().run(),
+    },
+    {
+      label: t('quote'),
+      icon: <IconBlockquote size={20} />,
+      active: editor?.isActive('blockquote'),
+      action: () => editor?.chain().focus().toggleBlockquote().run(),
+    },
+    {
+      label: t('codeBlock'),
+      icon: <IconCode size={20} />,
+      active: editor?.isActive('codeBlock'),
+      action: () => editor?.chain().focus().toggleCodeBlock().run(),
+    },
+  ]
+  const extra: Tool[] = [
+    {
+      label: t('strike'),
+      icon: <IconStrikethrough size={20} />,
+      active: editor?.isActive('strike'),
+      action: () => editor?.chain().focus().toggleStrike().run(),
+    },
+    {
+      label: t('inlineCode'),
+      icon: <IconCode size={20} />,
+      active: editor?.isActive('code'),
+      action: () => editor?.chain().focus().toggleCode().run(),
+    },
+    {
+      label: t('rule'),
+      icon: <IconSeparator size={20} />,
+      action: () => editor?.chain().focus().setHorizontalRule().run(),
+    },
+  ]
+  const styles = (
+    <div className="grid grid-cols-3 gap-1">
+      <Button
+        variant="ghost"
+        className={cn(
+          'col-span-3 justify-start',
+          editor?.isActive('paragraph') && 'bg-accent/10 text-accent',
+        )}
+        aria-pressed={editor?.isActive('paragraph') ?? false}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={() => editor?.chain().focus().setParagraph().run()}
+      >
+        {t('paragraph')}
+      </Button>
+      {([1, 2, 3, 4, 5, 6] as const).map((level) => (
+        <Button
+          key={level}
+          variant="ghost"
+          aria-label={t('heading', {level})}
+          aria-pressed={editor?.isActive('heading', {level}) ?? false}
+          className={cn(
+            'font-semibold',
+            editor?.isActive('heading', {level}) && 'bg-accent/10 text-accent',
+          )}
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => editor?.chain().focus().toggleHeading({level}).run()}
+        >
+          H{level}
+        </Button>
+      ))}
+    </div>
   )
-
-  // Menu show up when user select text, text format only.
-  const floatingMenu: RTEMenuItem[] = [
-    {
-      Icon: <IconH1 size={iconSize} />,
-      title: 'H1',
-      action: () => editor.chain().focus().toggleHeading({level: 1}).run(),
-      actived: editor.isActive('heading', {level: 1}),
-    },
-    {
-      Icon: <IconBlockquote size={iconSize} />,
-      title: 'Blockquote',
-      action: () => editor.chain().focus().toggleBlockquote().run(),
-      actived: editor.isActive('blockquote'),
-      disabled: !editor.can().chain().focus().toggleBlockquote().run(),
-    },
-    {
-      Icon: <IconCode size={iconSize} />,
-      title: 'Code',
-      action: () => editor.chain().focus().toggleCode().run(),
-      actived: editor.isActive('code'),
-      disabled: !editor.can().chain().focus().toggleCode().run(),
-    },
-    {
-      Icon: <IconClearAll size={iconSize} />,
-      title: 'Clear formats',
-      action: () => editor.chain().focus().clearNodes().run(),
-    },
-  ]
-
-  // Menu show up on new line, line block format only.
-  const bubbleMenu: RTEMenuItem[] = [
-    {
-      Icon: <IconBold size={iconSize} />,
-      title: 'Bold',
-      shortcut: `(${modifierKey} B)`,
-      action: () => editor.chain().focus().toggleBold().run(),
-      actived: editor.isActive('bold'),
-      disabled: !editor.can().chain().focus().toggleBold().run(),
-    },
-    {
-      Icon: <IconItalic size={iconSize} />,
-      title: 'Italicize',
-      shortcut: `(${modifierKey} I)`,
-      action: () => editor.chain().focus().toggleItalic().run(),
-      actived: editor.isActive('italic'),
-      disabled: !editor.can().chain().focus().toggleItalic().run(),
-    },
-    {
-      Icon: <IconStrikethrough size={iconSize} />,
-      title: 'Strike',
-      shortcut: `(${modifierKey} Shift X)`,
-      action: () => editor.chain().focus().toggleStrike().run(),
-      actived: editor.isActive('strike'),
-      disabled: !editor.can().chain().focus().toggleStrike().run(),
-    },
-    {
-      Icon: <IconHighlight size={iconSize} />,
-      title: 'Highlight',
-      shortcut: `(${modifierKey} Shift H)`,
-      action: () => editor.chain().focus().toggleHighlight().run(),
-      actived: editor.isActive('highlight'),
-      disabled: !editor.can().chain().focus().toggleHighlight().run(),
-    },
-    {
-      Icon: <IconClearFormatting size={iconSize} />,
-      title: 'Clear marks',
-      action: () => editor.chain().focus().unsetAllMarks().run(),
-    },
-  ]
-
-  const fixedMenu: RTEMenuItem[] = [
-    ...bubbleMenu,
-    {
-      customItem: Divider,
-    },
-    ...floatingMenu,
-    {
-      customItem: Divider,
-    },
-    {
-      Icon: <IconArrowBackUp size={iconSize} />,
-      title: 'Undo',
-      action: () => editor.chain().focus().undo().run(),
-      disabled: !editor.can().chain().focus().undo().run(),
-    },
-    {
-      Icon: <IconArrowForwardUp size={iconSize} />,
-      title: 'Redo',
-      action: () => editor.chain().focus().redo().run(),
-      disabled: !editor.can().chain().focus().redo().run(),
-    },
-  ]
-
-  const renderMenu = () => {
-    switch (menuType) {
-      case 'fixed':
-        return fixedMenu
-
-      case 'bubble':
-        return bubbleMenu
-
-      case 'floating':
-        return floatingMenu
-
-      default:
-        return []
-    }
-  }
-
-  if (renderMenu().length === 0) {
-    return <></>
-  }
-
+  const popoverClass =
+    'bg-paper-raised text-ink border-hairline shadow-sheet w-72 max-w-full rounded-lg border p-2 font-sans'
+  const groupClass =
+    'border-hairline flex shrink-0 items-center lg:ml-1 lg:border-l lg:pl-1'
   return (
     <div
-      ref={toolbarRef}
       className={cn(
-        'flex flex-wrap items-center gap-2',
-        (leadingActions || trailingActions) &&
-          'flex-nowrap items-start sm:items-center',
-        className,
+        'bg-paper/50 text-ink border-hairline @container/note-toolbar sticky top-0 z-30 flex shrink-0 flex-wrap items-center gap-0 py-2 font-sans backdrop-blur-sm',
+        layout === 'document'
+          ? '-mx-4 mb-4 px-4 transition-[box-shadow,border-radius] duration-200 ease-out motion-reduce:transition-none'
+          : 'border-b px-0 sm:px-2 lg:px-3',
+        layout === 'document' &&
+          (docked ? 'shadow-sheet rounded-b-xl' : 'sm:rounded-t-xl'),
       )}
-      role={compact ? 'toolbar' : 'menubar'}
-      aria-label={compact ? 'Note editing tools' : undefined}
-      aria-orientation={compact ? 'horizontal' : undefined}
-      data-editor-toolbar={menuType}
-      onFocusCapture={
-        compact
-          ? (event) => {
-              if (!(event.target instanceof HTMLButtonElement)) return
-              for (const button of getToolbarButtons(event.currentTarget)) {
-                button.tabIndex = button === event.target ? 0 : -1
-              }
-            }
-          : undefined
-      }
-      onKeyDown={
-        compact
-          ? (event) => {
-              if (event.altKey || event.ctrlKey || event.metaKey) return
-              if (
-                !['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)
-              )
-                return
-              const buttons = getToolbarButtons(event.currentTarget)
-              const index = buttons.indexOf(
-                document.activeElement as HTMLButtonElement,
-              )
-              if (index < 0 || buttons.length === 0) return
-
-              event.preventDefault()
-              const next =
-                event.key === 'Home'
-                  ? 0
-                  : event.key === 'End'
-                    ? buttons.length - 1
-                    : (index +
-                        (event.key === 'ArrowRight' ? 1 : -1) +
-                        buttons.length) %
-                      buttons.length
-              buttons[next]?.focus()
-            }
-          : undefined
-      }
+      role="group"
+      aria-label={t('label', {target: target || ''})}
+      data-editor-toolbar="fixed"
     >
       {leadingActions}
-      <div
-        ref={stripRef}
-        className={cn(
-          'flex flex-wrap items-center gap-2',
-          compact &&
-            'scrollbar-hidden -mx-1 -my-1 flex-nowrap gap-1 overflow-x-auto overscroll-x-contain px-1 py-1 sm:flex-wrap sm:overflow-visible',
-          (leadingActions || trailingActions) && 'min-w-0 flex-1',
-        )}
-      >
-        {renderMenu().map(
-          (
-            {Icon, title, shortcut = '', action, actived, disabled, customItem},
-            index,
-          ) =>
-            customItem ? (
-              <Fragment key={index.toString()}>{customItem}</Fragment>
-            ) : (
-              <Button
-                key={title}
-                variant="ghost"
-                size="sm"
-                iconOnly={!!Icon}
-                className={cn(
-                  actived && 'bg-ink-tint-strong',
-                  compact && 'h-10 w-10 shrink-0 rounded-md sm:h-8 sm:w-8',
-                  compact && actived && 'bg-accent/10 text-accent',
+      <div className="hidden shrink-0 lg:block">
+        <PopoverBase
+          trigger={
+            <>
+              <span className="text-sm font-semibold">
+                {editor?.isActive('heading') ? (
+                  `H${editor.getAttributes('heading').level}`
+                ) : (
+                  <IconTypography size={20} />
                 )}
-                aria-pressed={
-                  typeof actived === 'boolean' ? actived : undefined
-                }
-                aria-label={`${title}${shortcut ? ` ${shortcut}` : ''}`}
-                title={`${title} ${shortcut}`}
-                role={compact ? undefined : 'menuitem'}
-                onClick={action}
-                disabled={disabled}
-              >
-                {Icon || title}
-              </Button>
-            ),
-        )}
-      </div>
-      {compact && (overflow.left || overflow.right) && (
-        <span
-          className="text-ink-muted pointer-events-none absolute top-1/2 right-1 -translate-y-1/2 sm:hidden"
-          aria-hidden="true"
+              </span>
+              <IconChevronDown size={12} />
+            </>
+          }
+          triggerAriaLabel={t('textStyle')}
+          triggerClassName={buttonClass({variant: 'ghost'})}
+          disabled={blocked}
+          anchor="bottom-start"
+          keyboardNavigation
+          className={popoverClass}
         >
-          {overflow.right ? (
-            <IconChevronRight size={10} />
-          ) : (
-            <IconChevronLeft size={10} />
-          )}
-        </span>
-      )}
-      {trailingActions}
+          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+            {t('textStyle')}
+          </p>
+          {styles}
+        </PopoverBase>
+      </div>
+      <div className={groupClass} role="group" aria-label={t('emphasis')}>
+        {emphasis.map((tool) => (
+          <ToolButton key={tool.label} {...tool} disabled={blocked} />
+        ))}
+      </div>
+      <div
+        className={cn(groupClass, 'hidden lg:flex')}
+        role="group"
+        aria-label={t('blocks')}
+      >
+        {blocks.map((tool) => (
+          <ToolButton key={tool.label} {...tool} disabled={blocked} />
+        ))}
+      </div>
+      <div
+        className={cn(groupClass, 'hidden @5xl/note-toolbar:flex')}
+        role="group"
+        aria-label={t('more')}
+      >
+        {extra.map((tool) => (
+          <ToolButton key={tool.label} {...tool} disabled={blocked} />
+        ))}
+        <ToolButton
+          label={t('clearMarks')}
+          icon={<IconClearFormatting size={20} />}
+          disabled={blocked}
+          action={() => editor?.chain().focus().unsetAllMarks().run()}
+        />
+        <ToolButton
+          label={t('clearBlocks')}
+          icon={<IconClearAll size={20} />}
+          disabled={blocked}
+          action={() => editor?.chain().focus().clearNodes().run()}
+        />
+      </div>
+      <div className={groupClass} role="group" aria-label={t('history')}>
+        <ToolButton
+          label={t('undo')}
+          icon={<IconArrowBackUp size={20} />}
+          disabled={blocked || !editor?.can().undo()}
+          action={() => editor?.chain().focus().undo().run()}
+        />
+        <ToolButton
+          label={t('redo')}
+          icon={<IconArrowForwardUp size={20} />}
+          disabled={blocked || !editor?.can().redo()}
+          action={() => editor?.chain().focus().redo().run()}
+        />
+      </div>
+      <PopoverBase
+        trigger={<IconDots size={20} />}
+        triggerAriaLabel={t('format')}
+        triggerClassName={cn(
+          buttonClass({variant: 'ghost', iconOnly: true}),
+          'shrink-0 rounded-md @5xl/note-toolbar:hidden',
+        )}
+        disabled={blocked}
+        anchor="bottom-end"
+        keyboardNavigation
+        className={popoverClass}
+      >
+        <section
+          className="border-hairline mb-2 border-b pb-2 lg:hidden"
+          aria-label={t('textStyle')}
+        >
+          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+            {t('textStyle')}
+          </p>
+          {styles}
+        </section>
+        <section
+          className="border-hairline mb-2 border-b pb-2 lg:hidden"
+          aria-label={t('blocks')}
+        >
+          <p className="text-ink-muted px-2 pb-2 text-xs font-medium">
+            {t('blocks')}
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            {blocks.map((tool) => (
+              <ToolButton
+                key={tool.label}
+                {...tool}
+                expanded
+                disabled={blocked}
+              />
+            ))}
+          </div>
+        </section>
+        <section aria-label={t('more')}>
+          <p className="text-ink-muted px-2 pt-1 pb-2 text-xs font-medium">
+            {t('more')}
+          </p>
+          <div className="grid grid-cols-2 gap-1">
+            {extra.map((tool) => (
+              <ToolButton
+                key={tool.label}
+                {...tool}
+                expanded
+                disabled={blocked}
+              />
+            ))}
+          </div>
+        </section>
+        <div className="border-hairline mt-2 grid grid-cols-2 gap-1 border-t pt-2">
+          <ToolButton
+            label={t('clearMarks')}
+            icon={<IconClearFormatting size={20} />}
+            expanded
+            disabled={blocked}
+            action={() => editor?.chain().focus().unsetAllMarks().run()}
+          />
+          <ToolButton
+            label={t('clearBlocks')}
+            icon={<IconClearAll size={20} />}
+            expanded
+            disabled={blocked}
+            action={() => editor?.chain().focus().clearNodes().run()}
+          />
+        </div>
+      </PopoverBase>
+      {viewAction && <div className="ml-auto flex shrink-0">{viewAction}</div>}
     </div>
   )
 }

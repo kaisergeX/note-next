@@ -19,7 +19,6 @@ export default function NoteReadOnly({
       extensions: [
         StarterKit.configure({
           link: false,
-          underline: false,
           listKeymap: false,
           trailingNode: false,
         }),

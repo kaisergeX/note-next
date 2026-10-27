@@ -1,312 +1,117 @@
 'use client'
 
-import {cn} from 'cn'
 import {
   IconArrowLeft,
   IconWindowMaximize,
   IconWindowMinimize,
 } from '@tabler/icons-react'
-import {useMessages, useTranslations} from 'next-intl'
+import {useTranslations} from 'next-intl'
+import {cn} from 'cn'
+import {useRef, useState} from 'react'
 import {useRouter} from '~/i18n/navigation'
-import {performNoteMutation} from '~/lib/notes/client-mutation'
-import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
-import {pickNoteContent} from '~/lib/notes/validation'
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  useTransition,
-} from 'react'
 import Button from '~/components/ui/button'
 import NoteCustomize from '~/components/note/note-customize'
-import NoteEditor from '~/components/note/note-editor'
-import {type Note, NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
+import NoteWriting from '~/components/note/note-writing'
+import {useNoteSession} from '~/components/note/use-note-session'
+import type {Note} from '~/db/schema/notes'
+import {useFullscreen, useWindowScroll} from '~/util/hooks'
 import {usePersistStore} from '~/store'
-import {isEqualNonNestedObj} from '~/util'
-import {useFullscreen, useRandomString, useWindowScroll} from '~/util/hooks'
-import {moveNoteToTrashAction, mutateNoteAction} from '../actions'
 
-type NoteDetailProps = {noteData: Note}
-
-export default function NoteDetail({noteData}: NoteDetailProps) {
+export default function NoteDetail({noteData}: {noteData: Note}) {
   const router = useRouter()
-  const [saveError, setSaveError] = useState(false)
-  const [trashError, setTrashError] = useState(false)
-  const operation = useRef(false)
-  const leaving = useRef(false)
-  const [scroll, _, {viewY, maxViewY}] = useWindowScroll()
-  const [isPending, startTransition] = useTransition()
-  const [isToolbarDocked, setIsToolbarDocked] = useState(false)
-  const {isFullscreen, toggleFullscreen, error: fullscreenErr} = useFullscreen()
-  const {mutateNoteData, setMutateNoteData, editorCharCount} = usePersistStore()
+  const [scroll] = useWindowScroll()
+  const navigationRef = useRef<HTMLElement>(null)
+  const [navigationHandedOff, setNavigationHandedOff] = useState(false)
   const t = useTranslations('note')
-  const messages = useMessages()
-  const emptyPlaceholders = useRandomString(
-    messages.note.editor.emptyPlaceholder,
+  const session = useNoteSession(noteData)
+  const contentCount = usePersistStore(
+    (state) => state.editorCharCount[`note-${noteData.id}-content`],
   )
-
-  const theme = mutateNoteData?.theme
-
-  const contentCount = {
-    words: editorCharCount['note-content']?.words || 0,
-    characters: editorCharCount['note-content']?.characters || 0,
-  }
-
-  const handleSubmit = () => {
-    if (operation.current || leaving.current) return
-    operation.current = true
-    startTransition(async () => {
-      try {
-        if (
-          mutateNoteData &&
-          !isEqualNonNestedObj(noteData, mutateNoteData, [
-            'createdAt',
-            'updatedAt',
-            'pendingDeleteAt',
-          ])
-        ) {
-          setSaveError(false)
-          const input = pickNoteContent(mutateNoteData)
-          const result = await performNoteMutation(() =>
-            mutateNoteAction(noteData.id, input),
-          )
-          if (!noteMutationSucceeded(result)) {
-            setSaveError(true)
-            return
-          }
-        }
-
-        window.history.length > 1 ? router.back() : router.push('/eton')
-      } finally {
-        operation.current = false
+  const {
+    isFullscreen,
+    toggleFullscreen,
+    error: fullscreenError,
+  } = useFullscreen()
+  const backAction = (
+    <Button
+      variant="ghost"
+      iconOnly
+      disabled={session.pending}
+      aria-label={t('editor.close')}
+      onClick={() =>
+        void session.saveAndLeave(() => {
+          window.history.length > 1 ? router.back() : router.push('/eton')
+        })
       }
-    })
-  }
-
-  const handleTrash = () => {
-    if (operation.current || leaving.current) return
-    operation.current = true
-    const draft = usePersistStore.getState().mutateNoteData ?? noteData
-    startTransition(async () => {
-      try {
-        setTrashError(false)
-        const result = await performNoteMutation(() =>
-          moveNoteToTrashAction(noteData.id, {
-            title: draft.title ?? null,
-            content: draft.content ?? null,
-            theme: draft.theme ?? null,
-          }),
-        )
-        if (!noteMutationSucceeded(result)) {
-          setTrashError(true)
-          return
-        }
-        leaving.current = true
-        setMutateNoteData(undefined)
-
-        router.replace('/eton')
-      } finally {
-        operation.current = false
-      }
-    })
-  }
-
-  useEffect(() => {
-    return () => setMutateNoteData(undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useLayoutEffect(() => {
-    setMutateNoteData(noteData)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  useEffect(() => {
-    const updateToolbarDocked = () => {
-      const toolbar = document
-        .getElementById('note-content')
-        ?.querySelector<HTMLElement>('[data-editor-toolbar="fixed"]')
-      if (!toolbar) return
-
-      const stickyTop = Number.parseFloat(getComputedStyle(toolbar).top) || 0
-      setIsToolbarDocked(toolbar.getBoundingClientRect().top <= stickyTop)
-    }
-
-    const frame = requestAnimationFrame(updateToolbarDocked)
-    window.addEventListener('scroll', updateToolbarDocked, {passive: true})
-    window.addEventListener('resize', updateToolbarDocked)
-    return () => {
-      cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', updateToolbarDocked)
-      window.removeEventListener('resize', updateToolbarDocked)
-    }
-  }, [])
-
+    >
+      <IconArrowLeft />
+    </Button>
+  )
+  const fullscreenAction = (
+    <Button
+      variant="ghost"
+      className="max-sm:hidden"
+      iconOnly
+      disabled={fullscreenError}
+      aria-label={t('editor.fullscreen')}
+      onClick={() => void toggleFullscreen()}
+    >
+      {isFullscreen ? <IconWindowMinimize /> : <IconWindowMaximize />}
+    </Button>
+  )
+  if (!session.ready) return null
   return (
     <main className="relative flex flex-1 flex-col">
       <section
+        ref={navigationRef}
         className={cn(
-          'bg-paper/70 flex-center-between sticky top-0 z-40 gap-4 px-4 py-3 backdrop-blur-sm transition-all duration-200 ease-out motion-reduce:transition-none',
-          isToolbarDocked
+          'bg-paper/50 sticky top-0 z-40 flex items-center justify-between gap-4 px-4 py-3 backdrop-blur-sm transition-all duration-200 ease-out motion-reduce:transition-none',
+          navigationHandedOff
             ? 'pointer-events-none -translate-y-full opacity-0'
             : 'translate-y-0 opacity-100',
         )}
-        inert={isToolbarDocked}
-        aria-hidden={isToolbarDocked}
+        inert={navigationHandedOff}
+        aria-hidden={navigationHandedOff}
       >
-        <Button
-          iconOnly
-          variant="ghost"
-          onClick={handleSubmit}
-          disabled={isPending}
-          aria-label="Save and go back"
-        >
-          <IconArrowLeft />
-        </Button>
-
-        <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            iconOnly
-            title="Toggle fullscreen"
-            className="max-sm:hidden"
-            onClick={() => void toggleFullscreen()}
-            disabled={fullscreenErr}
-            aria-label="Toggle fullscreen"
-          >
-            {isFullscreen ? <IconWindowMinimize /> : <IconWindowMaximize />}
-          </Button>
-        </div>
+        {backAction}
+        {fullscreenAction}
       </section>
-
-      <div className="flex w-full flex-1 flex-col">
-        <NoteEditor
-          id="note-title"
-          className="my-4 px-4 sm:px-8"
-          editorClassName="text-lg font-semibold sm:text-xl"
-          initialValue={mutateNoteData?.title ?? noteData?.title ?? ''}
-          onChange={(value) => setMutateNoteData({title: value})}
-          placeholder={t('editor.title')}
-          ariaLabel={t('editor.title')}
-          limitCharacter={NOTE_TITLE_MAX_LENGTH}
-          showCount
-          countClassName="text-ink-muted opacity-100"
-          disableDefaultEnter
-          autofocus="end"
-          loading={isPending}
-        />
-
-        <NoteEditor
-          id="note-content"
-          className={cn(
-            'flex flex-1 flex-col p-4 pt-0 sm:m-4 sm:w-auto! sm:rounded-xl [&>div:has(.ProseMirror)]:flex-1',
-            theme
-              ? `dialog-${theme} shadow-xl shadow-theme-${theme}`
-              : 'sm:shadow-sheet',
-          )}
-          editorClassName="h-full"
-          menuClassNames={{
-            fixedMenu: cn(
-              'top-0 z-30 mb-4 gap-0 border-0 py-2 transition-[box-shadow,border-radius] duration-200 ease-out motion-reduce:transition-none',
-              isToolbarDocked
-                ? 'shadow-[0_8px_5px_-5px] shadow-ink/10 rounded-b-xl'
-                : 'sm:rounded-t-xl',
-            ),
-          }}
-          initialValue={mutateNoteData?.content ?? noteData?.content ?? ''}
-          placeholder={emptyPlaceholders}
-          ariaLabel={t('editor.body')}
-          commandTypes="always-fixed"
-          compactToolbar
-          toolbarLeading={
-            <div
-              className={cn(
-                'shrink-0 overflow-hidden transition-all duration-200 ease-out motion-reduce:transition-none',
-                isToolbarDocked
-                  ? 'w-14 translate-x-0 opacity-100 sm:w-12'
-                  : 'w-0 -translate-x-2 opacity-0',
-              )}
-              inert={!isToolbarDocked}
-              aria-hidden={!isToolbarDocked}
-            >
-              <div className="flex w-max items-center gap-2">
-                <Button
-                  iconOnly
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 w-10 rounded-md focus-visible:-outline-offset-2 sm:h-8 sm:w-8"
-                  onClick={handleSubmit}
-                  disabled={isPending}
-                  aria-label="Save and go back"
-                >
-                  <IconArrowLeft size="1.2rem" />
-                </Button>
-                <span
-                  className="bg-hairline-strong h-5 w-px"
-                  aria-hidden="true"
-                />
-              </div>
-            </div>
-          }
-          toolbarTrailing={
-            <div
-              className={cn(
-                'shrink-0 overflow-hidden transition-all duration-200 ease-out motion-reduce:transition-none max-sm:hidden',
-                isToolbarDocked
-                  ? 'w-8 translate-x-0 opacity-100'
-                  : 'w-0 translate-x-2 opacity-0',
-              )}
-              inert={!isToolbarDocked}
-              aria-hidden={!isToolbarDocked}
-            >
-              <Button
-                variant="ghost"
-                size="sm"
-                iconOnly
-                className="shrink-0 focus-visible:-outline-offset-2 max-sm:hidden"
-                onClick={() => void toggleFullscreen()}
-                disabled={fullscreenErr}
-                aria-label="Toggle fullscreen"
-              >
-                {isFullscreen ? (
-                  <IconWindowMinimize size="1.2rem" />
-                ) : (
-                  <IconWindowMaximize size="1.2rem" />
-                )}
-              </Button>
-            </div>
-          }
-          onChange={(value) => setMutateNoteData({content: value})}
-          loading={isPending}
-          exposeStorage
-        />
-      </div>
-
-      {(saveError || trashError) && (
+      <NoteWriting
+        key={session.identity}
+        id={`note-${noteData.id}`}
+        pending={session.pending}
+        fullPage
+        navigationRef={navigationRef}
+        onNavigationHandoffChange={setNavigationHandedOff}
+        leadingActions={backAction}
+        viewAction={fullscreenAction}
+      />
+      {session.error && (
         <p role="alert" className="text-destructive px-4">
-          {trashError ? t('trash.moveFailed') : t('status.saveFailed')}
+          {t(
+            session.error === 'trash'
+              ? 'trash.moveFailed'
+              : 'status.saveFailed',
+          )}
         </p>
       )}
       <NoteCustomize
+        className={scroll.y > 200 ? 'sm:pr-16' : undefined}
         type="update"
-        error={saveError || trashError}
         details={
           <span className="group text-ink-muted cursor-default text-xs tabular-nums">
             <span className="opacity-0 transition-opacity group-hover:opacity-100 max-sm:hidden">
-              {t('count.characters', {count: contentCount.characters})},{' '}
+              {t('count.characters', {count: contentCount?.characters ?? 0})}
+              ,{' '}
             </span>
-            {t('count.words', {count: contentCount.words})}
+            {t('count.words', {count: contentCount?.words ?? 0})}
           </span>
         }
-        className={cn(
-          scroll.y > 200 ? 'sm:pr-16' : '', // prevent overlap with scroll top button
-          viewY < maxViewY - 16
-            ? 'shadow-ink/10 shadow-[0_-8px_5px_-5px]'
-            : 'dark:bg-paper-raised dark:backdrop-blur-none',
-        )}
-        loading={isPending}
-        onMoveToTrash={handleTrash}
+        error={!!session.error}
+        loading={session.pending}
+        onMoveToTrash={() =>
+          void session.trashAndLeave(() => router.replace('/eton'))
+        }
       />
     </main>
   )

@@ -2,43 +2,21 @@
 
 import {IconPencilPlus, IconSparkles} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useState, useTransition} from 'react'
-import {createNoteAction} from '~/app/[locale]/(note)/eton/actions'
+import {useState} from 'react'
 import Button from '~/components/ui/button'
-import {usePersistStore} from '~/store'
-import {performNoteMutation} from '~/lib/notes/client-mutation'
-import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
-import {pickNoteContent} from '~/lib/notes/validation'
 import NoteDialog from './note-dialog'
+import {useNoteSession} from './use-note-session'
 
 export default function NoteCreateEditor({
   creationLabel,
 }: {
   creationLabel: string
 }) {
-  const [error, setError] = useState(false)
   const t = useTranslations('note')
-  const [isTransitionPending, startTransition] = useTransition()
   const [openModal, setOpenModal] = useState(false)
-  const {mutateNoteData, setMutateNoteData} = usePersistStore((state) => ({
-    mutateNoteData: state.mutateNoteData,
-    setMutateNoteData: state.setMutateNoteData,
-  }))
-
+  const session = useNoteSession(undefined, openModal)
   const handleCloseModal = () =>
-    startTransition(async () => {
-      if (mutateNoteData && (mutateNoteData.title || mutateNoteData.content)) {
-        setError(false)
-        const input = pickNoteContent(mutateNoteData)
-        const result = await performNoteMutation(() => createNoteAction(input))
-        if (!noteMutationSucceeded(result)) {
-          setError(true)
-          return
-        }
-      }
-      setOpenModal(false)
-      setMutateNoteData(undefined)
-    })
+    void session.saveAndLeave(() => setOpenModal(false))
 
   return (
     <>
@@ -46,7 +24,7 @@ export default function NoteCreateEditor({
         variant="secondary"
         className="group btn-light-sweep w-auto gap-0 p-2 transition-all duration-300 max-sm:fixed max-sm:right-4 max-sm:bottom-[calc(1rem+env(safe-area-inset-bottom))] max-sm:z-10 max-sm:rounded-full sm:hover:gap-2"
         aria-label={creationLabel}
-        onClick={() => startTransition(() => setOpenModal(true))}
+        onClick={() => setOpenModal(true)}
       >
         <IconPencilPlus className="sm:group-hover:hidden" />
         <IconSparkles className="hidden sm:group-hover:block" />
@@ -58,13 +36,15 @@ export default function NoteCreateEditor({
         </span>
       </Button>
 
-      <NoteDialog
-        open={openModal}
-        type="create"
-        error={error ? t('status.saveFailed') : undefined}
-        loading={isTransitionPending}
-        onClose={handleCloseModal}
-      />
+      {session.ready && (
+        <NoteDialog
+          open={openModal}
+          type="create"
+          error={session.error ? t('status.saveFailed') : undefined}
+          loading={session.pending}
+          onClose={handleCloseModal}
+        />
+      )}
     </>
   )
 }

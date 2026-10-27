@@ -4,257 +4,176 @@ import {cn} from 'cn'
 import CharacterCount from '@tiptap/extension-character-count'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
-import {PluginKey} from '@tiptap/pm/state'
 import {
   EditorContent,
   Extension,
   useEditor,
+  useEditorState,
+  type Editor,
   type FocusPosition,
 } from '@tiptap/react'
-import {BubbleMenu, FloatingMenu} from '@tiptap/react/menus'
+import type {Node} from '@tiptap/pm/model'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect, type ReactNode} from 'react'
+import {useEffect} from 'react'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
 import {usePersistStore} from '~/store'
 import {useDebounced} from '~/util/hooks'
-import RTECommands from '../ui/rte-commands'
 
 type NoteEditorProps = {
   id: string
   initialValue?: string | null
   onChange?: (value: string, rawText?: string) => void
   onPressEnter?: () => void
-
+  onReady?: (editor: Editor) => void
+  onFocus?: (editor: Editor) => void
   className?: string
-  menuClassNames?: {
-    fixedMenu?: string
-    bubbleMenu?: string
-    floatingMenu?: string
-  }
   editorClassName?: string
-  defaultTheme?: boolean
-
   placeholder?: string
   ariaLabel?: string
   showCount?: boolean
   countClassName?: string
   limitCharacter?: number
-
-  commandTypes?: 'always-fixed' | 'fixed' | 'bubble-floating' | 'all'
-  compactToolbar?: boolean
-  toolbarLeading?: ReactNode
-  toolbarTrailing?: ReactNode
   disableDefaultEnter?: boolean
-  tabIndex?: string
   autofocus?: FocusPosition
   loading?: boolean
   disabled?: boolean
-
   exposeStorage?: boolean
 }
 
+const countCache = new WeakMap<Node, {characters: number; words: number}>()
+function documentCounts(editor: Editor | null) {
+  if (!editor) return {characters: 0, words: 0}
+  const doc = editor.state.doc
+  let counts = countCache.get(doc)
+  if (!counts) {
+    counts = {
+      characters: editor.storage.characterCount.characters(),
+      words: editor.storage.characterCount.words(),
+    }
+    countCache.set(doc, counts)
+  }
+  return counts
+}
+
+// Content is loaded only when this field mounts for a document. Presentation
+// and save-state changes update options on the same instance, never setContent.
 export default function NoteEditor({
   id,
   initialValue = '',
   onChange,
   onPressEnter,
-
-  className = '',
-  menuClassNames,
-  editorClassName = '',
-  defaultTheme = false,
-
+  onReady,
+  onFocus,
+  className,
+  editorClassName,
   placeholder,
   ariaLabel,
-  showCount = false,
-  countClassName = '',
+  showCount,
+  countClassName,
   limitCharacter,
-
-  commandTypes,
-  compactToolbar = false,
-  toolbarLeading,
-  toolbarTrailing,
   disableDefaultEnter = false,
-  tabIndex = '',
   autofocus = false,
-  loading,
-  disabled,
-
+  loading = false,
+  disabled = false,
   exposeStorage,
 }: NoteEditorProps) {
-  const [setEditorCharCount, noteTheme] = usePersistStore((state) => [
-    state.setEditorCharCount,
-    state.mutateNoteData?.theme,
-  ])
-  const theme = defaultTheme ? undefined : noteTheme
-
-  const DisableEnter = Extension.create({
-    name: 'disableEnter',
-    addKeyboardShortcuts: () => ({
-      Enter: () => {
-        onPressEnter?.()
-        return disableDefaultEnter
+  const theme = usePersistStore((state) => state.mutateNoteData?.theme)
+  const setEditorCharCount = usePersistStore(
+    (state) => state.setEditorCharCount,
+  )
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        link: false,
+        listKeymap: false,
+        trailingNode: false,
+      }),
+      CharacterCount.configure({limit: limitCharacter ?? EDITOR_CONTENT_LIMIT}),
+      Placeholder.configure({
+        placeholder,
+        emptyEditorClass:
+          'first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
+      }),
+      Highlight,
+      Extension.create({
+        name: 'titleEnter',
+        addKeyboardShortcuts: () => ({
+          Enter: () => {
+            if (!disableDefaultEnter) return false
+            onPressEnter?.()
+            return true
+          },
+        }),
+      }),
+    ],
+    editorProps: {
+      attributes: {
+        class: cn(
+          'prose max-w-none focus:outline-none',
+          theme ? `prose-${theme}` : 'prose-appearance',
+          editorClassName,
+        ),
+        role: 'textbox',
+        'aria-label': ariaLabel || placeholder || id,
+        'aria-multiline': String(!disableDefaultEnter),
       },
-    }),
+    },
+    content: initialValue || '',
+    onUpdate: ({editor}) =>
+      onChange?.(editor.isEmpty ? '' : editor.getHTML(), editor.getText()),
+    onFocus: ({editor}) => onFocus?.(editor),
+    editable: !disabled && !loading,
+    autofocus,
+    immediatelyRender: false,
+    shouldRerenderOnTransaction: false,
   })
 
-  const textEditor = useEditor(
-    {
-      extensions: [
-        // Keep the v2 schema and keyboard behavior during the dependency upgrade.
-        StarterKit.configure({
-          link: false,
-          underline: false,
-          listKeymap: false,
-          trailingNode: false,
-        }),
-        CharacterCount.configure({
-          limit: limitCharacter || EDITOR_CONTENT_LIMIT,
-        }),
-        Placeholder.configure({
-          placeholder,
-          emptyEditorClass:
-            'first:before:float-left first:before:content-[attr(data-placeholder)] first:before:pointer-events-none first:before:h-0',
-        }),
-        Highlight,
-        DisableEnter,
-      ],
-      editorProps: {
-        attributes: {
-          class: cn(
-            'focus:outline-none prose max-w-none',
-            theme ? `prose-${theme}` : 'prose-appearance',
-            loading ? 'opacity-80 cursor-progress' : '',
-            editorClassName,
-          ),
-          tabindex: tabIndex,
-          role: 'textbox',
-          'aria-label': ariaLabel || placeholder || id,
-          'aria-multiline': String(!disableDefaultEnter),
-        },
-      },
-      content: initialValue || '',
-      onUpdate({editor}) {
-        if (!onChange) {
-          return
-        }
-
-        const rawText = editor.getText()
-        if (!rawText) {
-          onChange('')
-          return
-        }
-
-        onChange(editor.getHTML(), rawText)
-      },
-      editable: !disabled && !loading,
-      autofocus: autofocus,
-      immediatelyRender: false,
-      // Counts and toolbar active/disabled states currently read on render.
-      shouldRerenderOnTransaction: true,
-    },
-    [id, theme, loading, disabled, ariaLabel, placeholder],
-  )
-
-  const charCountStorage = textEditor?.storage.characterCount
-  const characterCount = charCountStorage?.characters() || 0
-  const wordCount = charCountStorage?.words() || 0
-  const [characterCountDebounced] = useDebounced(characterCount, 400)
-  const [wordCountDebounced] = useDebounced(wordCount, 400)
+  useEffect(() => {
+    if (editor && editor.isEditable !== (!disabled && !loading)) {
+      editor.setEditable(!disabled && !loading, false)
+    }
+  }, [editor, disabled, loading])
 
   useEffect(() => {
-    if (exposeStorage) {
+    if (editor) onReady?.(editor)
+  }, [editor, onReady])
+
+  // Cache by immutable document identity: selection-only transactions do not
+  // scan the document or serialize HTML.
+  const counts = useEditorState({
+    editor,
+    selector: ({editor}) => (editor ? documentCounts(editor) : null),
+  })
+  const currentCounts = counts ?? documentCounts(editor)
+  const characters = currentCounts.characters
+  const words = currentCounts.words
+  const [debouncedCharacters] = useDebounced(characters, 400)
+  const [debouncedWords] = useDebounced(words, 400)
+  useEffect(() => {
+    if (exposeStorage)
       setEditorCharCount(id, {
-        characters: characterCountDebounced,
-        words: wordCountDebounced,
+        characters: debouncedCharacters,
+        words: debouncedWords,
       })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [characterCountDebounced, wordCountDebounced])
-
-  if (!textEditor) {
-    return <></>
-  }
-
-  const renderFixedMenu = (
-    <RTECommands
-      className={cn(
-        'sticky inset-x-0 z-10 -mx-4 p-4',
-        commandTypes === 'always-fixed'
-          ? 'bg-paper-raised border-hairline top-16 border'
-          : 'bg-paper/70 invisible top-14 bg-inherit backdrop-blur-sm group-focus-within/rteditor:visible group-focus-within/rteditor:mt-0 group-focus-within/rteditor:pt-4',
-        menuClassNames?.fixedMenu || '',
-      )}
-      editor={textEditor}
-      menuType="fixed"
-      compact={compactToolbar}
-      leadingActions={toolbarLeading}
-      trailingActions={toolbarTrailing}
-    />
-  )
-
-  const renderBubbleFloatingMenu = (
-    <>
-      <BubbleMenu
-        pluginKey={new PluginKey(id)}
-        className={cn(
-          'bg-paper-raised border-hairline shadow-sheet rounded-lg border p-2',
-          menuClassNames?.bubbleMenu || '',
-        )}
-        editor={textEditor}
-      >
-        <RTECommands editor={textEditor} menuType="bubble" />
-      </BubbleMenu>
-
-      <FloatingMenu
-        pluginKey={new PluginKey(id)}
-        className={cn(
-          'bg-paper-raised border-hairline ml-4 rounded-lg border',
-          menuClassNames?.floatingMenu || '',
-        )}
-        editor={textEditor}
-      >
-        <RTECommands editor={textEditor} menuType="floating" />
-      </FloatingMenu>
-    </>
-  )
-
-  const renderCommands = () => {
-    switch (commandTypes) {
-      case 'fixed':
-        return renderFixedMenu
-
-      case 'always-fixed':
-        return renderFixedMenu
-
-      case 'bubble-floating':
-        return renderBubbleFloatingMenu
-
-      case 'all':
-        return (
-          <>
-            {renderFixedMenu}
-            {renderBubbleFloatingMenu}
-          </>
-        )
-
-      default:
-        return <></>
-    }
-  }
+  }, [
+    id,
+    exposeStorage,
+    setEditorCharCount,
+    debouncedCharacters,
+    debouncedWords,
+  ])
 
   return (
-    <div id={id} className={cn('group/rteditor relative w-full', className)}>
-      {renderCommands()}
-      <EditorContent editor={textEditor} />
+    <div id={id} className={cn('group/field relative w-full', className)}>
+      <EditorContent editor={editor} />
       {showCount && (
         <div
           className={cn(
-            'border-hairline invisible absolute right-4 -bottom-4 text-right text-xs opacity-50 group-focus-within/rteditor:visible',
+            'border-hairline invisible absolute right-4 -bottom-4 z-10 text-right text-xs opacity-50 group-focus-within/field:visible',
             countClassName,
           )}
         >
-          {characterCount}
+          {characters}
           {limitCharacter ? ` / ${limitCharacter}` : ''}
         </div>
       )}

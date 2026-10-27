@@ -1,6 +1,6 @@
 # Concurrent edits and conflict recovery
 
-Status: proposed design. No user-visible version history is included.
+Status: Phase 3 planning only; not authorized or implemented. The delivered Phase 1 editor/session does not enforce content revisions or provide conflict recovery. Coordinate this design with [Phase 2 autosave/recovery](autosave.md) before release. No user-visible version history is included.
 
 ## Revision tokens are not version history
 

@@ -20,8 +20,8 @@
   - [x] Move all notes to Trash with 30-day recovery.
 - [x] Note: [Restore all and Empty Trash](docs/archive/trash-bulk-actions.md) — implemented with recoverable counts and read-only card previews; validation is recorded in the archive.
 - [ ] Settings: Note
-  - [ ] [Editor rebuild, autosave, local recovery, and conflict handling](docs/note-editor/overview.md) — planning; HTML retained, future E2EE/offline constraints recorded separately.
-  - [x] Commands Menu type (fixed, or bubble & floating).
+  - [ ] [Editor rebuild, autosave, local recovery, and conflict handling](docs/note-editor/overview.md) — Phases 0–1 delivered and accepted; HTML retained, final checks and scoped UI reviews pass. Autosave/recovery/conflicts remain planning only; manual/device and production limits are recorded in the editor plan.
+  - [x] Persistent formatting toolbar with desktop groups and a compact mobile panel.
   - [x] Theme.
 - [ ] Note: Drawable Mode,
 - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.

@@ -1,6 +1,6 @@
 # Autosave and local recovery
 
-Status: proposed detailed behavior; product decisions below remain open. Depends on [editor boundaries](editor.md) and [revision protection](conflicts.md).
+Status: Phase 2 planning only; not authorized or implemented. The Phase 1 [editor/session foundation](editor.md) is delivered; it still saves only on explicit close/back and keeps drafts in memory. Product decisions below remain open, and release depends on [revision/conflict protection](conflicts.md).
 
 ## Intended outcome
 

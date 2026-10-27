@@ -1,34 +1,29 @@
 # Editor rebuild
 
-Status: Phase 0 complete, 2026-10-27; Phase 1 design pending. See [overview](overview.md) for accepted scope and delivery order.
+Status: Phases 0–1 delivered and user-accepted, 2026-10-27. Final lint/type checks, build, and focused tests passed; broad and focused independent UI reviews are PASS within the coverage below. Remaining manual/device, boundary, and production checks are explicit. See [overview](overview.md) for accepted scope and delivery order.
 
 ## Accepted requirements
 
 - Retain Tiptap; upgrade to a current patched release after checking current documentation and advisories.
 - Flowing document experience, app-owned UI, existing appearance presets, EN/VI localization, keyboard and mobile support.
-- Rich-text titles, rich-text bodies, highlighting, and existing visible formatting remain supported.
+- Rich-text titles, rich-text bodies, highlighting, and existing visible formatting remain supported. Underline was explicitly added in Phase 1.
 - HTML remains authoritative. No storage-format rewrite is required by the editor upgrade.
 - No collaboration, new document features, or encryption implementation in this stage.
 
-## Current implementation observations
+## Current implementation and boundaries
 
-Inspected on 2026-10-26; recheck before implementation:
+Synced to the delivered Phase 1 implementation on 2026-10-27:
 
-- `components/note/note-editor.tsx` combines editor setup, formatting menus, character counts, appearance lookup, and store integration.
-- `store/note.ts` has one shared `mutateNoteData` slot. `store/index.ts` persists appearance only; note drafts are memory-only.
-- Create, modal, and full-page editors have separate save-on-close/back flows.
-- The editor's `loading` prop disables editing and participates in editor dependencies. Background saves must not use this blocking state.
-- Change handling checks `getText()` before emitting HTML. Audit preservation of valid non-text content and formatting-only documents.
+1. **Editing:** [NoteEditor](../../components/note/note-editor.tsx) owns Tiptap setup, HTML change emission, and cached field counts. It keeps one editor instance per mounted field; presentation/editability updates do not replace content or history. `shouldRerenderOnTransaction: false` is paired with `useEditorState` selectors. Structural `editor.isEmpty` replaces the former text-only check.
+2. **Writing surface:** [NoteWriting](../../components/note/note-writing.tsx) coordinates active title/body focus and [RTECommands](../../components/ui/rte-commands.tsx). It supplies the compact dialog layout and full-view scroll handoff independently of editor state. The title count and body footer counts retain their original per-view behavior.
+3. **Note session:** [useNoteSession](../../components/note/use-note-session.ts) shares create/update/Trash close behavior. [The note store](../../store/note.ts) keeps one memory-only active draft plus session identity, baseline, operation guard, error, and counts. Modal/full-page unmounts hand off existing-note drafts; successful explicit leave clears the session, while failure retains it. New-note creation has no full-page handoff and retains its existing clear-on-unmount behavior.
+4. **Persistence/lifecycle:** the session projects HTML title/body/theme into existing owner- and active-state-checked server mutations. It records acknowledgements without replacing newer editor content; late changes keep the editor open for the next explicit close. Save-on-close/back remains the only save scheduling. [The persisted store](../../store/index.ts) still writes appearance only—note drafts are not durable.
 
-Relevant entry points: [editor](../../components/note/note-editor.tsx), [creation](../../components/note/note-create.tsx), [dialog](../../components/note/note-dialog.tsx), [full page](<../../app/[locale]/(note)/eton/[id]/note-detail.tsx>), [modal](<../../app/[locale]/(note)/eton/@modal/(.)[id]/note-detail-modal.tsx>).
+The `loading` state blocks editing only during explicit leave/Trash operations. A future background save must use nonblocking state. Formatting availability reads session pending state, avoiding an editor-option effect/subscription race after failed saves.
 
-## Proposed architecture
+Future persistence work belongs behind these boundaries: durable local drafts, autosave scheduling, retry identity, revision enforcement, conflict UX, and eventual body encryption are **not implemented**. Keep title/body separable and avoid replacing current content/history when adding them. Do not introduce a generic multi-editor framework.
 
-1. **Editor:** owns editing, selection, composition, formatting, and undo/redo; exposes content changes and explicit loading of a different document.
-2. **Note session:** owns identity, current title/body/theme, acknowledged baseline, dirty state, and save status. Modal and full-page views use the same behavior. Define handoff/unmount behavior so navigation does not lose pending drafts.
-3. **Persistence:** owns local storage and server synchronization. It must eventually accommodate encrypting a body before transport without putting encryption inside toolbar/components.
-
-Keep this boundary small and specific to the app. Do not build a generic multi-editor framework. Changing appearance, counters, server acknowledgements, or save status must not recreate the editor or replace newer content.
+View entry points: [creation](../../components/note/note-create.tsx), [dialog](../../components/note/note-dialog.tsx), [full page](<../../app/[locale]/(note)/eton/[id]/note-detail.tsx>), [modal](<../../app/[locale]/(note)/eton/@modal/(.)[id]/note-detail-modal.tsx>), and [read-only Trash](../../components/note/trash/note-read-only.tsx).
 
 ## Upgrade and content compatibility
 
@@ -44,6 +39,8 @@ Keep this boundary small and specific to the app. Do not build a generic multi-e
 Recorded 2026-10-26. The user requested the latest stable release, not just the minimum security fix. `pnpm view @tiptap/core version` returned **3.32.0**. All six direct Tiptap packages and all resolved Tiptap packages now use **3.32.0**, previously **2.27.3**. Floating UI DOM **1.8.0** is the explicit v3 menu dependency. Implementation is saved in commit `f9a7d58`. HTML storage, rich-text titles, and existing formatting remain intact; no data migration or later-phase feature was implemented.
 
 ### Compatibility changes
+
+This is the historical Phase 0 configuration. Phase 1 changes transaction subscriptions, enables underline, and moves title Enter focus as recorded below.
 
 - React menus now import from `@tiptap/react/menus`; obsolete `tippyOptions` were removed. An initial inline Floating UI options object caused a transaction/render loop in browser testing; removing that unnecessary override fixed it.
 - `shouldRerenderOnTransaction: true` preserves live counts and toolbar active/disabled states. Character-count storage is inferred directly because the compatibility package no longer exports the old storage type.
@@ -93,23 +90,72 @@ The broader acceptance checklist below remains open for Phase 1; these focused P
 - User-reported manual verification: Vietnamese typing is fine, save/reopen works, and undo/redo behaves as before, sometimes removing a word or multiple words. No Vietnamese-specific regression was reported. This closes the Phase 0 manual smoke-check item; it is not an exhaustive IME compatibility certification.
 - Phase 0 is complete within the authorized Tiptap security/migration scope. The pre-existing code-block contrast defect, undo grouping usability, and broader acceptance checks belong to Phase 1. The unrelated Zod/Undici advisories remain unresolved; completion does not mean a clean application-wide security audit or an overall visual-review PASS.
 
-## Design decisions to settle
+## Phase 1 implementation and scoped verification
 
-- Toolbar placement, selection menu, keyboard shortcuts, and mobile controls.
-- Which current controls are essential versus redundant; preserve content compatibility even if controls move.
-- Exact title formatting/Enter behavior and existing length constraints.
-- Improve undo grouping: the user reports that undo can remove a whole word or multiple words, unchanged from before the upgrade. Agree on desired granularity before changing history behavior.
-- How save status remains visible in both modal and full-page layouts without interrupting writing.
+Authorized 2026-10-27. Accepted decisions are recorded in [overview](overview.md#accepted-phase-1-decisions--2026-10-27). Implementation and completed verification are separated below; the reviewer PASS is scoped, not a claim of exhaustive platform coverage.
 
-## Acceptance checklist
+- `NoteEditor` now owns editing and field counts; a shared `NoteWriting` surface owns title/body focus and the persistent active-field toolbar. Presentation updates apply to the existing instance, without replacing content or history. Counts are cached by immutable document identity so selection-only transactions do not rescan/serialize content.
+- `useNoteSession` shares the create/update/Trash close flow. The memory-only store keeps the identity, draft, acknowledged baseline, operation guard, and error. Modal/full-page handoff does not clear the draft or submit a write. Successful explicit leave clears the session; failures retain it. Existing owner/lifecycle-checked server mutations remain in use.
+- The dialog uses the approved compact sticky header combining Back/view actions with formatting and one bottom divider. After further explicit approval, full view restores the original layout: a separate navigation header, title, and toolbar attached to the body surface. During the approach to docking, the header slides away and Back/desktop fullscreen slide into the toolbar; shadow/corner changes still wait for actual docking. Scroll/resize/title-height changes update presentation without replacing the editor. Reduced motion disables these transitions. Desktop exposes grouped style/emphasis/list/quote/code/history controls; mobile keeps bold, italic, highlight, undo, and redo visible and groups secondary controls in a compact panel. After eye-check feedback, title/body spacing and focus-only title-count placement were restored to the pre-Phase-1 values for each view, with the count layered above the body surface. Clear block formatting uses a distinct clear-all icon. Paragraph, headings 1–6, lists, quote, inline/block code, strike, rule, clear marks, and clear blocks remain available. Existing hard-break and nested-list keyboard behavior/schema remain configured. Rich-text title Enter focuses the body.
+- The user explicitly requested Underline. Editing and read-only Trash rendering now enable StarterKit’s bundled underline mark; the toolbar exposes U beside B/I in EN/VI. Underline uses the built-in Mod+U shortcut and HTML `<u>` output; no dependency or storage-format change is required. The settled review below verified underline save/reopen and read-only Trash rendering. The user approved exposing Strikethrough, inline code, horizontal rule, and both clear-format actions directly when the toolbar container has enough desktop width. Named Tailwind container queries retain the grouped panel for narrower toolbars; mobile and the H1–H6 picker remain as approved. No other new formatting feature is inferred. The original full-view docking/slide layout is restored following explicit approval; the user accepted the revised layout before the completed review below.
+- Follow-up visual feedback requested matching toolbar/footer translucent surfaces, keeping the view action at the far right of the header, restoring the original footer count behavior (full-page words visible, desktop characters on hover; no counts in modal footer), and using a pencil icon with the short “Unsaved” / “Chưa lưu” label for pending edits. These changes passed the user’s eye check before the settled review. Counts initialize from the current editor before its first selection transaction.
+- The footer distinguishes unsaved changes, saving, saved/empty draft, and failure. This remains save-on-close/back; it does not imply autosave or durable recovery. Writing is temporarily blocked only during an explicit leave/Trash operation.
+- Emptiness uses the editor's structural emptiness check instead of `getText()` truthiness. Nested `pre code` backgrounds are transparent within shared prose, leaving the code-block foreground/background pairing intact for neutral and colored notes.
+- No dependency change, autosave, revision checking, conflict UX, encryption, offline support, or storage-format migration is part of Phase 1.
 
-- [ ] Formatting survives load/edit/save/reopen for representative legacy HTML, including titles and highlights.
+### Completed checks and UI review — 2026-10-27
+
+The user accepted the eye check and explicitly requested the UI reviewer round. An earlier reviewer was stopped during active design feedback and had no final verdict. The settled review completed with **PASS** after two confirmed regressions were corrected and verified on fresh source:
+
+1. Restored original desktop footer clearance (`sm:pr-16` after scroll >200) so the global Scroll to top control cannot cover More note actions. At scroll 400.5, More measured `(1328,952,32,32)` and pointer hit-testing returned its own button.
+2. Formatting availability now follows explicit session pending state instead of stale editor options. After an aborted save, Bold is enabled and both editors are editable without requiring refocus. No editor recreation, content replacement, or synthetic history transaction was added.
+
+- Final `pnpm lint` passed TypeScript and ESLint after both corrections.
+- Final elevated `pnpm build` passed Next.js/Turbopack, TypeScript, and Serwist after both corrections. Existing Google Sans fallback-metric and Node experimental localStorage warnings remain.
+- `node --conditions=react-server --import tsx --test scripts/note-mutation.test.ts` passed all **5 tests**, covering transport/refusal outcomes, protected-response caching policy, Trash text summaries, and protected precache exclusions. These existing tests do not independently verify the new session/browser behavior.
+- Targeted source scan found no new hex colors or arbitrary pixel values in changed editor/session feature files.
+- Reviewer coverage: **1440×1000**, **390×844**, targeted **320×844**; **Paper & Ink/light** and **Bookish/dark**; **EN modal/full page**, **VI modal/full page**, and **read-only Trash**. No remaining HIGH/MED findings within this coverage.
+- Rich title/body formatting including underline/highlight, heading, nested lists, code, and HR survived save/reopen. Trash preserved body formatting and was read-only. Title Enter focused the body; note theme changes preserved selection and undo/redo.
+- Modal→full-page handoff retained an unsaved draft with **zero POSTs observed**. Failed save retained the editable draft and truthful error. Repeated close produced **one successful Next-Action POST** and visible Saving status. These observations do not establish future idempotent retry/revision semantics.
+- VI disclosure labels reflowed; Tab exposed a **2px solid focus outline**, and Escape restored its trigger. Reduced-motion transition properties were `none`.
+- Nested `pre code` backgrounds were transparent. Measured code contrast: **15.21:1 neutral / 8.50:1 blue** in Paper & Ink/light, **15.46:1 neutral / 8.08:1 blue** in Bookish/dark.
+- At review time, mobile fullscreen wrapping was accepted: the docked full-page toolbar measured **96px** at 390px, with fullscreen on a second row; controls stayed **40×40**, reachable, with no horizontal overflow. Modal toolbar measured **57px** at 390px and **97px** at 320px. This was not reported as an accessibility blocker. After review, the user requested desktop-only fullscreen in full view. Its mobile header button and docked-toolbar wrapper are now hidden at the original `max-sm` breakpoint; the dialog’s Full page view link is unchanged. The user subsequently accepted the visibility/handoff adjustments; the focused re-review below verifies the final version. These earlier heights describe the preceding reviewed version.
+- Stale development HMR caused an intercepted-route 404 and delayed source updates during review. Restarting the dev server and fresh navigation restored modal opening/reopening; no validation or routing configuration was weakened.
+
+### Final focused handoff re-review — PASS
+
+The user reported the full-view navigation header covering formatting controls during the approach to docking. The old threshold hid the higher-layer header only once the toolbar reached its sticky top. The user explicitly approved starting the handoff at the header's lower edge, using measured `offsetHeight`; actual docking independently controls shadow/corner changes. Stable untransformed height avoids feedback from the slide-out transform. The user eye-checked the result before the final verification round, as requested.
+
+After the mobile-fullscreen visibility and earlier-handoff corrections, `pnpm lint` (TypeScript + ESLint), elevated `pnpm build` (Turbopack + Serwist), and `git diff --check` passed. Existing build warnings are unchanged. The five earlier mutation tests were not repeated because mutation/persistence code did not change in these follow-ups.
+
+The second completed reviewer round was restricted to these fixes and nearby layout behavior, with no repeat of the broad audit:
+
+- **PASS**, Paper & Ink/light, blue QA note, **1440×450**, **390×450**, and **390×844**.
+- Desktop header height **64px**: scroll **140** begins handoff at toolbar top **64px**; header hidden and toolbar Back/fullscreen accessible. Scroll **204** docks the toolbar at top **0**, with shadow and **16px** bottom corners.
+- Mobile handoff at scroll **124**, docking at **188**. Fullscreen button and wrapper both compute `display:none`; wrapper width **0**. Toolbar height **56px**.
+- Paused scroll-down/up samples around both thresholds showed no lingering obstruction or oscillation; Back hit-testing remained correct. No horizontal overflow. Back measured **40×40**, with visible **2px** keyboard focus outline. Reduced-motion transitions computed `none`; no console errors recorded.
+- The reviewer made **no content edits, saves, settings, or appearance changes** and closed its browser/released the profile afterward.
+- Physical-device inertial scrolling and actual fullscreen activation remain unverified. Other editor behaviors retain the prior scoped evidence; this focused PASS does not repeat or expand that coverage.
+
+### Cleanup and verification limits
+
+Dedicated existing QA fixture `01a17bd9-8b4d-4c01-e1c9-06c6ec767ccc` is active with its original canonical HTML title/body and blue theme restored through the app save flow. Authenticated reads confirmed the restored values. QA appearance was restored and confirmed server-side as `paper-ink` / `light`. Both review and cleanup browsers were closed; no new fixture, permanent deletion, or unrelated note change was performed.
+
+Still unverified: real Vietnamese IME for the rebuilt integration (Phase 0 had user-reported smoke coverage), maximum character-limit boundary, physical touch/virtual keyboard/safe areas, actual fullscreen entry, production typing performance, exhaustive appearance combinations, and **HR-only document persistence**. Representative documents containing HR passed round trips; that is not the HR-only case. These limits keep the broader checklist below partially open; no exhaustive acceptance or production performance certification is claimed.
+
+Undo grouping remains unchanged. Evaluate it after confirming history no longer resets; agree on a new granularity only if evidence/user feedback supports a change.
+
+## Acceptance coverage and follow-ups
+
+Checked items have the scoped evidence above. Unchecked items remain unverified; they do not represent reported failures.
+
+- [x] Formatting survives load/edit/save/reopen for representative HTML, including rich-text titles, underline, highlights, nested lists, code, and HR (reviewer scope above; no production corpus audit).
 - [ ] Vietnamese IME composition, paste, nested lists, selection, undo/redo, and long-note editing behave correctly.
 - [ ] Theme changes and background status updates preserve focus, cursor, selection, and undo history.
-- [ ] Modal/full-page navigation preserves the active draft and does not create duplicate sessions/writes.
+- [x] Modal/full-page handoff preserves the observed active draft without a navigation-triggered write; repeated close produced one successful request in the reviewed flow.
 - [ ] Character limits and counts work without excessive rerenders.
-- [ ] Keyboard, mobile viewport, appearances, and EN/VI reviewed under the repository UI workflow.
-- [ ] Appropriate regression checks, lint/type checks, and build completed when design is settled; evidence recorded.
+- [x] Keyboard, mobile viewport, representative appearances, and EN/VI reviewed under the repository UI workflow; scoped PASS recorded above.
+- [x] Focused existing regression tests, lint/type checks, final build, and settled-design UI review completed; evidence and limits recorded above.
 
 ## References
 
