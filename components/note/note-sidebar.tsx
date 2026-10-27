@@ -19,7 +19,7 @@ export default function NoteSidebar({
   onToggle,
 }: {
   children: ReactNode
-  currentHref: '/eton' | '/trash'
+  currentHref: '/eton' | '/collection/trash'
   expanded: boolean
   onToggle: () => void
 }) {
@@ -30,7 +30,11 @@ export default function NoteSidebar({
   }
   const collections = [
     {href: '/eton', label: t('collections.all'), Icon: IconNotebook},
-    {href: '/trash', label: t('collections.deleted'), Icon: IconHistory},
+    {
+      href: '/collection/trash',
+      label: t('collections.deleted'),
+      Icon: IconHistory,
+    },
   ]
 
   return (
@@ -91,7 +95,7 @@ export default function NoteSidebar({
                   className={cn(
                     buttonClass({variant: 'ghost', pressMotion: false}),
                     'w-full min-w-0 shrink-0 justify-start overflow-hidden px-2',
-                    href === '/trash' && 'mt-auto',
+                    href === '/collection/trash' && 'mt-auto',
                     active
                       ? 'bg-ink-tint hover:bg-ink-tint-strong'
                       : 'text-ink-muted hover:text-ink',

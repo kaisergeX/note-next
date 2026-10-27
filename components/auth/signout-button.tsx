@@ -2,6 +2,7 @@
 import {signOut} from 'next-auth/react'
 import type {ButtonHTMLAttributes, PropsWithChildren} from 'react'
 import {MenuItemButton} from '~/components/ui/button'
+import {requestAccountExit} from '~/lib/notes/session-sync'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement>
 
@@ -14,7 +15,11 @@ export default function SignOutButton({
       className="w-full"
       type="button"
       destructive
-      onClick={() => void signOut({redirect: true, redirectTo: '/'})}
+      onClick={() =>
+        void requestAccountExit().then((allowed) => {
+          if (allowed) return signOut({redirect: true, redirectTo: '/'})
+        })
+      }
       {...props}
     >
       {children}

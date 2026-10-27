@@ -31,21 +31,10 @@ async function commit(
     return {status: 'retryable_error'}
   }
 }
-export async function createNoteAction(input: unknown) {
-  const {userInfo} = await requireAuth()
-  return commit((repo) => repo.createNote(userInfo.id, input), userInfo.id)
-}
-export async function mutateNoteAction(noteId: string, input: unknown) {
+export async function moveNoteToTrashAction(noteId: string) {
   const {userInfo} = await requireAuth()
   return commit(
-    (repo) => repo.updateNote(userInfo.id, noteId, input),
-    userInfo.id,
-  )
-}
-export async function moveNoteToTrashAction(noteId: string, draft?: unknown) {
-  const {userInfo} = await requireAuth()
-  return commit(
-    (repo) => repo.moveNoteToTrash(userInfo.id, noteId, draft),
+    (repo) => repo.moveNoteToTrash(userInfo.id, noteId),
     userInfo.id,
   )
 }

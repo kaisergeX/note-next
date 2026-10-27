@@ -29,6 +29,9 @@ test('authenticated note paths bypass service-worker caching, including HTML and
     '/eton',
     '/en/eton/id',
     '/vi/trash',
+    '/en/collection/drafts',
+    '/vi/collection/trash',
+    '/collection/drafts.rsc',
     '/trash/id',
     '/en/full/eton/id',
     '/api/note/id',
@@ -42,6 +45,7 @@ test('authenticated note paths bypass service-worker caching, including HTML and
     '/en',
     '/etonic',
     '/trashcan',
+    '/collection-other/drafts',
     '/api/notes',
     '/api/cron/note-cleanup-other',
     '/_next/static/chunk.js',
@@ -70,6 +74,8 @@ test('precache excludes unresolved route templates and protected note pages', as
     '/%5Blocale%5D',
     '/en/trash',
     '/en/eton',
+    '/en/collection/drafts',
+    '/vi/collection/trash',
     '/api/cron/note-cleanup',
   ])
     assert.equal(isPrecacheablePath(path), false)

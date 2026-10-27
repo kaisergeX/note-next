@@ -20,10 +20,12 @@
     "db:prod:check": "drizzle-kit check",
     "db:prod:gen": "drizzle-kit generate",
     "db:prod:migrate": "dotenv -e .env.production -- drizzle-kit migrate",
-    "test:notes": "node --conditions=react-server --import tsx --test scripts/note-recovery.test.ts scripts/note-mutation.test.ts scripts/note-cleanup.test.ts",
+    "test:notes": "node --conditions=react-server --import tsx --test scripts/note-recovery.test.ts scripts/note-mutation.test.ts scripts/note-cleanup.test.ts scripts/note-sync.test.ts scripts/note-save-queue.test.ts",
     "db:audit:notes": "node --import tsx scripts/note-recovery-audit.ts",
     "test:notes:http": "node --conditions=react-server --import tsx --test scripts/note-recovery-http.test.ts",
-    "test:notes:cleanup:http": "node --conditions=react-server --import tsx --test scripts/note-cleanup-http.test.ts"
+    "test:notes:cleanup:http": "node --conditions=react-server --import tsx --test scripts/note-cleanup-http.test.ts",
+    "test:notes:sync": "node --conditions=react-server --import tsx --test scripts/note-sync.test.ts scripts/note-save-queue.test.ts",
+    "test:notes:autosave:http": "node --env-file=.env.local --conditions=react-server --import tsx --test scripts/note-autosave-http.test.ts"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.70",
@@ -46,6 +48,7 @@
     "ai": "^7.0.142",
     "cn": "^0.4.0",
     "dayjs": "^1.11.23",
+    "dexie": "4.4.7",
     "drizzle-orm": "1.0.0-rc.4",
     "next": "16.4.2",
     "next-auth": "5.0.0-beta.32",

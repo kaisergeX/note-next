@@ -19,13 +19,16 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
-  await requireAuth()
+  const {userInfo} = await requireAuth()
   const noteMessages = (await getMessages()).note
 
   return (
     <NextIntlClientProvider messages={{note: noteMessages}}>
       <ViewTransition>
-        <NoteCollectionLayout creationLabel={genRandom(noteMessages.creation)}>
+        <NoteCollectionLayout
+          ownerId={userInfo.id}
+          creationLabel={genRandom(noteMessages.creation)}
+        >
           {children}
         </NoteCollectionLayout>
       </ViewTransition>

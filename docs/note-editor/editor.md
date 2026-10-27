@@ -12,18 +12,16 @@ Status: Phases 0–1 delivered and user-accepted, 2026-10-27. Final lint/type ch
 
 ## Current implementation and boundaries
 
-Synced to the delivered Phase 1 implementation on 2026-10-27:
+The current editor integrates the delivered Phase 1 foundation with Phase 2 persistence:
 
-1. **Editing:** [NoteEditor](../../components/note/note-editor.tsx) owns Tiptap setup, HTML change emission, and cached field counts. It keeps one editor instance per mounted field; presentation/editability updates do not replace content or history. `shouldRerenderOnTransaction: false` is paired with `useEditorState` selectors. Structural `editor.isEmpty` replaces the former text-only check.
-2. **Writing surface:** [NoteWriting](../../components/note/note-writing.tsx) coordinates active title/body focus and [RTECommands](../../components/ui/rte-commands.tsx). It supplies the compact dialog layout and full-view scroll handoff independently of editor state. The title count and body footer counts retain their original per-view behavior.
-3. **Note session:** [useNoteSession](../../components/note/use-note-session.ts) shares create/update/Trash close behavior. [The note store](../../store/note.ts) keeps one memory-only active draft plus session identity, baseline, operation guard, error, and counts. Modal/full-page unmounts hand off existing-note drafts; successful explicit leave clears the session, while failure retains it. New-note creation has no full-page handoff and retains its existing clear-on-unmount behavior.
-4. **Persistence/lifecycle:** the session projects HTML title/body/theme into existing owner- and active-state-checked server mutations. It records acknowledgements without replacing newer editor content; late changes keep the editor open for the next explicit close. Save-on-close/back remains the only save scheduling. [The persisted store](../../store/index.ts) still writes appearance only—note drafts are not durable.
+1. **Editing:** NoteEditor owns Tiptap setup, HTML changes, and cached field counts. One instance per mounted field preserves selection/history across theme, status, and ordinary acknowledgement updates. useEditorState supplies targeted subscriptions.
+2. **Writing surface:** NoteWriting coordinates title/body focus and RTECommands. Modal headers remain compact; full-view headers hand off to the sticky toolbar. Mobile uses full-page editing, with tap-to-toggle word/character counts.
+3. **Session/persistence:** useNoteSession delegates to NoteSyncSession. Zustand keeps active memory state; Dexie keeps account-scoped recovery. Autosave, explicit leave, retry identity, generation guards, and lifecycle protection are documented in [autosave](autosave.md).
+4. **Concurrency:** server UUID revisions and independent title/body/theme reconciliation support persistent conflict review. Ordinary acknowledgements do not replace editor content; recovery/reconciliation and explicit resolution may. See [conflicts](conflicts.md).
 
-The `loading` state blocks editing only during explicit leave/Trash operations. A future background save must use nonblocking state. Formatting availability reads session pending state, avoiding an editor-option effect/subscription race after failed saves.
+Editing is blocked only for explicit leave/Trash operations, not background saving. Appearance persistence remains separate from draft recovery. Full offline operation, E2EE, and version history remain deferred.
 
-Future persistence work belongs behind these boundaries: durable local drafts, autosave scheduling, retry identity, revision enforcement, conflict UX, and eventual body encryption are **not implemented**. Keep title/body separable and avoid replacing current content/history when adding them. Do not introduce a generic multi-editor framework.
-
-View entry points: [creation](../../components/note/note-create.tsx), [dialog](../../components/note/note-dialog.tsx), [full page](<../../app/[locale]/(note)/eton/[id]/note-detail.tsx>), [modal](<../../app/[locale]/(note)/eton/@modal/(.)[id]/note-detail-modal.tsx>), and [read-only Trash](../../components/note/trash/note-read-only.tsx).
+Entry points: [creation](../../components/note/note-create.tsx), [dialog](../../components/note/note-dialog.tsx), [full view](../../components/note/note-full-view.tsx), [modal](<../../app/[locale]/(note)/eton/@modal/(.)[id]/note-detail-modal.tsx>), and [read-only rendering](../../components/note/trash/note-read-only.tsx). The phase-specific verification below records historical coverage; [current Phase 2 evidence](autosave.md#verification-and-open-items) supersedes its persistence limits.
 
 ## Upgrade and content compatibility
 
@@ -52,14 +50,14 @@ This is the historical Phase 0 configuration. Phase 1 changes transaction subscr
 
 `pnpm audit --prod --json` completed before and after installation with registry access, superseding the earlier stalled attempt. Before: **5 advisories (2 high, 3 moderate)**. After: **4 advisories (2 high, 2 moderate)**, none in Tiptap. This is not a clean production audit.
 
-| Package/version | Advisory | Result |
-| --- | --- | --- |
-| Tiptap core 2.27.3 → 3.32.0 | [GHSA-cp6q-959q-f8rh](https://github.com/advisories/GHSA-cp6q-959q-f8rh) | Addressed; patched >=3.30.4. Registry audit labels moderate; upstream labels high. |
-| Tiptap core | [GHSA-j95f-988m-3j2f](https://github.com/ueberdosis/tiptap/security/advisories/GHSA-j95f-988m-3j2f) | Markdown parser issue introduced in v3.7.0, fixed in 3.30.5; target includes fix. Original v2 and this HTML-only integration do not use that Markdown path. |
-| Zod 4.1.11 via Vercel functions → OIDC → CLI config | [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5) | High; constrained collection memory exhaustion. Patched >=4.6.6. Remains outside this Tiptap upgrade; direct app Zod is 4.6.7. |
-| Undici 7.29.1 via AI SDK provider-utils | [GHSA-4qv8-2p9j-2685](https://github.com/advisories/GHSA-4qv8-2p9j-2685) | Moderate; EventSource memory exhaustion. Remains; patched >=7.30.1. |
-| Undici 7.29.1 | [GHSA-f72v-6w45-q472](https://github.com/advisories/GHSA-f72v-6w45-q472) | Moderate; subresource integrity algorithm handling. Remains; patched >=7.30.1. |
-| Undici 7.29.1 | [GHSA-xjj6-f33q-929c](https://github.com/advisories/GHSA-xjj6-f33q-929c) | High; excessive content-encoding error handling. Remains; patched >=7.30.1. |
+| Package/version                                     | Advisory                                                                                            | Result                                                                                                                                                      |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tiptap core 2.27.3 → 3.32.0                         | [GHSA-cp6q-959q-f8rh](https://github.com/advisories/GHSA-cp6q-959q-f8rh)                            | Addressed; patched >=3.30.4. Registry audit labels moderate; upstream labels high.                                                                          |
+| Tiptap core                                         | [GHSA-j95f-988m-3j2f](https://github.com/ueberdosis/tiptap/security/advisories/GHSA-j95f-988m-3j2f) | Markdown parser issue introduced in v3.7.0, fixed in 3.30.5; target includes fix. Original v2 and this HTML-only integration do not use that Markdown path. |
+| Zod 4.1.11 via Vercel functions → OIDC → CLI config | [GHSA-mrhx-c7xc-m3w5](https://github.com/advisories/GHSA-mrhx-c7xc-m3w5)                            | High; constrained collection memory exhaustion. Patched >=4.6.6. Remains outside this Tiptap upgrade; direct app Zod is 4.6.7.                              |
+| Undici 7.29.1 via AI SDK provider-utils             | [GHSA-4qv8-2p9j-2685](https://github.com/advisories/GHSA-4qv8-2p9j-2685)                            | Moderate; EventSource memory exhaustion. Remains; patched >=7.30.1.                                                                                         |
+| Undici 7.29.1                                       | [GHSA-f72v-6w45-q472](https://github.com/advisories/GHSA-f72v-6w45-q472)                            | Moderate; subresource integrity algorithm handling. Remains; patched >=7.30.1.                                                                              |
+| Undici 7.29.1                                       | [GHSA-xjj6-f33q-929c](https://github.com/advisories/GHSA-xjj6-f33q-929c)                            | High; excessive content-encoding error handling. Remains; patched >=7.30.1.                                                                                 |
 
 Affected dependency versions do not establish app exploitability; no app-specific exploit was demonstrated. The Tiptap attribute issue requires attacker-controlled attribute objects. This app loads HTML through configured extensions without custom attribute-object input. A separate pre-existing boundary remains: `NoteCardSummary` renders stored HTML with `dangerouslySetInnerHTML`, while note validation checks strings/lengths rather than sanitizing HTML. Upgrading Tiptap does not establish that arbitrary stored HTML is safe. Link support remains disabled in the editor.
 

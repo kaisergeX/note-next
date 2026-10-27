@@ -3,10 +3,7 @@
 import {cn} from 'cn'
 import {
   IconArrowUp,
-  IconCheck,
   IconDotsVertical,
-  IconLoader2,
-  IconPencil,
   IconTexture,
   IconTrash,
 } from '@tabler/icons-react'
@@ -23,6 +20,8 @@ import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {noteDraftChanged} from './use-note-session'
 import {NoteThemePicker} from './note-theme-picker'
+import NoteSyncActions from './note-sync-actions'
+import NoteSaveStatus from './note-save-status'
 
 export type NoteCustomizeProps = {
   className?: string
@@ -109,7 +108,7 @@ export default function NoteCustomize({
       destructive: true,
       onSelect: () => onMoveToTrash?.(),
       disabled: isLoading || !onMoveToTrash,
-      hidden: type !== 'update' || !noteId,
+      hidden: !noteId,
     },
   ]
 
@@ -117,15 +116,13 @@ export default function NoteCustomize({
     <div
       ref={ref}
       className={cn(
-        'flex-center-between sticky inset-x-0 bottom-0 w-full gap-4 p-4 transition-all max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]',
+        'sticky inset-x-0 bottom-0 z-20 grid w-full shrink-0 grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-3 p-4 max-md:pb-[calc(1rem+env(safe-area-inset-bottom))]',
         'bg-paper/50 border-hairline border-t backdrop-blur-sm',
-        scrollTopCtrl && scrollable
-          ? 'animate-scroll animate-[pr] [--pr-to:4rem] [animation-range-end:5rem]'
-          : '',
         className,
       )}
     >
-      <div className="flex items-center gap-2">
+      <NoteSyncActions className="border-hairline col-span-full min-w-0 border-b pb-3" />
+      <div className="flex shrink-0 items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
 
         <Button
@@ -140,40 +137,13 @@ export default function NoteCustomize({
         </Button>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
-        {details}
-        <div
-          role="status"
-          className="flex items-center gap-1 text-xs font-medium"
-        >
-          {isLoading ? (
-            <>
-              <IconLoader2
-                className="animate-spin motion-reduce:animate-none"
-                size="1.2rem"
-              />
-              {t(
-                session?.operation === 'trash'
-                  ? 'status.moving'
-                  : 'status.saving',
-              )}
-            </>
-          ) : error ? (
-            <span className="text-destructive">{t('status.failed')}</span>
-          ) : dirty ? (
-            <>
-              <IconPencil size="1rem" aria-hidden />
-              {t('status.pending')}
-            </>
-          ) : type === 'create' ? (
-            t('status.draft')
-          ) : (
-            <>
-              <IconCheck className="text-success" size="1.2rem" />
-              {t('status.saved')}
-            </>
-          )}
-        </div>
+      <div className="min-w-0 justify-self-end">{details}</div>
+      <div className="flex shrink-0 items-center gap-2">
+        <NoteSaveStatus
+          dirty={dirty}
+          error={error}
+          creating={type === 'create' && !noteId}
+        />
 
         {menuItems.every(({hidden}) => !hidden) && (
           <MenuCustom
@@ -194,24 +164,20 @@ export default function NoteCustomize({
             <IconDotsVertical size="1.2rem" />
           </MenuCustom>
         )}
-      </div>
 
-      {scrollTopCtrl && scrollable && (
-        <Button
-          variant="secondary"
-          iconOnly
-          aria-label={t('editor.scrollTop')}
-          className={cn(
-            'absolute right-4 bottom-4 transition-all will-change-transform',
-            'animate-affix-appear [--affix-y-from:2] [animation-range-end:6rem] [animation-range-start:2rem]',
-          )}
-          onClick={() =>
-            getScrollContainer()?.scrollTo({top: 0, behavior: 'smooth'})
-          }
-        >
-          <IconArrowUp />
-        </Button>
-      )}
+        {scrollTopCtrl && scrollable && (
+          <Button
+            variant="secondary"
+            iconOnly
+            aria-label={t('editor.scrollTop')}
+            onClick={() =>
+              getScrollContainer()?.scrollTo({top: 0, behavior: 'smooth'})
+            }
+          >
+            <IconArrowUp />
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

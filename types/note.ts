@@ -22,6 +22,25 @@ export type NoteStoreState = {
     key: string
     identity: string
     baseline: Partial<Note>
+    generation?: number
+    syncStatus?:
+      | 'pending'
+      | 'saving'
+      | 'saved'
+      | 'local'
+      | 'failed'
+      | 'conflict'
+      | 'unavailable'
+      | 'unauthenticated'
+      | 'invalid_input'
+      | 'account_changed'
+    localGeneration?: number
+    storageFailed?: boolean
+    checkingRemote?: boolean
+    remoteCheckFailed?: boolean
+    conflict?: Note
+    editorVersion?: number
+    hydrated?: boolean
     operation?: 'save' | 'trash'
     error?: 'save' | 'trash'
   }

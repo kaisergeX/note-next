@@ -1,6 +1,6 @@
 // Covers localized HTML, RSC requests (same path + query), and old .html/.rsc keys.
 export function isNoteNetworkPath(pathname: string) {
-  return /^\/(?:api\/(?:note(?:[/.]|$)|cron\/note-cleanup(?:[/.]|$))|(?:(?:en|vi)\/)?(?:eton|trash|full\/eton)(?:[/.]|$))/.test(
+  return /^\/(?:api\/(?:note(?:[/.]|$)|cron\/note-cleanup(?:[/.]|$))|(?:(?:en|vi)\/)?(?:eton|collection|trash|full\/eton)(?:[/.]|$))/.test(
     pathname,
   )
 }
