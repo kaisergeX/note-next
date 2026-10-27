@@ -7,6 +7,7 @@ import NoteDialog from '~/components/note/note-dialog'
 import {useNoteSession} from '~/components/note/use-note-session'
 import type {Note} from '~/db/schema/notes'
 import {sleep} from '~/util'
+import {isMobileNoteView} from '~/lib/notes/mobile'
 
 export default function NoteDetailModal({noteData}: {noteData: Note}) {
   const t = useTranslations('note')
@@ -14,8 +15,12 @@ export default function NoteDetailModal({noteData}: {noteData: Note}) {
   const [open, setOpen] = useState(false)
   const session = useNoteSession(noteData)
   useEffect(() => {
+    if (isMobileNoteView()) {
+      router.replace(`/full/eton/${noteData.id}`)
+      return
+    }
     startTransition(() => setOpen(true))
-  }, [])
+  }, [noteData.id, router])
   const close = async () => {
     setOpen(false)
     await sleep(200)

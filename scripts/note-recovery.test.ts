@@ -16,6 +16,7 @@ import {
 } from '../lib/notes/lifecycle'
 import {getNoteMutationCacheKeys} from '../db/helper'
 import {createNoteCleanupRepository} from '../db/repositories/note-cleanup'
+import {snapshot, type SyncRequest, type SyncResult} from '../lib/notes/sync'
 
 const url = process.env.NOTES_TEST_DATABASE_URL
 assert.ok(
@@ -51,6 +52,140 @@ async function fixture() {
     }),
   )
 }
+
+function synced(result: SyncResult) {
+  assert.equal(result.status, 'success')
+  if (result.status !== 'success')
+    throw new Error('Expected sync acknowledgement')
+  return result.note
+}
+function saveRequest(note?: ReturnType<typeof synced>): SyncRequest {
+  return {
+    ownerId: alice,
+    creationId: randomUUID(),
+    mutationId: randomUUID(),
+    noteId: note?.id ?? null,
+    expectedRevision: note?.revision ?? null,
+    content: note
+      ? snapshot(note)
+      : {title: '<p>Autosave fixture</p>', content: '<p>Body</p>', theme: null},
+    kind: 'save',
+  }
+}
+
+test('stable creation/update retries acknowledge committed saves without extra notes or revisions', async () => {
+  const create = saveRequest()
+  const first = synced(await repo.syncNote(alice, create))
+  const retry = synced(await repo.syncNote(alice, create))
+  assert.equal(first.id, retry.id)
+  assert.equal(first.revision, retry.revision)
+  const update = {
+    ...saveRequest(first),
+    content: {...snapshot(first), content: '<p>New body</p>'},
+  }
+  const saved = synced(await repo.syncNote(alice, update))
+  assert.notEqual(saved.revision, first.revision)
+  const repeated = synced(await repo.syncNote(alice, update))
+  assert.equal(repeated.revision, saved.revision)
+})
+
+test('stale revisions and repeated stale resolutions preserve the current server value', async () => {
+  const first = synced(await repo.syncNote(alice, saveRequest()))
+  const a = {
+    ...saveRequest(first),
+    content: {...snapshot(first), title: '<p>First writer</p>'},
+  }
+  const saved = synced(await repo.syncNote(alice, a))
+  const stale = {
+    ...saveRequest(first),
+    content: {...snapshot(first), title: '<p>Stale writer</p>'},
+  }
+  const conflict = await repo.syncNote(alice, stale)
+  assert.equal(conflict.status, 'conflict')
+  const second = synced(
+    await repo.syncNote(alice, {
+      ...saveRequest(saved),
+      content: {...snapshot(saved), title: '<p>Changed during review</p>'},
+    }),
+  )
+  assert.equal(
+    (await repo.syncNote(alice, {...stale, expectedRevision: saved.revision}))
+      .status,
+    'conflict',
+  )
+  assert.equal((await repo.getNote(alice, first.id))?.revision, second.revision)
+})
+
+test('all lifecycle updates advance revisions and old create retries never resurrect deleted notes', async () => {
+  const create = saveRequest()
+  const first = synced(await repo.syncNote(alice, create))
+  const trashed = success(await repo.moveNoteToTrash(alice, first.id))
+  assert.notEqual(trashed.revision, first.revision)
+  assert.equal((await repo.syncNote(alice, create)).status, 'unavailable')
+  const restored = success(
+    await repo.restoreNote(alice, first.id, trashed.deadlineToken),
+  )
+  assert.notEqual(restored.revision, trashed.revision)
+  assert.equal(
+    (
+      await repo.syncNote(alice, {
+        ...saveRequest(first),
+        content: {...snapshot(first), title: 'Old editor'},
+      })
+    ).status,
+    'conflict',
+  )
+  const trashAgain = success(await repo.moveNoteToTrash(alice, first.id))
+  success(
+    await repo.permanentlyDeleteTrashedNote(
+      alice,
+      first.id,
+      trashAgain.deadlineToken,
+    ),
+  )
+  assert.equal((await repo.syncNote(alice, create)).status, 'unavailable')
+  assert.equal(await repo.getNote(alice, first.id), null)
+})
+
+test('sync refuses another rendered account, foreign notes, and empty structural creates', async () => {
+  assert.equal(
+    (await repo.syncNote(bob, saveRequest())).status,
+    'account_changed',
+  )
+  assert.equal(
+    (
+      await repo.syncNote(alice, {
+        ...saveRequest(),
+        content: {title: null, content: '<p><br></p>', theme: 'green'},
+      })
+    ).status,
+    'invalid_input',
+  )
+  const first = synced(await repo.syncNote(alice, saveRequest()))
+  assert.equal(
+    (await repo.syncNote(bob, {...saveRequest(first), ownerId: bob})).status,
+    'unavailable',
+  )
+})
+
+test('editor Trash checks its revision, and lost Trash acknowledgement retries preserve the deadline', async () => {
+  const first = synced(await repo.syncNote(alice, saveRequest()))
+  const latest = synced(
+    await repo.syncNote(alice, {
+      ...saveRequest(first),
+      content: {...snapshot(first), title: 'Newer title'},
+    }),
+  )
+  assert.equal(
+    (await repo.syncNote(alice, {...saveRequest(first), kind: 'trash'})).status,
+    'conflict',
+  )
+  const request = {...saveRequest(latest), kind: 'trash' as const}
+  const trashed = synced(await repo.syncNote(alice, request))
+  const retry = synced(await repo.syncNote(alice, request))
+  assert.equal(retry.revision, trashed.revision)
+  assert.deepEqual(retry.pendingDeleteAt, trashed.pendingDeleteAt)
+})
 
 before(async () => {
   const migration = await migrate(db, {migrationsFolder: './drizzle'})

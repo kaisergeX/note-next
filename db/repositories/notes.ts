@@ -23,8 +23,14 @@ import {
   editNoteSchema,
   noteIdSchema,
   trashDraftSchema,
+  syncRequestSchema,
 } from '~/lib/notes/validation'
-import {notesTable} from '../schema/notes'
+import {notesTable, noteCreationKeysTable} from '../schema/notes'
+import {
+  sameContent,
+  meaningfulContent,
+  type SyncResult,
+} from '../../lib/notes/sync'
 import type {TrashIdentity} from '../../lib/notes/trash-bulk'
 
 type NoteDatabase = Pick<
@@ -245,7 +251,86 @@ export function createNoteRepository(db: NoteDatabase) {
       .from(sql`(select 1) as clock`)
     return clock.now
   }
+  // Caller MUST hold the existing owner transaction lock. Revision comparison
+  // remains in the UPDATE predicate, including editor Trash with a draft.
+  async function syncNote(
+    ownerId: string,
+    input: unknown,
+  ): Promise<SyncResult> {
+    const parsed = syncRequestSchema.safeParse(input)
+    if (!validOwner(ownerId) || !parsed.success)
+      return {status: 'invalid_input'}
+    const request = parsed.data
+    if (request.ownerId !== ownerId) return {status: 'account_changed'}
+    if (!request.noteId) {
+      if (!meaningfulContent(request.content)) return {status: 'invalid_input'}
+      const keys = await db
+        .insert(noteCreationKeysTable)
+        .values({id: request.creationId, authorId: ownerId})
+        .onConflictDoNothing()
+        .returning({id: noteCreationKeysTable.id})
+      if (keys.length) {
+        const [note] = await db
+          .insert(notesTable)
+          .values({
+            id: request.creationId,
+            authorId: ownerId,
+            ...request.content,
+            lastMutationId: request.mutationId,
+          })
+          .returning(projection)
+        return {status: 'success', note}
+      }
+      const note = await getNote(ownerId, request.creationId)
+      if (!note) return {status: 'unavailable'}
+      return {
+        status: sameContent(note, request.content) ? 'success' : 'conflict',
+        note,
+      }
+    }
+    const current = await getNote(ownerId, request.noteId)
+    if (!current) {
+      if (request.kind === 'trash') {
+        const trashed = await getTrashNote(ownerId, request.noteId)
+        if (
+          trashed?.lastMutationId === request.mutationId &&
+          sameContent(trashed, request.content)
+        )
+          return {status: 'success', note: trashed}
+      }
+      return {status: 'unavailable'}
+    }
+    if (
+      current.lastMutationId === request.mutationId &&
+      sameContent(current, request.content) &&
+      request.kind === 'save'
+    )
+      return {status: 'success', note: current}
+    if (current.revision !== request.expectedRevision)
+      return {status: 'conflict', note: current}
+    const [note] = await db
+      .update(notesTable)
+      .set({
+        ...request.content,
+        lastMutationId: request.mutationId,
+        ...(request.kind === 'trash'
+          ? {
+              pendingDeleteAt: sql`clock_timestamp() + ${NOTE_RETENTION_SECONDS} * interval '1 second'`,
+            }
+          : {}),
+      })
+      .where(
+        and(
+          owned(ownerId, request.noteId),
+          active,
+          eq(notesTable.revision, request.expectedRevision!),
+        ),
+      )
+      .returning(projection)
+    return note ? {status: 'success', note} : {status: 'unavailable'}
+  }
   return {
+    syncNote,
     getServerTime,
     getNote,
     getListNote,

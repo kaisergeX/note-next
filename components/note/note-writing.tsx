@@ -62,7 +62,12 @@ export default function NoteWriting({
       onNavigationHandoffChange?.(handedOff)
     }
     const frame = requestAnimationFrame(updateDocked)
-    window.addEventListener('scroll', updateDocked, {passive: true})
+    // The full-page preview and embedded recovery surfaces can scroll inside
+    // an element. Capture scrolls so the same header handoff works there too.
+    window.addEventListener('scroll', updateDocked, {
+      passive: true,
+      capture: true,
+    })
     window.addEventListener('resize', updateDocked)
     const observer = new ResizeObserver(updateDocked)
     observer.observe(surface)
@@ -71,7 +76,7 @@ export default function NoteWriting({
     if (title) observer.observe(title)
     return () => {
       cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', updateDocked)
+      window.removeEventListener('scroll', updateDocked, true)
       window.removeEventListener('resize', updateDocked)
       observer.disconnect()
     }

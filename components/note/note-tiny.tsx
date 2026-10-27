@@ -3,7 +3,8 @@
 import {IconDotsVertical, IconPalette, IconTrash} from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useTranslations} from 'next-intl'
-import {Link} from '~/i18n/navigation'
+import {Link, useRouter} from '~/i18n/navigation'
+import {isMobileNoteView} from '~/lib/notes/mobile'
 import {useState, useTransition} from 'react'
 import {moveNoteToTrashAction} from '~/app/[locale]/(note)/eton/actions'
 import {buttonClass} from '~/components/ui/button'
@@ -23,7 +24,7 @@ export default function NoteTiny({data}: NoteProps) {
   const [deleteError, setDeleteError] = useState(false)
   const t = useTranslations('note')
 
-  const isPreferFullView = false // @todo get from user settings
+  const router = useRouter()
 
   const handleDeleteNote = () => {
     if (!noteId) {
@@ -62,9 +63,23 @@ export default function NoteTiny({data}: NoteProps) {
     <NoteCard theme={theme}>
       <Link
         className="block h-full p-4 pb-10"
-        href={`${isPreferFullView ? '/full' : ''}/eton/${noteId}`}
+        href={`/eton/${noteId}`}
         onClick={(e) => {
-          pendingTransition && e.preventDefault()
+          if (pendingTransition) {
+            e.preventDefault()
+            return
+          }
+          if (
+            !e.defaultPrevented &&
+            !e.metaKey &&
+            !e.ctrlKey &&
+            !e.shiftKey &&
+            !e.altKey &&
+            isMobileNoteView()
+          ) {
+            e.preventDefault()
+            router.push(`/full/eton/${noteId}`)
+          }
         }}
       >
         <NoteCardSummary title={title} content={content} theme={theme} />

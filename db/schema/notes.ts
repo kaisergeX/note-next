@@ -44,6 +44,8 @@ export const notesTable = pgTable(
     authorId: uuid('author_id')
       .notNull()
       .references(() => usersTable.id),
+    revision: uuid('revision').defaultRandom().notNull(),
+    lastMutationId: uuid('last_mutation_id'),
     // 255 * 3 | content max length is 255, assuming that html tags are twice the length of the content
     title: varchar('title', {length: NOTE_TITLE_MAX_LENGTH * 3}),
     content: text('content'),
@@ -78,3 +80,12 @@ export type NewNote = Omit<
 >
 export type UpdateNote = Omit<NewNote, 'authorId'>
 export type DisallowedUpdateNoteKeys = Exclude<keyof Note, keyof UpdateNote>
+
+// Creation identities survive permanent note deletion, preventing a lost-response
+// retry from resurrecting an original. No note content or history is retained.
+export const noteCreationKeysTable = pgTable('note_creation_keys', {
+  id: uuid('id').primaryKey(),
+  authorId: uuid('author_id')
+    .notNull()
+    .references(() => usersTable.id, {onDelete: 'cascade'}),
+})

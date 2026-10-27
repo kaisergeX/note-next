@@ -1,7 +1,9 @@
 import {Analytics} from '@vercel/analytics/react'
 import {SpeedInsights} from '@vercel/speed-insights/next'
 import type {Metadata, Viewport} from 'next'
-import {getLocale, getTranslations} from 'next-intl/server'
+import {getLocale, getMessages, getTranslations} from 'next-intl/server'
+import {NextIntlClientProvider} from 'next-intl'
+import NotePersistence from '~/components/note/note-persistence'
 import {Suspense} from 'react'
 import AppHeader from '~/components/layouts/app-header'
 import DevtoolsWarnWrapper from '~/components/layouts/devtools-warn-wrapper'
@@ -54,6 +56,7 @@ export default async function LocaleLayout({
   children,
 }: LayoutProps<'/[locale]'>) {
   const locale = await getLocale()
+  const recoveryMessages = (await getMessages()).note
   const t = await getTranslations()
   const tNavigation = await getTranslations('common.navigation')
   const tLandingNavigation = await getTranslations('landing.navigation')
@@ -77,6 +80,12 @@ export default async function LocaleLayout({
       <body className="relative flex min-h-dvh scrollbar-gutter-stable flex-col font-sans transition-[height] not-has-[.body-h-auto:first-of-type]:h-dvh">
         <ThemeWrapper>
           <ProviderWrapper>
+            <NextIntlClientProvider
+              locale={locale}
+              messages={{note: recoveryMessages}}
+            >
+              <NotePersistence />
+            </NextIntlClientProvider>
             <DevtoolsWarnWrapper
               message={
                 <>

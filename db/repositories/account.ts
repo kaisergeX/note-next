@@ -12,6 +12,7 @@ import {
   type NoteMutationResult,
 } from '../../lib/notes/lifecycle'
 import {createNoteRepository} from './notes'
+import type {SyncResult} from '../../lib/notes/sync'
 import type {TrashIdentity, TrashPreview} from '../../lib/notes/trash-bulk'
 
 type AccountDatabase = Pick<
@@ -118,6 +119,10 @@ export function createAccountRepository(db: AccountDatabase) {
   }
 
   return {
+    syncNote: (ownerId: string, input: unknown): Promise<SyncResult | null> =>
+      withOwner(ownerId, (tx) =>
+        createNoteRepository(tx).syncNote(ownerId, input),
+      ),
     activeNoteCount,
     moveAllNotesToTrash,
     deleteAccount,

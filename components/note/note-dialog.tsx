@@ -35,6 +35,9 @@ export default function NoteDialog({
   }, [])
   const mutateNoteData = usePersistStore((s) => s.mutateNoteData)
   const sessionIdentity = usePersistStore((s) => s.noteSession?.identity)
+  const unavailable = usePersistStore(
+    (s) => s.noteSession?.syncStatus === 'unavailable',
+  )
   const noteTheme = mutateNoteData?.theme
   const t = useTranslations('note')
 
@@ -53,6 +56,11 @@ export default function NoteDialog({
       preventClose
       onKeyDownCapture={(event) => {
         if (
+          event.target instanceof Element &&
+          event.target.closest('dialog') !== event.currentTarget
+        )
+          return
+        if (
           event.key === 'Escape' &&
           !event.currentTarget.querySelector(':popover-open')
         ) {
@@ -67,7 +75,7 @@ export default function NoteDialog({
     >
       <NoteWriting
         key={sessionIdentity}
-        id={`dialog-note-${type}-${mutateNoteData?.id || 'new'}`}
+        id={`dialog-note-${sessionIdentity}`}
         pending={loading}
         leadingActions={
           <Button
@@ -81,10 +89,13 @@ export default function NoteDialog({
           </Button>
         }
         viewAction={
-          mutateNoteData?.id ? (
+          mutateNoteData?.id && !unavailable ? (
             <Link
               href={`/full/eton/${mutateNoteData.id}`}
-              className={buttonClass({variant: 'ghost', iconOnly: true})}
+              className={cn(
+                buttonClass({variant: 'ghost', iconOnly: true}),
+                'max-sm:hidden',
+              )}
               aria-label={t('editor.fullPage')}
               aria-disabled={loading}
               onClick={(event) => {

@@ -259,6 +259,8 @@ export default async function Home({params}: PropsWithLocale) {
     {
       id: '019a0000-0000-7000-8000-000000000001',
       authorId: '019a0000-0000-7000-8000-000000000000',
+      revision: '019a0000-0000-7000-8000-000000000000',
+      lastMutationId: null,
       title: t.raw('notes.preview.noteOneTitle') as string,
       content: t.raw('notes.preview.noteOneContent') as string,
       theme: 'yellow',
@@ -271,6 +273,8 @@ export default async function Home({params}: PropsWithLocale) {
     {
       id: '019a0000-0000-7000-8000-000000000002',
       authorId: '019a0000-0000-7000-8000-000000000000',
+      revision: '019a0000-0000-7000-8000-000000000000',
+      lastMutationId: null,
       title: t.raw('notes.preview.noteTwoTitle') as string,
       content: `<p>${t('notes.preview.noteTwoIntro')} <code>const nextStep = "begin";</code></p><p>${t('notes.preview.noteTwoCaption')}</p>`,
       theme: 'blue',
@@ -283,6 +287,8 @@ export default async function Home({params}: PropsWithLocale) {
     {
       id: '019a0000-0000-7000-8000-000000000003',
       authorId: '019a0000-0000-7000-8000-000000000000',
+      revision: '019a0000-0000-7000-8000-000000000000',
+      lastMutationId: null,
       title: t.raw('notes.preview.noteThreeTitle') as string,
       content: t.raw('notes.preview.noteThreeContent') as string,
       theme: 'rose',
