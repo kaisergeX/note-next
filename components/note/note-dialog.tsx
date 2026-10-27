@@ -1,15 +1,13 @@
 import {Dialog} from '@kaiverse/k/ui'
 import {cn} from 'cn'
 import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
-import {useMessages, useTranslations} from 'next-intl'
+import {useTranslations} from 'next-intl'
 import {useLayoutEffect, useRef} from 'react'
 import {Link} from '~/i18n/navigation'
-import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
-import {useRandomString} from '~/util/hooks'
-import Button from '~/components/ui/button'
+import Button, {buttonClass} from '~/components/ui/button'
 import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
-import NoteEditor from './note-editor'
+import NoteWriting from './note-writing'
 
 type NoteDialogProps = {
   type?: NoteCustomizeProps['type']
@@ -35,16 +33,10 @@ export default function NoteDialog({
     // the browser drops the top layer so the dialog can become modal again.
     return () => dialog?.close()
   }, [])
-  const {mutateNoteData, setMutateNoteData} = usePersistStore((s) => ({
-    mutateNoteData: s.mutateNoteData,
-    setMutateNoteData: s.setMutateNoteData,
-  }))
+  const mutateNoteData = usePersistStore((s) => s.mutateNoteData)
+  const sessionIdentity = usePersistStore((s) => s.noteSession?.identity)
   const noteTheme = mutateNoteData?.theme
   const t = useTranslations('note')
-  const messages = useMessages()
-  const emptyPlaceholders = useRandomString(
-    messages.note.editor.emptyPlaceholder,
-  )
 
   return (
     <Dialog
@@ -71,61 +63,39 @@ export default function NoteDialog({
       onMouseDown={(event) => {
         if (event.target === event.currentTarget && !loading) onClose()
       }}
-      aria-labelledby={`dialog-note-title-${type}-${mutateNoteData?.id || 'new'}`}
+      aria-label={t(type === 'create' ? 'editor.newNote' : 'editor.editNote')}
     >
-      <div
-        className={cn(
-          'flex-center-between sticky top-0 z-10 bg-inherit p-4',
-          'animate-scroll-shadow shadow-ink/10 transition-shadow [animation-range-end:8rem]',
-        )}
-      >
-        <Button
-          variant="ghost"
-          iconOnly
-          onClick={onClose}
-          disabled={loading}
-          aria-label="Close dialog"
-        >
-          <IconArrowLeft />
-        </Button>
-
-        {mutateNoteData?.id ? (
-          <Link
-            href={`/full/eton/${mutateNoteData.id}`}
-            className="max-sm:hidden"
-            aria-label="Full page view"
-            replace
+      <NoteWriting
+        key={sessionIdentity}
+        id={`dialog-note-${type}-${mutateNoteData?.id || 'new'}`}
+        pending={loading}
+        leadingActions={
+          <Button
+            variant="ghost"
+            iconOnly
+            onClick={onClose}
+            disabled={loading}
+            aria-label={t('editor.close')}
           >
-            <IconMaximize />
-          </Link>
-        ) : null}
-      </div>
-
-      <NoteEditor
-        id={`dialog-note-title-${type}-${mutateNoteData?.id || 'new'}`}
-        className="p-4"
-        editorClassName="text-lg font-semibold sm:text-xl"
-        initialValue={mutateNoteData?.title}
-        onChange={(value) => setMutateNoteData({title: value})}
-        placeholder={t('editor.title')}
-        ariaLabel={t('editor.title')}
-        limitCharacter={NOTE_TITLE_MAX_LENGTH}
-        showCount
-        disableDefaultEnter
-        autofocus="end"
-        loading={loading}
-      />
-
-      <NoteEditor
-        id={`dialog-note-content-${type}-${mutateNoteData?.id || 'new'}`}
-        className="flex flex-1 flex-col p-4 [&>div:has(.ProseMirror)]:flex-1"
-        editorClassName="h-full sm:min-h-[40dvh]"
-        initialValue={mutateNoteData?.content}
-        placeholder={emptyPlaceholders}
-        ariaLabel={t('editor.body')}
-        commandTypes="bubble-floating"
-        onChange={(value) => setMutateNoteData({content: value})}
-        loading={loading}
+            <IconArrowLeft />
+          </Button>
+        }
+        viewAction={
+          mutateNoteData?.id ? (
+            <Link
+              href={`/full/eton/${mutateNoteData.id}`}
+              className={buttonClass({variant: 'ghost', iconOnly: true})}
+              aria-label={t('editor.fullPage')}
+              aria-disabled={loading}
+              onClick={(event) => {
+                if (loading) event.preventDefault()
+              }}
+              replace
+            >
+              <IconMaximize />
+            </Link>
+          ) : null
+        }
       />
 
       {error && (
@@ -135,7 +105,7 @@ export default function NoteDialog({
       )}
 
       <NoteCustomize
-        className={`shadow-[0_-8px_5px_-5px] shadow-theme-${noteTheme || 'slate'}`}
+        className="shadow-sheet"
         type={type}
         error={!!error}
         onMoveToTrash={onMoveToTrash}

@@ -172,6 +172,10 @@
     }
   }
 
+  pre code {
+    background-color: transparent;
+  }
+
   a:hover {
     color: var(--color-accent);
   }

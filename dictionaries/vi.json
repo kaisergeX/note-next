@@ -457,7 +457,12 @@
       "synced": "Đã đồng bộ",
       "saveFailed": "Không thể lưu ghi chú. Bản nháp vẫn còn ở đây. Vui lòng thử lại.",
       "deleteFailed": "Không thể xóa ghi chú. Vui lòng thử lại.",
-      "failed": "Thao tác thất bại"
+      "failed": "Thao tác thất bại",
+      "saving": "Đang lưu…",
+      "saved": "Đã lưu",
+      "pending": "Chưa lưu",
+      "draft": "Bản nháp",
+      "moving": "Đang chuyển vào thùng rác…"
     },
     "editor": {
       "title": "Tiêu đề",
@@ -467,7 +472,41 @@
         "inspiration": "Thêm chút cảm hứng ✨",
         "todo": "Thêm việc cần làm 📝"
       },
-      "body": "Nội dung ghi chú"
+      "body": "Nội dung ghi chú",
+      "close": "Lưu và quay lại",
+      "fullPage": "Xem toàn trang",
+      "fullscreen": "Bật/tắt toàn màn hình",
+      "newNote": "Ghi chú mới",
+      "editNote": "Chỉnh sửa ghi chú",
+      "texture": "Hình minh họa, họa tiết",
+      "scrollTop": "Cuộn lên đầu",
+      "tools": {
+        "label": "Công cụ định dạng cho {target}",
+        "format": "Định dạng",
+        "bold": "In đậm",
+        "italic": "In nghiêng",
+        "highlight": "Tô sáng",
+        "undo": "Hoàn tác",
+        "redo": "Làm lại",
+        "paragraph": "Đoạn văn",
+        "heading": "Tiêu đề {level}",
+        "bulletList": "Danh sách dấu đầu dòng",
+        "orderedList": "Danh sách đánh số",
+        "quote": "Trích dẫn",
+        "inlineCode": "Mã nội dòng",
+        "codeBlock": "Khối mã",
+        "strike": "Gạch ngang",
+        "rule": "Đường kẻ ngang",
+        "clearMarks": "Xóa định dạng chữ",
+        "clearBlocks": "Xóa định dạng khối",
+        "textStyle": "Kiểu văn bản",
+        "emphasis": "Nhấn mạnh",
+        "blocks": "Danh sách và khối",
+        "history": "Lịch sử",
+        "more": "Định dạng khác",
+        "view": "Chế độ xem",
+        "underline": "Gạch chân"
+      }
     },
     "count": {
       "characters": "{count} ký tự",

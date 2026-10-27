@@ -457,7 +457,12 @@
       "synced": "Synced",
       "saveFailed": "Could not save your note. Your draft is still here. Try again.",
       "deleteFailed": "Could not delete your note. Try again.",
-      "failed": "Action failed"
+      "failed": "Action failed",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "pending": "Unsaved",
+      "draft": "Draft",
+      "moving": "Moving to Trash…"
     },
     "editor": {
       "title": "Title",
@@ -467,7 +472,41 @@
         "inspiration": "Let's add something inspirational ✨",
         "todo": "Let's add a todo 📝"
       },
-      "body": "Note content"
+      "body": "Note content",
+      "close": "Save and go back",
+      "fullPage": "Full page view",
+      "fullscreen": "Toggle fullscreen",
+      "newNote": "New note",
+      "editNote": "Edit note",
+      "texture": "Illustration, texture",
+      "scrollTop": "Scroll to top",
+      "tools": {
+        "label": "Formatting tools for {target}",
+        "format": "Format",
+        "bold": "Bold",
+        "italic": "Italic",
+        "highlight": "Highlight",
+        "undo": "Undo",
+        "redo": "Redo",
+        "paragraph": "Paragraph",
+        "heading": "Heading {level}",
+        "bulletList": "Bullet list",
+        "orderedList": "Numbered list",
+        "quote": "Quote",
+        "inlineCode": "Inline code",
+        "codeBlock": "Code block",
+        "strike": "Strikethrough",
+        "rule": "Horizontal rule",
+        "clearMarks": "Clear text formatting",
+        "clearBlocks": "Clear block formatting",
+        "textStyle": "Text style",
+        "emphasis": "Text emphasis",
+        "blocks": "Lists and blocks",
+        "history": "History",
+        "more": "More formatting",
+        "view": "View",
+        "underline": "Underline"
+      }
     },
     "count": {
       "characters": "{count} characters",

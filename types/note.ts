@@ -18,10 +18,18 @@ export type NoteData = {
 
 export type NoteStoreState = {
   mutateNoteData?: Note
+  noteSession?: {
+    key: string
+    identity: string
+    baseline: Partial<Note>
+    operation?: 'save' | 'trash'
+    error?: 'save' | 'trash'
+  }
   editorCharCount: Record<string, {words: number; characters: number}>
 }
 
 export type NoteStore = {
+  beginNoteSession: (key: string, note?: Note) => void
   setMutateNoteData: (mutateNoteData?: Partial<Note>) => void
   setEditorCharCount: (
     editorId: string,

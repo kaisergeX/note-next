@@ -11,7 +11,6 @@ import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {performNoteMutation} from '~/lib/notes/client-mutation'
 import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import type {Note} from '~/db/schema/notes'
-import {usePersistStore} from '~/store'
 import NoteCard, {NoteCardSummary} from './note-card'
 
 type NoteProps = {
@@ -22,7 +21,6 @@ export default function NoteTiny({data}: NoteProps) {
   const {id: noteId, title, content, theme} = data
   const [pendingTransition, startTransition] = useTransition()
   const [deleteError, setDeleteError] = useState(false)
-  const setMutateNoteData = usePersistStore((state) => state.setMutateNoteData)
   const t = useTranslations('note')
 
   const isPreferFullView = false // @todo get from user settings
@@ -67,7 +65,6 @@ export default function NoteTiny({data}: NoteProps) {
         href={`${isPreferFullView ? '/full' : ''}/eton/${noteId}`}
         onClick={(e) => {
           pendingTransition && e.preventDefault()
-          theme && setMutateNoteData({theme})
         }}
       >
         <NoteCardSummary title={title} content={content} theme={theme} />
