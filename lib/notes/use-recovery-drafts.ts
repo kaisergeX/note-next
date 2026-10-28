@@ -3,8 +3,9 @@
 import {useEffect, useState} from 'react'
 import {usePersistStore} from '~/store'
 import {listDrafts, type RecoveryDraft} from './drafts'
+import {groupRecoveryDrafts} from './recovery-copies'
 
-export function useRecoveryDrafts(ownerId: string) {
+export function useRecoveryDrafts(ownerId: string, includeActive = false) {
   const [state, setState] = useState<{
     ownerId: string
     records: RecoveryDraft[]
@@ -14,13 +15,16 @@ export function useRecoveryDrafts(ownerId: string) {
   const activeId = usePersistStore((s) => s.noteSession?.identity)
   useEffect(() => {
     let alive = true
-    const load = () =>
+    let request = 0
+    const load = () => {
+      const current = ++request
       void listDrafts(ownerId).then(
         (records) => {
-          if (alive) setState({ownerId, records, error: false, loaded: true})
+          if (alive && current === request)
+            setState({ownerId, records, error: false, loaded: true})
         },
         () => {
-          if (alive)
+          if (alive && current === request)
             setState((previous) => ({
               ownerId,
               records: previous.ownerId === ownerId ? previous.records : [],
@@ -29,6 +33,7 @@ export function useRecoveryDrafts(ownerId: string) {
             }))
         },
       )
+    }
     load()
     const channel =
       typeof BroadcastChannel !== 'undefined'
@@ -45,9 +50,13 @@ export function useRecoveryDrafts(ownerId: string) {
     }
   }, [ownerId])
   if (state.ownerId !== ownerId)
-    return {records: [], error: false, loaded: false}
+    return {records: [], groups: [], error: false, loaded: false}
+  const records = state.records.filter(
+    (record) => includeActive || record.id !== activeId,
+  )
   return {
     ...state,
-    records: state.records.filter((record) => record.id !== activeId),
+    records,
+    groups: groupRecoveryDrafts(records),
   }
 }

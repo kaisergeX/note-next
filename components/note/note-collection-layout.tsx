@@ -7,9 +7,7 @@ import {useSelectedLayoutSegments} from 'next/navigation'
 import {IconChevronDown, IconHistory, IconNotebook} from '@tabler/icons-react'
 import {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
-import NoteCreateEditor from './note-create'
 import NoteSidebar from './note-sidebar'
-import DeviceDraftsLink from './device-drafts-link'
 
 const PIN_STORAGE_KEY = 'etoN-sidebar-pinned'
 const PIN_EVENT = 'eton-sidebar-preference'
@@ -33,8 +31,6 @@ function readPin() {
 
 export default function NoteCollectionLayout({
   children,
-  creationLabel,
-  ownerId,
 }: {
   children: ReactNode
   creationLabel: string
@@ -93,11 +89,10 @@ export default function NoteCollectionLayout({
         {isNoteList && (
           <header
             className={cn(
-              'mb-6 flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2',
+              'mb-2 flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2 lg:hidden',
               !isNotes && 'lg:hidden',
             )}
           >
-            {isNotes && !isDrafts && <DeviceDraftsLink ownerId={ownerId} />}
             <div className={cn('min-w-0 lg:hidden', isDrafts && 'hidden')}>
               <MenuCustom
                 anchor="bottom-start"
@@ -128,11 +123,6 @@ export default function NoteCollectionLayout({
                 <IconChevronDown size={16} aria-hidden />
               </MenuCustom>
             </div>
-            {isNotes && !isDrafts && (
-              <div className="ml-auto">
-                <NoteCreateEditor creationLabel={creationLabel} />
-              </div>
-            )}
           </header>
         )}
         {children}

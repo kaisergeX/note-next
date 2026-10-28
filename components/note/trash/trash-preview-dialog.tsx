@@ -132,11 +132,15 @@ export default function TrashPreviewDialog({
       <header className="flex shrink-0 items-start justify-between gap-3 p-4">
         <h2
           id={titleId}
-          className="min-w-0 flex-1 font-serif text-xl font-semibold wrap-anywhere"
+          className={
+            item.title
+              ? 'min-w-0 flex-1 font-serif text-xl font-semibold wrap-anywhere'
+              : 'sr-only'
+          }
         >
           {item.title || t('untitled')}
         </h2>
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-1">
           <Badge status="neutral" className="shrink-0">
             {t('readOnly')}
           </Badge>

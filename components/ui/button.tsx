@@ -103,7 +103,7 @@ type MenuItemButtonProps = Omit<ButtonProps, 'variant' | 'pressMotion'> & {
   destructive?: boolean
 }
 
-/** Button styled as a full-width, square-cornered row inside a popover. */
+/** Full-width popover action using the shared button shape. */
 export function MenuItemButton({
   destructive = false,
   className,
@@ -114,7 +114,7 @@ export function MenuItemButton({
       variant={destructive ? 'danger' : 'ghost'}
       pressMotion={false}
       className={cn(
-        'w-full justify-start rounded-none border-transparent px-3 text-left',
+        'w-full justify-start border-transparent px-3 text-left',
         className,
       )}
       {...props}

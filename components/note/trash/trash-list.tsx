@@ -4,7 +4,10 @@ import {useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import {useRouter} from '~/i18n/navigation'
 import Button from '~/components/ui/button'
-import NoteCard, {NoteCardSummary} from '~/components/note/note-card'
+import NoteCard, {
+  NoteCardFooter,
+  NoteCardSummary,
+} from '~/components/note/note-card'
 import type {TrashItem} from '~/lib/notes/text'
 import TrashActions from './trash-actions'
 import ExpiryDate from './expiry-date'
@@ -68,30 +71,31 @@ export default function TrashList({
                   }}
                 >
                   <NoteCardSummary
-                    title={item.title || t('untitled')}
+                    title={item.title || null}
                     content={item.excerpt}
                     theme={item.theme}
                     plainText
                     compact
                   />
                 </Button>
-                <footer className="flex items-center justify-between gap-2 px-3 pt-1 pb-2">
-                  <p className="text-ink-muted min-w-0 text-xs">
-                    <ExpiryDate deadline={item.deadlineToken} />
-                  </p>
-                  <TrashActions
-                    item={item}
-                    compact
-                    disabled={!online}
-                    onComplete={() => {
-                      setRemoved((previous) => [
-                        ...previous,
-                        `${item.id}:${item.deadlineToken}`,
-                      ])
-                      router.refresh()
-                    }}
-                  />
-                </footer>
+                <NoteCardFooter
+                  actions={
+                    <TrashActions
+                      item={item}
+                      compact
+                      disabled={!online}
+                      onComplete={() => {
+                        setRemoved((previous) => [
+                          ...previous,
+                          `${item.id}:${item.deadlineToken}`,
+                        ])
+                        router.refresh()
+                      }}
+                    />
+                  }
+                >
+                  <ExpiryDate deadline={item.deadlineToken} />
+                </NoteCardFooter>
               </NoteCard>
             </li>
           ))}

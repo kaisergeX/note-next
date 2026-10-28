@@ -1,11 +1,8 @@
-import RecoveryDrafts from '~/components/note/recovery-drafts'
+import {redirect} from '~/i18n/navigation'
 import {requireAuth} from '~/server-utils'
+import type {PropsWithLocale} from '~/types'
 
-export default async function NoteDraftsPage() {
-  const {userInfo} = await requireAuth()
-  return (
-    <main className="w-full">
-      <RecoveryDrafts ownerId={userInfo.id} />
-    </main>
-  )
+export default async function NoteDraftsPage({params}: PropsWithLocale) {
+  await requireAuth()
+  redirect({href: '/eton#browser-work', locale: (await params).locale})
 }

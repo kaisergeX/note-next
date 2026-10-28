@@ -15,7 +15,7 @@ export default function NoteDetail({
 }) {
   const router = useRouter()
   const session = useNoteSession(noteData, true, recovery)
-  if (!session.ready || !session.identity) return null
+  if (!session.ready || !session.identity) return session.recoveryView
   return (
     <NoteFullView
       identity={session.identity}
