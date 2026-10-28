@@ -23,6 +23,7 @@ import {
 import {useEditorState, type Editor} from '@tiptap/react'
 import {useTranslations} from 'next-intl'
 import type {ReactNode} from 'react'
+import {insertNoteHorizontalRule} from '~/lib/note-editor-commands'
 import Button, {buttonClass} from './button'
 import PopoverBase from './popover'
 
@@ -183,7 +184,8 @@ export default function RTECommands({
     {
       label: t('rule'),
       icon: <IconSeparator size={20} />,
-      action: () => editor?.chain().focus().setHorizontalRule().run(),
+      action: () =>
+        editor?.chain().focus().command(insertNoteHorizontalRule).run(),
     },
   ]
   const styles = (

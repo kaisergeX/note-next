@@ -139,19 +139,33 @@ The second completed reviewer round was restricted to these fixes and nearby lay
 
 Dedicated existing QA fixture `01a17bd9-8b4d-4c01-e1c9-06c6ec767ccc` is active with its original canonical HTML title/body and blue theme restored through the app save flow. Authenticated reads confirmed the restored values. QA appearance was restored and confirmed server-side as `paper-ink` / `light`. Both review and cleanup browsers were closed; no new fixture, permanent deletion, or unrelated note change was performed.
 
-Still unverified: real Vietnamese IME for the rebuilt integration (Phase 0 had user-reported smoke coverage), maximum character-limit boundary, physical touch/virtual keyboard/safe areas, actual fullscreen entry, production typing performance, exhaustive appearance combinations, and **HR-only document persistence**. Representative documents containing HR passed round trips; that is not the HR-only case. These limits keep the broader checklist below partially open; no exhaustive acceptance or production performance certification is claimed.
+At the original review, real Vietnamese IME for the rebuilt integration, maximum character-limit boundary, physical touch/virtual keyboard/safe areas, actual fullscreen entry, production typing performance, exhaustive appearance combinations, and **HR-only document persistence** remained unverified. The follow-up below supersedes these limits where new evidence is recorded; no exhaustive acceptance or production performance certification is claimed.
 
 Undo grouping remains unchanged. Evaluate it after confirming history no longer resets; agree on a new granularity only if evidence/user feedback supports a change.
+
+### HR insertion and acceptance follow-up — 2026-10-28
+
+- Owner confirms Vietnamese IME works as before in the rebuilt editor and accepts the corrected HR behavior. This is owner smoke coverage, not an exhaustive browser/input-method matrix.
+- Reproduced Tiptap 3.32.0's `setHorizontalRule()` at the end of a nonempty paragraph producing `text → empty paragraph → HR`, with an invalid text-selection endpoint warning. Middle-of-paragraph and empty-paragraph insertion behaved correctly.
+- The toolbar now uses a scoped command that inserts after the current text block at EOL, reuses a following text block or adds a paragraph below the HR, and places the cursor there. Other selection cases retain the upstream command. HTML storage and undo grouping are unchanged.
+- Seven command regression tests pass: document end, following paragraph, heading, blockquote, adjacent HR, middle of text, and empty paragraph. Run with `node --import tsx --test scripts/note-editor-commands.test.ts`.
+- `pnpm lint` passes without warnings. Elevated `pnpm build` passes, with the existing Google Sans fallback-metric and Node localStorage warnings. An initial lint attempt encountered stale generated route types; the successful build regenerated them and the subsequent lint passed without configuration changes.
+- Independent focused Chromium review: **PASS**, Paper & Ink/light at 1440×1000 and 390×844. Confirms EOL insertion (`<p>Hello</p><hr><p></p>`, cursor 9), middle insertion (`<p>He</p><hr><p>llo</p>`, cursor 6), and empty insertion (`<hr><p></p>`, cursor 2). Undo/redo and editor focus pass.
+- Background autosave and a blue note-theme change preserve the editor/DOM instance, selection, and undo availability. A fresh HR-only note with an empty title autosaves and reopens with exact HTML; acquiring server identity also preserves editor/focus/selection/undo.
+- Title 255 and body 21,845 boundaries reject extra input, including real keypress checks. Visible title count is `255 / 255`; body count is 21,845. Count caching/no selection-only serialization is source-audited; this does not establish production render frequency or latency.
+- Mobile controls measured 40×40 (Bold/Format), expanded HR 133×40, keyboard outline 2px, and no horizontal overflow. The development badge obstructed note-theme pointer activation; keyboard activation passed. Development preload and native commandfor/popover warnings were observed, with no application console errors reported.
+- Remaining limits: physical touch/virtual keyboard/safe areas, actual fullscreen entry, exhaustive IME/appearance/browser combinations, and production typing/render performance. Phase 2's unreproduced white draft-card report remains separate and open.
+- Dedicated fixtures `0274bb4e-99e1-4d2e-bdf0-1e643501beb3` and `21b339d5-1250-4f53-8a38-f771c0378f42` were moved to Trash through app controls and confirmed in Recently deleted. No permanent deletion or existing-note changes; the review browser was closed.
 
 ## Acceptance coverage and follow-ups
 
 Checked items have the scoped evidence above. Unchecked items remain unverified; they do not represent reported failures.
 
 - [x] Formatting survives load/edit/save/reopen for representative HTML, including rich-text titles, underline, highlights, nested lists, code, and HR (reviewer scope above; no production corpus audit).
-- [ ] Vietnamese IME composition, paste, nested lists, selection, undo/redo, and long-note editing behave correctly.
-- [ ] Theme changes and background status updates preserve focus, cursor, selection, and undo history.
+- [x] Scoped Vietnamese IME owner smoke, representative paste/nested lists/selection/undo/redo, and local long-note editing coverage passed. Exhaustive IME/device coverage and production performance remain outside this evidence.
+- [x] Note-theme changes and background autosave preserve the observed editor instance, focus, selection, and undo history in the focused browser checks.
 - [x] Modal/full-page handoff preserves the observed active draft without a navigation-triggered write; repeated close produced one successful request in the reviewed flow.
-- [ ] Character limits and counts work without excessive rerenders.
+- [x] Title/body character limits and body count passed focused browser checks. Source audit confirms document-count caching and no serialization on selection-only updates; production render/latency profiling remains unverified.
 - [x] Keyboard, mobile viewport, representative appearances, and EN/VI reviewed under the repository UI workflow; scoped PASS recorded above.
 - [x] Focused existing regression tests, lint/type checks, final build, and settled-design UI review completed; evidence and limits recorded above.
 
