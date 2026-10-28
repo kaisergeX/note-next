@@ -26,7 +26,7 @@ export default function NoteDetailModal({noteData}: {noteData: Note}) {
     await sleep(200)
     window.history.length > 1 ? router.back() : router.push('/eton')
   }
-  if (!session.ready) return null
+  if (!session.ready) return session.recoveryView
   return (
     <NoteDialog
       open={open}

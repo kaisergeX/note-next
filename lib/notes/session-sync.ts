@@ -2,9 +2,11 @@
 
 import type {Note} from '~/db/schema/notes'
 import type {NoteStoreState} from '~/types/note'
+import {noteRecoveryGroups, sameRecoveryCopy} from './recovery-copies'
 import {usePersistStore} from '~/store'
 import {
   clearAccountDrafts,
+  clearDraftBatch,
   clearDraft,
   listDrafts,
   putDraft,
@@ -173,23 +175,30 @@ export class NoteSyncSession {
     )
   }
 
-  async hydrate(recovery?: RecoveryDraft) {
+  async hydrate(recovery?: RecoveryDraft, skipStored = false) {
     try {
+      const capturedCopies = recovery
+        ? (
+            await this.io.list(this.record.ownerId).catch(() => [recovery])
+          ).filter((row) => sameRecoveryCopy(row, recovery))
+        : []
       const records = recovery
         ? [recovery]
-        : this.record.noteId
+        : this.record.noteId && !skipStored
           ? await this.io.list(this.record.ownerId)
           : []
       if (this.stopped) return
       const saved =
         recovery?.ownerId === this.record.ownerId
           ? recovery
-          : records.find(
-              (row) =>
-                row.ownerId === this.record.ownerId &&
-                row.noteId === this.record.noteId &&
-                row.id !== this.record.id,
-            )
+          : (() => {
+              const groups = noteRecoveryGroups(
+                records.filter((row) => row.id !== this.record.id),
+                this.record.ownerId,
+                this.record.noteId!,
+              )
+              return groups.length === 1 ? groups[0].record : undefined
+            })()
       if (saved) {
         const server = this.record.baseline
         this.record = {
@@ -199,6 +208,7 @@ export class NoteSyncSession {
           updatedAt: Date.now(),
         }
         if (server.id) {
+          this.record.noteId = server.id
           const result = reconcile(
             saved.baseline,
             saved.draft,
@@ -217,7 +227,37 @@ export class NoteSyncSession {
           ...this.record.draft,
           ...(this.record.noteId ? {id: this.record.noteId} : {}),
         })
-        await this.persist()
+        const persisted = await this.persist()
+        // Explicitly reopening a draft resumes that copy. Retire its captured
+        // generation only after this session is durable (locally or on server).
+        // Automatic recovery still preserves copies belonging to other sessions.
+        if (
+          recovery &&
+          saved.id !== this.record.id &&
+          persisted &&
+          (this.localSafe ||
+            (!this.dirty &&
+              Boolean(this.record.noteId) &&
+              !this.record.conflict &&
+              !this.record.unavailable))
+        ) {
+          const copies = new Map([[saved.id, saved]])
+          for (const row of capturedCopies)
+            if (row.id !== this.record.id && sameRecoveryCopy(row, saved))
+              copies.set(row.id, row)
+          for (const copy of copies.values()) {
+            const source = controllers.get(copy.id)
+            if (
+              source &&
+              source.record.generation === copy.generation &&
+              sameRecoveryCopy(source.record, copy)
+            ) {
+              source.stop()
+              await source.drained()
+            }
+            await this.io.clear(copy.id, copy.generation)
+          }
+        }
       }
     } catch {
       this.publish({storageFailed: true})
@@ -428,6 +468,7 @@ export class NoteSyncSession {
         baseline: result.note,
         syncStatus: this.dirty ? 'pending' : 'saved',
       })
+      window.dispatchEvent(new CustomEvent('note-saved', {detail: result.note}))
       if (!this.dirty) {
         const acknowledgedGeneration = this.record.generation
         await this.localWrites
@@ -620,7 +661,19 @@ export class NoteSyncSession {
           cache: 'no-store',
         })
         if (!response.ok) {
-          this.publish({syncStatus: 'unavailable'})
+          if (response.status === 404) {
+            this.record.unavailable = true
+            this.record.conflict = undefined
+            this.publish({syncStatus: 'unavailable', conflict: undefined})
+            await this.persist()
+          } else {
+            this.publish({
+              remoteCheckFailed: true,
+              ...(response.status === 401 || response.status === 403
+                ? {syncStatus: 'unauthenticated' as const}
+                : {}),
+            })
+          }
           return
         }
         const latest = (await response.json()) as Note
@@ -718,6 +771,8 @@ export class NoteSyncSession {
     if (this.serverTimer) clearTimeout(this.serverTimer)
   }
   async drained() {
+    await this.running
+    await this.refreshing
     await this.localWrites
   }
   async detach() {
@@ -734,11 +789,13 @@ export function beginNoteSync(
   key: string,
   note?: Note,
   recovery?: RecoveryDraft,
+  skipStored = false,
 ) {
   const current = usePersistStore.getState()
   // An autosaved creation can move to its full route without a new session.
   if (
     !recovery &&
+    !skipStored &&
     note &&
     current.noteSession &&
     current.noteSession.baseline.id === note.id &&
@@ -748,12 +805,23 @@ export function beginNoteSync(
     return
   }
   if (
+    !recovery &&
+    !skipStored &&
     current.noteSession?.key === key &&
     getNoteSync()?.record.ownerId === ownerId
   )
     return
   const previous = getNoteSync()
-  if (previous && current.noteSession?.key !== key) void previous.detach()
+  // A closed view may leave a retrying controller alive. Stop it before
+  // transferring its recovery copy so it cannot write the retired copy back.
+  const source = recovery ? controllers.get(recovery.id) : undefined
+  const resuming = source?.record.ownerId === ownerId ? source : undefined
+  if (previous && previous !== resuming) void previous.detach()
+  resuming?.stop()
+  // A version choice can keep the route key while replacing the session.
+  // Give the replacement a fresh identity so draining the old controller
+  // cannot stop or overwrite it.
+  if (current.noteSession?.key === key) current.setMutateNoteData(undefined)
   current.beginNoteSession(key, note)
   const session = usePersistStore.getState().noteSession!
   const controller = new NoteSyncSession(
@@ -761,11 +829,49 @@ export function beginNoteSync(
     session,
     usePersistStore.getState().mutateNoteData,
   )
-  void controller.hydrate(recovery)
+  void (async () => {
+    await resuming?.drained()
+    const recovered =
+      resuming &&
+      recovery &&
+      resuming.record.generation >= recovery.generation &&
+      resuming.record.updatedAt >= recovery.updatedAt
+        ? structuredClone(resuming.record)
+        : recovery
+    await controller.hydrate(recovered, skipStored)
+  })()
 }
 
 export async function persistCurrentDraft() {
   return getNoteSync()?.persist() ?? true
+}
+
+export async function discardCapturedDrafts(
+  ownerId: string,
+  records: RecoveryDraft[],
+) {
+  const captured: RecoveryDraft[] = []
+  let newer = 0
+  for (const record of records) {
+    if (record.ownerId !== ownerId) continue
+    const source = controllers.get(record.id)
+    if (
+      source &&
+      (source.record.ownerId !== ownerId ||
+        source.record.generation !== record.generation ||
+        !sameRecoveryCopy(source.record, record))
+    ) {
+      newer++
+      continue
+    }
+    if (source) {
+      source.stop()
+      await source.drained()
+    }
+    captured.push(record)
+  }
+  const result = await clearDraftBatch(ownerId, captured)
+  return {newer: newer + result.newer}
 }
 export function flushVisibleDrafts() {
   return Promise.all(

@@ -10,7 +10,6 @@ import {
 } from '@tabler/icons-react'
 import {useLocale, useTranslations} from 'next-intl'
 import {
-  clearDraft,
   clearDraftBatch,
   exportDrafts,
   type RecoveryDraft,
@@ -20,6 +19,7 @@ import {noteText} from '~/lib/notes/text'
 import {getNoteSync} from '~/lib/notes/session-sync'
 import {meaningfulContent} from '~/lib/notes/sync'
 import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
+import {groupRecoveryDrafts} from '~/lib/notes/recovery-copies'
 import {Link, useRouter} from '~/i18n/navigation'
 import {isMobileNoteView} from '~/lib/notes/mobile'
 import type {Note} from '~/db/schema/notes'
@@ -27,9 +27,8 @@ import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
 import PopoverBase from '~/components/ui/popover'
 import {Input} from '~/components/ui/input'
-import {Badge} from '~/components/ui/badge'
 import ConfirmationDialog from '~/components/ui/confirmation-dialog'
-import NoteCard, {NoteCardSummary} from './note-card'
+import NoteCard, {NoteCardFooter, NoteCardSummary} from './note-card'
 import NoteDialog from './note-dialog'
 import CollectionTitle from './collection-title'
 import {useNoteSession} from './use-note-session'
@@ -62,6 +61,7 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
   const locale = useLocale()
   const {
     records: visible,
+    groups,
     error: storageError,
     loaded,
   } = useRecoveryDrafts(ownerId)
@@ -113,15 +113,15 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
     }
   }
   const search = query.trim().toLocaleLowerCase(locale)
-  const filtered = visible.filter(
-    (record) =>
+  const filtered = groups.filter(
+    ({record}) =>
       !search ||
       `${noteText(record.draft.title)} ${noteText(record.draft.content)}`
         .toLocaleLowerCase(locale)
         .includes(search),
   )
   const dateFormat = new Intl.DateTimeFormat(locale, {
-    dateStyle: 'medium',
+    dateStyle: 'short',
     timeStyle: 'short',
   })
   return (
@@ -138,8 +138,8 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
             </Link>
             <CollectionTitle
               title={t('draftsPageTitle')}
-              count={loaded ? visible.length : undefined}
-              countLabel={t('draftCount', {count: visible.length})}
+              count={loaded ? groups.length : undefined}
+              countLabel={t('draftCount', {count: groups.length})}
             />
             <PopoverBase
               anchor="bottom-end"
@@ -226,7 +226,7 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
         </div>
       )}
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] grid-rows-[masonry] gap-4 pb-16">
-        {filtered.map((record) => {
+        {filtered.map(({record, copies}) => {
           const hasTitle = Boolean(noteText(record.draft.title))
           const title = hasTitle ? noteText(record.draft.title) : t('untitled')
           return (
@@ -268,56 +268,50 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
                     </p>
                   )}
                 </Link>
-                <footer className="flex items-center justify-between gap-2 px-3 pt-1 pb-2">
-                  <div className="min-w-0 space-y-1">
-                    <Badge
-                      status={
-                        record.conflict || record.unavailable
-                          ? 'draft'
-                          : 'neutral'
-                      }
+                {(record.conflict || record.unavailable) && (
+                  <p className="text-warning px-4 pb-2 text-sm">
+                    {t(
+                      record.unavailable
+                        ? 'draftOriginalUnavailable'
+                        : 'draftConflict',
+                    )}
+                  </p>
+                )}
+                <NoteCardFooter
+                  actions={
+                    <MenuCustom
+                      className={buttonClass({
+                        variant: 'ghost',
+                        iconOnly: true,
+                      })}
+                      ariaLabel={t('draftActions', {title})}
+                      items={[
+                        {
+                          type: 'action',
+                          label: t('export'),
+                          onSelect: () => exportDrafts(copies),
+                        },
+                        {
+                          type: 'action',
+                          label: t('discard'),
+                          destructive: true,
+                          onSelect: () => setDiscard(record.id),
+                        },
+                      ]}
                     >
-                      {t(
-                        record.unavailable
-                          ? 'draftOriginalUnavailable'
-                          : record.conflict
-                            ? 'conflict'
-                            : record.noteId
-                              ? 'recoveryCopy'
-                              : 'newNoteDraft',
-                      )}
-                    </Badge>
-                    <p className="text-ink-muted text-xs">
-                      <time
-                        dateTime={new Date(record.updatedAt).toISOString()}
-                        aria-label={t('savedOnDeviceAt', {
-                          time: dateFormat.format(record.updatedAt),
-                        })}
-                      >
-                        {dateFormat.format(record.updatedAt)}
-                      </time>
-                    </p>
-                  </div>
-                  <MenuCustom
-                    className={buttonClass({variant: 'ghost', iconOnly: true})}
-                    ariaLabel={t('draftActions', {title})}
-                    items={[
-                      {
-                        type: 'action',
-                        label: t('export'),
-                        onSelect: () => exportDrafts([record]),
-                      },
-                      {
-                        type: 'action',
-                        label: t('discard'),
-                        destructive: true,
-                        onSelect: () => setDiscard(record.id),
-                      },
-                    ]}
+                      <IconDotsVertical size={18} aria-hidden />
+                    </MenuCustom>
+                  }
+                >
+                  <time
+                    dateTime={new Date(record.updatedAt).toISOString()}
+                    aria-label={t('savedOnDeviceAt', {
+                      time: dateFormat.format(record.updatedAt),
+                    })}
                   >
-                    <IconDotsVertical size={18} aria-hidden />
-                  </MenuCustom>
-                </footer>
+                    {dateFormat.format(record.updatedAt)}
+                  </time>
+                </NoteCardFooter>
                 {discard === record.id && (
                   <div className="border-destructive/40 bg-paper-raised w-full rounded-b-lg border-t px-3 py-3">
                     <p className="text-warning text-sm">
@@ -328,8 +322,11 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
                       variant="danger"
                       size="sm"
                       onClick={() =>
-                        void clearDraft(record.id, record.generation)
-                          .then(() => setDiscard(undefined))
+                        void clearDraftBatch(ownerId, copies)
+                          .then((result) => {
+                            setBulkNotice(result.newer > 0)
+                            setDiscard(undefined)
+                          })
                           .catch(() => setError(true))
                       }
                     >
@@ -364,7 +361,9 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
         </Dialog.Header>
         <Dialog.Content className="pt-0 text-sm">
           <p id={bulkDescriptionId}>
-            {t('discardAllBody', {count: discardAll?.length ?? 0})}
+            {t('discardAllBody', {
+              count: groupRecoveryDrafts(discardAll ?? []).length,
+            })}
           </p>
           {error && (
             <p role="alert" className="text-destructive mt-2">

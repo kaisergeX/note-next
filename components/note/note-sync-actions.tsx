@@ -13,6 +13,7 @@ import NoteCard from './note-card'
 import {useMobileNoteView} from '~/lib/notes/mobile'
 import type {NoteTheme} from '~/db/schema/notes'
 import {usePathname, useRouter} from '~/i18n/navigation'
+import AttachedNoteVersions from './attached-note-versions'
 
 export default function NoteSyncActions({className}: {className?: string}) {
   const t = useTranslations('note.recovery')
@@ -97,9 +98,10 @@ export default function NoteSyncActions({className}: {className?: string}) {
     }
   }
   if (!remote && !unavailable && !session?.storageFailed && !retryable)
-    return null
+    return <AttachedNoteVersions className={className} />
   return (
     <div className={cn('flex flex-col gap-2', className)}>
+      <AttachedNoteVersions />
       {session?.storageFailed && (
         <p className="text-destructive text-sm" role="alert">
           {t('storageFailed')}
