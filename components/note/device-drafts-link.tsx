@@ -9,10 +9,10 @@ import {cn} from 'cn'
 
 export default function DeviceDraftsLink({ownerId}: {ownerId: string}) {
   const t = useTranslations('note.recovery')
-  const {records, error, loaded} = useRecoveryDrafts(ownerId)
+  const {groups, error, loaded} = useRecoveryDrafts(ownerId)
   return (
     <Link
-      href="/collection/drafts"
+      href="/eton#browser-work"
       className={cn(
         buttonClass({variant: 'ghost', size: 'sm'}),
         'h-10 gap-1.5 px-2 font-normal',
@@ -25,8 +25,8 @@ export default function DeviceDraftsLink({ownerId}: {ownerId: string}) {
         <IconFiles size={18} aria-hidden />
       )}
       <span>{t('draftsTitle')}</span>
-      {loaded && records.length > 0 && (
-        <span className="text-ink-muted tabular-nums">· {records.length}</span>
+      {loaded && groups.length > 0 && (
+        <span className="text-ink-muted tabular-nums">· {groups.length}</span>
       )}
       {error && <span className="sr-only">{t('recoveryFailed')}</span>}
     </Link>

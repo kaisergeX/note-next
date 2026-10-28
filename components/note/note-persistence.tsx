@@ -84,7 +84,7 @@ export default function NotePersistence() {
         return
       event.preventDefault()
       void persistCurrentDraft().then((safe) => {
-        if (!safe) {
+        if (!safe || hasUnsafeDraft()) {
           getNoteSync()?.retry()
           return
         }
@@ -208,7 +208,7 @@ export default function NotePersistence() {
         ) : (
           <>
             <Link
-              href="/collection/drafts"
+              href="/eton#browser-work"
               className={buttonClass({variant: 'primary'})}
               aria-disabled={busy || undefined}
               onClick={(event) => {

@@ -3,10 +3,17 @@ import {test, type TestContext} from 'node:test'
 import type {Note} from '../db/schema/notes'
 import {
   NoteSyncSession,
+  beginNoteSync,
+  getNoteSync,
   pauseAccountDrafts,
   type NoteSyncDependencies,
 } from '../lib/notes/session-sync'
 import type {RecoveryDraft} from '../lib/notes/drafts'
+import {
+  groupRecoveryDrafts,
+  groupNoteRecovery,
+  noteRecoveryGroups,
+} from '../lib/notes/recovery-copies'
 import {usePersistStore} from '../store'
 import type {SyncRequest, SyncResult} from '../lib/notes/sync'
 
@@ -72,6 +79,173 @@ function setup(t: TestContext, send: NoteSyncDependencies['send']) {
 const settle = async () => {
   for (let n = 0; n < 30; n++) await Promise.resolve()
 }
+
+test('explicit recovery resumes the selected draft and retains its changed theme', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Unsynced draft'},
+  }
+  records.set(recovery.id, structuredClone(recovery))
+  await controller.hydrate(recovery)
+  assert.equal(records.has(recovery.id), false)
+  assert.equal(records.size, 1)
+  usePersistStore.getState().setMutateNoteData({theme: 'green'})
+  assert.equal(await controller.persist(), true)
+  assert.equal(records.get(controller.record.id)?.draft.theme, 'green')
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'Unsynced draft',
+  )
+  assert.equal(controller.record.noteId, baseline.id)
+})
+
+test('explicit recovery keeps the selected copy if its replacement cannot be checkpointed', async (t) => {
+  const {controller, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Only durable copy'},
+  }
+  records.set(recovery.id, structuredClone(recovery))
+  io.put = async () => {
+    throw new Error('Storage unavailable')
+  }
+  await controller.hydrate(recovery)
+  assert.deepEqual(records.get(recovery.id), recovery)
+  assert.equal(records.size, 1)
+  assert.equal(
+    usePersistStore.getState().mutateNoteData?.content,
+    'Only durable copy',
+  )
+})
+
+test('explicit recovery preserves source edits arriving during its replacement checkpoint', async (t) => {
+  const {controller, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Selected version'},
+  }
+  records.set(recovery.id, structuredClone(recovery))
+  const put = io.put
+  io.put = async (record) => {
+    records.set(recovery.id, {
+      ...recovery,
+      generation: recovery.generation + 1,
+      draft: {...recovery.draft, content: 'Newer work from another tab'},
+    })
+    await put(record)
+  }
+  await controller.hydrate(recovery)
+  assert.equal(
+    records.get(recovery.id)?.draft.content,
+    'Newer work from another tab',
+  )
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'Selected version',
+  )
+})
+
+test('equivalent recovery copies form one card, while different work stays separate', (t) => {
+  const {controller} = setup(t, async () => ({status: 'retryable_error'}))
+  const original = structuredClone(controller.record)
+  const duplicate = {
+    ...original,
+    id: crypto.randomUUID(),
+    updatedAt: original.updatedAt + 1,
+  }
+  const edited = {
+    ...duplicate,
+    id: crypto.randomUUID(),
+    draft: {...duplicate.draft, content: 'Other work'},
+  }
+  const groups = groupRecoveryDrafts([original, duplicate, edited])
+  assert.equal(groups.length, 2)
+  const identical = groups.find((group) => group.copies.length === 2)!
+  assert.equal(identical.record.id, duplicate.id)
+  assert.deepEqual(
+    identical.copies.map((copy) => copy.id),
+    [original.id, duplicate.id],
+  )
+  assert.equal(
+    groupRecoveryDrafts([
+      {...original, noteId: null},
+      {...duplicate, noteId: null, creationId: crypto.randomUUID()},
+    ]).length,
+    2,
+  )
+  assert.equal(
+    groupRecoveryDrafts([
+      original,
+      {...duplicate, draft: {...duplicate.draft, theme: 'green'}},
+    ]).length,
+    2,
+  )
+  assert.equal(
+    groupRecoveryDrafts([
+      original,
+      {
+        ...duplicate,
+        baseline: {...duplicate.baseline, revision: crypto.randomUUID()},
+      },
+    ]).length,
+    2,
+  )
+})
+
+test('explicit recovery retires equivalent copies but keeps different work', async (t) => {
+  const {controller, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const original: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Unsynced work'},
+  }
+  const duplicate = {...original, id: crypto.randomUUID()}
+  const edited = {
+    ...original,
+    id: crypto.randomUUID(),
+    draft: {...original.draft, content: 'Different work'},
+  }
+  for (const record of [original, duplicate, edited])
+    records.set(record.id, record)
+  await controller.hydrate(original)
+  assert.equal(records.has(original.id), false)
+  assert.equal(records.has(duplicate.id), false)
+  assert.deepEqual(records.get(edited.id), edited)
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    original.draft.content,
+  )
+})
+
+test('automatic recovery preserves the other session copy', async (t) => {
+  const {controller, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Work from another session'},
+  }
+  records.set(recovery.id, structuredClone(recovery))
+  await controller.hydrate()
+  assert.deepEqual(records.get(recovery.id), recovery)
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    recovery.draft.content,
+  )
+})
 
 test('bulk Trash notification retains memory-only work when the local checkpoint fails', async (t) => {
   const context = setup(t, async () => ({status: 'retryable_error'}))
@@ -436,3 +610,168 @@ test('visibility read can acknowledge an exact committed save with a lost respon
   assert.equal(context.records.has(context.controller.record.id), false)
   assert.equal(usePersistStore.getState().noteSession?.syncStatus, 'saved')
 })
+
+test('ambiguous automatic recovery preserves every candidate without choosing by checkpoint time', async (t) => {
+  const {controller, records, baseline} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const first = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'First version'},
+  }
+  const later = {
+    ...first,
+    id: crypto.randomUUID(),
+    updatedAt: first.updatedAt + 1000,
+    draft: {...first.draft, content: 'Later version'},
+  }
+  records.set(first.id, first)
+  records.set(later.id, later)
+  await controller.hydrate()
+  assert.equal(controller.record.draft.content, baseline.content)
+  assert.equal(controller.dirty, false)
+  assert.deepEqual([...records.values()], [first, later])
+})
+
+test('logical identity joins a lost creation response to its saved note without joining foreign accounts', (t) => {
+  const {controller, baseline} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const pending = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    noteId: null,
+    creationId: baseline.id,
+    baseline: {},
+    draft: {...controller.record.draft, content: 'Pending creation'},
+  }
+  const acquired = {
+    ...pending,
+    id: crypto.randomUUID(),
+    noteId: baseline.id,
+    baseline,
+  }
+  const foreign = {
+    ...pending,
+    id: crypto.randomUUID(),
+    ownerId: crypto.randomUUID(),
+  }
+  const groups = noteRecoveryGroups(
+    [pending, acquired, foreign],
+    baseline.authorId,
+    baseline.id,
+  )
+  assert.equal(groups.length, 2)
+  assert.equal(groups.flatMap((group) => group.copies).length, 2)
+  assert.equal(groupNoteRecovery([pending, acquired]).size, 1)
+})
+
+test('recovery acquires a known server identity while retaining its exact ambiguous creation retry', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    noteId: null,
+    creationId: baseline.id,
+    baseline: {},
+    flight: {
+      ownerId: baseline.authorId,
+      noteId: null,
+      creationId: baseline.id,
+      mutationId: crypto.randomUUID(),
+      expectedRevision: null,
+      kind: 'save',
+      content: structuredClone(controller.record.draft),
+    },
+  }
+  records.set(recovery.id, recovery)
+  await controller.hydrate(recovery)
+  assert.equal(controller.record.noteId, baseline.id)
+  assert.deepEqual(controller.record.flight, recovery.flight)
+  assert.equal(records.has(recovery.id), false)
+  assert.equal(records.has(controller.record.id), true)
+})
+
+test('copies created during handoff are preserved even when equivalent to its captured source', async (t) => {
+  const {controller, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const original = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    draft: {...controller.record.draft, content: 'Selected work'},
+  }
+  const arriving = {...original, id: crypto.randomUUID()}
+  records.set(original.id, original)
+  const put = io.put
+  io.put = async (record) => {
+    records.set(arriving.id, arriving)
+    await put(record)
+  }
+  await controller.hydrate(original)
+  assert.equal(records.has(original.id), false)
+  assert.deepEqual(records.get(arriving.id), arriving)
+})
+
+test('opening the saved version on the same route starts a fresh controller and retains local work', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: 'Retain this local alternative'})
+  assert.equal(await controller.persist(), true)
+  const oldId = controller.record.id
+  beginNoteSync(baseline.authorId, 'queue-test', baseline, undefined, true)
+  await settle()
+  const replacement = getNoteSync()!
+  t.after(() => replacement.stop())
+  assert.ok(replacement)
+  assert.notEqual(replacement.record.id, oldId)
+  assert.equal(replacement.record.draft.content, baseline.content)
+  assert.equal(usePersistStore.getState().noteSession?.hydrated, true)
+  assert.equal(
+    records.get(oldId)?.draft.content,
+    'Retain this local alternative',
+  )
+})
+
+for (const status of [503, 401, 404]) {
+  test(`Use saved handles HTTP ${status} without confusing a temporary failure with deletion`, async (t) => {
+    const {controller, baseline} = setup(t, async () => ({
+      status: 'retryable_error',
+    }))
+    const remote = {
+      ...baseline,
+      revision: crypto.randomUUID(),
+      content: 'Server alternative',
+    }
+    const recovery = {
+      ...structuredClone(controller.record),
+      id: crypto.randomUUID(),
+      draft: {...controller.record.draft, content: 'Local alternative'},
+      conflict: remote,
+    }
+    await controller.hydrate(recovery)
+    const shown = controller.record.conflict!.revision
+    t.mock.method(globalThis, 'fetch', async () => new Response('', {status}))
+    await controller.resolve('saved', shown)
+    assert.equal(controller.record.draft.content, 'Local alternative')
+    assert.equal(Boolean(controller.record.unavailable), status === 404)
+    assert.equal(Boolean(controller.record.conflict), status !== 404)
+    if (status === 503)
+      assert.equal(
+        usePersistStore.getState().noteSession?.remoteCheckFailed,
+        true,
+      )
+    if (status === 401)
+      assert.equal(
+        usePersistStore.getState().noteSession?.syncStatus,
+        'unauthenticated',
+      )
+  })
+}

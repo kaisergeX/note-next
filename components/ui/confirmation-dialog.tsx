@@ -25,7 +25,7 @@ export default function ConfirmationDialog({
   restoreFocusId?: string
   initialFocusId?: string
   className?: string
-  layout?: 'confirmation' | 'workspace'
+  layout?: 'confirmation' | 'workspace' | 'comparison'
   children: ReactNode
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
@@ -59,7 +59,13 @@ export default function ConfirmationDialog({
       aria-labelledby={labelledBy}
       aria-describedby={describedBy}
       onKeyDownCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest('dialog') !== event.currentTarget
+        )
+          return
         if (event.key !== 'Escape') return
+        if (event.currentTarget.querySelector(':popover-open')) return
         event.preventDefault()
         if (!busy) onRequestClose()
       }}
@@ -76,9 +82,11 @@ export default function ConfirmationDialog({
       }}
       className={cn(
         'bg-paper-raised text-ink border-hairline shadow-sheet backdrop:bg-paper/50 backdrop:backdrop-blur',
-        layout === 'workspace'
-          ? 'm-auto h-dvh max-h-dvh w-dvw max-w-none flex-col overflow-hidden rounded-none border-0 p-0 open:flex sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100dvw-2rem)] sm:max-w-none sm:rounded-lg sm:border'
-          : 'm-auto max-h-full w-full max-w-lg overflow-y-auto rounded-lg border p-6 max-sm:mx-3 max-sm:w-auto',
+        layout === 'comparison'
+          ? 'm-auto h-dvh max-h-dvh w-dvw max-w-none flex-col overflow-hidden rounded-none border-0 p-0 open:flex sm:h-5/6 sm:w-11/12 sm:max-w-6xl sm:rounded-lg sm:border'
+          : layout === 'workspace'
+            ? 'm-auto h-dvh max-h-dvh w-dvw max-w-none flex-col overflow-hidden rounded-none border-0 p-0 open:flex sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100dvw-2rem)] sm:max-w-none sm:rounded-lg sm:border'
+            : 'm-auto max-h-full w-full max-w-lg overflow-y-auto rounded-lg border p-6 max-sm:mx-3 max-sm:w-auto',
         className,
       )}
     >

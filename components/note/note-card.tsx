@@ -26,6 +26,21 @@ export default function NoteCard({
   )
 }
 
+export function NoteCardFooter({
+  children,
+  actions,
+}: {
+  children?: ReactNode
+  actions: ReactNode
+}) {
+  return (
+    <footer className="flex items-center justify-between gap-2 px-3 pt-1 pb-2">
+      <div className="text-ink-muted min-w-0 text-xs">{children}</div>
+      <div className="shrink-0">{actions}</div>
+    </footer>
+  )
+}
+
 export function NoteCardSummary({
   title,
   content,
@@ -55,7 +70,8 @@ export function NoteCardSummary({
       )}
       <article
         className={cn(
-          'prose pt-3 wrap-anywhere',
+          'prose wrap-anywhere',
+          title && 'pt-3',
           compact ? 'line-clamp-2' : 'line-clamp-10',
           prose,
         )}
