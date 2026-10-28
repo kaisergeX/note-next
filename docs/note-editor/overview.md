@@ -15,7 +15,7 @@ Status: Phases 0–2 and the minimum Phase 3 conflict-safety scope are implement
 | Phase | Scope | State |
 | --- | --- | --- |
 | 0 | Tiptap security assessment and upgrade to 3.32.0 | Delivered; unrelated advisory limits remain in editor.md. |
-| 1 | Editor/session separation and UI rebuild | Delivered and accepted; scoped reviews passed. |
+| 1 | Editor/session separation and UI rebuild | Delivered and accepted; HR EOL correction and Vietnamese IME owner-confirmed on 2026-10-28. Follow-up evidence and device/production limits in editor.md. |
 | 2 | Local recovery and bounded autosave | Implemented and accepted; checks/review passed. White draft-card report remains unverified. |
 | 3, minimum | Revision checks, field reconciliation, persistent conflict review | Implemented and accepted; detailed diffs/manual merging/history remain deferred. |
 | Later | Search, full offline operation, E2EE, drawing | Separate design and authorization required. |
