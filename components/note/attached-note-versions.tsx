@@ -56,6 +56,7 @@ export default function AttachedNoteVersions({
   return (
     <div className={cn('flex min-w-0 flex-wrap items-center gap-2', className)}>
       <Button
+        className="h-auto min-h-10 max-w-full whitespace-normal"
         size="sm"
         variant="secondary"
         disabled={busy}
