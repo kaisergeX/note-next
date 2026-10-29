@@ -214,13 +214,12 @@ export class NoteSyncSession {
             saved.draft,
             snapshot(server),
           )
+          this.record.draft = result.merged
           if (result.conflicts.length) {
             this.record.conflict = server as Note
-            this.publish({conflict: server as Note, syncStatus: 'conflict'})
           } else {
             // A pending request is retried unchanged before saving a merged draft.
             if (!saved.flight) this.record.baseline = server
-            this.record.draft = result.merged
           }
         }
         this.replaceContent({

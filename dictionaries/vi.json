@@ -571,6 +571,24 @@
       "retry": "Thử lại"
     },
     "recovery": {
+      "diff": {
+        "showChanges": "Xem thay đổi",
+        "showPreviews": "Xem bản trình bày",
+        "direction": "So sánh văn bản với bản đã lưu. Xem bản trình bày để kiểm tra định dạng.",
+        "title": "Tiêu đề",
+        "content": "Nội dung",
+        "unchanged": "Không thay đổi",
+        "sameText": "Văn bản không thay đổi.",
+        "structureChanged": "Định dạng hoặc cấu trúc khác nhau. Kiểm tra bản trình bày.",
+        "colorChanged": "Màu ghi chú khác nhau",
+        "coarse": "Thay đổi lớn: đánh dấu toàn bộ phần này.",
+        "added": "Được thêm trong bản của bạn",
+        "removed": "Bị xóa khỏi bản đã lưu",
+        "addedStart": "Bắt đầu văn bản được thêm: ",
+        "removedStart": "Bắt đầu văn bản bị xóa: ",
+        "changeEnd": " Hết văn bản thay đổi. ",
+        "empty": "Trống"
+      },
       "conflict": "Cần xem lại",
       "local": "Chờ đồng bộ",
       "storageFailed": "Không thể lưu thay đổi mới nhất trên thiết bị. Giữ trang này mở cho đến khi lưu thành công hoặc xuất bản nháp.",
