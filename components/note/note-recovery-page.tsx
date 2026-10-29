@@ -11,6 +11,8 @@ import {useRouter} from '~/i18n/navigation'
 import {useSearchParams} from 'next/navigation'
 import {groupRecoveryDrafts, recoveryNoteId} from '~/lib/notes/recovery-copies'
 import NoteVersionPicker from './note-version-picker'
+import {usePersistStore} from '~/store'
+import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
 
 export default function NoteRecoveryPage({
   ownerId,
@@ -22,17 +24,47 @@ export default function NoteRecoveryPage({
   const t = useTranslations('note')
   const router = useRouter()
   const search = useSearchParams()
+  const reviewing = Boolean(search.get('review'))
+  const recoveryId = search.get('draft') ?? draftId
+  const session = usePersistStore((state) => state.noteSession)
   const [choices, setChoices] = useState<RecoveryDraft[]>()
   const [value, setValue] = useState<{record: RecoveryDraft; note?: Note}>()
   const [error, setError] = useState(false)
   const [localRecord, setLocalRecord] = useState<RecoveryDraft>()
   const [attempt, setAttempt] = useState(0)
   useEffect(() => {
+    const controller = getNoteSync()
+    if (
+      !value ||
+      choices ||
+      !session?.hydrated ||
+      (session.key !== `recovery:${value.record.id}` &&
+        controller?.record.id !== value.record.id) ||
+      controller?.record.ownerId !== ownerId ||
+      (!controller.localSafe && controller.dirty)
+    )
+      return
+    // Retired source IDs cannot be reloaded. Native history preserves the
+    // mounted editors while pointing reloads at durable work or its saved note.
+    const url = new URL(window.location.href)
+    if (controller.record.noteId && !controller.record.unavailable) {
+      url.pathname = url.pathname.replace(
+        /\/full\/eton\/recover\/[^/]+$/,
+        `/full/eton/${controller.record.noteId}`,
+      )
+      url.searchParams.delete('draft')
+    } else {
+      // Keep the segment stable so an RSC refresh preserves the editor tree.
+      url.searchParams.set('draft', controller.record.id)
+    }
+    window.history.replaceState(null, '', url)
+  }, [session, value, choices, ownerId])
+  useEffect(() => {
     let active = true
     async function load() {
       try {
         const records = await listDrafts(ownerId)
-        const record = records.find((row) => row.id === draftId)
+        const record = records.find((row) => row.id === recoveryId)
         if (!record) {
           if (active) setError(true)
           return
@@ -51,7 +83,7 @@ export default function NoteRecoveryPage({
           const related = records.filter(
             (row) => recoveryNoteId(row) === recoveryNoteId(record),
           )
-          if (search.get('review') && groupRecoveryDrafts(related).length > 1)
+          if (reviewing && groupRecoveryDrafts(related).length > 1)
             setChoices(related)
           setValue({record, note})
           setError(false)
@@ -64,7 +96,7 @@ export default function NoteRecoveryPage({
     return () => {
       active = false
     }
-  }, [ownerId, draftId, attempt, search])
+  }, [ownerId, recoveryId, attempt, reviewing])
   if (value && choices)
     return (
       <NoteVersionPicker
@@ -72,9 +104,21 @@ export default function NoteRecoveryPage({
         records={choices}
         onClose={() => router.replace('/eton')}
         onChoose={(record) => {
-          setChoices(undefined)
-          if (record) setValue({...value, record})
-          else if (value.note) router.replace(`/full/eton/${value.note.id}`)
+          if (record) {
+            setChoices(undefined)
+            setValue({...value, record})
+          } else if (value.note) {
+            // Keep the chooser mounted until navigation; rendering the old
+            // recovery editor here would resume it over the saved selection.
+            beginNoteSync(
+              ownerId,
+              `${ownerId}:${value.note.id}`,
+              value.note,
+              undefined,
+              true,
+            )
+            router.replace(`/full/eton/${value.note.id}`)
+          }
         }}
       />
     )
