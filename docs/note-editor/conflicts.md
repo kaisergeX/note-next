@@ -1,6 +1,6 @@
 # Concurrent edits and conflict recovery
 
-Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Scoped verification passed; limits and the open draft-card report are in [autosave](autosave.md#verification-and-open-items). Detailed diffs, manual merging, and user-visible history remain deferred.
+Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Scoped verification passed; current evidence and device/production limits are in [handoff](handoff.md). Detailed diffs, manual merging, and user-visible history remain deferred.
 
 The integrated Notes direction in [recovery-ux.md](recovery-ux.md) changes discovery and adds note-scoped selection when multiple local versions exist. The revision, reconciliation, and guarded resolution contracts below remain required. Existing comparison presentation is the starting point, not a requirement to expose each recovery record as a separate note.
 
@@ -55,8 +55,12 @@ Parent browser checks verified review reopening with newer remote content, retai
 
 See [the consolidated evidence and remaining limits](autosave.md#verification-and-open-items); passing scoped checks is not an exhaustive device/production certification.
 
-## Integrated browser-version selection — current checks and remaining review
+## Integrated browser-version selection
 
 The shared editor gate no longer picks the first record when several distinct equivalent-copy groups exist. Notes attaches them to one note and presents a chooser before ordinary editing. Explicit selection preserves other groups; subsequent server conflicts still use guarded comparison. A persistent editor action keeps other browser versions discoverable. Same-route switches create a fresh session identity; captured equivalent cleanup waits for durable handoff. Only a confirmed 404 during Use saved marks the original unavailable; temporary read failures keep resolution blocked and retryable. See [handoff](handoff.md) for current limits.
 
-On 2026-10-29, the integrated design was owner-accepted. The current combined queue/policy suite passes 39 tests, the authenticated sync HTTP suite passes, and lint/types plus the elevated production/Serwist build pass. New cases explicitly cover preserving local work for Use saved HTTP 503/401 and marking unavailable only on 404, owner/creation identity matching, same-route controller replacement, and equivalent copies arriving after the handoff snapshot. The required UI reviewer did not inspect any states because its Chrome profile was locked. Final review and the recovery-route/repeated-hydration boundary checks in [handoff](handoff.md) remain outstanding. The earlier independent PASS above is historical.
+The integrated design was owner-accepted on 2026-10-29. Current verification includes 39 focused queue/policy regressions, authenticated sync HTTP, lint/types, production/Serwist build, and focused independent UI re-review PASS. Recovery URL/repeated hydration and direct Open saved were corrected and browser-verified; both local alternatives remain accessible after opening saved content. Exact coverage is consolidated in [handoff](handoff.md).
+
+## Deferred Phase 3 extensions
+
+Minimum conflict safety above is delivered. Detailed diffs, manual merging, and user-visible version history require scope agreement before implementation. No retained-history schema or merge algorithm has been approved.
