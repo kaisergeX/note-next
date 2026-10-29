@@ -39,6 +39,8 @@ Opening review or returning to a visible tab performs a deduplicated uncached re
 
 Unavailable originals stop saves. Explicit recovery can create a new note; it never restores the original implicitly.
 
+If Keep both has durable local work but no server acknowledgement, keep the editor mounted and point reload at that copy's recovery record. Manual/background retry follows the saved copy identity; a lost response must not duplicate the note or leave its URL pointing at the original.
+
 ## Presentation
 
 Use existing note themes and the read-only rich-text renderer for title/body formatting, highlights, lists, quotes, and color.
