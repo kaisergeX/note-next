@@ -20,12 +20,14 @@ export default function NoteVersionPicker({
   onChoose,
   onClose,
   busy = false,
+  dismissLabel = 'reviewLater',
 }: {
   note?: Note
   records: RecoveryDraft[]
   onChoose: (record?: RecoveryDraft) => void
   onClose: () => void
   busy?: boolean
+  dismissLabel?: 'reviewLater' | 'closeComparison'
 }) {
   const t = useTranslations('note.recovery')
   const locale = useLocale()
@@ -180,7 +182,7 @@ export default function NoteVersionPicker({
       </div>
       <footer className="border-hairline flex shrink-0 justify-end border-t px-4 py-3 sm:px-6">
         <Button variant="ghost" disabled={busy} onClick={onClose}>
-          {t('reviewLater')}
+          {t(dismissLabel)}
         </Button>
       </footer>
     </ConfirmationDialog>

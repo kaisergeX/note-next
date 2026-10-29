@@ -17,6 +17,7 @@ export function isNoteCollectionPath(path: string) {
   return (
     path === '/eton' ||
     path === '/collection/drafts' ||
+    path === '/collection/browser-work' ||
     path === '/collection/trash'
   )
 }

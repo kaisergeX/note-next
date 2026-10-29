@@ -4,5 +4,8 @@ import type {PropsWithLocale} from '~/types'
 
 export default async function NoteDraftsPage({params}: PropsWithLocale) {
   await requireAuth()
-  redirect({href: '/eton#browser-work', locale: (await params).locale})
+  redirect({
+    href: '/collection/browser-work',
+    locale: (await params).locale,
+  })
 }

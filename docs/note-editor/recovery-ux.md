@@ -26,6 +26,10 @@ The routine journey is edit → close → see the same work on the same card →
 
 Remove Drafts as a primary destination. Existing Drafts/recovery links and account-exit Review must still lead to the corresponding work in Notes. Keep technical export and bulk discard in secondary management controls, without building another competing notebook. Trash remains separate because deletion is a deliberate lifecycle state.
 
+Account-exit Review and legacy recovery links open the dedicated `/collection/browser-work` review route, showing only notes with account-scoped browser records through the shared note cards. The header contains a back icon to Notes and a Browser work title, with management at the right. Do not include Create note or an All notes button. This secondary review route does not become a primary collection destination. The earlier `?work=browser` URL redirects here. If no records remain after syncing or discarding, show a specific empty state rather than ordinary empty-notebook copy.
+
+Browser work has a consistent return path: uncomplicated work opens the full editor; conflicting work opens its comparison, and competing versions open the existing chooser. Review later in that chooser returns to Browser work without changing versions. Closing an editor opened from Browser work also returns there, including after reload, choosing the saved version, server identity acquisition, and Keep both retries. Only the back icon on Browser work returns to Notes. Editor overlays use Close comparison to dismiss the overlay and stay in the editor. A fixed `from=browser-work` query value carries this context through editor/recovery URLs; it is not an arbitrary redirect target. Normal Notes entry behavior remains unchanged.
+
 ## Presentation
 
 - Reuse the shared note cards and authored colors across Notes and Trash. Keep blank titles blank; use subdued empty-content treatment only when needed.

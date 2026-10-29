@@ -1,6 +1,7 @@
 'use client'
 
-import {useEffect, useId, useRef, useState} from 'react'
+import {startTransition, useEffect, useId, useRef, useState} from 'react'
+import {useSearchParams} from 'next/navigation'
 import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
 import {IconArrowsDiff, IconEye} from '@tabler/icons-react'
@@ -17,11 +18,16 @@ import {usePathname, useRouter} from '~/i18n/navigation'
 import AttachedNoteVersions from './attached-note-versions'
 import NoteVersionDiff from './note-version-diff'
 import {snapshot} from '~/lib/notes/sync'
+import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 
 export default function NoteSyncActions({className}: {className?: string}) {
   const t = useTranslations('note.recovery')
   const router = useRouter()
   const pathname = usePathname()
+  const search = useSearchParams()
+  const fromBrowserWork = search.get('from') === 'browser-work'
+  const initialReview = fromBrowserWork && search.get('review') === '1'
+  const reviewedSession = useRef<string | undefined>(undefined)
   const session = usePersistStore((s) => s.noteSession)
   const draft = usePersistStore((s) => s.mutateNoteData)
   const [review, setReview] = useState(false)
@@ -41,6 +47,19 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const titleId = useId(),
     descriptionId = useId()
   const remote = session?.conflict
+  const hasConflict = Boolean(remote)
+  useEffect(() => {
+    if (
+      !initialReview ||
+      !hasConflict ||
+      !session?.identity ||
+      reviewedSession.current === session.identity
+    )
+      return
+    reviewedSession.current = session.identity
+    startTransition(() => setReview(true))
+    void getNoteSync()?.refreshRemote('review')
+  }, [initialReview, hasConflict, session?.identity])
   const resolutionDisabled =
     busy || session?.checkingRemote || session?.remoteCheckFailed
   const unavailable = session?.syncStatus === 'unavailable'
@@ -69,9 +88,12 @@ export default function NoteSyncActions({className}: {className?: string}) {
     if (!copyId || session?.baseline.id !== copyId) return
     pendingCopy.current = undefined
     router.replace(
-      `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${copyId}`,
+      withBrowserWorkReturn(
+        `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${copyId}`,
+        fromBrowserWork,
+      ),
     )
-  }, [session?.baseline.id, mobile, pathname, router])
+  }, [session?.baseline.id, mobile, pathname, router, fromBrowserWork])
   useEffect(() => {
     if (discard) discardHeading.current?.focus()
     else if (previousDiscard.current) savedAction.current?.focus()
@@ -97,7 +119,10 @@ export default function NoteSyncActions({className}: {className?: string}) {
           controller.record.baseline.id === controller.record.noteId
         )
           router.replace(
-            `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${controller.record.noteId}`,
+            withBrowserWorkReturn(
+              `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${controller.record.noteId}`,
+              fromBrowserWork,
+            ),
           )
         else {
           pendingCopy.current = controller.record.creationId
@@ -110,6 +135,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
               `/full/eton/recover/${controller.record.id}`,
             )
             url.search = ''
+            if (fromBrowserWork) url.searchParams.set('from', 'browser-work')
             window.history.replaceState(null, '', url)
           }
         }
@@ -464,7 +490,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
               disabled={busy}
               onClick={() => setReview(false)}
             >
-              {t('reviewLater')}
+              {t('closeComparison')}
             </Button>
           </footer>
         </ConfirmationDialog>

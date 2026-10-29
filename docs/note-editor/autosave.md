@@ -39,9 +39,13 @@ Dexie 4.4.7 uses the separate etoN-note-recovery database. Records contain accou
 
 - Restore against the baseline; independently reconcile title/body/theme. Same-field differences pause server autosave for review.
 - Allow leaving after a current local checkpoint if server saving fails; retain memory-only work if neither persistence path succeeds.
+- After a successful explicit leave, the outgoing editor hook cannot restart its recovery session while navigation is still pending. Recovery URL handoff pauses during the leave operation and cannot modify the collection URL. Closing and reopening the mounted create dialog resets this leave guard.
 - Bulk-Trash notifications checkpoint before stopping editors/reloading. Failed checkpoints or edits arriving during a checkpoint preserve memory-only work.
 - Current acknowledgements clear only eligible generations. Automatic recovery preserves other-session copies; no silent expiry. Explicitly opening a draft now stops/drains its previous in-memory controller and retires equivalent captured copies only after the resumed session is durable. Different work and newer generations remain.
 - Account exit offers Review, Keep and continue, and confirmed Discard. Keep checkpoints locally before allowing the pending action. Discard stops/drains account controllers and clears that account's local recovery before continuing. Close cancels; confirmation Cancel returns to the choices.
+- Review cancels the pending account exit and opens `/collection/browser-work`, a dedicated browser-work review route using the shared note cards. Its header has a back icon to Notes, a Browser work title, and browser-work management; it has no Create note or All notes button. Legacy Drafts/recovery links and the earlier `/eton?work=browser` URL redirect to this route.
+- Browser-work entry adds `from=browser-work` to editor/recovery URLs. Chooser dismissal and explicit editor close/Trash return to Browser work; identity acquisition, saved-version selection, view handoff, and Keep both retries retain that fixed origin. Close comparison dismisses an editor overlay without navigating. The browser-work back icon alone returns to Notes within this flow.
+- When a refreshed session no longer matches the owner of cached note-route data, hide the outgoing note view and refresh the route for the current account. Preserve the previous account's durable recovery for its next sign-in.
 - Account deletion clears account recovery when storage is available; report cleanup failure. Remote Trash/deletion stops saves and permits explicit recovery as a new note/export, never automatic resurrection.
 - Quota/storage errors remain visible. Browser cleanup/eviction can remove recovery; it is not a permanent backup.
 

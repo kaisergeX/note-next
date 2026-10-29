@@ -208,7 +208,7 @@ export default function NotePersistence() {
         ) : (
           <>
             <Link
-              href="/eton#browser-work"
+              href="/collection/browser-work"
               className={buttonClass({variant: 'primary'})}
               aria-disabled={busy || undefined}
               onClick={(event) => {

@@ -50,7 +50,7 @@ Recorded 2026-10-27/28; later persistence checks in [handoff](handoff.md) supers
 - Focused handoff review PASS at 1440×450, 390×450, and 390×844: desktop handoff/docking at scroll 140/204; mobile 124/188, with 56px mobile toolbar. No lingering obstruction/oscillation or horizontal overflow; Back was 40×40 with 2px focus. Reduced-motion transitions were `none`.
 - Code contrast after correction: Paper & Ink/light 15.21:1 neutral, 8.50:1 blue; Bookish/dark 15.46:1 neutral, 8.08:1 blue. Mobile controls measured 40×40. Representative long-note smoke reached 19,005 characters; tool timing is not a latency benchmark.
 - Owner confirms Vietnamese IME works as before and accepts HR behavior. This is smoke coverage, not an exhaustive input-method/browser matrix. Existing undo granularity is intentionally unchanged; revisit only with evidence and agreement.
-- Earlier dedicated QA fixtures were restored or moved to recoverable Trash; unrelated notes were preserved and review browsers closed. Physical touch/keyboard/safe areas, actual fullscreen, exhaustive appearances, production corpus compatibility/performance, and the white draft-card report remain limited/open as recorded in handoff.
+- Earlier dedicated QA fixtures were restored or moved to recoverable Trash; unrelated notes were preserved and review browsers closed. Actual fullscreen, exhaustive appearances, and production corpus compatibility/performance remain limited as recorded in handoff. The old-design white draft-card report is owner-confirmed resolved by Notes integration.
 
 ## References
 

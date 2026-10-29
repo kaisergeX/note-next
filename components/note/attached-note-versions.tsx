@@ -66,6 +66,7 @@ export default function AttachedNoteVersions({
       </Button>
       {review && (
         <NoteVersionPicker
+          dismissLabel="closeComparison"
           busy={busy}
           note={
             !current.record.unavailable && current.record.baseline.id

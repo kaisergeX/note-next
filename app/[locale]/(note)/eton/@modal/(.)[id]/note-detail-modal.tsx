@@ -8,23 +8,30 @@ import {useNoteSession} from '~/components/note/use-note-session'
 import type {Note} from '~/db/schema/notes'
 import {sleep} from '~/util'
 import {isMobileNoteView} from '~/lib/notes/mobile'
+import {useSearchParams} from 'next/navigation'
+import {noteReturnPath, withBrowserWorkReturn} from '~/lib/notes/navigation'
 
 export default function NoteDetailModal({noteData}: {noteData: Note}) {
   const t = useTranslations('note')
   const router = useRouter()
+  const source = useSearchParams().get('from')
+  const fromBrowserWork = source === 'browser-work'
   const [open, setOpen] = useState(false)
   const session = useNoteSession(noteData)
   useEffect(() => {
     if (isMobileNoteView()) {
-      router.replace(`/full/eton/${noteData.id}`)
+      router.replace(
+        withBrowserWorkReturn(`/full/eton/${noteData.id}`, fromBrowserWork),
+      )
       return
     }
     startTransition(() => setOpen(true))
-  }, [noteData.id, router])
+  }, [noteData.id, router, fromBrowserWork])
   const close = async () => {
     setOpen(false)
     await sleep(200)
-    window.history.length > 1 ? router.back() : router.push('/eton')
+    if (fromBrowserWork) router.replace(noteReturnPath(source))
+    else window.history.length > 1 ? router.back() : router.push('/eton')
   }
   if (!session.ready) return session.recoveryView
   return (
@@ -44,7 +51,7 @@ export default function NoteDetailModal({noteData}: {noteData: Note}) {
       onMoveToTrash={() =>
         void session.trashAndLeave(() => {
           setOpen(false)
-          router.replace('/eton')
+          router.replace(noteReturnPath(source))
         })
       }
     />

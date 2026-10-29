@@ -74,6 +74,10 @@ export const review = (page: Page) =>
 
 type NoteApp = {
   ownerId: string
+  signIn: (
+    account?: 'primary' | 'secondary',
+    maxAge?: number,
+  ) => Promise<string>
   create: () => Promise<Note>
   save: (note: Note, content: Partial<NoteSnapshot>) => Promise<Note>
   read: (id: string) => Promise<Note>
@@ -85,7 +89,7 @@ export const test = base.extend<{noteApp: NoteApp}>({
   noteApp: async ({page, context, baseURL}, run) => {
     const client = postgres(databaseUrl, {max: 2, onnotice: () => {}})
     const db = drizzle({client})
-    let ownerId: string | undefined
+    const ownerIds: string[] = []
     try {
       const [user] = await db
         .insert(usersTable)
@@ -94,26 +98,44 @@ export const test = base.extend<{noteApp: NoteApp}>({
           email: `browser-${randomUUID()}@test.invalid`,
         })
         .returning()
-      ownerId = user.id
-      const token = await encode({
-        secret,
-        salt: 'authjs.session-token',
-        token: {
-          sub: 'browser-regression-fixture',
-          userId: user.id,
-          email: user.email,
-          role: user.role,
-        },
-      })
-      await context.addCookies([
-        {
-          name: 'authjs.session-token',
-          value: token,
-          url: baseURL!,
-          httpOnly: true,
-          sameSite: 'Lax',
-        },
-      ])
+      ownerIds.push(user.id)
+      let secondary: typeof user | undefined
+      const signIn: NoteApp['signIn'] = async (account = 'primary', maxAge) => {
+        if (account === 'secondary' && !secondary) {
+          const [created] = await db
+            .insert(usersTable)
+            .values({
+              name: 'Browser account-switch fixture',
+              email: `browser-${randomUUID()}@test.invalid`,
+            })
+            .returning()
+          secondary = created
+          ownerIds.push(secondary.id)
+        }
+        const selected = account === 'primary' ? user : secondary!
+        const token = await encode({
+          secret,
+          salt: 'authjs.session-token',
+          ...(maxAge === undefined ? {} : {maxAge}),
+          token: {
+            sub: 'browser-regression-fixture',
+            userId: selected.id,
+            email: selected.email,
+            role: selected.role,
+          },
+        })
+        await context.addCookies([
+          {
+            name: 'authjs.session-token',
+            value: token,
+            url: baseURL!,
+            httpOnly: true,
+            sameSite: 'Lax',
+          },
+        ])
+        return selected.id
+      }
+      await signIn()
       const session = await context.request.get('/api/auth/session')
       expect(session.ok()).toBe(true)
       // Fail before note mutations if the server points at another DB/secret.
@@ -166,6 +188,7 @@ export const test = base.extend<{noteApp: NoteApp}>({
         })
       await run({
         ownerId: user.id,
+        signIn,
         create,
         save,
         read,
@@ -203,7 +226,7 @@ export const test = base.extend<{noteApp: NoteApp}>({
         await context.close()
       } finally {
         try {
-          if (ownerId)
+          for (const ownerId of ownerIds)
             await db.transaction(async (tx) => {
               await tx
                 .select({id: usersTable.id})

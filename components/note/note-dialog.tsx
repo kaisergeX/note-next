@@ -8,6 +8,8 @@ import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
 import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
 import NoteWriting from './note-writing'
+import {useSearchParams} from 'next/navigation'
+import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 
 type NoteDialogProps = {
   type?: NoteCustomizeProps['type']
@@ -27,6 +29,7 @@ export default function NoteDialog({
   onMoveToTrash,
 }: NoteDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const fromBrowserWork = useSearchParams().get('from') === 'browser-work'
   useLayoutEffect(() => {
     const dialog = dialogRef.current
     // Cached routes disconnect effects without removing their DOM. Close before
@@ -91,7 +94,10 @@ export default function NoteDialog({
         viewAction={
           mutateNoteData?.id && !unavailable ? (
             <Link
-              href={`/full/eton/${mutateNoteData.id}`}
+              href={withBrowserWorkReturn(
+                `/full/eton/${mutateNoteData.id}`,
+                fromBrowserWork,
+              )}
               className={cn(
                 buttonClass({variant: 'ghost', iconOnly: true}),
                 'max-sm:hidden',

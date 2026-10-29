@@ -12,7 +12,7 @@ export default function DeviceDraftsLink({ownerId}: {ownerId: string}) {
   const {groups, error, loaded} = useRecoveryDrafts(ownerId)
   return (
     <Link
-      href="/eton#browser-work"
+      href="/collection/browser-work"
       className={cn(
         buttonClass({variant: 'ghost', size: 'sm'}),
         'h-10 gap-1.5 px-2 font-normal',
