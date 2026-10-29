@@ -106,7 +106,7 @@ test('conflict reload and RSC refresh retain local work, independent fields and 
     review(page).getByRole('region', {name: 'Saved version', exact: true}),
   ).toContainText('Saved elsewhere')
   await review(page)
-    .getByRole('button', {name: 'Review later', exact: true})
+    .getByRole('button', {name: 'Close comparison', exact: true})
     .click()
   await page.reload()
   await expect(body(page)).toHaveText(local)

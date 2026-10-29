@@ -1,9 +1,10 @@
 'use client'
 
-import {useState, useSyncExternalStore, type ReactNode} from 'react'
+import {useEffect, useState, useSyncExternalStore, type ReactNode} from 'react'
 import {cn} from 'cn'
 import {useLocale, useTranslations} from 'next-intl'
-import {useSelectedLayoutSegments} from 'next/navigation'
+import {useRouter, useSelectedLayoutSegments} from 'next/navigation'
+import {useSession} from 'next-auth/react'
 import {IconChevronDown, IconHistory, IconNotebook} from '@tabler/icons-react'
 import {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
@@ -31,6 +32,7 @@ function readPin() {
 
 export default function NoteCollectionLayout({
   children,
+  ownerId,
 }: {
   children: ReactNode
   creationLabel: string
@@ -38,6 +40,12 @@ export default function NoteCollectionLayout({
 }) {
   const t = useTranslations('note')
   const locale = useLocale()
+  const router = useRouter()
+  const {data: session, status} = useSession()
+  const accountChanged = status !== 'loading' && session?.user?.id !== ownerId
+  useEffect(() => {
+    if (accountChanged) router.refresh()
+  }, [accountChanged, router])
   const savedPin = useSyncExternalStore(subscribePin, readPin, () => false)
   const [memoryPin, setMemoryPin] = useState<boolean | null>(null)
   const pinned = memoryPin ?? savedPin
@@ -55,6 +63,9 @@ export default function NoteCollectionLayout({
   }
   // Follow the children slot so an intercepted editor keeps its list backdrop.
   const segments = useSelectedLayoutSegments()
+  // Cached server props can still belong to the previous signed-in account.
+  // Hide that entire note view until the refreshed route has the current owner.
+  if (accountChanged) return null
   const section = segments[0]
   const isDrafts =
     section === 'collection' &&

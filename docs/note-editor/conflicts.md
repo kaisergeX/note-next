@@ -33,7 +33,7 @@ Typing/local checkpoints remain available while conflicted; server autosave paus
 - **Keep both:** prominent global option above version tabs; retain the original and idempotently create a separate local-version copy.
 - **Use mine:** replace only against the displayed server revision.
 - **Use saved:** re-read/check the displayed revision and require informed discard; optional export is available.
-- **Review later:** keep the conflict and local work.
+- **Close comparison:** dismiss the editor's comparison overlay while keeping the current editor, conflict, and local work.
 
 Opening review or returning to a visible tab performs a deduplicated uncached read. Preserve edits made during that read and refresh independent fields. Disable resolution while checking or after a failed freshness check; allow retry/dismissal. A newer server edit updates comparison rather than silently overwriting it.
 
@@ -47,7 +47,7 @@ Use existing note themes and the read-only rich-text renderer for title/body for
 
 Desktop uses a wide workspace with borderless version panes separated by a divider. Formatted previews retain the authored note card surface, color, typography, and rich text inside each pane; do not add a second enclosing card. Mobile is full-screen with a single preview and accessible tabs (Arrow keys/Home/End, roving focus, associated panels).
 
-Each preview scrolls independently; its version action stays visible without requiring a full read. Keep both stays above the tabs; Review later stays in the bottom footer without an extra divider. Long content must not push decisions off screen.
+Each preview scrolls independently; its version action stays visible without requiring a full read. Keep both stays above the tabs; Close comparison stays in the bottom footer without an extra divider. Long content must not push decisions off screen.
 
 ## Integrated browser-version selection
 
