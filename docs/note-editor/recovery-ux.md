@@ -1,6 +1,6 @@
 # Recovery UX: continue work from Notes
 
-Status: product direction agreed on 2026-10-28; visual design owner-accepted on 2026-10-29, including the subsequent request to remove the Notes toolbar bottom border. Current focused regressions, HTTP, lint/types, and production build pass. Independent UI review was stopped by a locked Chrome profile; final completion and explicit boundary checks remain pending in [handoff](handoff.md). This document supersedes the separate Drafts collection UX, not persistence safety contracts.
+Status: accepted and locally verified on 2026-10-29. This is the current Notes recovery presentation contract; [autosave](autosave.md) defines persistence safety.
 
 ## Goal
 
@@ -36,7 +36,7 @@ Remove Drafts as a primary destination. Existing Drafts/recovery links and accou
 - Keep card identity and position stable when a local note receives its server identity. Do not repeatedly reorder the collection on local checkpoints or make recovery cards flicker while browser storage loads.
 - Local recovery applies to this browser. Do not imply cross-device availability, permanent backup, an offline-launchable app, or background saving while the app is closed.
 
-Exact icon choices, short EN/VI copy, and layout remain subject to visual feedback. The principle is minimal wording, not zero accessible labels or zero explanation.
+Use minimal visible wording while retaining accessible labels and explanations of risk.
 
 ## Safety and implementation constraints
 
@@ -48,14 +48,6 @@ Exact icon choices, short EN/VI copy, and layout remain subject to visual feedba
 - Keep bounded autosave and automatic server creation. Do not introduce idle polling, per-card remote reads, or full collection refreshes on each keystroke/save.
 - Preserve conditional conflict resolution, explicit recovery for unavailable originals, and informed discard. Ordinary Trash and local Discard must not become ambiguous: explain which work is removed when pending versions exist. Never silently discard separate local work when trashing a server note.
 - Maintain account-exit retention/discard behavior and local storage failures. A storage read failure must not look like an empty recovery collection.
-
-## Implementation sequence
-
-1. Inspect the current working-tree diff and retain unrelated owner work. Trace identity, reconciliation, and live-controller handoff before choosing the smallest shared collection/opening mechanism.
-2. Implement integrated Notes and consistent resumption, including new local notes and stable server-identity transitions. Preserve all recoverable work during migration from the existing UI.
-3. Attach exceptional review to notes; handle unavailable originals; update navigation/account-exit links and remove obsolete Drafts UI/copy only when replaced.
-4. Present desktop/mobile visuals for owner feedback. During active feedback defer lint, types, builds, tests, and reviewers under AGENTS.md.
-5. Once settled, run focused regressions, pnpm lint, elevated Turbopack build, and one scoped ui_reviewer at a time. Update the docs to describe the actual delivered behavior and verification limits.
 
 ## Acceptance scenarios
 
@@ -71,10 +63,10 @@ Exact icon choices, short EN/VI copy, and layout remain subject to visual feedba
 
 Out of scope: version history, paragraph merging, full offline support, new search, export formats, E2EE, production migration, and deployment.
 
-## Accepted visual-feedback revision — 2026-10-29
+## Layout constraints
 
-The owner rejected the initial footer, chooser, and mixed-scope card menus. The working revision keeps exceptional items in the single Notes list with a sticky counted Needs review filter; it does not put recovery below an indefinitely growing feed. Saved-note card menus contain note actions, while selected browser versions carry their own Export/Discard controls in Review. Desktop Review compares the saved note with one selected browser version in aligned, independently scrollable panes. Mobile stacks the same panes with bounded previews. No version is chosen automatically by the selector. The owner accepted these layout refinements; safeguards above still apply.
-
-Latest visual feedback keeps Create in the filter toolbar, restores original note-item menu sizing, packs mixed-height cards without grid row holes while preserving source order, and identifies browser choices by date/time. Extra per-pane description lines are removed. These refinements are owner-accepted; independent review remains pending.
-
-Filters are hidden when there is no distinct review subset. Collection management stays at the left, away from the standalone expanding Create button. The masonry fallback is isolated in `use-masonry.ts`. Shared rounded menu actions, no added recovery-menu padding, and unclipped pane-control focus rings are the current feedback revision.
+- Desktop Review compares the saved note and one selected browser version in bounded, independently scrolling panes. Mobile stacks bounded previews. Date/time identifies checkpoints without ranking the correct version.
+- Filters appear only for a distinct Needs review subset. Management stays at the left; Create expands independently at the right. The toolbar has no bottom border.
+- Saved-note menus contain note actions. Version Export/Discard belongs beside that version; browser-only cards may expose local actions. Preserve explicit scope and confirmation.
+- Mixed-height cards preserve source/keyboard order. The fallback lives in `util/hooks/use-masonry.ts`; do not replace it with dense placement or CSS columns that reorder reading.
+- Recovery actions sit above normal editor footer controls. Pane controls need unclipped focus rings; nested Escape closes the active disclosure before its parent.
