@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react'
 import {useTranslations} from 'next-intl'
+import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
 import type {Note} from '~/db/schema/notes'
 import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
@@ -18,13 +19,17 @@ import RecoveryStatus from './recovery-status'
 import RecoveryManagement from './recovery-management'
 import NoteCreateEditor from './note-create'
 import {useMasonry} from '~/util/hooks/use-masonry'
+import CollectionTitle from './collection-title'
+import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 
 export default function NotesCollection({
   ownerId,
   notes,
+  browserWorkOnly = false,
 }: {
   ownerId: string
   notes: Note[]
+  browserWorkOnly?: boolean
 }) {
   const t = useTranslations('note.recovery')
   const editor = useTranslations('note.editor')
@@ -86,8 +91,13 @@ export default function NotesCollection({
       groupRecoveryDrafts(rows).length > 1
     )
   })
-  const hasFilters = reviewIds.length > 0 && reviewIds.length < ids.length
-  const displayed = hasFilters && filter === 'review' ? reviewIds : ids
+  const hasFilters =
+    !browserWorkOnly && reviewIds.length > 0 && reviewIds.length < ids.length
+  const displayed = browserWorkOnly
+    ? ids.filter((id) => local.has(id))
+    : hasFilters && filter === 'review'
+      ? reviewIds
+      : ids
   if (!hasFilters && filter !== 'all') setFilter('all')
   const list = useMasonry<HTMLUListElement>(
     loaded || error ? displayed.join('|') : 'loading',
@@ -113,9 +123,16 @@ export default function NotesCollection({
     // Multiple new-note versions have no server preview. Keep their common
     // identity and open a chooser rather than selecting a version by time.
     const data = preview ?? {id, title: null, content: null, theme: null}
-    const href = saved
-      ? undefined
-      : `/full/eton/recover/${record!.id}${ambiguous ? '?review=1' : ''}`
+    const href = browserWorkOnly
+      ? withBrowserWorkReturn(
+          saved
+            ? `/full/eton/${id}${review ? '?review=1' : ''}`
+            : `/full/eton/recover/${record!.id}${review ? '?review=1' : ''}`,
+          true,
+        )
+      : saved
+        ? undefined
+        : `/full/eton/recover/${record!.id}${ambiguous ? '?review=1' : ''}`
     return (
       <li key={id} className="min-w-0">
         <NoteTiny
@@ -149,7 +166,7 @@ export default function NotesCollection({
     )
   }
   return (
-    <section aria-label={t('notesHome')}>
+    <section aria-label={t(browserWorkOnly ? 'browserWorkTitle' : 'notesHome')}>
       <div
         id="browser-work"
         className={cn(
@@ -158,8 +175,20 @@ export default function NotesCollection({
         )}
       >
         <div className="flex min-w-0 flex-wrap items-center gap-2">
-          {loaded && records.length > 0 && (
+          {!browserWorkOnly && loaded && records.length > 0 && (
             <RecoveryManagement ownerId={ownerId} records={records} all />
+          )}
+          {browserWorkOnly && (
+            <>
+              <Link
+                href="/eton"
+                aria-label={t('backToNotes')}
+                className={buttonClass({variant: 'ghost', iconOnly: true})}
+              >
+                <IconArrowLeft size={18} aria-hidden />
+              </Link>
+              <CollectionTitle title={t('browserWorkTitle')} />
+            </>
           )}
           {hasFilters && (
             <div
@@ -189,9 +218,16 @@ export default function NotesCollection({
             </div>
           )}
         </div>
-        <div className="ml-auto shrink-0">
-          <NoteCreateEditor creationLabel={editor('newNote')} />
-        </div>
+        {browserWorkOnly ? (
+          loaded &&
+          records.length > 0 && (
+            <RecoveryManagement ownerId={ownerId} records={records} all />
+          )
+        ) : (
+          <div className="ml-auto shrink-0">
+            <NoteCreateEditor creationLabel={editor('newNote')} />
+          </div>
+        )}
       </div>
       {error && (
         <p role="alert" className="text-destructive mb-4 text-sm">
@@ -203,9 +239,9 @@ export default function NotesCollection({
           {t('loadingWork')}
         </p>
       )}
-      {loaded && !error && !ids.length && (
+      {loaded && !error && !displayed.length && (
         <p className="text-ink-muted py-16 text-center font-serif">
-          {t('emptyNotes')}
+          {t(browserWorkOnly ? 'emptyBrowserWork' : 'emptyNotes')}
         </p>
       )}
       <ul

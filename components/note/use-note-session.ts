@@ -1,7 +1,8 @@
 'use client'
 
-import {createElement, useLayoutEffect, useState} from 'react'
+import {createElement, useLayoutEffect, useRef, useState} from 'react'
 import {useSession} from 'next-auth/react'
+import {useSearchParams} from 'next/navigation'
 import type {Note} from '~/db/schema/notes'
 import {listDrafts, type RecoveryDraft} from '~/lib/notes/drafts'
 import {noteRecoveryGroups} from '~/lib/notes/recovery-copies'
@@ -12,6 +13,7 @@ import NoteVersionPicker from './note-version-picker'
 import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
 import {sameContent} from '~/lib/notes/sync'
 import {usePersistStore} from '~/store'
+import {noteReturnPath} from '~/lib/notes/navigation'
 
 export const noteDraftChanged = (
   draft: Partial<Note> | undefined,
@@ -35,6 +37,7 @@ export function useNoteSession(
       ? `${note.authorId}:${note.id}`
       : `new:${ownerId}`
   const router = useRouter()
+  const returnPath = noteReturnPath(useSearchParams().get('from'))
   const t = useTranslations('note.recovery')
   const [selection, setSelection] = useState<{
     key: string
@@ -42,8 +45,22 @@ export function useNoteSession(
     error?: boolean
   }>()
   const [attempt, setAttempt] = useState(0)
+  const leaving = useRef<string | undefined>(undefined)
+  const documentKey = `${ownerId}:${recovery?.id ?? note?.id ?? 'new'}`
+  useLayoutEffect(
+    () => () => {
+      // Cached routes disconnect layout effects when hidden. A later visit may
+      // resume this view after its outgoing navigation has finished.
+      leaving.current = undefined
+    },
+    [],
+  )
   useLayoutEffect(() => {
     let alive = true
+    if (!active) leaving.current = undefined
+    // A successful leave clears the store before asynchronous navigation
+    // unmounts this view. Do not resume its outgoing recovery snapshot again.
+    if (leaving.current === documentKey) return
     if (active && ownerId && (!note || note.authorId === ownerId)) {
       // Effect reruns resume the mounted session; only explicit version choices
       // may replace it with the supplied recovery snapshot.
@@ -84,7 +101,7 @@ export function useNoteSession(
     return () => {
       alive = false
     }
-  }, [active, ownerId, key, note, recovery, attempt])
+  }, [active, ownerId, key, note, recovery, attempt, documentKey])
   const recoveryView =
     selection?.key === key && ownerId && note
       ? selection.error
@@ -101,7 +118,7 @@ export function useNoteSession(
         : createElement(NoteVersionPicker, {
             note,
             records: selection.records,
-            onClose: () => router.replace('/eton'),
+            onClose: () => router.replace(returnPath),
             onChoose: (record?: RecoveryDraft) => {
               setSelection(undefined)
               beginNoteSync(ownerId, key, note, record, !record)
@@ -119,8 +136,14 @@ export function useNoteSession(
     pending: session?.key === key && Boolean(session.operation),
     error: session?.key === key ? session.error : undefined,
     saveAndLeave: (onSuccess: () => void | Promise<void>) =>
-      getNoteSync()?.leave('save', onSuccess),
+      getNoteSync()?.leave('save', () => {
+        leaving.current = documentKey
+        return onSuccess()
+      }),
     trashAndLeave: (onSuccess: () => void | Promise<void>) =>
-      getNoteSync()?.leave('trash', onSuccess),
+      getNoteSync()?.leave('trash', () => {
+        leaving.current = documentKey
+        return onSuccess()
+      }),
   }
 }

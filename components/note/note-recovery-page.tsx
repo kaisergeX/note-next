@@ -13,6 +13,7 @@ import {groupRecoveryDrafts, recoveryNoteId} from '~/lib/notes/recovery-copies'
 import NoteVersionPicker from './note-version-picker'
 import {usePersistStore} from '~/store'
 import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
+import {noteReturnPath, withBrowserWorkReturn} from '~/lib/notes/navigation'
 
 export default function NoteRecoveryPage({
   ownerId,
@@ -24,6 +25,8 @@ export default function NoteRecoveryPage({
   const t = useTranslations('note')
   const router = useRouter()
   const search = useSearchParams()
+  const fromBrowserWork = search.get('from') === 'browser-work'
+  const returnPath = noteReturnPath(search.get('from'))
   const reviewing = Boolean(search.get('review'))
   const recoveryId = search.get('draft') ?? draftId
   const session = usePersistStore((state) => state.noteSession)
@@ -38,6 +41,7 @@ export default function NoteRecoveryPage({
       !value ||
       choices ||
       !session?.hydrated ||
+      session.operation ||
       (session.key !== `recovery:${value.record.id}` &&
         controller?.record.id !== value.record.id) ||
       controller?.record.ownerId !== ownerId ||
@@ -47,6 +51,7 @@ export default function NoteRecoveryPage({
     // Retired source IDs cannot be reloaded. Native history preserves the
     // mounted editors while pointing reloads at durable work or its saved note.
     const url = new URL(window.location.href)
+    if (!/\/full\/eton\/(?:recover\/[^/]+|[^/]+)$/.test(url.pathname)) return
     if (controller.record.noteId && !controller.record.unavailable) {
       url.pathname = url.pathname.replace(
         /\/full\/eton\/recover\/[^/]+$/,
@@ -102,7 +107,7 @@ export default function NoteRecoveryPage({
       <NoteVersionPicker
         note={value.note}
         records={choices}
-        onClose={() => router.replace('/eton')}
+        onClose={() => router.replace(returnPath)}
         onChoose={(record) => {
           if (record) {
             setChoices(undefined)
@@ -117,7 +122,12 @@ export default function NoteRecoveryPage({
               undefined,
               true,
             )
-            router.replace(`/full/eton/${value.note.id}`)
+            router.replace(
+              withBrowserWorkReturn(
+                `/full/eton/${value.note.id}`,
+                fromBrowserWork,
+              ),
+            )
           }
         }}
       />
@@ -151,9 +161,9 @@ export default function NoteRecoveryPage({
       )}
       <Link
         className="text-accent mt-4 block underline underline-offset-4"
-        href="/eton"
+        href={returnPath}
       >
-        {t('collections.all')}
+        {t(fromBrowserWork ? 'recovery.browserWorkTitle' : 'collections.all')}
       </Link>
     </main>
   )
