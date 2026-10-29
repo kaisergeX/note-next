@@ -571,6 +571,24 @@
       "retry": "Try again"
     },
     "recovery": {
+      "diff": {
+        "showChanges": "Show changes",
+        "showPreviews": "Show previews",
+        "direction": "Text compared with the saved version. Use previews to check formatting.",
+        "title": "Title",
+        "content": "Body",
+        "unchanged": "Unchanged",
+        "sameText": "Text is unchanged.",
+        "structureChanged": "Formatting or structure differs. Check the previews.",
+        "colorChanged": "Different note colors",
+        "coarse": "Large changes: this field is marked as a whole.",
+        "added": "Added in your version",
+        "removed": "Removed from saved",
+        "addedStart": "Start added text: ",
+        "removedStart": "Start removed text: ",
+        "changeEnd": " End changed text. ",
+        "empty": "Empty"
+      },
       "conflict": "Needs review",
       "local": "Sync pending",
       "storageFailed": "Could not store the latest changes on this device. Keep this page open until saving succeeds, or export your draft.",

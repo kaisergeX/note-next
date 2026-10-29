@@ -3,6 +3,7 @@
 import {useEffect, useId, useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
+import {IconArrowsDiff, IconEye} from '@tabler/icons-react'
 import {usePersistStore} from '~/store'
 import {getNoteSync} from '~/lib/notes/session-sync'
 import {exportDrafts} from '~/lib/notes/drafts'
@@ -14,6 +15,8 @@ import {useMobileNoteView} from '~/lib/notes/mobile'
 import type {NoteTheme} from '~/db/schema/notes'
 import {usePathname, useRouter} from '~/i18n/navigation'
 import AttachedNoteVersions from './attached-note-versions'
+import NoteVersionDiff from './note-version-diff'
+import {snapshot} from '~/lib/notes/sync'
 
 export default function NoteSyncActions({className}: {className?: string}) {
   const t = useTranslations('note.recovery')
@@ -22,6 +25,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const session = usePersistStore((s) => s.noteSession)
   const draft = usePersistStore((s) => s.mutateNoteData)
   const [review, setReview] = useState(false)
+  const [showChanges, setShowChanges] = useState(false)
   const [discard, setDiscard] = useState(false)
   const [busy, setBusy] = useState(false)
   const [side, setSide] = useState<'mine' | 'saved'>('mine')
@@ -58,8 +62,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const exportable = Boolean(
     remote || unavailable || session?.storageFailed || retryable,
   )
-  const actionClass =
-    'h-auto min-h-10 max-w-full whitespace-normal max-sm:flex-1'
+  const actionClass = 'h-auto min-h-10 max-w-full whitespace-normal'
   useEffect(() => {
     if (discard) discardHeading.current?.focus()
     else if (previousDiscard.current) savedAction.current?.focus()
@@ -101,7 +104,6 @@ export default function NoteSyncActions({className}: {className?: string}) {
     return <AttachedNoteVersions className={className} />
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <AttachedNoteVersions />
       {session?.storageFailed && (
         <p className="text-destructive text-sm" role="alert">
           {t('storageFailed')}
@@ -128,7 +130,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
           <Button
             className={actionClass}
             size="sm"
-            variant="secondary"
+            variant="primary"
             onClick={() => void openReview()}
           >
             {t('review')}
@@ -154,6 +156,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
             {t('retry')}
           </Button>
         )}
+        <AttachedNoteVersions />
         {exportable && (
           <Button
             className={actionClass}
@@ -213,10 +216,10 @@ export default function NoteSyncActions({className}: {className?: string}) {
                 <h3 className="text-sm font-semibold sm:text-base">
                   {t('keepBothHeading')}
                 </h3>
-                <p className="text-ink-muted mt-1 hidden text-sm sm:block">
+                <p className="text-ink mt-1 hidden text-sm sm:block">
                   {t('keepBothHelp')}
                 </p>
-                <p className="text-ink-muted mt-1 text-xs sm:hidden">
+                <p className="text-ink mt-1 text-xs sm:hidden">
                   {t('keepBothShortHelp')}
                 </p>
               </div>
@@ -228,6 +231,31 @@ export default function NoteSyncActions({className}: {className?: string}) {
                 {t('keepBoth')}
               </Button>
             </section>
+            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Button
+                variant={showChanges ? 'secondary' : 'primary'}
+                className="h-auto min-h-10 whitespace-normal"
+                aria-pressed={showChanges}
+                onClick={() => setShowChanges((value) => !value)}
+              >
+                {showChanges ? (
+                  <IconEye size={18} aria-hidden className="shrink-0" />
+                ) : (
+                  <IconArrowsDiff size={18} aria-hidden className="shrink-0" />
+                )}
+                {t(showChanges ? 'diff.showPreviews' : 'diff.showChanges')}
+              </Button>
+              {showChanges && (
+                <p className="text-ink-muted flex flex-wrap gap-3 text-xs">
+                  <span className="decoration-success underline decoration-2 underline-offset-2">
+                    {t('diff.added')}
+                  </span>
+                  <span className="decoration-destructive line-through decoration-2">
+                    {t('diff.removed')}
+                  </span>
+                </p>
+              )}
+            </div>
             {mobile && (
               <div
                 className="border-hairline mt-2 flex border-b"
@@ -273,14 +301,14 @@ export default function NoteSyncActions({className}: {className?: string}) {
             )}
           </header>
           <div className="flex min-h-0 flex-1 flex-col sm:px-6 sm:pb-6">
-            <div className="grid min-h-0 flex-1 items-stretch sm:mt-4 sm:grid-cols-2 sm:gap-4">
+            <div className="grid min-h-0 flex-1 items-stretch sm:mt-4 sm:grid-cols-2">
               <section
                 id={`${titleId}-panel-mine`}
                 role={mobile ? 'tabpanel' : undefined}
                 aria-labelledby={mobile ? `${titleId}-tab-mine` : undefined}
                 hidden={mobile && side !== 'mine'}
                 className={cn(
-                  'sm:border-hairline flex min-h-0 min-w-0 flex-col overflow-hidden sm:rounded-lg sm:border sm:p-4',
+                  'flex min-h-0 min-w-0 flex-col overflow-hidden sm:pr-6',
                   side === 'saved' && 'max-sm:hidden',
                 )}
               >
@@ -289,16 +317,23 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   role="region"
                   aria-label={t('mine')}
                   tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4 sm:rounded-lg"
+                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
                 >
-                  <VersionPreview
-                    mobile={mobile}
-                    theme={draft?.theme ?? null}
-                    title={draft?.title ?? null}
-                    content={draft?.content ?? null}
-                  />
+                  {showChanges ? (
+                    <NoteVersionDiff
+                      saved={snapshot(remote)}
+                      mine={snapshot(draft)}
+                      side="mine"
+                    />
+                  ) : (
+                    <VersionPreview
+                      theme={draft?.theme ?? null}
+                      title={draft?.title ?? null}
+                      content={draft?.content ?? null}
+                    />
+                  )}
                 </div>
-                <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 py-2 sm:border-t sm:px-0 sm:pt-3 sm:pb-0">
+                <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
                   <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
                     {t('useMineHelp')}
                   </p>
@@ -318,7 +353,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                 aria-labelledby={mobile ? `${titleId}-tab-saved` : undefined}
                 hidden={mobile && side !== 'saved'}
                 className={cn(
-                  'sm:border-hairline flex min-h-0 min-w-0 flex-col overflow-hidden sm:rounded-lg sm:border sm:p-4',
+                  'sm:border-hairline flex min-h-0 min-w-0 flex-col overflow-hidden sm:border-l sm:pl-6',
                   side === 'mine' && 'max-sm:hidden',
                 )}
               >
@@ -327,14 +362,21 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   role="region"
                   aria-label={t('saved')}
                   tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4 sm:rounded-lg"
+                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
                 >
-                  <VersionPreview
-                    mobile={mobile}
-                    theme={remote.theme}
-                    title={remote.title}
-                    content={remote.content}
-                  />
+                  {showChanges ? (
+                    <NoteVersionDiff
+                      saved={snapshot(remote)}
+                      mine={snapshot(draft)}
+                      side="saved"
+                    />
+                  ) : (
+                    <VersionPreview
+                      theme={remote.theme}
+                      title={remote.title}
+                      content={remote.content}
+                    />
+                  )}
                 </div>
                 {discard ? (
                   <div className="border-destructive/40 min-h-0 overflow-y-auto rounded-lg border p-3">
@@ -375,7 +417,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                     </div>
                   </div>
                 ) : (
-                  <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 py-2 sm:border-t sm:px-0 sm:pt-3 sm:pb-0">
+                  <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
                     <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
                       {t('useSavedHelp')}
                     </p>
@@ -410,23 +452,21 @@ export default function NoteSyncActions({className}: {className?: string}) {
 }
 
 function VersionPreview({
-  mobile,
   title,
   content,
   theme,
 }: {
-  mobile: boolean
   title: string | null
   content: string | null
   theme: NoteTheme | null
 }) {
-  const contents = (
-    <>
+  return (
+    <NoteCard theme={theme} className="min-h-full p-4">
       {title && (
         <NoteReadOnly
           content={title}
           theme={theme}
-          className="font-serif text-lg font-semibold"
+          className="mb-8 font-serif text-lg font-semibold sm:text-xl"
         />
       )}
       <NoteReadOnly
@@ -434,20 +474,6 @@ function VersionPreview({
         theme={theme}
         className="font-serif font-normal"
       />
-    </>
-  )
-  return mobile ? (
-    <div
-      className={cn(
-        'min-h-full px-3 py-3',
-        theme ? `dialog-${theme}` : 'bg-paper-raised',
-      )}
-    >
-      {contents}
-    </div>
-  ) : (
-    <NoteCard theme={theme} className="min-h-full p-4">
-      {contents}
     </NoteCard>
   )
 }

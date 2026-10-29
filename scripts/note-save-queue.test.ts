@@ -80,6 +80,43 @@ const settle = async () => {
   for (let n = 0; n < 30; n++) await Promise.resolve()
 }
 
+test('hydrating a same-field conflict preserves local HTML and independent remote changes', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const recovery: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    baseline: {
+      ...baseline,
+      content: '<p>Earlier body</p>',
+      title: 'Earlier title',
+    },
+    draft: {
+      title: 'Earlier title',
+      content: '<p><strong>My local work</strong></p>',
+      theme: 'green',
+    },
+  }
+  records.set(recovery.id, structuredClone(recovery))
+  await controller.hydrate(recovery)
+  assert.equal(controller.record.draft.content, recovery.draft.content)
+  assert.equal(controller.record.draft.theme, 'green')
+  assert.equal(controller.record.draft.title, baseline.title)
+  assert.equal(controller.record.conflict?.content, baseline.content)
+  assert.equal(
+    usePersistStore.getState().mutateNoteData?.content,
+    recovery.draft.content,
+  )
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    recovery.draft.content,
+  )
+  await controller.refreshRemote('review')
+  assert.equal(controller.record.draft.content, recovery.draft.content)
+  assert.equal(controller.record.draft.title, baseline.title)
+})
+
 test('explicit recovery resumes the selected draft and retains its changed theme', async (t) => {
   const {controller, baseline, records} = setup(t, async () => ({
     status: 'retryable_error',

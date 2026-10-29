@@ -1,8 +1,8 @@
 # Concurrent edits and conflict recovery
 
-Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Scoped verification passed; current evidence and device/production limits are in [handoff](handoff.md). Detailed diffs, manual merging, and user-visible history remain deferred.
+Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Optional detailed text comparison is implemented locally. Scoped verification and device/production limits are in [handoff](handoff.md). Manual merging and user-visible history remain deferred.
 
-The integrated Notes direction in [recovery-ux.md](recovery-ux.md) changes discovery and adds note-scoped selection when multiple local versions exist. The revision, reconciliation, and guarded resolution contracts below remain required. Existing comparison presentation is the starting point, not a requirement to expose each recovery record as a separate note.
+[Recovery UX](recovery-ux.md) governs Notes discovery and note-scoped selection; each internal recovery record must not become a separate note card.
 
 ## Revision and retry contract
 
@@ -43,24 +43,26 @@ Unavailable originals stop saves. Explicit recovery can create a new note; it ne
 
 Use existing note themes and the read-only rich-text renderer for title/body formatting, highlights, lists, quotes, and color.
 
-Desktop uses a wide workspace with side-by-side version cards. Mobile is full-screen with a borderless, space-efficient single preview and accessible tabs (Arrow keys/Home/End, roving focus, associated panels).
+Desktop uses a wide workspace with borderless version panes separated by a divider. Formatted previews retain the authored note card surface, color, typography, and rich text inside each pane; do not add a second enclosing card. Mobile is full-screen with a single preview and accessible tabs (Arrow keys/Home/End, roving focus, associated panels).
 
-Each preview scrolls independently; its version action stays visible without requiring a full read. Keep both stays above the tabs; Review later stays in the bottom footer without an extra divider. Long content must not push decisions off screen. The temporary visual-feedback preview route has been removed.
-
-## Verification
-
-Queue/reconciliation tests cover independent/same-field edits, lost acknowledgements, edits during freshness reads, remote Trash, and read failure/retry. Repository/HTTP checks cover ownership, revisions, lifecycle restrictions, and idempotent creation/update replay.
-
-Parent browser checks verified review reopening with newer remote content, retained local edits, rejection of stale Use mine, and navigation to the Keep both copy. Independent review passed synthetic long-note layout, formatting/themes, mobile tab keyboard behavior, visible choices, and pinned footer. Its real-server resolution coverage remains unverified.
-
-See [the consolidated evidence and remaining limits](autosave.md#verification-and-open-items); passing scoped checks is not an exhaustive device/production certification.
+Each preview scrolls independently; its version action stays visible without requiring a full read. Keep both stays above the tabs; Review later stays in the bottom footer without an extra divider. Long content must not push decisions off screen.
 
 ## Integrated browser-version selection
 
 The shared editor gate no longer picks the first record when several distinct equivalent-copy groups exist. Notes attaches them to one note and presents a chooser before ordinary editing. Explicit selection preserves other groups; subsequent server conflicts still use guarded comparison. A persistent editor action keeps other browser versions discoverable. Same-route switches create a fresh session identity; captured equivalent cleanup waits for durable handoff. Only a confirmed 404 during Use saved marks the original unavailable; temporary read failures keep resolution blocked and retryable. See [handoff](handoff.md) for current limits.
 
-The integrated design was owner-accepted on 2026-10-29. Current verification includes 39 focused queue/policy regressions, authenticated sync HTTP, lint/types, production/Serwist build, and focused independent UI re-review PASS. Recovery URL/repeated hydration and direct Open saved were corrected and browser-verified; both local alternatives remain accessible after opening saved content. Exact coverage is consolidated in [handoff](handoff.md).
+Verification and release limits are consolidated in [handoff](handoff.md); scoped checks do not establish exhaustive device or production coverage.
+
+## Detailed text comparison
+
+Conflict review offers Show changes / Show previews. The optional comparison projects the current saved and browser HTML into text on the client; it never changes reconciliation, persistence, or resolution behavior. Each pane retains its own version's text. Underlines mark text added in the browser version; strikethrough marks text removed from the saved version. Screen-reader labels identify changed spans.
+
+Show changes is a prominent filled button with a comparison icon; Show previews uses an eye icon. Note-color differences appear as a palette status badge, separate from note prose. The editor's Review changes, Review other versions, and Export draft actions share one wrapping row, with Review changes as the primary action. Keep both help uses the main ink color for readable contrast on its tinted surface.
+
+Title and body are compared separately. Formatting/structure and note-color differences direct users back to the rich-text previews. This is not an inline rich-text formatting diff or a three-way baseline view. Changes to mark positions with unchanged text also receive a non-text difference notice.
+
+Word comparison uses jsdiff 9.0.0 with a 50 ms / 1,000-edit bound per field. More than 100,000 combined text characters, or an aborted comparison, falls back to marking the whole changed field with an explanation. No content is truncated. Paragraphs, line breaks, and decoded entities remain text; HTML is never injected by the comparison.
 
 ## Deferred Phase 3 extensions
 
-Minimum conflict safety above is delivered. Detailed diffs, manual merging, and user-visible version history require scope agreement before implementation. No retained-history schema or merge algorithm has been approved.
+Manual merging and user-visible version history require scope agreement before implementation. No retained-history schema or merge algorithm has been approved.
