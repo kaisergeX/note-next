@@ -28,6 +28,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const [showChanges, setShowChanges] = useState(false)
   const [discard, setDiscard] = useState(false)
   const [busy, setBusy] = useState(false)
+  const pendingCopy = useRef<string | undefined>(undefined)
   const [side, setSide] = useState<'mine' | 'saved'>('mine')
   const mobile = useMobileNoteView()
   const tabs = useRef<Record<'mine' | 'saved', HTMLButtonElement | null>>({
@@ -64,6 +65,14 @@ export default function NoteSyncActions({className}: {className?: string}) {
   )
   const actionClass = 'h-auto min-h-10 max-w-full whitespace-normal'
   useEffect(() => {
+    const copyId = pendingCopy.current
+    if (!copyId || session?.baseline.id !== copyId) return
+    pendingCopy.current = undefined
+    router.replace(
+      `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${copyId}`,
+    )
+  }, [session?.baseline.id, mobile, pathname, router])
+  useEffect(() => {
     if (discard) discardHeading.current?.focus()
     else if (previousDiscard.current) savedAction.current?.focus()
     previousDiscard.current = discard
@@ -82,15 +91,28 @@ export default function NoteSyncActions({className}: {className?: string}) {
     try {
       await getNoteSync()?.resolve(choice, remote?.revision)
       const controller = getNoteSync()
-      if (
-        choice === 'both' &&
-        controller?.record.noteId &&
-        !controller.record.conflict &&
-        controller.record.baseline.id === controller.record.noteId
-      ) {
-        router.replace(
-          `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${controller.record.noteId}`,
+      if (choice === 'both' && controller && !controller.record.conflict) {
+        if (
+          controller.record.noteId &&
+          controller.record.baseline.id === controller.record.noteId
         )
+          router.replace(
+            `${mobile || pathname.startsWith('/full/eton/') ? '/full' : ''}/eton/${controller.record.noteId}`,
+          )
+        else {
+          pendingCopy.current = controller.record.creationId
+          if (controller.localSafe) {
+            // Preserve the mounted editor while making reload follow the copy.
+            // An RSC navigation here can race a retry clearing the source ID.
+            const url = new URL(window.location.href)
+            url.pathname = url.pathname.replace(
+              /\/(?:full\/)?eton\/(?:recover\/)?[^/]+$/,
+              `/full/eton/recover/${controller.record.id}`,
+            )
+            url.search = ''
+            window.history.replaceState(null, '', url)
+          }
+        }
       }
       if (!usePersistStore.getState().noteSession?.conflict) {
         setReview(false)
