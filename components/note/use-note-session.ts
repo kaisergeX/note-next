@@ -25,12 +25,15 @@ export function useNoteSession(
 ) {
   const {data: auth} = useSession()
   const ownerId = auth?.user?.id
+  const session = usePersistStore((state) => state.noteSession)
+  const current = getNoteSync()
   const key = recovery
-    ? `recovery:${recovery.id}`
+    ? current?.record.ownerId === ownerId && current?.record.id === recovery.id
+      ? (session?.key ?? `recovery:${recovery.id}`)
+      : `recovery:${recovery.id}`
     : note
       ? `${note.authorId}:${note.id}`
       : `new:${ownerId}`
-  const session = usePersistStore((state) => state.noteSession)
   const router = useRouter()
   const t = useTranslations('note.recovery')
   const [selection, setSelection] = useState<{
@@ -42,6 +45,14 @@ export function useNoteSession(
   useLayoutEffect(() => {
     let alive = true
     if (active && ownerId && (!note || note.authorId === ownerId)) {
+      // Effect reruns resume the mounted session; only explicit version choices
+      // may replace it with the supplied recovery snapshot.
+      if (
+        recovery &&
+        getNoteSync()?.record.ownerId === ownerId &&
+        usePersistStore.getState().noteSession?.key === key
+      )
+        return
       if (
         recovery ||
         !note ||
