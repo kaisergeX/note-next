@@ -1,4 +1,4 @@
-# Note editor handoff — 2026-10-29
+# Note editor handoff — 2026-10-30
 
 Delivered and owner-accepted locally: editor rebuild, bounded autosave/recovery, minimum conflict safety, and detailed text comparison. See [overview](overview.md) for scope and [conflicts](conflicts.md) for the settled comparison design.
 
@@ -42,4 +42,4 @@ The former Keep both help contrast issue is fixed: 11.12:1 dark and 14.06:1 ligh
 
 ## Suggested next work
 
-Repeatable browser regressions, focused card-color triage, the close/identity-handoff correction, and account-lifecycle verification are delivered. The original white-card report is owner-confirmed resolved. Manual merging is the next optional feature; agree on its UX and conditional-save behavior before coding. Retained history requires a separate storage/retention decision. Other deferred features remain in [future](future.md).
+Repeatable browser regressions, focused card-color triage, the close/identity-handoff correction, and account-lifecycle verification are delivered. The original white-card report is owner-confirmed resolved. The owner approved **Edit a copy** on 2026-10-30; implementation is pending in a new chat. Follow the [approved design and implementation plan](conflicts.md#approved-extension-edit-a-copy): create an explicitly listed browser copy with an Edited copy badge, edit it inside review, preserve its source (including after a successful save), and resolve only through an explicit guarded choice. No application code changed for this design handoff. The existing 39 sync/queue/diff tests were rerun and passed during the preceding source audit; that does not verify the new feature. Retained history requires a separate storage/retention decision. Other deferred features remain in [future](future.md).
