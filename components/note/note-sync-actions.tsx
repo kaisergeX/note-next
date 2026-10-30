@@ -6,14 +6,18 @@ import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
 import {IconArrowsDiff, IconEye} from '@tabler/icons-react'
 import {usePersistStore} from '~/store'
-import {getNoteSync} from '~/lib/notes/session-sync'
-import {exportDrafts} from '~/lib/notes/drafts'
+import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
+import {exportDrafts, listDrafts} from '~/lib/notes/drafts'
 import Button from '~/components/ui/button'
+import {Badge} from '~/components/ui/badge'
+import NoteWriting from './note-writing'
+import {NoteThemePicker} from './note-theme-picker'
+import RecoveryManagement from './recovery-management'
 import ConfirmationDialog from '~/components/ui/confirmation-dialog'
 import NoteReadOnly from './trash/note-read-only'
 import NoteCard from './note-card'
 import {useMobileNoteView} from '~/lib/notes/mobile'
-import type {NoteTheme} from '~/db/schema/notes'
+import type {Note, NoteTheme} from '~/db/schema/notes'
 import {usePathname, useRouter} from '~/i18n/navigation'
 import AttachedNoteVersions from './attached-note-versions'
 import NoteVersionDiff from './note-version-diff'
@@ -26,7 +30,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const pathname = usePathname()
   const search = useSearchParams()
   const fromBrowserWork = search.get('from') === 'browser-work'
-  const initialReview = fromBrowserWork && search.get('review') === '1'
+  const initialReview = search.get('review') === '1'
   const reviewedSession = useRef<string | undefined>(undefined)
   const session = usePersistStore((s) => s.noteSession)
   const draft = usePersistStore((s) => s.mutateNoteData)
@@ -46,11 +50,70 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const previousDiscard = useRef(false)
   const titleId = useId(),
     descriptionId = useId()
+  const controller = getNoteSync()
+  const editedCopy = Boolean(controller?.record.editedCopyOf)
+  const closeReview = () => {
+    getNoteSync()?.refreshEditors()
+    setReview(false)
+    setDiscard(false)
+  }
+  const editCopy = async () => {
+    if (!controller || !session) return
+    setBusy(true)
+    try {
+      const copy = await controller.editCopy()
+      if (!copy || getNoteSync() !== controller) return
+      setShowChanges(false)
+      setSide('mine')
+      const url = new URL(window.location.href)
+      url.searchParams.set('version', copy.versionId!)
+      window.history.replaceState(null, '', url.href)
+      beginNoteSync(
+        copy.ownerId,
+        session.key,
+        controller.record.baseline as Note,
+        copy,
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+  const returnToSource = async () => {
+    if (!controller || !session) return
+    const records = await listDrafts(controller.record.ownerId)
+    const source = records.find(
+      (row) => row.versionId === controller.record.editedCopyOf,
+    )
+    if (source) {
+      setShowChanges(false)
+      const url = new URL(window.location.href)
+      url.searchParams.set('version', source.versionId!)
+      url.searchParams.set('review', '1')
+      window.history.replaceState(null, '', url.href)
+      beginNoteSync(
+        source.ownerId,
+        session.key,
+        controller.record.baseline as Note,
+        source,
+      )
+    } else {
+      // The author may have explicitly discarded the source in the chooser.
+      // Discarding its working copy must still leave a live saved-note session.
+      closeReview()
+      beginNoteSync(
+        controller.record.ownerId,
+        session.key,
+        controller.record.conflict ?? (controller.record.baseline as Note),
+        undefined,
+        true,
+      )
+    }
+  }
   const remote = session?.conflict
   const hasConflict = Boolean(remote)
   useEffect(() => {
     if (
-      !initialReview ||
+      (!initialReview && !editedCopy) ||
       !hasConflict ||
       !session?.identity ||
       reviewedSession.current === session.identity
@@ -59,7 +122,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
     reviewedSession.current = session.identity
     startTransition(() => setReview(true))
     void getNoteSync()?.refreshRemote('review')
-  }, [initialReview, hasConflict, session?.identity])
+  }, [initialReview, hasConflict, session?.identity, editedCopy])
   const resolutionDisabled =
     busy || session?.checkingRemote || session?.remoteCheckFailed
   const unavailable = session?.syncStatus === 'unavailable'
@@ -104,6 +167,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
     if (controller) exportDrafts([controller.record])
   }
   const openReview = async () => {
+    getNoteSync()?.refreshEditors()
     setReview(true)
     setDiscard(false)
     await getNoteSync()?.refreshRemote('review')
@@ -136,11 +200,12 @@ export default function NoteSyncActions({className}: {className?: string}) {
             )
             url.search = ''
             if (fromBrowserWork) url.searchParams.set('from', 'browser-work')
-            window.history.replaceState(null, '', url)
+            window.history.replaceState(null, '', url.href)
           }
         }
       }
       if (!usePersistStore.getState().noteSession?.conflict) {
+        getNoteSync()?.refreshEditors()
         setReview(false)
         setDiscard(false)
       }
@@ -220,10 +285,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
         <ConfirmationDialog
           open={review}
           busy={busy}
-          onRequestClose={() => {
-            setReview(false)
-            setDiscard(false)
-          }}
+          onRequestClose={closeReview}
           labelledBy={titleId}
           describedBy={descriptionId}
           initialFocusId={titleId}
@@ -239,6 +301,11 @@ export default function NoteSyncActions({className}: {className?: string}) {
             >
               {t('conflictDescription')}
             </p>
+            {session?.storageFailed && (
+              <p role="alert" className="text-destructive mt-2 text-sm">
+                {t('storageFailed')}
+              </p>
+            )}
             {session?.checkingRemote && (
               <p role="status" className="text-ink-muted mt-2 text-xs">
                 {t('checkingSaved')}
@@ -342,7 +409,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                       tabs.current[next]?.focus()
                     }}
                   >
-                    {t(value)}
+                    {t(value === 'mine' && editedCopy ? 'editedCopy' : value)}
                   </Button>
                 ))}
               </div>
@@ -360,26 +427,77 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   side === 'saved' && 'max-sm:hidden',
                 )}
               >
-                <h3 className="hidden font-semibold sm:block">{t('mine')}</h3>
+                <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 px-3 pt-2 sm:px-0 sm:pt-0">
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h3 className="hidden font-semibold sm:block">
+                      {t('mine')}
+                    </h3>
+                    {editedCopy && (
+                      <Badge aria-label={t('editedCopyOrigin')}>
+                        {t('editedCopy')}
+                      </Badge>
+                    )}
+                  </div>
+                  {editedCopy ? (
+                    <RecoveryManagement
+                      ownerId={controller!.record.ownerId}
+                      records={[controller!.record]}
+                      onDiscard={returnToSource}
+                    />
+                  ) : (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={resolutionDisabled}
+                      onClick={() => void editCopy()}
+                    >
+                      {t('editCopy')}
+                    </Button>
+                  )}
+                </div>
                 <div
                   role="region"
                   aria-label={t('mine')}
                   tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
+                  className="focus-visible:outline-accent flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
                 >
+                  {editedCopy && (
+                    <div
+                      hidden={showChanges}
+                      className={cn(
+                        'min-h-full shrink-0 flex-col p-3 sm:p-0',
+                        showChanges ? 'hidden' : 'flex',
+                      )}
+                    >
+                      <NoteCard
+                        theme={draft?.theme}
+                        className="flex flex-1 flex-col overflow-hidden"
+                      >
+                        <NoteWriting
+                          key={session?.identity}
+                          id={`comparison-${session?.identity}`}
+                          pending={busy}
+                          autofocus={false}
+                          leadingActions={
+                            <NoteThemePicker disabled={busy} size="md" />
+                          }
+                        />
+                      </NoteCard>
+                    </div>
+                  )}
                   {showChanges ? (
                     <NoteVersionDiff
                       saved={snapshot(remote)}
                       mine={snapshot(draft)}
                       side="mine"
                     />
-                  ) : (
+                  ) : !editedCopy ? (
                     <VersionPreview
                       theme={draft?.theme ?? null}
                       title={draft?.title ?? null}
                       content={draft?.content ?? null}
                     />
-                  )}
+                  ) : null}
                 </div>
                 <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
                   <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
@@ -391,7 +509,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                     disabled={resolutionDisabled}
                     onClick={() => void resolve('mine')}
                   >
-                    {t('useMine')}
+                    {t(editedCopy ? 'useThisVersion' : 'useMine')}
                   </Button>
                 </div>
               </section>
@@ -405,7 +523,9 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   side === 'mine' && 'max-sm:hidden',
                 )}
               >
-                <h3 className="hidden font-semibold sm:block">{t('saved')}</h3>
+                <h3 className="hidden min-h-10 items-center font-semibold sm:flex">
+                  {t('saved')}
+                </h3>
                 <div
                   role="region"
                   aria-label={t('saved')}
@@ -488,7 +608,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
               variant="ghost"
               data-cancel
               disabled={busy}
-              onClick={() => setReview(false)}
+              onClick={closeReview}
             >
               {t('closeComparison')}
             </Button>

@@ -6,6 +6,9 @@ import {snapshot} from './sync'
 function copyKey(record: RecoveryDraft) {
   return JSON.stringify([
     record.ownerId,
+    record.versionId ?? null,
+    record.editedCopyOf ?? null,
+    record.retainedSource ?? false,
     record.noteId ? `note:${record.noteId}` : `creation:${record.creationId}`,
     snapshot(record.draft),
     record.baseline.revision ?? null,

@@ -812,3 +812,235 @@ for (const status of [503, 401, 404]) {
       )
   })
 }
+
+// Deliberately identical content must still represent two intentional versions.
+test('Edit a copy durably preserves its source, isolates transport intent, and resumes one copy', async (t) => {
+  const {controller, baseline, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: '<p>Browser source</p>', theme: 'green'})
+  controller.record.conflict = {
+    ...baseline,
+    revision: crypto.randomUUID(),
+    content: '<p>Other device</p>',
+  }
+  controller.record.flight = {
+    ownerId: baseline.authorId,
+    noteId: baseline.id,
+    creationId: controller.record.creationId,
+    mutationId: crypto.randomUUID(),
+    expectedRevision: baseline.revision,
+    content: {...controller.record.draft},
+    kind: 'save',
+  }
+  const copy = await controller.editCopy()
+  assert.ok(copy)
+  assert.equal(copy.editedCopyOf, controller.record.versionId)
+  assert.equal(copy.flight, undefined)
+  assert.notEqual(copy.creationId, controller.record.creationId)
+  assert.deepEqual(copy.draft, controller.record.draft)
+  assert.equal(groupRecoveryDrafts([...records.values()]).length, 2)
+  assert.equal(groupNoteRecovery([...records.values()]).size, 1)
+  assert.equal(records.get(controller.record.id)?.retainedSource, true)
+  assert.equal((await controller.editCopy())?.id, copy.id)
+  const source = structuredClone(controller.record)
+  controller.stop()
+  usePersistStore.getState().resetNoteStore()
+  usePersistStore.getState().beginNoteSession('copy-reload', baseline)
+  const resumed = new NoteSyncSession(
+    baseline.authorId,
+    usePersistStore.getState().noteSession!,
+    baseline,
+    io,
+  )
+  t.after(() => resumed.stop())
+  await resumed.hydrate(copy)
+  assert.equal(resumed.record.versionId, copy.versionId)
+  assert.equal((await resumed.editCopy())?.id, resumed.record.id)
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: '<p>Composed copy</p>'})
+  await resumed.persist()
+  assert.deepEqual(records.get(source.id), source)
+  assert.equal(groupRecoveryDrafts([...records.values()]).length, 2)
+  assert.equal(
+    records.get(resumed.record.id)?.draft.content,
+    '<p>Composed copy</p>',
+  )
+})
+
+test('Edit a copy does not switch away from its source when browser storage fails', async (t) => {
+  const {controller, baseline, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  controller.record.conflict = {...baseline, revision: crypto.randomUUID()}
+  usePersistStore.getState().setMutateNoteData({content: 'Durable source'})
+  await controller.persist()
+  const put = io.put
+  io.put = async (record) => {
+    if (record.editedCopyOf) throw new Error('Storage full')
+    return put(record)
+  }
+  assert.equal(await controller.editCopy(), undefined)
+  assert.equal(records.size, 1)
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'Durable source',
+  )
+  assert.equal(usePersistStore.getState().noteSession?.storageFailed, true)
+})
+
+test('edited copies preserve composition on fresh reads and stale saves, then retain the source after resolution', async (t) => {
+  const requests: SyncRequest[] = []
+  const {controller, baseline, records, io} = setup(t, async (request) => {
+    requests.push(structuredClone(request))
+    return {
+      status: 'success',
+      note: {...baseline, ...request.content, revision: crypto.randomUUID()},
+    }
+  })
+  await controller.hydrate()
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: 'Original browser version'})
+  controller.record.conflict = {...baseline, revision: crypto.randomUUID()}
+  const copy = await controller.editCopy()
+  assert.ok(copy)
+  const source = structuredClone(controller.record)
+  controller.stop()
+  usePersistStore.getState().resetNoteStore()
+  usePersistStore.getState().beginNoteSession('edited-resolution', baseline)
+  const edited = new NoteSyncSession(
+    baseline.authorId,
+    usePersistStore.getState().noteSession!,
+    baseline,
+    io,
+  )
+  t.after(() => edited.stop())
+  await edited.hydrate(copy)
+  usePersistStore.getState().setMutateNoteData({
+    content: '<p>Manually composed</p>',
+    title: '<p>Own title</p>',
+  })
+  const remote = {
+    ...baseline,
+    title: '<p>New remote title</p>',
+    revision: crypto.randomUUID(),
+  }
+  io.read = async () => ({status: 'success', note: remote})
+  await edited.refreshRemote('visibility')
+  assert.equal(edited.record.draft.title, '<p>Own title</p>')
+  assert.equal(edited.record.draft.content, '<p>Manually composed</p>')
+  await edited.resolve('mine', baseline.revision)
+  assert.equal(requests.length, 0)
+  const newer = {
+    ...remote,
+    revision: crypto.randomUUID(),
+    content: 'Changed again',
+  }
+  io.send = async (request) => {
+    requests.push(structuredClone(request))
+    return {status: 'conflict', note: newer}
+  }
+  await edited.resolve('mine', remote.revision)
+  assert.equal(edited.record.conflict?.revision, newer.revision)
+  assert.equal(edited.record.draft.content, '<p>Manually composed</p>')
+  io.send = async (request) => {
+    requests.push(structuredClone(request))
+    return {
+      status: 'success',
+      note: {...newer, ...request.content, revision: crypto.randomUUID()},
+    }
+  }
+  await edited.resolve('mine', newer.revision)
+  assert.equal(edited.record.conflict, undefined)
+  assert.equal(requests.at(-1)?.expectedRevision, newer.revision)
+  assert.deepEqual(records.get(source.id), source)
+  assert.equal(records.has(edited.record.id), false)
+})
+
+test('retained sources survive equivalent saved content and cannot group across accounts', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  const source: RecoveryDraft = {
+    ...structuredClone(controller.record),
+    id: crypto.randomUUID(),
+    versionId: crypto.randomUUID(),
+    retainedSource: true,
+  }
+  records.set(source.id, source)
+  await controller.hydrate(source)
+  await controller.persist()
+  assert.equal(controller.record.conflict?.revision, baseline.revision)
+  assert.equal(records.get(controller.record.id)?.retainedSource, true)
+  const foreign = {
+    ...structuredClone(controller.record),
+    ownerId: crypto.randomUUID(),
+  }
+  assert.equal(groupRecoveryDrafts([controller.record, foreign]).length, 2)
+  assert.equal(
+    noteRecoveryGroups([foreign], baseline.authorId, baseline.id).length,
+    0,
+  )
+})
+
+test('Keep both from a retained source leaves that source attached to the original note', async (t) => {
+  const {controller, baseline, records} = setup(t, async (request) => ({
+    status: 'success',
+    note: {
+      ...baseline,
+      ...request.content,
+      id: request.creationId,
+      revision: crypto.randomUUID(),
+    },
+  }))
+  await controller.hydrate()
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: '<p>Retained browser source</p>'})
+  controller.record.conflict = {...baseline, revision: crypto.randomUUID()}
+  await controller.editCopy()
+  const sourceVersionId = controller.record.versionId
+  await controller.resolve('both')
+  assert.notEqual(controller.record.noteId, baseline.id)
+  const retained = [...records.values()].find(
+    (row) => row.versionId === sourceVersionId,
+  )
+  assert.ok(retained)
+  assert.equal(retained.noteId, baseline.id)
+  assert.equal(retained.retainedSource, true)
+  assert.equal(retained.draft.content, '<p>Retained browser source</p>')
+})
+
+test('confirmed Use saved explicitly discards a retained source', async (t) => {
+  const {controller, baseline, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Source to discard'})
+  controller.record.conflict = baseline
+  await controller.editCopy()
+  const sourceId = controller.record.id
+  t.mock.method(
+    globalThis,
+    'fetch',
+    async () =>
+      new Response(JSON.stringify(baseline), {
+        status: 200,
+        headers: {'Content-Type': 'application/json'},
+      }),
+  )
+  await controller.resolve('saved', baseline.revision)
+  assert.equal(records.has(sourceId), false)
+  assert.equal(controller.record.retainedSource, undefined)
+  assert.equal(controller.record.draft.content, baseline.content)
+  assert.equal(
+    [...records.values()].filter((row) => row.editedCopyOf).length,
+    1,
+  )
+})

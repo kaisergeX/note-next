@@ -29,7 +29,9 @@ export default function NoteDialog({
   onMoveToTrash,
 }: NoteDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const fromBrowserWork = useSearchParams().get('from') === 'browser-work'
+  const search = useSearchParams()
+  const fromBrowserWork = search.get('from') === 'browser-work'
+  const version = search.get('version')
   useLayoutEffect(() => {
     const dialog = dialogRef.current
     // Cached routes disconnect effects without removing their DOM. Close before
@@ -95,7 +97,7 @@ export default function NoteDialog({
           mutateNoteData?.id && !unavailable ? (
             <Link
               href={withBrowserWorkReturn(
-                `/full/eton/${mutateNoteData.id}`,
+                `/full/eton/${mutateNoteData.id}${version ? `?version=${encodeURIComponent(version)}` : ''}`,
                 fromBrowserWork,
               )}
               className={cn(

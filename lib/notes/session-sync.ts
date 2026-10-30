@@ -158,6 +158,10 @@ export class NoteSyncSession {
   get dirty() {
     return (
       Boolean(this.record.flight) ||
+      Boolean(
+        this.record.conflict &&
+        (this.record.editedCopyOf || this.record.retainedSource),
+      ) ||
       ((Boolean(this.record.noteId) || meaningfulContent(this.record.draft)) &&
         !sameContent(this.record.draft, this.record.baseline))
     )
@@ -214,8 +218,13 @@ export class NoteSyncSession {
             saved.draft,
             snapshot(server),
           )
-          this.record.draft = result.merged
-          if (result.conflicts.length) {
+          if (!saved.editedCopyOf && !saved.retainedSource)
+            this.record.draft = result.merged
+          if (
+            saved.conflict ||
+            saved.retainedSource ||
+            result.conflicts.length
+          ) {
             this.record.conflict = server as Note
           } else {
             // A pending request is retried unchanged before saving a merged draft.
@@ -285,7 +294,7 @@ export class NoteSyncSession {
       if (this.serverTimer) clearTimeout(this.serverTimer)
       return
     }
-    if (!this.dirty && !this.record.conflict) {
+    if (!this.dirty && !this.record.conflict && !this.record.retainedSource) {
       if (this.localTimer) clearTimeout(this.localTimer)
       if (this.serverTimer) clearTimeout(this.serverTimer)
       this.publish({syncStatus: this.record.noteId ? 'saved' : undefined})
@@ -326,7 +335,12 @@ export class NoteSyncSession {
   }
   persist(): Promise<boolean> {
     if (this.stopped) return Promise.resolve(false)
-    if (!this.dirty && !this.record.conflict && !this.record.unavailable)
+    if (
+      !this.dirty &&
+      !this.record.conflict &&
+      !this.record.unavailable &&
+      !this.record.retainedSource
+    )
       return Promise.resolve(true)
     if (
       !this.record.noteId &&
@@ -468,6 +482,10 @@ export class NoteSyncSession {
         syncStatus: this.dirty ? 'pending' : 'saved',
       })
       window.dispatchEvent(new CustomEvent('note-saved', {detail: result.note}))
+      if (!this.dirty && this.record.retainedSource) {
+        await this.persist()
+        return
+      }
       if (!this.dirty) {
         const acknowledgedGeneration = this.record.generation
         await this.localWrites
@@ -493,8 +511,15 @@ export class NoteSyncSession {
         this.record.draft,
         snapshot(result.note),
       )
-      if (resolution.conflicts.length || flight.kind === 'trash') {
-        if (!sameContent(this.record.draft, resolution.merged))
+      if (
+        this.record.editedCopyOf ||
+        resolution.conflicts.length ||
+        flight.kind === 'trash'
+      ) {
+        if (
+          !this.record.editedCopyOf &&
+          !sameContent(this.record.draft, resolution.merged)
+        )
           this.replaceContent(resolution.merged)
         this.record.conflict = result.note
         this.publish({syncStatus: 'conflict', conflict: result.note})
@@ -581,13 +606,23 @@ export class NoteSyncSession {
       this.record.baseline = remote
       confirmedFlight = true
     }
-    if (mode === 'review' && this.record.conflict) {
+    if (
+      this.record.conflict &&
+      (mode === 'review' ||
+        this.record.editedCopyOf ||
+        this.record.retainedSource)
+    ) {
       const merged = reconcile(
         this.record.baseline,
         this.record.draft,
         snapshot(remote),
       ).merged
-      if (!sameContent(this.record.draft, merged)) this.replaceContent(merged)
+      if (
+        !this.record.editedCopyOf &&
+        !this.record.retainedSource &&
+        !sameContent(this.record.draft, merged)
+      )
+        this.replaceContent(merged)
       this.record.conflict = remote
       this.publish({
         conflict: remote,
@@ -633,7 +668,7 @@ export class NoteSyncSession {
       syncStatus: this.dirty ? 'pending' : 'saved',
       remoteCheckFailed: false,
     })
-    if (this.dirty) await this.persist()
+    if (this.dirty || this.record.retainedSource) await this.persist()
     else {
       const generation = this.record.generation
       await this.localWrites
@@ -647,8 +682,63 @@ export class NoteSyncSession {
     }
     return true
   }
+  // A fork must be durable before the UI switches. Never inherit ambiguous
+  // transport intent: the copy has its own explicit resolution and creation IDs.
+  async editCopy(): Promise<RecoveryDraft | undefined> {
+    if (this.stopped || this.running || !this.record.conflict) return
+    if (this.record.editedCopyOf) return this.record
+    if (this.record.versionId) {
+      try {
+        const existing = (await this.io.list(this.record.ownerId)).find(
+          (row) =>
+            row.ownerId === this.record.ownerId &&
+            row.noteId === this.record.noteId &&
+            row.editedCopyOf === this.record.versionId,
+        )
+        if (existing) return existing
+      } catch {
+        this.publish({storageFailed: true})
+        return
+      }
+    }
+    if (!(await this.persist())) return
+    this.record = {
+      ...this.record,
+      versionId: this.record.versionId ?? crypto.randomUUID(),
+      retainedSource: true,
+      generation: this.record.generation + 1,
+    }
+    if (!(await this.persist())) return
+    const copy: RecoveryDraft = {
+      ...structuredClone(this.record),
+      id: crypto.randomUUID(),
+      versionId: crypto.randomUUID(),
+      editedCopyOf: this.record.versionId,
+      retainedSource: undefined,
+      creationId: crypto.randomUUID(),
+      flight: undefined,
+      generation: 0,
+      updatedAt: Date.now(),
+    }
+    try {
+      await this.io.put(copy)
+      if (this.stopped) return
+      return copy
+    } catch {
+      this.publish({storageFailed: true})
+    }
+  }
+  refreshEditors() {
+    this.publish({editorVersion: (this.state.editorVersion ?? 0) + 1})
+  }
   async resolve(choice: 'both' | 'saved' | 'mine', shownRevision?: string) {
-    if (this.running || this.stopped) return
+    if (
+      this.running ||
+      this.stopped ||
+      this.refreshing ||
+      this.state.remoteCheckFailed
+    )
+      return
     const remote = this.record.conflict
     if (choice !== 'both' && (!remote || remote.revision !== shownRevision))
       return
@@ -676,6 +766,11 @@ export class NoteSyncSession {
           return
         }
         const latest = (await response.json()) as Note
+        if (this.stopped) return
+        if (latest.authorId !== this.record.ownerId) {
+          this.publish({syncStatus: 'account_changed', remoteCheckFailed: true})
+          return
+        }
         if (latest.revision !== shownRevision) {
           this.record.conflict = latest
           this.publish({conflict: latest})
@@ -685,6 +780,8 @@ export class NoteSyncSession {
         this.record.baseline = latest
         this.record.conflict = undefined
         this.record.flight = undefined
+        // Use saved is an explicitly confirmed discard of this selected version.
+        this.record.retainedSource = undefined
         this.replaceContent(latest)
         this.publish({
           baseline: latest,
@@ -693,11 +790,29 @@ export class NoteSyncSession {
         })
         await this.persist()
         await this.localWrites
-        await this.io.clear(this.record.id, this.record.generation)
+        if (!this.record.retainedSource)
+          await this.io.clear(this.record.id, this.record.generation)
       } catch {
         this.publish({syncStatus: 'failed'})
       }
       return
+    }
+    if (choice === 'both' && this.record.retainedSource) {
+      // Keep the explicitly retained version attached to its original note,
+      // even when the author later saves that source as another separate note.
+      if (!(await this.persist())) return
+      try {
+        await this.io.put({
+          ...structuredClone(this.record),
+          id: crypto.randomUUID(),
+        })
+      } catch {
+        this.publish({storageFailed: true})
+        return
+      }
+      if (this.stopped) return
+      this.record.retainedSource = undefined
+      this.record.versionId = undefined
     }
     this.record.conflict = undefined
     this.record.unavailable = false
@@ -712,6 +827,17 @@ export class NoteSyncSession {
       conflict: undefined,
       syncStatus: 'pending',
     })
+    if (choice === 'mine') {
+      this.record.flight = {
+        ownerId: this.record.ownerId,
+        noteId: this.record.noteId,
+        creationId: this.record.creationId,
+        mutationId: crypto.randomUUID(),
+        expectedRevision: remote!.revision,
+        content: {...this.record.draft},
+        kind: 'save',
+      }
+    }
     await this.persist()
     await this.flush('save', true)
   }
@@ -761,6 +887,18 @@ export class NoteSyncSession {
     )
       this.publish({syncStatus: 'pending'})
     return this.flush('save', true)
+  }
+  suspendForDiscard() {
+    this.stopped = true
+    if (this.localTimer) clearTimeout(this.localTimer)
+    if (this.serverTimer) clearTimeout(this.serverTimer)
+  }
+  resumeAfterDiscardFailure() {
+    // Account exit or a view switch may have stopped it while storage failed.
+    if (controllers.get(this.record.id) !== this) return
+    this.stopped = false
+    this.publish({storageFailed: true})
+    if (this.dirty) this.schedule()
   }
   stop() {
     this.stopped = true
@@ -850,6 +988,7 @@ export async function discardCapturedDrafts(
   records: RecoveryDraft[],
 ) {
   const captured: RecoveryDraft[] = []
+  const suspended: NoteSyncSession[] = []
   let newer = 0
   for (const record of records) {
     if (record.ownerId !== ownerId) continue
@@ -864,13 +1003,20 @@ export async function discardCapturedDrafts(
       continue
     }
     if (source) {
-      source.stop()
+      source.suspendForDiscard()
+      suspended.push(source)
       await source.drained()
     }
     captured.push(record)
   }
-  const result = await clearDraftBatch(ownerId, captured)
-  return {newer: newer + result.newer}
+  try {
+    const result = await clearDraftBatch(ownerId, captured)
+    for (const source of suspended) source.stop()
+    return {newer: newer + result.newer}
+  } catch (error) {
+    for (const source of suspended) source.resumeAfterDiscardFailure()
+    throw error
+  }
 }
 export function flushVisibleDrafts() {
   return Promise.all(

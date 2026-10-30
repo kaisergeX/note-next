@@ -1,6 +1,6 @@
 # Note editor and persistence roadmap
 
-Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text comparison are delivered and owner-accepted locally. The Edit a copy extension is owner-approved on 2026-10-30, with implementation pending. Production migration/deployment remain separate. Verification, unresolved reports, and release limits live in [handoff](handoff.md).
+Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text comparison are delivered and owner-accepted locally. The Edit a copy extension is implemented and verified locally on 2026-10-30; its visible label is Working copy / Bản đang sửa. Production migration/deployment remain separate. Verification, unresolved reports, and release limits live in [handoff](handoff.md).
 
 ## Delivery state
 
@@ -10,7 +10,7 @@ Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text compari
 | 1 | Stable editor/session boundaries, active-field toolbar, rich-text titles, underline, view handoff, corrected HR insertion. |
 | 2 | Account-scoped browser recovery, bounded autosave, integrated Notes discovery, lifecycle/account protections. |
 | 3 | UUID revision checks, independent field reconciliation, guarded conflict review, optional word-level text differences. |
-| Approved next | Edit a copy inside conflict review: preserve the source browser version, edit a separate recovery version, then explicitly resolve. [Design and implementation plan](conflicts.md#approved-extension-edit-a-copy). Not implemented. |
+| 3 extension | Edit a copy inside conflict review: preserve the source browser version, edit a separate recovery version, then explicitly resolve. [Design and implementation plan](conflicts.md#approved-extension-edit-a-copy). Implemented locally; evidence and remaining limits are in the handoff. |
 | Deferred | Automatic paragraph/change merging, retained version history, search, full offline operation, E2EE, drawing. Separate scope approval required. |
 
 ## Contracts and read order

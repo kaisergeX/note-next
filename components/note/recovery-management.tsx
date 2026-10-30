@@ -14,10 +14,12 @@ export default function RecoveryManagement({
   ownerId,
   records,
   all = false,
+  onDiscard,
 }: {
   ownerId: string
   records: RecoveryDraft[]
   all?: boolean
+  onDiscard?: () => void | Promise<void>
 }) {
   const t = useTranslations('note.recovery')
   const id = useId()
@@ -108,6 +110,7 @@ export default function RecoveryManagement({
                 const result = await discardCapturedDrafts(ownerId, captured)
                 setCaptured(undefined)
                 if (result.newer) setNotice(t('draftsChanged'))
+                else await onDiscard?.()
               } catch {
                 setNotice(t('recoveryFailed'))
               } finally {

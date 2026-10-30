@@ -34,12 +34,27 @@ export default function AttachedNoteVersions({
       !sameRecoveryCopy(row, current.record),
   )
   if (!related.length) return null
-  const choose = async (record?: RecoveryDraft) => {
+  const choose = async (record?: RecoveryDraft, discarded = false) => {
+    if (!discarded && getNoteSync() !== current) return
     setBusy(true)
     try {
-      if (current.dirty && (!(await current.persist()) || !current.localSafe))
+      if (
+        !discarded &&
+        current.dirty &&
+        (!(await current.persist()) || !current.localSafe)
+      ) {
+        // Keep the active editor and its storage-failure/export guidance visible
+        // if the outgoing version cannot be durably handed off.
+        setReview(false)
         return
+      }
       setReview(false)
+      const url = new URL(window.location.href)
+      if (record?.versionId) url.searchParams.set('version', record.versionId)
+      else if (current.record.versionId || related.some((row) => row.versionId))
+        url.searchParams.set('version', 'saved')
+      else url.searchParams.delete('version')
+      window.history.replaceState(null, '', url.href)
       beginNoteSync(
         ownerId,
         session!.key,
@@ -60,7 +75,24 @@ export default function AttachedNoteVersions({
         size="sm"
         variant="secondary"
         disabled={busy}
-        onClick={() => setReview(true)}
+        onClick={async () => {
+          setBusy(true)
+          try {
+            const closing = Array.from(
+              document.querySelectorAll<HTMLDialogElement>(
+                'dialog:not([open])',
+              ),
+            )
+            await Promise.allSettled(
+              closing.flatMap((dialog) =>
+                dialog.getAnimations().map((animation) => animation.finished),
+              ),
+            )
+            if (getNoteSync() === current) setReview(true)
+          } finally {
+            setBusy(false)
+          }
+        }}
       >
         {t('reviewVersions')}
       </Button>
@@ -73,7 +105,16 @@ export default function AttachedNoteVersions({
               ? (current.record.baseline as Note)
               : undefined
           }
-          records={related}
+          records={[current.record, ...related]}
+          onDiscard={(record) => {
+            if (record.id === current.record.id)
+              void choose(
+                related.find(
+                  (row) => row.versionId === current.record.editedCopyOf,
+                ),
+                true,
+              )
+          }}
           onClose={() => setReview(false)}
           onChoose={(record) => void choose(record)}
         />

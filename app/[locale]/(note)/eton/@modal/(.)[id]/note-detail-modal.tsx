@@ -14,19 +14,24 @@ import {noteReturnPath, withBrowserWorkReturn} from '~/lib/notes/navigation'
 export default function NoteDetailModal({noteData}: {noteData: Note}) {
   const t = useTranslations('note')
   const router = useRouter()
-  const source = useSearchParams().get('from')
+  const search = useSearchParams()
+  const source = search.get('from')
+  const version = search.get('version')
   const fromBrowserWork = source === 'browser-work'
   const [open, setOpen] = useState(false)
   const session = useNoteSession(noteData)
   useEffect(() => {
     if (isMobileNoteView()) {
       router.replace(
-        withBrowserWorkReturn(`/full/eton/${noteData.id}`, fromBrowserWork),
+        withBrowserWorkReturn(
+          `/full/eton/${noteData.id}${version ? `?version=${encodeURIComponent(version)}` : ''}`,
+          fromBrowserWork,
+        ),
       )
       return
     }
     startTransition(() => setOpen(true))
-  }, [noteData.id, router, fromBrowserWork])
+  }, [noteData.id, router, fromBrowserWork, version])
   const close = async () => {
     setOpen(false)
     await sleep(200)
