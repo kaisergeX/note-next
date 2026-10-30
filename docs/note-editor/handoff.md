@@ -1,6 +1,19 @@
-# Note editor handoff — 2026-10-30
+# Note editor handoff
 
-Delivered and owner-accepted locally: editor rebuild, bounded autosave/recovery, minimum conflict safety, and detailed text comparison. See [overview](overview.md) for scope and [conflicts](conflicts.md) for the settled comparison design.
+## Owner decision — 2026-11-01: failed phase, no deployment
+
+**Phase 3 and its Working copy extension have NOT passed. The owner considers these changes a failure. NO deployment or production migration is approved.** This decision supersedes earlier acceptance/release-readiness statements for the current implementation.
+
+- The owner explicitly rejected the design and code quality of `components/note/note-sync-actions.tsx`. It requires redesign, not further approval claims based on narrow checks.
+- The note-editor changes also require redesign. Review, version selection, editor ownership, state lifetime, and native-dialog rendering/visibility must be reassessed together.
+- The owner reported that rendering problems remained after the attempted fixes. The shared dialog-flow experiment was rejected and removed. Subsequent changes separated editor/review surfaces and kept the dialogs mounted with controlled `open` props; those changes are still **unaccepted** and do not establish that the rendering problem is solved.
+- A new thread will address these issues and may rework the entire implementation. The current code is an unfinished, rejected starting point; do not assume its architecture must be retained.
+- Historical automated passes, DOM-node checks, screenshots and independent-review verdicts below are limited evidence from earlier snapshots. They do not establish current phase acceptance, sound design, or deployment readiness. Previous root-cause explanations must be independently re-evaluated rather than treated as settled facts.
+- This thread ends with documentation of the owner's decision. No further implementation or release work is authorized by this handoff. Future work needs to follow the owner's direction in the new thread.
+
+## Historical delivery and verification record
+
+Earlier snapshots recorded local acceptance of editor rebuild, bounded autosave/recovery, minimum conflict safety, and detailed text comparison. The current Phase 3/editor changes are rejected as stated above. See [overview](overview.md) for current scope status and [conflicts](conflicts.md) for the earlier comparison contract.
 
 Accepted Browser work flow: a separate `/collection/browser-work` route has a back icon to Notes, a title, and management actions; no Create note or All notes button. Logout Review, legacy recovery links, and the earlier query URL lead there. Editor/recovery URLs retain the fixed `from=browser-work` context: chooser Review later and editor close return to Browser work; editor overlays use Close comparison and stay in the editor. Normal Notes behavior remains unchanged. Earlier filter-version evidence below predates this route/flow change.
 
@@ -36,10 +49,60 @@ The former Keep both help contrast issue is fixed: 11.12:1 dark and 14.06:1 ligh
 
 ## Open items and release limits
 
-- Migration `drizzle/20261027120859_note_autosave` is locally applied only. Production migration and deployment require a separate release step.
+- Migration `drizzle/20261027120859_note_autosave` is locally applied only. **Production migration and deployment are not approved; the owner has blocked release of these changes.**
 - Actual fullscreen entry, exhaustive IME/appearance/browser combinations, and production traffic/performance are not exhaustively verified.
 - The [historical dependency audit and stored-HTML rendering boundary](editor.md#security-assessment-record) are not an application-wide security clearance.
 
-## Suggested next work
+## Working copy delivery — 2026-10-30
 
-Repeatable browser regressions, focused card-color triage, the close/identity-handoff correction, and account-lifecycle verification are delivered. The original white-card report is owner-confirmed resolved. The owner approved **Edit a copy** on 2026-10-30; implementation is pending in a new chat. Follow the [approved design and implementation plan](conflicts.md#approved-extension-edit-a-copy): create an explicitly listed browser copy with an Edited copy badge, edit it inside review, preserve its source (including after a successful save), and resolve only through an explicit guarded choice. No application code changed for this design handoff. The existing 39 sync/queue/diff tests were rerun and passed during the preceding source audit; that does not verify the new feature. Retained history requires a separate storage/retention decision. Other deferred features remain in [future](future.md).
+The owner-approved Edit a copy extension is implemented locally, including the later Working copy / Bản đang sửa wording and compact inline menu. Its source stays attached to the original note until explicit discard, including when Keep both is later invoked on that retained source. Confirmed Use saved discards the selected version. Discarding a working copy after its source was explicitly discarded returns to a live saved-note session.
+
+| Evidence | Scope/result |
+| --- | --- |
+| Focused suite | All 45 sync/queue/diff tests pass, including six new model regressions for identical source/copy identity, resumption, checkpoint failure, stale-save composition, retained-source Keep both, and explicit source discard. |
+| Browser regressions | All 23 existing cases passed. All nine new cases passed across final focused reruns; the two existing chooser regressions were rerun after the handoff correction. This covers 32 unique cases, with zero test retries; it is not a single clean 32-case execution. Initial failures included two ambiguous selectors, a URL-query expectation, and a quick-click handoff race that was corrected. |
+| Static/build | Clean `pnpm lint` (types + ESLint), touched-file formatting, and production/Serwist build pass. Existing Google Sans fallback-font and Node localStorage warnings remain. |
+| UI review round 1 | REVISE for one MED: the comparison theme picker was 32px and clipping reduced the expanded touch target. It now uses the shared actual 40px button. EN/VI, 1440×1000 and 390×844, Paper & Ink light/dark and Bookish dark otherwise passed compact menu, inline badge, corner/height, focus, mobile undo/tab, and sequential-dialog checks. Preferences restored and browser closed. |
+| Focused re-review | PASS: actual 40×40 theme target in a coarse-pointer context with edge hits, EN/VI 390px controls without overflow, and 1440px handoff. Rapid background Review clicks registered zero actions while fading; 50 sampled frames showed at most one painted dialog and no non-modal outgoing chooser. No clone/postMessage or hydration error occurred in this pass. Preferences/locale preserved, disposable context and browser closed. |
+
+Recovery version URLs use stable owner/note-scoped `version` identity. Copy edits remain local while conflicted. The comparison editor stays mounted through exit; chooser handoff retains native modality until the surface is transparent. Note history updates pass URL strings to the worker integration. No server history, merge library, sharing, or production migration was added.
+
+One fresh service-worker-enabled run emitted React hydration error 418 before copy actions; the scoped worker regression verifies no URL clone/postMessage errors and usable handoffs, not general PWA hydration health. Physical-device/IME, exhaustive contrast, and long-content appearance combinations remain outside the independent targeted review. The regular persistence suite blocks service workers; only the dedicated worker case enables one.
+
+The dedicated QA preview fixture was moved to recoverable Trash and its two scoped browser versions were removed after re-review. Disposable browser-test accounts/contexts cleaned themselves up; reviewer preferences and locale were restored, and automation browsers were closed. Production migration/deployment remain a separate release step. Retained history and other deferred work still require their own scope decisions; see [future](future.md).
+
+## Scrolling correction — 2026-10-30
+
+The owner reported that the working-copy editor could not scroll after the earlier PASS. That review explicitly excluded long-content scrolling, so it did not establish this behavior. A long-note reproduction confirmed that the flex wrapper shrank to the pane (343px), leaving a 5889px card body clipped by the rounded card's `overflow-hidden`. The correction adds `shrink-0` to the comparison-only wrapper; the card retains its radius and short-note fill while long content expands the parent's scroll range.
+
+Two real wheel-scroll regressions failed at both 1440px and 390px with scrollTop remaining zero before the correction. Both now pass against the production build, checking wheel movement, reachability of the final text, independent saved-reference scrolling, retained tab scroll position, and pinned resolution/close actions. Lint/types and production/Serwist build pass. These add two browser cases (34 unique cases across the recorded runs); the existing 45 focused model tests are unaffected. The owner requested restarting dev after edits and before the focused visual review. That review was unfinished at this handoff; its continuation is recorded below.
+
+## Continuation audit — 2026-10-31
+
+Audited the phase contracts, last commit `d28fec5`, recovery grouping/resumption, working-copy acknowledgement, guarded resolution, route handoff, and existing regression coverage. No wholly unimplemented feature was found within the approved Phase 3 scope. Automatic merging, retained server history, full offline support, search, E2EE, and deployment remain explicitly deferred; no new feature scope was implemented.
+
+Two reproducing model regressions failed before correction:
+
+- After a working copy was resolved, `editedCopyOf` remained on the live session. A later local body edit could reload with a stale title over an independent remote title change. Successful saves, exact lost-response acknowledgement by a read, and Use saved now end composition; subsequent edits use ordinary independent-field reconciliation. Stable version identity and the separately retained source remain intact.
+- A stale Use mine request from a retained source could reconcile new remote fields into that intentionally preserved source and schedule another save. Stale responses now preserve its authored fields and return to review against the newer revision.
+
+The resumed independent scrolling review found one additional MED issue at 390×844 in VI/Paper & Ink dark: a Saved → Working copy tab round trip moved the blurred working editor from scrollTop 1500 to 1752, skipping two paragraphs despite unchanged pane dimensions. Disabling scroll anchoring diagnostically preserved the original position. Both comparison scroll regions now opt out with scoped `overflowAnchor: 'none'`. The automated scrolling tests now also check mid-document tab positions; those assertions passed in pinned Chromium 156 even before this CSS correction, so they do not independently reproduce the reviewer's observed jump. The original bottom-position assertions could mask anchoring shifts through scroll clamping.
+
+| Current verification | Result |
+| --- | --- |
+| Focused sync/queue/diff | 49/49 pass, including four new regressions for post-resolution reload, stale retained-source resolution, Use saved, and lost-response read acknowledgement. |
+| Database/account repository suite | 43/43 pass in its own disposable local database; database removed by teardown. |
+| Authenticated sync HTTP | Pass: authentication, origin, account isolation, strict payloads, retry identities, conflicts, and remote Trash. |
+| Full browser suite | 35/35 pass in one clean production-preview run after the persistence fixes, one worker, zero retries; includes the new post-resolution reload case and both long-content scrolling cases. After the subsequent anchoring correction, both strengthened desktop/mobile scrolling cases pass against the rebuilt production app. Disposable accounts/contexts clean themselves up. |
+| Static/build | `pnpm lint`, touched-source formatting, `git diff --check`, and production/Serwist build pass. Existing Google Sans fallback-font and Node localStorage warnings remain. |
+| Independent scrolling review | Round 1: REVISE for the mobile anchoring jump above. Round 2: PASS after correction and dev restart, Chrome 156.0.8078.76, Bookish/light EN at 1440×1000 and Paper & Ink/dark VI at 390×844. The exact typing/Undo reproduction retains working scrollTop 1500 and paragraph 11; the saved pane independently retains 1200. Actual wheel scrolling, both final paragraphs, undo, visible 2px focus, pinned 40px actions, and no horizontal overflow pass. |
+
+This machine initially lacked the matching Playwright Chromium binary; that setup-only run failed before application execution. Installing the pinned browser resolved it. The first lint run included generated `.playwright-mcp` files; a concurrent ESLint ignore change excluded that directory, after which the standard lint command passed. No existing note data, production schema, or deployment was changed by the audit. Earlier worker/hydration and physical-device/IME limits remain in force.
+
+Both reviewer-created notes were moved to recoverable Trash, only their scoped browser versions were removed, and the original Bookish/light EN preferences were restored and verified. Automation browsers were closed after both rounds. The development server remains available on port 3000; the production test preview was stopped. The initial 35-case execution preceded the final two-line anchoring correction; final-build browser coverage is the two focused scrolling cases plus the independent re-review, not a second full-suite execution.
+
+## Owner visual feedback — comparison frames and toolbar
+
+The owner subsequently reported missing working-copy corner rounding and a toolbar that disappeared during scrolling. The earlier scrolling PASS did not establish these presentation details. The first correction covered only the working copy; the owner then identified the same missing-radius problem in the adjacent saved reference. The shared read-only preview now also keeps a bounded rounded card around an inner scroller, covering both Saved version and the original Your version. The working-copy toolbar sticks within its own scroller, with matching top rounding on its surface. Persistence behavior is unchanged.
+
+Parent visual previews covered the long working-copy and saved panes together at the bottom on desktop, the saved pane at the bottom on mobile, both original read-only previews at top/bottom, changes/previews switching, and the saved-discard choices without confirming discard. The rounded frames remain visible in those previews. Both preview fixtures were moved to recoverable Trash and only their scoped browser records removed; automation browsers were closed. Lint/types, builds, automated tests, and independent review are deferred during active owner visual feedback. The earlier verification above predates these layout corrections.

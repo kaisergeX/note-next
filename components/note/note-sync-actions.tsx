@@ -1,36 +1,58 @@
 'use client'
 
-import {startTransition, useEffect, useId, useRef, useState} from 'react'
+import {useEffect, useId, useRef, useState, type ReactNode} from 'react'
 import {useSearchParams} from 'next/navigation'
 import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
 import {IconArrowsDiff, IconEye} from '@tabler/icons-react'
 import {usePersistStore} from '~/store'
-import {getNoteSync} from '~/lib/notes/session-sync'
-import {exportDrafts} from '~/lib/notes/drafts'
+import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
+import {exportDrafts, listDrafts} from '~/lib/notes/drafts'
 import Button from '~/components/ui/button'
+import {Badge} from '~/components/ui/badge'
+import NoteWriting from './note-writing'
+import {NoteThemePicker} from './note-theme-picker'
+import RecoveryManagement from './recovery-management'
 import ConfirmationDialog from '~/components/ui/confirmation-dialog'
 import NoteReadOnly from './trash/note-read-only'
 import NoteCard from './note-card'
 import {useMobileNoteView} from '~/lib/notes/mobile'
-import type {NoteTheme} from '~/db/schema/notes'
+import type {Note, NoteTheme} from '~/db/schema/notes'
 import {usePathname, useRouter} from '~/i18n/navigation'
 import AttachedNoteVersions from './attached-note-versions'
 import NoteVersionDiff from './note-version-diff'
 import {snapshot} from '~/lib/notes/sync'
 import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 
-export default function NoteSyncActions({className}: {className?: string}) {
+export default function NoteSyncActions({
+  className,
+  children,
+}: {
+  className?: string
+  children?: (actions: ReactNode, comparisonOpen: boolean) => ReactNode
+}) {
   const t = useTranslations('note.recovery')
   const router = useRouter()
   const pathname = usePathname()
   const search = useSearchParams()
   const fromBrowserWork = search.get('from') === 'browser-work'
-  const initialReview = fromBrowserWork && search.get('review') === '1'
+  const initialReview = search.get('review') === '1'
   const reviewedSession = useRef<string | undefined>(undefined)
   const session = usePersistStore((s) => s.noteSession)
   const draft = usePersistStore((s) => s.mutateNoteData)
-  const [review, setReview] = useState(false)
+  const [reviewState, setReviewState] = useState<{
+    identity?: string
+    open: boolean
+  }>()
+  const review =
+    reviewState?.identity === session?.identity
+      ? (reviewState?.open ?? false)
+      : Boolean(
+          session?.conflict &&
+          (initialReview || getNoteSync()?.record.editedCopyOf),
+        )
+  const setReview = (open: boolean) =>
+    setReviewState({identity: session?.identity, open})
   const [showChanges, setShowChanges] = useState(false)
   const [discard, setDiscard] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -46,20 +68,78 @@ export default function NoteSyncActions({className}: {className?: string}) {
   const previousDiscard = useRef(false)
   const titleId = useId(),
     descriptionId = useId()
+  const controller = getNoteSync()
+  const editedCopy = Boolean(controller?.record.editedCopyOf)
+  const closeReview = () => {
+    getNoteSync()?.refreshEditors()
+    setReview(false)
+    setDiscard(false)
+  }
+  const editCopy = async () => {
+    if (!controller || !session) return
+    setBusy(true)
+    try {
+      const copy = await controller.editCopy()
+      if (!copy || getNoteSync() !== controller) return
+      setShowChanges(false)
+      setSide('mine')
+      const url = new URL(window.location.href)
+      url.searchParams.set('version', copy.versionId!)
+      window.history.replaceState(null, '', url.href)
+      beginNoteSync(
+        copy.ownerId,
+        session.key,
+        controller.record.baseline as Note,
+        copy,
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+  const returnToSource = async () => {
+    if (!controller || !session) return
+    const records = await listDrafts(controller.record.ownerId)
+    const source = records.find(
+      (row) => row.versionId === controller.record.editedCopyOf,
+    )
+    if (source) {
+      setShowChanges(false)
+      const url = new URL(window.location.href)
+      url.searchParams.set('version', source.versionId!)
+      url.searchParams.set('review', '1')
+      window.history.replaceState(null, '', url.href)
+      beginNoteSync(
+        source.ownerId,
+        session.key,
+        controller.record.baseline as Note,
+        source,
+      )
+    } else {
+      // The author may have explicitly discarded the source in the chooser.
+      // Discarding its working copy must still leave a live saved-note session.
+      closeReview()
+      beginNoteSync(
+        controller.record.ownerId,
+        session.key,
+        controller.record.conflict ?? (controller.record.baseline as Note),
+        undefined,
+        true,
+      )
+    }
+  }
   const remote = session?.conflict
   const hasConflict = Boolean(remote)
   useEffect(() => {
     if (
-      !initialReview ||
+      (!initialReview && !editedCopy) ||
       !hasConflict ||
       !session?.identity ||
       reviewedSession.current === session.identity
     )
       return
     reviewedSession.current = session.identity
-    startTransition(() => setReview(true))
     void getNoteSync()?.refreshRemote('review')
-  }, [initialReview, hasConflict, session?.identity])
+  }, [initialReview, hasConflict, session?.identity, editedCopy])
   const resolutionDisabled =
     busy || session?.checkingRemote || session?.remoteCheckFailed
   const unavailable = session?.syncStatus === 'unavailable'
@@ -104,6 +184,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
     if (controller) exportDrafts([controller.record])
   }
   const openReview = async () => {
+    getNoteSync()?.refreshEditors()
     setReview(true)
     setDiscard(false)
     await getNoteSync()?.refreshRemote('review')
@@ -136,11 +217,12 @@ export default function NoteSyncActions({className}: {className?: string}) {
             )
             url.search = ''
             if (fromBrowserWork) url.searchParams.set('from', 'browser-work')
-            window.history.replaceState(null, '', url)
+            window.history.replaceState(null, '', url.href)
           }
         }
       }
       if (!usePersistStore.getState().noteSession?.conflict) {
+        getNoteSync()?.refreshEditors()
         setReview(false)
         setDiscard(false)
       }
@@ -148,380 +230,497 @@ export default function NoteSyncActions({className}: {className?: string}) {
       setBusy(false)
     }
   }
-  if (!remote && !unavailable && !session?.storageFailed && !retryable)
-    return <AttachedNoteVersions className={className} />
-  return (
-    <div className={cn('flex flex-col gap-2', className)}>
-      {session?.storageFailed && (
-        <p className="text-destructive text-sm" role="alert">
-          {t('storageFailed')}
-        </p>
-      )}
-      {failed && (
-        <p role="alert" className="text-destructive text-sm">
-          {t(
-            session!.syncStatus as
-              | 'unauthenticated'
-              | 'invalid_input'
-              | 'account_changed'
-              | 'failed',
+  const renderActions = (versions: ReactNode, choosing: boolean) => {
+    const actions =
+      !remote && !unavailable && !session?.storageFailed && !retryable ? (
+        versions
+      ) : (
+        <div className={cn('flex flex-col gap-2', className)}>
+          {session?.storageFailed && (
+            <p className="text-destructive text-sm" role="alert">
+              {t('storageFailed')}
+            </p>
           )}
-        </p>
-      )}
-      {unavailable && (
-        <p role="alert" className="text-warning text-sm">
-          {t('unavailable')}
-        </p>
-      )}
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
-        {remote && (
-          <Button
-            className={actionClass}
-            size="sm"
-            variant="primary"
-            onClick={() => void openReview()}
-          >
-            {t('review')}
-          </Button>
-        )}
-        {unavailable && (
-          <Button
-            className={actionClass}
-            size="sm"
-            onClick={() => void resolve('both')}
-            disabled={busy}
-          >
-            {t('recoverNew')}
-          </Button>
-        )}
-        {retryable && (
-          <Button
-            className={actionClass}
-            size="sm"
-            variant="secondary"
-            onClick={() => void getNoteSync()?.retry()}
-          >
-            {t('retry')}
-          </Button>
-        )}
-        <AttachedNoteVersions />
-        {exportable && (
-          <Button
-            className={actionClass}
-            size="sm"
-            variant="ghost"
-            onClick={exportCurrent}
-          >
-            {t('export')}
-          </Button>
-        )}
-      </div>
-      {remote && (
+          {failed && (
+            <p role="alert" className="text-destructive text-sm">
+              {t(
+                session!.syncStatus as
+                  | 'unauthenticated'
+                  | 'invalid_input'
+                  | 'account_changed'
+                  | 'failed',
+              )}
+            </p>
+          )}
+          {unavailable && (
+            <p role="alert" className="text-warning text-sm">
+              {t('unavailable')}
+            </p>
+          )}
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            {remote && (
+              <Button
+                className={actionClass}
+                size="sm"
+                variant="primary"
+                onClick={() => void openReview()}
+              >
+                {t('review')}
+              </Button>
+            )}
+            {unavailable && (
+              <Button
+                className={actionClass}
+                size="sm"
+                onClick={() => void resolve('both')}
+                disabled={busy}
+              >
+                {t('recoverNew')}
+              </Button>
+            )}
+            {retryable && (
+              <Button
+                className={actionClass}
+                size="sm"
+                variant="secondary"
+                onClick={() => void getNoteSync()?.retry()}
+              >
+                {t('retry')}
+              </Button>
+            )}
+            {versions}
+            {exportable && (
+              <Button
+                className={actionClass}
+                size="sm"
+                variant="ghost"
+                onClick={exportCurrent}
+              >
+                {t('export')}
+              </Button>
+            )}
+          </div>
+        </div>
+      )
+    return (
+      <>
+        {children
+          ? children(actions, Boolean(remote && review) || choosing)
+          : actions}
         <ConfirmationDialog
-          open={review}
+          open={Boolean(remote && review)}
           busy={busy}
-          onRequestClose={() => {
-            setReview(false)
-            setDiscard(false)
-          }}
+          onRequestClose={closeReview}
           labelledBy={titleId}
           describedBy={descriptionId}
           initialFocusId={titleId}
           layout="workspace"
         >
-          <header className="shrink-0 px-3 pt-3 sm:px-6 sm:pt-6 sm:pb-3">
-            <h2 id={titleId} tabIndex={-1} className="text-lg font-semibold">
-              {t('conflictTitle')}
-            </h2>
-            <p
-              id={descriptionId}
-              className="text-ink-muted mt-1 text-xs sm:mt-2 sm:text-sm"
-            >
-              {t('conflictDescription')}
-            </p>
-            {session?.checkingRemote && (
-              <p role="status" className="text-ink-muted mt-2 text-xs">
-                {t('checkingSaved')}
-              </p>
-            )}
-            {session?.remoteCheckFailed && (
-              <div
-                role="alert"
-                className="text-destructive mt-2 flex flex-wrap items-center gap-2 text-xs"
-              >
-                <p>{t('refreshFailed')}</p>
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => void openReview()}
+          {remote && (
+            <>
+              <header className="shrink-0 px-3 pt-3 sm:px-6 sm:pt-6 sm:pb-3">
+                <h2
+                  id={titleId}
+                  tabIndex={-1}
+                  className="text-lg font-semibold"
                 >
-                  {t('retry')}
-                </Button>
-              </div>
-            )}
-            <section className="border-hairline bg-ink-tint mt-3 flex shrink-0 items-center justify-between gap-3 rounded-md border px-3 py-2 sm:mt-4 sm:rounded-lg sm:p-4">
-              <div>
-                <h3 className="text-sm font-semibold sm:text-base">
-                  {t('keepBothHeading')}
-                </h3>
-                <p className="text-ink mt-1 hidden text-sm sm:block">
-                  {t('keepBothHelp')}
-                </p>
-                <p className="text-ink mt-1 text-xs sm:hidden">
-                  {t('keepBothShortHelp')}
-                </p>
-              </div>
-              <Button
-                className="shrink-0"
-                disabled={resolutionDisabled}
-                onClick={() => void resolve('both')}
-              >
-                {t('keepBoth')}
-              </Button>
-            </section>
-            <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-              <Button
-                variant={showChanges ? 'secondary' : 'primary'}
-                className="h-auto min-h-10 whitespace-normal"
-                aria-pressed={showChanges}
-                onClick={() => setShowChanges((value) => !value)}
-              >
-                {showChanges ? (
-                  <IconEye size={18} aria-hidden className="shrink-0" />
-                ) : (
-                  <IconArrowsDiff size={18} aria-hidden className="shrink-0" />
-                )}
-                {t(showChanges ? 'diff.showPreviews' : 'diff.showChanges')}
-              </Button>
-              {showChanges && (
-                <p className="text-ink-muted flex flex-wrap gap-3 text-xs">
-                  <span className="decoration-success underline decoration-2 underline-offset-2">
-                    {t('diff.added')}
-                  </span>
-                  <span className="decoration-destructive line-through decoration-2">
-                    {t('diff.removed')}
-                  </span>
-                </p>
-              )}
-            </div>
-            {mobile && (
-              <div
-                className="border-hairline mt-2 flex border-b"
-                role="tablist"
-                aria-label={t('versionTabs')}
-              >
-                {(['mine', 'saved'] as const).map((value) => (
-                  <Button
-                    key={value}
-                    variant="ghost"
-                    role="tab"
-                    id={`${titleId}-tab-${value}`}
-                    aria-controls={`${titleId}-panel-${value}`}
-                    aria-selected={side === value}
-                    tabIndex={side === value ? 0 : -1}
-                    ref={(element) => {
-                      tabs.current[value] = element
-                    }}
-                    className="text-ink-muted aria-selected:border-ink aria-selected:text-ink h-auto min-h-10 min-w-0 flex-1 rounded-none border-x-0 border-t-0 border-b-2 px-2 whitespace-normal"
-                    onClick={() => setSide(value)}
-                    onKeyDown={(event) => {
-                      const next =
-                        event.key === 'Home'
-                          ? 'mine'
-                          : event.key === 'End'
-                            ? 'saved'
-                            : event.key === 'ArrowLeft' ||
-                                event.key === 'ArrowRight'
-                              ? value === 'mine'
-                                ? 'saved'
-                                : 'mine'
-                              : null
-                      if (!next) return
-                      event.preventDefault()
-                      setSide(next)
-                      tabs.current[next]?.focus()
-                    }}
-                  >
-                    {t(value)}
-                  </Button>
-                ))}
-              </div>
-            )}
-          </header>
-          <div className="flex min-h-0 flex-1 flex-col sm:px-6 sm:pb-6">
-            <div className="grid min-h-0 flex-1 items-stretch sm:mt-4 sm:grid-cols-2">
-              <section
-                id={`${titleId}-panel-mine`}
-                role={mobile ? 'tabpanel' : undefined}
-                aria-labelledby={mobile ? `${titleId}-tab-mine` : undefined}
-                hidden={mobile && side !== 'mine'}
-                className={cn(
-                  'flex min-h-0 min-w-0 flex-col overflow-hidden sm:pr-6',
-                  side === 'saved' && 'max-sm:hidden',
-                )}
-              >
-                <h3 className="hidden font-semibold sm:block">{t('mine')}</h3>
-                <div
-                  role="region"
-                  aria-label={t('mine')}
-                  tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
+                  {t('conflictTitle')}
+                </h2>
+                <p
+                  id={descriptionId}
+                  className="text-ink-muted mt-1 text-xs sm:mt-2 sm:text-sm"
                 >
-                  {showChanges ? (
-                    <NoteVersionDiff
-                      saved={snapshot(remote)}
-                      mine={snapshot(draft)}
-                      side="mine"
-                    />
-                  ) : (
-                    <VersionPreview
-                      theme={draft?.theme ?? null}
-                      title={draft?.title ?? null}
-                      content={draft?.content ?? null}
-                    />
-                  )}
-                </div>
-                <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
-                  <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
-                    {t('useMineHelp')}
+                  {t('conflictDescription')}
+                </p>
+                {session?.storageFailed && (
+                  <p role="alert" className="text-destructive mt-2 text-sm">
+                    {t('storageFailed')}
                   </p>
-                  <Button
-                    className="h-auto min-h-10 w-full whitespace-normal"
-                    variant="secondary"
-                    disabled={resolutionDisabled}
-                    onClick={() => void resolve('mine')}
-                  >
-                    {t('useMine')}
-                  </Button>
-                </div>
-              </section>
-              <section
-                id={`${titleId}-panel-saved`}
-                role={mobile ? 'tabpanel' : undefined}
-                aria-labelledby={mobile ? `${titleId}-tab-saved` : undefined}
-                hidden={mobile && side !== 'saved'}
-                className={cn(
-                  'sm:border-hairline flex min-h-0 min-w-0 flex-col overflow-hidden sm:border-l sm:pl-6',
-                  side === 'mine' && 'max-sm:hidden',
                 )}
-              >
-                <h3 className="hidden font-semibold sm:block">{t('saved')}</h3>
-                <div
-                  role="region"
-                  aria-label={t('saved')}
-                  tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
-                >
-                  {showChanges ? (
-                    <NoteVersionDiff
-                      saved={snapshot(remote)}
-                      mine={snapshot(draft)}
-                      side="saved"
-                    />
-                  ) : (
-                    <VersionPreview
-                      theme={remote.theme}
-                      title={remote.title}
-                      content={remote.content}
-                    />
+                {session?.checkingRemote && (
+                  <p role="status" className="text-ink-muted mt-2 text-xs">
+                    {t('checkingSaved')}
+                  </p>
+                )}
+                {session?.remoteCheckFailed && (
+                  <div
+                    role="alert"
+                    className="text-destructive mt-2 flex flex-wrap items-center gap-2 text-xs"
+                  >
+                    <p>{t('refreshFailed')}</p>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={() => void openReview()}
+                    >
+                      {t('retry')}
+                    </Button>
+                  </div>
+                )}
+                <section className="border-hairline bg-ink-tint mt-3 flex shrink-0 items-center justify-between gap-3 rounded-md border px-3 py-2 sm:mt-4 sm:rounded-lg sm:p-4">
+                  <div>
+                    <h3 className="text-sm font-semibold sm:text-base">
+                      {t('keepBothHeading')}
+                    </h3>
+                    <p className="text-ink mt-1 hidden text-sm sm:block">
+                      {t('keepBothHelp')}
+                    </p>
+                    <p className="text-ink mt-1 text-xs sm:hidden">
+                      {t('keepBothShortHelp')}
+                    </p>
+                  </div>
+                  <Button
+                    className="shrink-0"
+                    disabled={resolutionDisabled}
+                    onClick={() => void resolve('both')}
+                  >
+                    {t('keepBoth')}
+                  </Button>
+                </section>
+                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <Button
+                    variant={showChanges ? 'secondary' : 'primary'}
+                    className="h-auto min-h-10 whitespace-normal"
+                    aria-pressed={showChanges}
+                    onClick={() => setShowChanges((value) => !value)}
+                  >
+                    {showChanges ? (
+                      <IconEye size={18} aria-hidden className="shrink-0" />
+                    ) : (
+                      <IconArrowsDiff
+                        size={18}
+                        aria-hidden
+                        className="shrink-0"
+                      />
+                    )}
+                    {t(showChanges ? 'diff.showPreviews' : 'diff.showChanges')}
+                  </Button>
+                  {showChanges && (
+                    <p className="text-ink-muted flex flex-wrap gap-3 text-xs">
+                      <span className="decoration-success underline decoration-2 underline-offset-2">
+                        {t('diff.added')}
+                      </span>
+                      <span className="decoration-destructive line-through decoration-2">
+                        {t('diff.removed')}
+                      </span>
+                    </p>
                   )}
                 </div>
-                {discard ? (
-                  <div className="border-destructive/40 min-h-0 overflow-y-auto rounded-lg border p-3">
-                    <h4
-                      ref={discardHeading}
-                      tabIndex={-1}
-                      className="font-semibold"
-                    >
-                      {t('discardTitle')}
-                    </h4>
-                    <p className="text-ink-muted mt-2 text-sm">
-                      {t('discardWarning')}
-                    </p>
-                    <Button
-                      variant="link"
-                      disabled={resolutionDisabled}
-                      onClick={exportCurrent}
-                    >
-                      {t('export')}
-                    </Button>
-                    <div className="mt-3 flex flex-col gap-2">
+                {mobile && (
+                  <div
+                    className="border-hairline mt-2 flex border-b"
+                    role="tablist"
+                    aria-label={t('versionTabs')}
+                  >
+                    {(['mine', 'saved'] as const).map((value) => (
                       <Button
-                        className="h-auto min-h-10 whitespace-normal"
-                        variant="danger"
-                        disabled={resolutionDisabled}
-                        onClick={() => void resolve('saved')}
-                      >
-                        {t('discardUseSaved')}
-                      </Button>
-                      <Button
-                        className="h-auto min-h-10 whitespace-normal"
+                        key={value}
                         variant="ghost"
-                        disabled={resolutionDisabled}
-                        onClick={() => setDiscard(false)}
+                        role="tab"
+                        id={`${titleId}-tab-${value}`}
+                        aria-controls={`${titleId}-panel-${value}`}
+                        aria-selected={side === value}
+                        tabIndex={side === value ? 0 : -1}
+                        ref={(element) => {
+                          tabs.current[value] = element
+                        }}
+                        className="text-ink-muted aria-selected:border-ink aria-selected:text-ink h-auto min-h-10 min-w-0 flex-1 rounded-none border-x-0 border-t-0 border-b-2 px-2 whitespace-normal"
+                        onClick={() => setSide(value)}
+                        onKeyDown={(event) => {
+                          const next =
+                            event.key === 'Home'
+                              ? 'mine'
+                              : event.key === 'End'
+                                ? 'saved'
+                                : event.key === 'ArrowLeft' ||
+                                    event.key === 'ArrowRight'
+                                  ? value === 'mine'
+                                    ? 'saved'
+                                    : 'mine'
+                                  : null
+                          if (!next) return
+                          event.preventDefault()
+                          setSide(next)
+                          tabs.current[next]?.focus()
+                        }}
                       >
-                        {t('backToChoices')}
+                        {t(
+                          value === 'mine' && editedCopy ? 'editedCopy' : value,
+                        )}
+                      </Button>
+                    ))}
+                  </div>
+                )}
+              </header>
+              <div className="flex min-h-0 flex-1 flex-col sm:px-6 sm:pb-6">
+                <div className="grid min-h-0 flex-1 items-stretch sm:mt-4 sm:grid-cols-2">
+                  <section
+                    id={`${titleId}-panel-mine`}
+                    role={mobile ? 'tabpanel' : undefined}
+                    aria-labelledby={mobile ? `${titleId}-tab-mine` : undefined}
+                    hidden={mobile && side !== 'mine'}
+                    className={cn(
+                      'flex min-h-0 min-w-0 flex-col overflow-hidden sm:pr-6',
+                      side === 'saved' && 'max-sm:hidden',
+                    )}
+                  >
+                    <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 px-3 pt-2 sm:px-0 sm:pt-0">
+                      <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <h3 className="hidden font-semibold sm:block">
+                          {t('mine')}
+                        </h3>
+                        {editedCopy && (
+                          <Badge aria-label={t('editedCopyOrigin')}>
+                            {t('editedCopy')}
+                          </Badge>
+                        )}
+                      </div>
+                      {editedCopy ? (
+                        <RecoveryManagement
+                          ownerId={controller!.record.ownerId}
+                          records={[controller!.record]}
+                          onDiscard={returnToSource}
+                        />
+                      ) : (
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          disabled={resolutionDisabled}
+                          onClick={() => void editCopy()}
+                        >
+                          {t('editCopy')}
+                        </Button>
+                      )}
+                    </div>
+                    <div
+                      role={showChanges ? 'region' : undefined}
+                      aria-label={showChanges ? t('mine') : undefined}
+                      tabIndex={showChanges ? 0 : undefined}
+                      style={{overflowAnchor: 'none'}}
+                      className={cn(
+                        'focus-visible:outline-accent flex min-h-0 flex-1 flex-col overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4',
+                        showChanges ? 'overflow-y-auto' : 'overflow-hidden',
+                      )}
+                    >
+                      {editedCopy && (
+                        <div
+                          hidden={showChanges}
+                          className={cn(
+                            'min-h-0 flex-1 flex-col p-3 sm:p-0',
+                            showChanges ? 'hidden' : 'flex',
+                          )}
+                        >
+                          <NoteCard
+                            theme={draft?.theme}
+                            className="flex min-h-0 flex-1 flex-col overflow-hidden"
+                          >
+                            <div
+                              role="region"
+                              aria-label={t('mine')}
+                              tabIndex={0}
+                              style={{overflowAnchor: 'none'}}
+                              className="focus-visible:outline-accent flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-lg focus-visible:outline-2 focus-visible:-outline-offset-2 [&_[data-editor-toolbar]]:rounded-t-lg"
+                            >
+                              <NoteWriting
+                                key={session?.identity}
+                                id={`comparison-${session?.identity}`}
+                                pending={busy}
+                                autofocus={false}
+                                leadingActions={
+                                  <NoteThemePicker disabled={busy} size="md" />
+                                }
+                              />
+                            </div>
+                          </NoteCard>
+                        </div>
+                      )}
+                      {showChanges ? (
+                        <NoteVersionDiff
+                          saved={snapshot(remote)}
+                          mine={snapshot(draft)}
+                          side="mine"
+                        />
+                      ) : !editedCopy ? (
+                        <VersionPreview
+                          label={t('mine')}
+                          theme={draft?.theme ?? null}
+                          title={draft?.title ?? null}
+                          content={draft?.content ?? null}
+                        />
+                      ) : null}
+                    </div>
+                    <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
+                      <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
+                        {t('useMineHelp')}
+                      </p>
+                      <Button
+                        className="h-auto min-h-10 w-full whitespace-normal"
+                        variant="secondary"
+                        disabled={resolutionDisabled}
+                        onClick={() => void resolve('mine')}
+                      >
+                        {t(editedCopy ? 'useThisVersion' : 'useMine')}
                       </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
-                    <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
-                      {t('useSavedHelp')}
-                    </p>
-                    <Button
-                      ref={savedAction}
-                      className="h-auto min-h-10 w-full whitespace-normal"
-                      variant="secondary"
-                      disabled={resolutionDisabled}
-                      onClick={() => setDiscard(true)}
+                  </section>
+                  <section
+                    id={`${titleId}-panel-saved`}
+                    role={mobile ? 'tabpanel' : undefined}
+                    aria-labelledby={
+                      mobile ? `${titleId}-tab-saved` : undefined
+                    }
+                    hidden={mobile && side !== 'saved'}
+                    className={cn(
+                      'sm:border-hairline flex min-h-0 min-w-0 flex-col overflow-hidden sm:border-l sm:pl-6',
+                      side === 'mine' && 'max-sm:hidden',
+                    )}
+                  >
+                    <h3 className="hidden min-h-10 items-center font-semibold sm:flex">
+                      {t('saved')}
+                    </h3>
+                    <div
+                      role={showChanges ? 'region' : undefined}
+                      aria-label={showChanges ? t('saved') : undefined}
+                      tabIndex={showChanges ? 0 : undefined}
+                      style={{overflowAnchor: 'none'}}
+                      className={cn(
+                        'focus-visible:outline-accent flex min-h-0 flex-1 flex-col overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4',
+                        showChanges ? 'overflow-y-auto' : 'overflow-hidden',
+                      )}
                     >
-                      {t('useSaved')}
-                    </Button>
-                  </div>
-                )}
-              </section>
-            </div>
-          </div>
-          <footer className="bg-paper-raised sticky bottom-0 z-20 flex shrink-0 justify-end px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3">
-            <Button
-              variant="ghost"
-              data-cancel
-              disabled={busy}
-              onClick={() => setReview(false)}
-            >
-              {t('closeComparison')}
-            </Button>
-          </footer>
+                      {showChanges ? (
+                        <NoteVersionDiff
+                          saved={snapshot(remote)}
+                          mine={snapshot(draft)}
+                          side="saved"
+                        />
+                      ) : (
+                        <VersionPreview
+                          label={t('saved')}
+                          theme={remote.theme}
+                          title={remote.title}
+                          content={remote.content}
+                        />
+                      )}
+                    </div>
+                    {discard ? (
+                      <div className="border-destructive/40 min-h-0 overflow-y-auto rounded-lg border p-3">
+                        <h4
+                          ref={discardHeading}
+                          tabIndex={-1}
+                          className="font-semibold"
+                        >
+                          {t('discardTitle')}
+                        </h4>
+                        <p className="text-ink-muted mt-2 text-sm">
+                          {t('discardWarning')}
+                        </p>
+                        <Button
+                          variant="link"
+                          disabled={resolutionDisabled}
+                          onClick={exportCurrent}
+                        >
+                          {t('export')}
+                        </Button>
+                        <div className="mt-3 flex flex-col gap-2">
+                          <Button
+                            className="h-auto min-h-10 whitespace-normal"
+                            variant="danger"
+                            disabled={resolutionDisabled}
+                            onClick={() => void resolve('saved')}
+                          >
+                            {t('discardUseSaved')}
+                          </Button>
+                          <Button
+                            className="h-auto min-h-10 whitespace-normal"
+                            variant="ghost"
+                            disabled={resolutionDisabled}
+                            onClick={() => setDiscard(false)}
+                          >
+                            {t('backToChoices')}
+                          </Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-paper-raised sm:border-hairline shrink-0 px-3 pb-2 sm:px-0 sm:pb-0">
+                        <p className="text-ink-muted mb-2 text-xs sm:mb-3 sm:text-sm">
+                          {t('useSavedHelp')}
+                        </p>
+                        <Button
+                          ref={savedAction}
+                          className="h-auto min-h-10 w-full whitespace-normal"
+                          variant="secondary"
+                          disabled={resolutionDisabled}
+                          onClick={() => setDiscard(true)}
+                        >
+                          {t('useSaved')}
+                        </Button>
+                      </div>
+                    )}
+                  </section>
+                </div>
+              </div>
+              <footer className="bg-paper-raised sticky bottom-0 z-20 flex shrink-0 justify-end px-3 pt-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-3">
+                <Button
+                  variant="ghost"
+                  data-cancel
+                  disabled={busy}
+                  onClick={closeReview}
+                >
+                  {t('closeComparison')}
+                </Button>
+              </footer>
+            </>
+          )}
         </ConfirmationDialog>
-      )}
-    </div>
+      </>
+    )
+  }
+  return (
+    <AttachedNoteVersions className={className}>
+      {renderActions}
+    </AttachedNoteVersions>
   )
 }
 
 function VersionPreview({
+  label,
   title,
   content,
   theme,
 }: {
+  label: string
   title: string | null
   content: string | null
   theme: NoteTheme | null
 }) {
   return (
-    <NoteCard theme={theme} className="min-h-full p-4">
-      {title && (
-        <NoteReadOnly
-          content={title}
-          theme={theme}
-          className="mb-8 font-serif text-lg font-semibold sm:text-xl"
-        />
-      )}
-      <NoteReadOnly
-        content={content}
+    <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-0">
+      <NoteCard
         theme={theme}
-        className="font-serif font-normal"
-      />
-    </NoteCard>
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
+        <div
+          role="region"
+          aria-label={label}
+          tabIndex={0}
+          style={{overflowAnchor: 'none'}}
+          className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-lg p-4 focus-visible:outline-2 focus-visible:-outline-offset-2"
+        >
+          {title && (
+            <NoteReadOnly
+              content={title}
+              theme={theme}
+              className="mb-8 font-serif text-lg font-semibold sm:text-xl"
+            />
+          )}
+          <NoteReadOnly
+            content={content}
+            theme={theme}
+            className="font-serif font-normal"
+          />
+        </div>
+      </NoteCard>
+    </div>
   )
 }

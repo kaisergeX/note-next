@@ -1,6 +1,8 @@
 # Note editor and persistence roadmap
 
-Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text comparison are delivered and owner-accepted locally. The Edit a copy extension is owner-approved on 2026-10-30, with implementation pending. Production migration/deployment remain separate. Verification, unresolved reports, and release limits live in [handoff](handoff.md).
+Status — owner decision, 2026-11-01: **Phase 3 and its Working copy extension have NOT passed. The owner considers the current changes a failure and rejects the implementation. NO deployment or production migration is approved.** `NoteSyncActions` is poorly designed, and the note-editor changes require redesign. A new thread will reassess the architecture and may rework the entire implementation. Earlier acceptance statements and passing checks below are historical evidence, not acceptance of the current changes. See the [current handoff](handoff.md#owner-decision--2026-11-01-failed-phase-no-deployment).
+
+The 2026-10-31 continuation audit recorded persistence corrections and a 35-case browser run. Those results did not establish acceptable architecture or resolve the owner's subsequent rendering reports; they do not override the failed-phase decision.
 
 ## Delivery state
 
@@ -9,8 +11,8 @@ Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text compari
 | 0 | Tiptap upgrade to 3.32.0; historical security findings in [editor](editor.md#security-assessment-record). |
 | 1 | Stable editor/session boundaries, active-field toolbar, rich-text titles, underline, view handoff, corrected HR insertion. |
 | 2 | Account-scoped browser recovery, bounded autosave, integrated Notes discovery, lifecycle/account protections. |
-| 3 | UUID revision checks, independent field reconciliation, guarded conflict review, optional word-level text differences. |
-| Approved next | Edit a copy inside conflict review: preserve the source browser version, edit a separate recovery version, then explicitly resolve. [Design and implementation plan](conflicts.md#approved-extension-edit-a-copy). Not implemented. |
+| 3 | **FAILED / NOT ACCEPTED.** Existing revision/reconciliation/conflict-review code requires reassessment; its presence does not mean this phase passed. |
+| 3 extension | **FAILED / NOT ACCEPTED.** Working copy and related note-editor changes require redesign or full rework in a new thread. The [earlier plan](conflicts.md#approved-extension-edit-a-copy) is historical, not approval of the current implementation. |
 | Deferred | Automatic paragraph/change merging, retained version history, search, full offline operation, E2EE, drawing. Separate scope approval required. |
 
 ## Contracts and read order

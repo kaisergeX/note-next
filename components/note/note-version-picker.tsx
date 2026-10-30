@@ -6,7 +6,9 @@ import {useLocale, useTranslations} from 'next-intl'
 import type {Note} from '~/db/schema/notes'
 import type {RecoveryDraft} from '~/lib/notes/drafts'
 import {groupRecoveryDrafts} from '~/lib/notes/recovery-copies'
+import {reconcile, snapshot} from '~/lib/notes/sync'
 import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
+import {Badge} from '~/components/ui/badge'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
 import ConfirmationDialog from '~/components/ui/confirmation-dialog'
@@ -14,21 +16,47 @@ import NoteCard from './note-card'
 import NoteReadOnly from './trash/note-read-only'
 import RecoveryManagement from './recovery-management'
 
+function needsReview(record: RecoveryDraft, note?: Note) {
+  return (
+    !record.unavailable &&
+    Boolean(
+      record.conflict ||
+      record.retainedSource ||
+      (note &&
+        reconcile(record.baseline, record.draft, snapshot(note)).conflicts
+          .length),
+    )
+  )
+}
+
 export default function NoteVersionPicker({
+  open = true,
   note,
   records,
   onChoose,
   onClose,
+  onDiscard,
   busy = false,
   dismissLabel = 'reviewLater',
 }: {
+  open?: boolean
   note?: Note
   records: RecoveryDraft[]
   onChoose: (record?: RecoveryDraft) => void
   onClose: () => void
+  onDiscard?: (record: RecoveryDraft) => void
   busy?: boolean
   dismissLabel?: 'reviewLater' | 'closeComparison'
 }) {
+  const choose = (record?: RecoveryDraft) => {
+    if (busy) return
+    const url = new URL(window.location.href)
+    if (record && needsReview(record, note)) url.searchParams.set('review', '1')
+    else url.searchParams.delete('review')
+    window.history.replaceState(null, '', url.href)
+    onChoose(record)
+  }
+  const disabled = busy
   const t = useTranslations('note.recovery')
   const locale = useLocale()
   const titleId = useId()
@@ -79,8 +107,8 @@ export default function NoteVersionPicker({
   ]
   return (
     <ConfirmationDialog
-      open
-      busy={busy}
+      open={open}
+      busy={disabled}
       labelledBy={titleId}
       describedBy={descriptionId}
       initialFocusId={titleId}
@@ -114,34 +142,56 @@ export default function NoteVersionPicker({
               {record && groups.length > 1 ? (
                 <MenuCustom
                   ariaLabel={`${t('chooseBrowserVersion')}: ${t('storedInBrowserAt', {time: dateFormat.format(selected.record.updatedAt)})}`}
-                  disabled={busy}
-                  className={buttonClass({variant: 'secondary'})}
-                  itemsClassName="w-72 p-1"
+                  disabled={disabled}
+                  className={`${buttonClass({variant: 'secondary'})} h-auto min-h-10 min-w-0 whitespace-normal`}
+                  itemsClassName="w-max max-w-full p-1 open:grid [&_button]:w-auto [&_button]:h-auto [&_button]:min-h-10 [&_button]:py-2 [&_button]:text-left [&_button]:whitespace-normal"
                   items={groups.map(({record: item}) => ({
                     type: 'action',
                     label: (
                       <>
-                        <span className="flex-1">{label(item)}</span>
-                        {item.id === selected.record.id && (
-                          <IconCheck size={16} aria-hidden />
-                        )}
+                        <span className="flex min-w-0 flex-wrap items-center gap-2">
+                          <span>{label(item)}</span>
+                          {item.editedCopyOf && (
+                            <Badge aria-label={t('editedCopyOrigin')}>
+                              {t('editedCopy')}
+                            </Badge>
+                          )}
+                        </span>
+                        <span className="ml-auto w-4 shrink-0" aria-hidden>
+                          {item.id === selected.record.id && (
+                            <IconCheck size={16} />
+                          )}
+                        </span>
                       </>
                     ),
                     onSelect: () => setSelectedId(item.id),
                   }))}
                 >
-                  {label(selected.record)}
-                  <IconChevronDown size={16} aria-hidden />
+                  <span className="flex min-w-0 flex-wrap items-center gap-2 text-left">
+                    <span>{label(selected.record)}</span>
+                    {selected.record.editedCopyOf && (
+                      <Badge aria-label={t('editedCopyOrigin')}>
+                        {t('editedCopy')}
+                      </Badge>
+                    )}
+                  </span>
+                  <IconChevronDown size={16} className="shrink-0" aria-hidden />
                 </MenuCustom>
               ) : (
                 <h3 className="font-semibold">
                   {record ? label(record) : t('saved')}
+                  {record?.editedCopyOf && (
+                    <Badge className="ml-2" aria-label={t('editedCopyOrigin')}>
+                      {t('editedCopy')}
+                    </Badge>
+                  )}
                 </h3>
               )}
               {record && (
                 <RecoveryManagement
                   ownerId={record.ownerId}
                   records={selected.copies}
+                  onDiscard={() => onDiscard?.(record)}
                 />
               )}
             </div>
@@ -172,16 +222,22 @@ export default function NoteVersionPicker({
             <Button
               className="shrink-0"
               variant={record ? 'primary' : 'secondary'}
-              disabled={busy}
-              onClick={() => onChoose(record)}
+              disabled={disabled}
+              onClick={() => choose(record)}
             >
-              {t(record ? 'continueVersion' : 'openSaved')}
+              {t(
+                record
+                  ? needsReview(record, note)
+                    ? 'reviewVersion'
+                    : 'continueVersion'
+                  : 'openSaved',
+              )}
             </Button>
           </section>
         ))}
       </div>
       <footer className="border-hairline flex shrink-0 justify-end border-t px-4 py-3 sm:px-6">
-        <Button variant="ghost" disabled={busy} onClick={onClose}>
+        <Button variant="ghost" disabled={disabled} onClick={onClose}>
           {t(dismissLabel)}
         </Button>
       </footer>

@@ -4,12 +4,13 @@ import {Fragment} from 'react'
 import {useTranslations} from 'next-intl'
 import {twNoteThemeConfig} from '~/config/tailwindTheme'
 import PopoverBase from '~/components/ui/popover'
-import Button, {buttonClass} from '~/components/ui/button'
+import Button, {buttonClass, type ButtonSize} from '~/components/ui/button'
 import {usePersistStore} from '~/store'
 
 export const NoteThemePicker = ({
   disabled = false,
-}: {disabled?: boolean} = {}) => {
+  size = 'sm',
+}: {disabled?: boolean; size?: ButtonSize} = {}) => {
   const tAccessibility = useTranslations('note.accessibility')
   const {theme, setMutateNoteData} = usePersistStore((s) => ({
     theme: s.mutateNoteData?.theme,
@@ -61,7 +62,7 @@ export const NoteThemePicker = ({
       trigger={<IconPalette size="18" />}
       triggerAriaLabel={tAccessibility('chooseTheme')}
       triggerClassName={cn(
-        buttonClass({variant: 'secondary', size: 'sm', iconOnly: true}),
+        buttonClass({variant: 'secondary', size, iconOnly: true}),
         theme ? `border-theme-${theme}` : '',
       )}
       disabled={disabled}
