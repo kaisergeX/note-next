@@ -65,7 +65,9 @@ Use minimal visible wording while retaining accessible labels and explanations o
 - No routine manual cleanup, extra recovery confirmation, mandatory timestamp reading, or automatic conflict modal during typing.
 - Verify EN/VI, desktop/mobile, light/dark, keyboard/touch, accessible status names, reduced motion, blank titles, and authored colors.
 
-Out of scope: version history, paragraph merging, full offline support, new search, export formats, E2EE, production migration, and deployment.
+Approved next, not implemented: [Edit a copy inside conflict review](conflicts.md#approved-extension-edit-a-copy). The edited copy is an additional browser version attached to the same note, marked Edited copy; its source remains available until explicit discard, including after successful resolution. This is an explicit retention exception to automatic redundant-copy cleanup, not permission to retain all internal duplicates.
+
+Out of scope: retained version history, automatic paragraph merging, full offline support, new search, export formats, E2EE, production migration, and deployment.
 
 ## Layout constraints
 
