@@ -20,6 +20,7 @@ import NoteEditor from './note-editor'
 export default function NoteWriting({
   id,
   pending,
+  autofocus = true,
   fullPage = false,
   leadingActions,
   viewAction,
@@ -28,6 +29,7 @@ export default function NoteWriting({
 }: {
   id: string
   pending?: boolean
+  autofocus?: boolean
   fullPage?: boolean
   leadingActions?: ReactNode
   viewAction?: ReactNode
@@ -175,7 +177,7 @@ export default function NoteWriting({
         showCount
         countClassName={fullPage ? 'text-ink-muted opacity-100' : undefined}
         disableDefaultEnter
-        autofocus="end"
+        autofocus={autofocus ? 'end' : false}
         loading={pending}
       />
       <div

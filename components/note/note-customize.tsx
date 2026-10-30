@@ -32,6 +32,7 @@ export type NoteCustomizeProps = {
   scrollContainerRef?: RefObject<HTMLElement | null>
   scrollTopCtrl?: boolean
   details?: ReactNode
+  syncActions?: ReactNode
 }
 
 function isScrollableY(el?: HTMLElement | null) {
@@ -57,6 +58,7 @@ export default function NoteCustomize({
   scrollContainerRef,
   scrollTopCtrl = false,
   details,
+  syncActions,
 }: NoteCustomizeProps) {
   const {noteId, theme} = usePersistStore((s) => ({
     noteId: s.mutateNoteData?.id,
@@ -121,7 +123,15 @@ export default function NoteCustomize({
         className,
       )}
     >
-      <NoteSyncActions className="border-hairline col-span-full min-w-0 border-b pb-3" />
+      {syncActions !== undefined ? (
+        syncActions && (
+          <div className="border-hairline col-span-full min-w-0 border-b pb-3">
+            {syncActions}
+          </div>
+        )
+      ) : (
+        <NoteSyncActions className="border-hairline col-span-full min-w-0 border-b pb-3" />
+      )}
       <div className="flex shrink-0 items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
 

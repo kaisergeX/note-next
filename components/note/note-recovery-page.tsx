@@ -58,11 +58,13 @@ export default function NoteRecoveryPage({
         `/full/eton/${controller.record.noteId}`,
       )
       url.searchParams.delete('draft')
+      if (controller.record.versionId)
+        url.searchParams.set('version', controller.record.versionId)
     } else {
       // Keep the segment stable so an RSC refresh preserves the editor tree.
       url.searchParams.set('draft', controller.record.id)
     }
-    window.history.replaceState(null, '', url)
+    window.history.replaceState(null, '', url.href)
   }, [session, value, choices, ownerId])
   useEffect(() => {
     let active = true

@@ -37,7 +37,9 @@ export function useNoteSession(
       ? `${note.authorId}:${note.id}`
       : `new:${ownerId}`
   const router = useRouter()
-  const returnPath = noteReturnPath(useSearchParams().get('from'))
+  const search = useSearchParams()
+  const returnPath = noteReturnPath(search.get('from'))
+  const versionId = search.get('version')
   const t = useTranslations('note.recovery')
   const [selection, setSelection] = useState<{
     key: string
@@ -83,7 +85,12 @@ export function useNoteSession(
             if (!alive) return
             const groups = noteRecoveryGroups(records, ownerId, note.id)
             const candidates = groups.flatMap((group) => group.copies)
-            if (groups.length > 1) setSelection({key, records: candidates})
+            const selected = versionId
+              ? candidates.find((row) => row.versionId === versionId)
+              : undefined
+            if (versionId)
+              beginNoteSync(ownerId, key, note, selected, !selected)
+            else if (groups.length > 1) setSelection({key, records: candidates})
             else
               beginNoteSync(
                 ownerId,
@@ -101,7 +108,7 @@ export function useNoteSession(
     return () => {
       alive = false
     }
-  }, [active, ownerId, key, note, recovery, attempt, documentKey])
+  }, [active, ownerId, key, note, recovery, attempt, documentKey, versionId])
   const recoveryView =
     selection?.key === key && ownerId && note
       ? selection.error
@@ -121,6 +128,14 @@ export function useNoteSession(
             onClose: () => router.replace(returnPath),
             onChoose: (record?: RecoveryDraft) => {
               setSelection(undefined)
+              if (
+                record?.versionId ||
+                selection.records.some((row) => row.versionId)
+              ) {
+                const url = new URL(window.location.href)
+                url.searchParams.set('version', record?.versionId ?? 'saved')
+                window.history.replaceState(null, '', url.href)
+              }
               beginNoteSync(ownerId, key, note, record, !record)
             },
           })

@@ -1,6 +1,6 @@
 # Editor implementation and upgrade record
 
-Status: Phases 0–1 delivered and owner-accepted. HR correction and rebuilt-editor Vietnamese IME smoke were owner-confirmed on 2026-10-28. Current persistence/conflict evidence and release limits live in [handoff](handoff.md).
+Status — 2026-11-01: the owner rejects the current note-editor changes and requires redesign, potentially a full rework in a new thread. **The current Phase 3/editor changes have NOT passed; no deployment is approved.** Earlier Phases 0–1 acceptance and the 2026-10-28 HR/IME confirmations are historical evidence for earlier snapshots, not acceptance of these changes. See the [owner decision](handoff.md#owner-decision--2026-11-01-failed-phase-no-deployment).
 
 ## Current implementation and boundaries
 

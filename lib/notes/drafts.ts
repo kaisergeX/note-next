@@ -14,6 +14,10 @@ export type RecoveryDraft = {
   flight?: SyncRequest
   conflict?: Note
   unavailable?: boolean
+  // Stable across session handoffs; indexed fields and legacy records are unchanged.
+  versionId?: string
+  editedCopyOf?: string
+  retainedSource?: boolean
 }
 const db = new Dexie('etoN-note-recovery') as Dexie & {
   drafts: EntityTable<RecoveryDraft, 'id'>
