@@ -1,6 +1,6 @@
 # Concurrent edits and conflict recovery
 
-Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Optional detailed text comparison is implemented locally. Scoped verification and device/production limits are in [handoff](handoff.md). Manual merging and user-visible history remain deferred.
+Status: minimum Phase 3 safety scope implemented and owner-accepted with Phase 2. Optional detailed text comparison is implemented locally. Scoped verification and device/production limits are in [handoff](handoff.md). Edit a copy is owner-approved on 2026-10-30, with implementation pending (see below). Automatic content merging and user-visible retained history remain deferred.
 
 [Recovery UX](recovery-ux.md) governs Notes discovery and note-scoped selection; each internal recovery record must not become a separate note card.
 
@@ -65,6 +65,38 @@ Title and body are compared separately. Formatting/structure and note-color diff
 
 Word comparison uses jsdiff 9.0.0 with a 50 ms / 1,000-edit bound per field. More than 100,000 combined text characters, or an aborted comparison, falls back to marking the whole changed field with an explanation. No content is truncated. Paragraphs, line breaks, and decoded entities remain text; HTML is never injected by the comparison.
 
+## Approved extension: Edit a copy
+
+Status: owner-approved design, 2026-10-30; not implemented or verified. This section is the implementation brief for the next chat. Earlier delivered behavior above remains the current implementation.
+
+Only the author can see/edit a note. Conflicts come from that author's devices, tabs, or browser sessions; sharing and collaboration are not implemented. Use that language in explanations and status messages.
+
+### Flow and explicit decisions
+
+- Keep current conflict review and its Use mine, Use saved, and Keep both choices as the main flow. Add a secondary **Edit a copy** action to the selected browser version. The saved reference stays read-only; making both sides editable is outside this scope.
+- Create a separate account-scoped browser recovery version initialized from the selected browser version's rich-text title, body, and theme. Preserve the source unchanged. This is an additional version attached to the same logical note, not a separate server note or collection card.
+- Show the edited copy in the existing version list with a small **Edited copy** text badge alongside its normal timestamp. An icon alone is insufficient. Provide an accessible origin label such as “Edited copy of browser version.” The badge identifies origin, not resolution, saved state, or completion; do not label it “Merged.”
+- Reuse the existing rich-text editor and formatting toolbar inside comparison. Desktop shows the editable copy beside the read-only saved version so users can copy passages manually. Mobile uses editable-copy/saved-reference tabs, preserving selection and undo while switching.
+- Further edits update that copy; keystrokes, reopening, and resuming it must not create additional versions. Preserve authored formatting, EN/VI, note color, and existing title/body limits.
+- Editing does not select a winner or resolve the conflict. **Use this version** explicitly saves the edited result over the original server note against the reviewed revision. **Use saved** retains informed discard/freshness protections. **Keep both** explicitly creates a separate saved note from the edited result, preserving the existing idempotent creation/retry behavior.
+- Checkpoint the edited copy locally while unresolved; do not autosave it over the server note. Close comparison retains the copy. Reload, editor view handoff, and version selection must retain it and its discoverability through the existing recovery flow.
+- To start again, explicitly discard the edited copy and return to its unchanged source. Use existing scoped discard confirmation/generation safeguards. Undo is useful during editing but is not the durable restart mechanism. No separate hidden working copy, Cancel restoration snapshot, or Reset mechanism is required.
+- After successfully saving the edited copy, retain the source browser version until explicit discard. Other distinct browser work remains available. Explicitly retained source versions must not be silently retired as equivalent copies, even before the edited copy's content diverges.
+- If another device/tab/session updates the server note, preserve the edited result and require review against the newer saved revision before replacing it. Do not force a stale save or rewrite composed content underneath the user. Trash/deletion and temporary read failures retain the existing unavailable/retry distinctions.
+
+### Implementation plan
+
+1. Inspect `lib/notes/drafts.ts`, `recovery-copies.ts`, `session-sync.ts`, and the shared version gate/chooser before changing the model. Add the minimum copy-origin metadata and any required browser-storage migration. Preserve backward compatibility with existing recovery records; no server retained-history schema is needed.
+2. Make source/copy preservation explicit in grouping, resumption, acknowledgement cleanup, and discard. Identity must distinguish an intentionally retained source from redundant internal copies. Retain owner checks, captured-generation cleanup, retry identities, durable handoff, account-exit behavior, and live edits from other tabs. Do not duplicate ambiguous in-flight server mutation intent into the edited copy; establish its own guarded resolution intent.
+3. Extend the current review workspace and version list, reusing NoteEditor, RTECommands, note surfaces, shared dialogs/buttons, and semantic tokens. Add EN/VI labels. Preserve Browser work return context, accessible tabs/focus, bounded independent scrolling, and visible resolution controls.
+4. Add meaningful regression coverage for original/copy preservation (including initially identical content), repeated editing/resumption, reload/view handoff, discard/start again, source retention after successful resolution, stale revision rejection, network/storage failures, account isolation, and Keep both lost-response retries. Preserve existing regression coverage.
+5. During active visual feedback defer reviewer, lint, type checks, builds, and tests. Once the owner signals the design is settled, run required focused/browser regressions, lint/types, and production/Serwist build; request elevated execution on the first Turbopack build attempt. Run one required ui_reviewer at a time with desktop/mobile, EN/VI, light/dark, keyboard/focus, and authored-formatting coverage. Report changes, verified behavior, and remaining feedback separately.
+6. Update this status, overview, recovery contracts, and handoff with actual implementation and evidence. Do not describe this approved design as delivered until implemented and verified.
+
+### Scope boundary
+
+This is manual composition within existing review, not a Git-style merge engine. No new merge library, automatic paragraph merge, per-change accept/reject controls, three-way baseline view, CRDT, sharing/collaboration, or server version history. Browser recovery remains device/browser-local and is not permanent backup.
+
 ## Deferred Phase 3 extensions
 
-Manual merging and user-visible version history require scope agreement before implementation. No retained-history schema or merge algorithm has been approved.
+Automatic content merging and user-visible retained version history require separate scope agreement. No retained-history schema or merge algorithm has been approved.
