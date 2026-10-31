@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useId, useRef, useState} from 'react'
+import {useId, useState} from 'react'
 import {IconCheck, IconChevronDown} from '@tabler/icons-react'
 import {useLocale, useTranslations} from 'next-intl'
 import type {Note} from '~/db/schema/notes'
@@ -10,7 +10,10 @@ import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
 import {Badge} from '~/components/ui/badge'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
-import ConfirmationDialog from '~/components/ui/confirmation-dialog'
+import DialogFlow, {
+  useDialogFlow,
+  type DialogFlowDestination,
+} from '~/components/ui/dialog-flow'
 import NoteCard from './note-card'
 import NoteReadOnly from './trash/note-read-only'
 import RecoveryManagement from './recovery-management'
@@ -26,42 +29,41 @@ export default function NoteVersionPicker({
 }: {
   note?: Note
   records: RecoveryDraft[]
-  onChoose: (record?: RecoveryDraft) => void
+  onChoose: (record?: RecoveryDraft) => Promise<DialogFlowDestination>
   onClose: () => void
   onDiscard?: (record: RecoveryDraft) => void
   busy?: boolean
   dismissLabel?: 'reviewLater' | 'closeComparison'
 }) {
   const [leaving, setLeaving] = useState(false)
-  const pendingChoice = useRef<{record?: RecoveryDraft} | undefined>(undefined)
-  const choose = (record?: RecoveryDraft) => {
-    pendingChoice.current = {record}
+  const flow = useDialogFlow()
+  const choose = async (record?: RecoveryDraft) => {
+    if (busy || leaving) return
     setLeaving(true)
+    try {
+      await flow.handoff(
+        () => onChoose(record),
+        ({retry, cancel}) => (
+          <div className="text-destructive flex flex-wrap items-center gap-3 text-sm">
+            <p>{t('recoveryFailed')}</p>
+            <Button variant="secondary" onClick={retry}>
+              {t('retry')}
+            </Button>
+            <Button variant="ghost" onClick={cancel}>
+              {t('cancel')}
+            </Button>
+          </div>
+        ),
+      )
+    } finally {
+      setLeaving(false)
+    }
   }
   const disabled = busy || leaving
   const t = useTranslations('note.recovery')
   const locale = useLocale()
   const titleId = useId()
   const descriptionId = useId()
-  useEffect(() => {
-    if (!leaving) return
-    const dialog = document.getElementById(titleId)?.closest('dialog')
-    if (!dialog) return
-    let active = true
-    // Keep native modality until the outgoing surface is transparent so a
-    // quick click cannot reopen the old session during the handoff.
-    void Promise.allSettled(
-      dialog.getAnimations().map((animation) => animation.finished),
-    ).then(() => {
-      const choice = pendingChoice.current
-      if (!active || !choice) return
-      pendingChoice.current = undefined
-      onChoose(choice.record)
-    })
-    return () => {
-      active = false
-    }
-  }, [leaving, onChoose, titleId])
   const live = useRecoveryDrafts(
     records[0]?.ownerId ?? note?.authorId ?? '',
     true,
@@ -107,10 +109,10 @@ export default function NoteVersionPicker({
       : []),
   ]
   return (
-    <ConfirmationDialog
+    <DialogFlow
+      step="versions"
       open
       busy={disabled}
-      className={leaving ? 'opacity-0 backdrop:opacity-0' : undefined}
       labelledBy={titleId}
       describedBy={descriptionId}
       initialFocusId={titleId}
@@ -225,9 +227,15 @@ export default function NoteVersionPicker({
               className="shrink-0"
               variant={record ? 'primary' : 'secondary'}
               disabled={disabled}
-              onClick={() => choose(record)}
+              onClick={() => void choose(record)}
             >
-              {t(record ? 'continueVersion' : 'openSaved')}
+              {t(
+                record
+                  ? record.conflict
+                    ? 'reviewVersion'
+                    : 'continueVersion'
+                  : 'openSaved',
+              )}
             </Button>
           </section>
         ))}
@@ -237,6 +245,6 @@ export default function NoteVersionPicker({
           {t(dismissLabel)}
         </Button>
       </footer>
-    </ConfirmationDialog>
+    </DialogFlow>
   )
 }

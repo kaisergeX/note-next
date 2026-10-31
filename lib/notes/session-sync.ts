@@ -467,6 +467,9 @@ export class NoteSyncSession {
     if (result.status === 'success') {
       this.record.noteId = result.note.id
       this.record.baseline = result.note
+      // The composed version is now acknowledged. Later edits use normal
+      // reconciliation; the separately retained source keeps its own identity.
+      this.record.editedCopyOf = undefined
       if (!this.dirty) this.dirtySince = 0
       if (usePersistStore.getState().noteSession?.identity === this.record.id) {
         usePersistStore.setState({
@@ -513,11 +516,13 @@ export class NoteSyncSession {
       )
       if (
         this.record.editedCopyOf ||
+        this.record.retainedSource ||
         resolution.conflicts.length ||
         flight.kind === 'trash'
       ) {
         if (
           !this.record.editedCopyOf &&
+          !this.record.retainedSource &&
           !sameContent(this.record.draft, resolution.merged)
         )
           this.replaceContent(resolution.merged)
@@ -604,6 +609,7 @@ export class NoteSyncSession {
     ) {
       this.record.flight = undefined
       this.record.baseline = remote
+      this.record.editedCopyOf = undefined
       confirmedFlight = true
     }
     if (
@@ -782,6 +788,7 @@ export class NoteSyncSession {
         this.record.flight = undefined
         // Use saved is an explicitly confirmed discard of this selected version.
         this.record.retainedSource = undefined
+        this.record.editedCopyOf = undefined
         this.replaceContent(latest)
         this.publish({
           baseline: latest,
@@ -966,7 +973,7 @@ export function beginNoteSync(
     session,
     usePersistStore.getState().mutateNoteData,
   )
-  void (async () => {
+  return (async () => {
     await resuming?.drained()
     const recovered =
       resuming &&

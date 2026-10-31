@@ -142,6 +142,39 @@ test('discarding a copy returns to its source and allows a fresh copy', async ({
   await expect(copyBody(page)).toHaveText(local)
 })
 
+test('resolved copy reload reconciles later local work with an independent remote title', async ({
+  page,
+  noteApp,
+}) => {
+  const {original, local} = await noteApp.conflict()
+  await startCopy(page)
+  await copyBody(page).fill('Resolved composition')
+  await review(page)
+    .getByRole('button', {name: 'Use this version', exact: true})
+    .click()
+  await expect(review(page)).not.toBeVisible()
+  await expect(body(page)).toHaveText('Resolved composition')
+  const saved = await noteApp.read(original.id)
+  await page.route('**/api/note/sync', (route) => route.abort('failed'))
+  await body(page).fill('Later local body')
+  await expect
+    .poll(async () =>
+      (await drafts(page)).some(
+        (row) => row.draft.content === '<p>Later local body</p>',
+      ),
+    )
+    .toBe(true)
+  await noteApp.save(saved, {title: '<p>Later remote title</p>'})
+  await page.reload()
+  await expect(body(page)).toHaveText('Later local body')
+  await expect(
+    page.getByRole('textbox', {name: 'Title', exact: true}),
+  ).toHaveText('Later remote title')
+  expect(
+    (await drafts(page)).find((row) => row.retainedSource)?.draft.content,
+  ).toBe(`<p>${local}</p>`)
+})
+
 for (const reload of [false, true]) {
   test(`edited Keep both retries a lost response ${reload ? 'after reload' : 'in place'} and preserves source`, async ({
     page,
@@ -236,7 +269,7 @@ test('Keep both from the preserved source keeps both browser versions on the ori
     .filter({hasNot: page.getByText('Working copy', {exact: true})})
     .click()
   await page
-    .getByRole('button', {name: 'Continue this version', exact: true})
+    .getByRole('button', {name: 'Review this version', exact: true})
     .click()
   await page.getByRole('button', {name: 'Review changes', exact: true}).click()
   await review(page)
@@ -281,7 +314,7 @@ test.describe('service-worker navigation', () => {
       .getByRole('button', {name: 'Review other versions', exact: true})
       .click()
     await page
-      .getByRole('button', {name: 'Continue this version', exact: true})
+      .getByRole('button', {name: 'Review this version', exact: true})
       .click()
     await expect(copyBody(page)).toBeVisible()
     expect(
@@ -428,6 +461,41 @@ for (const width of [1440, 390]) {
             return rect.top >= 0 && rect.bottom <= innerHeight
           }),
       ).toBe(true)
+    }
+    if (width === 390) {
+      // Bottom-position checks can hide scroll anchoring jumps because the
+      // browser clamps them. Preserve a mid-document position in both panes.
+      const settleScroll = () =>
+        page.evaluate(
+          () =>
+            new Promise((resolve) =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve(true)),
+              ),
+            ),
+        )
+      await pane.evaluate((el) => {
+        el.scrollTop = 1500
+      })
+      await settleScroll()
+      const mineMiddle = await pane.evaluate((el) => el.scrollTop)
+      await review(page)
+        .getByRole('tab', {name: 'Saved version', exact: true})
+        .click()
+      await saved.evaluate((el) => {
+        el.scrollTop = 900
+      })
+      await settleScroll()
+      const savedMiddle = await saved.evaluate((el) => el.scrollTop)
+      await review(page)
+        .getByRole('tab', {name: 'Working copy', exact: true})
+        .click()
+      await settleScroll()
+      expect(await pane.evaluate((el) => el.scrollTop)).toBe(mineMiddle)
+      await review(page)
+        .getByRole('tab', {name: 'Saved version', exact: true})
+        .click()
+      expect(await saved.evaluate((el) => el.scrollTop)).toBe(savedMiddle)
     }
   })
 }

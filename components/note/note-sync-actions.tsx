@@ -1,6 +1,6 @@
 'use client'
 
-import {startTransition, useEffect, useId, useRef, useState} from 'react'
+import {useEffect, useId, useLayoutEffect, useRef, useState} from 'react'
 import {useSearchParams} from 'next/navigation'
 import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
@@ -13,7 +13,7 @@ import {Badge} from '~/components/ui/badge'
 import NoteWriting from './note-writing'
 import {NoteThemePicker} from './note-theme-picker'
 import RecoveryManagement from './recovery-management'
-import ConfirmationDialog from '~/components/ui/confirmation-dialog'
+import DialogFlow from '~/components/ui/dialog-flow'
 import NoteReadOnly from './trash/note-read-only'
 import NoteCard from './note-card'
 import {useMobileNoteView} from '~/lib/notes/mobile'
@@ -111,7 +111,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
   }
   const remote = session?.conflict
   const hasConflict = Boolean(remote)
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (
       (!initialReview && !editedCopy) ||
       !hasConflict ||
@@ -120,7 +120,10 @@ export default function NoteSyncActions({className}: {className?: string}) {
     )
       return
     reviewedSession.current = session.identity
-    startTransition(() => setReview(true))
+    // Resolve the requested surface before paint rather than briefly opening
+    // the ordinary note dialog while a lower-priority transition is pending.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setReview(true)
     void getNoteSync()?.refreshRemote('review')
   }, [initialReview, hasConflict, session?.identity, editedCopy])
   const resolutionDisabled =
@@ -282,7 +285,8 @@ export default function NoteSyncActions({className}: {className?: string}) {
         )}
       </div>
       {remote && (
-        <ConfirmationDialog
+        <DialogFlow
+          step="review"
           open={review}
           busy={busy}
           onRequestClose={closeReview}
@@ -456,32 +460,44 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   )}
                 </div>
                 <div
-                  role="region"
-                  aria-label={t('mine')}
-                  tabIndex={0}
-                  className="focus-visible:outline-accent flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
+                  role={showChanges ? 'region' : undefined}
+                  aria-label={showChanges ? t('mine') : undefined}
+                  tabIndex={showChanges ? 0 : undefined}
+                  style={{overflowAnchor: 'none'}}
+                  className={cn(
+                    'focus-visible:outline-accent flex min-h-0 flex-1 flex-col overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4',
+                    showChanges ? 'overflow-y-auto' : 'overflow-hidden',
+                  )}
                 >
                   {editedCopy && (
                     <div
                       hidden={showChanges}
                       className={cn(
-                        'min-h-full shrink-0 flex-col p-3 sm:p-0',
+                        'min-h-0 flex-1 flex-col p-3 sm:p-0',
                         showChanges ? 'hidden' : 'flex',
                       )}
                     >
                       <NoteCard
                         theme={draft?.theme}
-                        className="flex flex-1 flex-col overflow-hidden"
+                        className="flex min-h-0 flex-1 flex-col overflow-hidden"
                       >
-                        <NoteWriting
-                          key={session?.identity}
-                          id={`comparison-${session?.identity}`}
-                          pending={busy}
-                          autofocus={false}
-                          leadingActions={
-                            <NoteThemePicker disabled={busy} size="md" />
-                          }
-                        />
+                        <div
+                          role="region"
+                          aria-label={t('mine')}
+                          tabIndex={0}
+                          style={{overflowAnchor: 'none'}}
+                          className="focus-visible:outline-accent flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-lg focus-visible:outline-2 focus-visible:-outline-offset-2 [&_[data-editor-toolbar]]:rounded-t-lg"
+                        >
+                          <NoteWriting
+                            key={session?.identity}
+                            id={`comparison-${session?.identity}`}
+                            pending={busy}
+                            autofocus={false}
+                            leadingActions={
+                              <NoteThemePicker disabled={busy} size="md" />
+                            }
+                          />
+                        </div>
                       </NoteCard>
                     </div>
                   )}
@@ -493,6 +509,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                     />
                   ) : !editedCopy ? (
                     <VersionPreview
+                      label={t('mine')}
                       theme={draft?.theme ?? null}
                       title={draft?.title ?? null}
                       content={draft?.content ?? null}
@@ -527,10 +544,14 @@ export default function NoteSyncActions({className}: {className?: string}) {
                   {t('saved')}
                 </h3>
                 <div
-                  role="region"
-                  aria-label={t('saved')}
-                  tabIndex={0}
-                  className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4"
+                  role={showChanges ? 'region' : undefined}
+                  aria-label={showChanges ? t('saved') : undefined}
+                  tabIndex={showChanges ? 0 : undefined}
+                  style={{overflowAnchor: 'none'}}
+                  className={cn(
+                    'focus-visible:outline-accent flex min-h-0 flex-1 flex-col overscroll-contain focus-visible:outline-2 focus-visible:-outline-offset-2 sm:my-4',
+                    showChanges ? 'overflow-y-auto' : 'overflow-hidden',
+                  )}
                 >
                   {showChanges ? (
                     <NoteVersionDiff
@@ -540,6 +561,7 @@ export default function NoteSyncActions({className}: {className?: string}) {
                     />
                   ) : (
                     <VersionPreview
+                      label={t('saved')}
                       theme={remote.theme}
                       title={remote.title}
                       content={remote.content}
@@ -613,35 +635,50 @@ export default function NoteSyncActions({className}: {className?: string}) {
               {t('closeComparison')}
             </Button>
           </footer>
-        </ConfirmationDialog>
+        </DialogFlow>
       )}
     </div>
   )
 }
 
 function VersionPreview({
+  label,
   title,
   content,
   theme,
 }: {
+  label: string
   title: string | null
   content: string | null
   theme: NoteTheme | null
 }) {
   return (
-    <NoteCard theme={theme} className="min-h-full p-4">
-      {title && (
-        <NoteReadOnly
-          content={title}
-          theme={theme}
-          className="mb-8 font-serif text-lg font-semibold sm:text-xl"
-        />
-      )}
-      <NoteReadOnly
-        content={content}
+    <div className="flex min-h-0 flex-1 flex-col p-3 sm:p-0">
+      <NoteCard
         theme={theme}
-        className="font-serif font-normal"
-      />
-    </NoteCard>
+        className="flex min-h-0 flex-1 flex-col overflow-hidden"
+      >
+        <div
+          role="region"
+          aria-label={label}
+          tabIndex={0}
+          style={{overflowAnchor: 'none'}}
+          className="focus-visible:outline-accent min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-lg p-4 focus-visible:outline-2 focus-visible:-outline-offset-2"
+        >
+          {title && (
+            <NoteReadOnly
+              content={title}
+              theme={theme}
+              className="mb-8 font-serif text-lg font-semibold sm:text-xl"
+            />
+          )}
+          <NoteReadOnly
+            content={content}
+            theme={theme}
+            className="font-serif font-normal"
+          />
+        </div>
+      </NoteCard>
+    </div>
   )
 }

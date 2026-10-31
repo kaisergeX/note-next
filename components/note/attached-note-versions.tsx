@@ -12,6 +12,7 @@ import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
 import {usePersistStore} from '~/store'
 import Button from '~/components/ui/button'
 import NoteVersionPicker from './note-version-picker'
+import type {DialogFlowDestination} from '~/components/ui/dialog-flow'
 
 export default function AttachedNoteVersions({
   className,
@@ -34,8 +35,11 @@ export default function AttachedNoteVersions({
       !sameRecoveryCopy(row, current.record),
   )
   if (!related.length) return null
-  const choose = async (record?: RecoveryDraft, discarded = false) => {
-    if (!discarded && getNoteSync() !== current) return
+  const choose = async (
+    record?: RecoveryDraft,
+    discarded = false,
+  ): Promise<DialogFlowDestination> => {
+    if (!discarded && getNoteSync() !== current) return null
     setBusy(true)
     try {
       if (
@@ -46,7 +50,7 @@ export default function AttachedNoteVersions({
         // Keep the active editor and its storage-failure/export guidance visible
         // if the outgoing version cannot be durably handed off.
         setReview(false)
-        return
+        return null
       }
       setReview(false)
       const url = new URL(window.location.href)
@@ -54,8 +58,10 @@ export default function AttachedNoteVersions({
       else if (current.record.versionId || related.some((row) => row.versionId))
         url.searchParams.set('version', 'saved')
       else url.searchParams.delete('version')
+      if (record?.conflict && !record.unavailable)
+        url.searchParams.set('review', '1')
       window.history.replaceState(null, '', url.href)
-      beginNoteSync(
+      await beginNoteSync(
         ownerId,
         session!.key,
         current.record.baseline.id
@@ -64,6 +70,16 @@ export default function AttachedNoteVersions({
         record,
         !record,
       )
+      if (
+        getNoteSync()?.record.ownerId !== ownerId ||
+        !window.location.pathname.includes('/eton/')
+      )
+        return null
+      return getNoteSync()?.record.conflict
+        ? 'review'
+        : window.location.pathname.includes('/full/eton/')
+          ? null
+          : 'editor'
     } finally {
       setBusy(false)
     }
@@ -75,24 +91,7 @@ export default function AttachedNoteVersions({
         size="sm"
         variant="secondary"
         disabled={busy}
-        onClick={async () => {
-          setBusy(true)
-          try {
-            const closing = Array.from(
-              document.querySelectorAll<HTMLDialogElement>(
-                'dialog:not([open])',
-              ),
-            )
-            await Promise.allSettled(
-              closing.flatMap((dialog) =>
-                dialog.getAnimations().map((animation) => animation.finished),
-              ),
-            )
-            if (getNoteSync() === current) setReview(true)
-          } finally {
-            setBusy(false)
-          }
-        }}
+        onClick={() => setReview(true)}
       >
         {t('reviewVersions')}
       </Button>
@@ -116,7 +115,7 @@ export default function AttachedNoteVersions({
               )
           }}
           onClose={() => setReview(false)}
-          onChoose={(record) => void choose(record)}
+          onChoose={(record) => choose(record)}
         />
       )}
     </div>

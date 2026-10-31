@@ -698,6 +698,7 @@
       "localVersion": "Browser version {number}",
       "storedInBrowserAt": "Stored in this browser: {time}",
       "continueVersion": "Continue this version",
+      "reviewVersion": "Review this version",
       "openSaved": "Open saved version",
       "browserWorkActions": "Manage browser work",
       "browserWorkTitle": "Browser work",

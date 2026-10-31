@@ -1044,3 +1044,112 @@ test('confirmed Use saved explicitly discards a retained source', async (t) => {
     1,
   )
 })
+
+test('a resolved working copy resumes normal field reconciliation for subsequent edits', async (t) => {
+  const {controller, baseline, records, io} = setup(t, async (request) => ({
+    status: 'success',
+    note: {...baseline, ...request.content, revision: crypto.randomUUID()},
+  }))
+  await controller.hydrate()
+  controller.record.editedCopyOf = crypto.randomUUID()
+  controller.record.versionId = crypto.randomUUID()
+  controller.record.conflict = baseline
+  usePersistStore.getState().setMutateNoteData({content: 'Composed result'})
+  await controller.resolve('mine', baseline.revision)
+  // Continue writing after the resolution, then reload after another device
+  // changes an independent field. That title must not be written back stale.
+  usePersistStore.getState().setMutateNoteData({content: 'Later browser edit'})
+  await controller.persist()
+  const recovery = structuredClone(records.get(controller.record.id)!)
+  const remote = {
+    ...controller.record.baseline,
+    title: 'New title on another device',
+    revision: crypto.randomUUID(),
+  } as Note
+  controller.stop()
+  usePersistStore.getState().resetNoteStore()
+  usePersistStore.getState().beginNoteSession('resolved-reload', remote)
+  const resumed = new NoteSyncSession(
+    baseline.authorId,
+    usePersistStore.getState().noteSession!,
+    remote,
+    io,
+  )
+  t.after(() => resumed.stop())
+  await resumed.hydrate(recovery)
+  assert.equal(resumed.record.draft.content, 'Later browser edit')
+  assert.equal(resumed.record.draft.title, remote.title)
+  assert.equal(resumed.record.editedCopyOf, undefined)
+  assert.equal(resumed.record.conflict, undefined)
+})
+
+test('a retained source rejects a stale resolution without changing its authored fields', async (t) => {
+  const {controller, baseline, records, io} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  usePersistStore
+    .getState()
+    .setMutateNoteData({content: 'Retained source body'})
+  controller.record.conflict = baseline
+  await controller.editCopy()
+  const source = structuredClone(controller.record.draft)
+  const newer = {
+    ...baseline,
+    title: 'New independent remote title',
+    revision: crypto.randomUUID(),
+  }
+  let sends = 0
+  io.send = async () => {
+    sends++
+    return {status: 'conflict', note: newer}
+  }
+  await controller.resolve('mine', baseline.revision)
+  assert.equal(sends, 1)
+  assert.deepEqual(controller.record.draft, source)
+  assert.equal(controller.record.conflict?.revision, newer.revision)
+  assert.deepEqual(records.get(controller.record.id)?.draft, source)
+})
+
+for (const choice of ['saved', 'acknowledged read'] as const) {
+  test(`${choice} ends working-copy composition without retiring its source`, async (t) => {
+    const {controller, baseline, records, io} = setup(t, async () => ({
+      status: 'retryable_error',
+    }))
+    await controller.hydrate()
+    const source = {
+      ...structuredClone(controller.record),
+      id: crypto.randomUUID(),
+      versionId: crypto.randomUUID(),
+      retainedSource: true,
+    }
+    records.set(source.id, source)
+    controller.record.editedCopyOf = source.versionId
+    controller.record.conflict = baseline
+    usePersistStore.getState().setMutateNoteData({content: 'Composed copy'})
+    if (choice === 'saved') {
+      t.mock.method(globalThis, 'fetch', async () => Response.json(baseline))
+      await controller.resolve('saved', baseline.revision)
+      assert.equal(controller.record.draft.content, baseline.content)
+    } else {
+      await controller.resolve('mine', baseline.revision)
+      const flight = controller.record.flight!
+      io.read = async () => ({
+        status: 'success',
+        note: {
+          ...baseline,
+          ...flight.content,
+          lastMutationId: flight.mutationId,
+          revision: crypto.randomUUID(),
+        },
+      })
+      await controller.refreshRemote()
+      assert.equal(controller.record.draft.content, 'Composed copy')
+    }
+    assert.equal(controller.record.editedCopyOf, undefined)
+    assert.equal(controller.record.conflict, undefined)
+    assert.equal(controller.record.flight, undefined)
+    assert.deepEqual(records.get(source.id), source)
+    assert.equal(records.has(controller.record.id), false)
+  })
+}

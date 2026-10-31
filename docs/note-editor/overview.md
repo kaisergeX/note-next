@@ -2,6 +2,8 @@
 
 Status: Phases 0–2, minimum Phase 3 conflict safety, and detailed text comparison are delivered and owner-accepted locally. The Edit a copy extension is implemented and verified locally on 2026-10-30; its visible label is Working copy / Bản đang sửa. Production migration/deployment remain separate. Verification, unresolved reports, and release limits live in [handoff](handoff.md).
 
+The 2026-10-31 continuation audit corrected two working-copy persistence regressions and completed a clean 35-case browser run. See the [audit record](handoff.md#continuation-audit--2026-10-31) for evidence and the scrolling review status.
+
 ## Delivery state
 
 | Phase | Delivered scope |

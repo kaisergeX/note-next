@@ -110,6 +110,7 @@ Component behavior and semantic roles stay consistent across presets; appearance
 - Define default, hover, focus, active/selected, disabled, loading, error, and success states where relevant.
 - Pending actions announce progress and prevent duplicate submission without discarding user input.
 - Explain failures near their cause and offer recovery. Preserve entered content when an operation fails.
+- Dialog replacement sequences use the shared [DialogFlow](components/ui/dialog-flow.tsx) under a persistent scoped provider. Keep one native dialog and backdrop open across screen preparation; focus the new screen and restore the caller when returning. Place the provider above loading branches and outside route view-transition snapshots. Independent confirmations may still use `ConfirmationDialog` as a separate modal. See [dialog-flow usage](docs/dialog-flows.md).
 
 ## Do's and Don'ts
 

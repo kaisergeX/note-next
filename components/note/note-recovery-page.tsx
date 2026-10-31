@@ -110,14 +110,25 @@ export default function NoteRecoveryPage({
         note={value.note}
         records={choices}
         onClose={() => router.replace(returnPath)}
-        onChoose={(record) => {
+        onChoose={async (record) => {
           if (record) {
+            const url = new URL(window.location.href)
+            if (record.conflict && !record.unavailable)
+              url.searchParams.set('review', '1')
+            window.history.replaceState(null, '', url.href)
+            await beginNoteSync(
+              ownerId,
+              `recovery:${record.id}`,
+              value.note,
+              record,
+            )
             setChoices(undefined)
             setValue({...value, record})
+            return getNoteSync()?.record.conflict ? 'review' : null
           } else if (value.note) {
             // Keep the chooser mounted until navigation; rendering the old
             // recovery editor here would resume it over the saved selection.
-            beginNoteSync(
+            await beginNoteSync(
               ownerId,
               `${ownerId}:${value.note.id}`,
               value.note,
@@ -131,6 +142,7 @@ export default function NoteRecoveryPage({
               ),
             )
           }
+          return null
         }}
       />
     )

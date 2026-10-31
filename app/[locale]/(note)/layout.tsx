@@ -3,6 +3,7 @@ import {NextIntlClientProvider} from 'next-intl'
 import {getMessages, getTranslations} from 'next-intl/server'
 import {ViewTransition} from 'react'
 import NoteCollectionLayout from '~/components/note/note-collection-layout'
+import AccountDialogFlow from '~/components/layouts/account-dialog-flow'
 import {requireAuth} from '~/server-utils'
 import {genRandom} from '~/util'
 
@@ -24,14 +25,16 @@ export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
 
   return (
     <NextIntlClientProvider messages={{note: noteMessages}}>
-      <ViewTransition>
-        <NoteCollectionLayout
-          ownerId={userInfo.id}
-          creationLabel={genRandom(noteMessages.creation)}
-        >
-          {children}
-        </NoteCollectionLayout>
-      </ViewTransition>
+      <AccountDialogFlow ownerId={userInfo.id}>
+        <ViewTransition>
+          <NoteCollectionLayout
+            ownerId={userInfo.id}
+            creationLabel={genRandom(noteMessages.creation)}
+          >
+            {children}
+          </NoteCollectionLayout>
+        </ViewTransition>
+      </AccountDialogFlow>
     </NextIntlClientProvider>
   )
 }

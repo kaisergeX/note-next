@@ -4,6 +4,7 @@ import {getLocale, getMessages, getTranslations} from 'next-intl/server'
 import {NextIntlClientProvider} from 'next-intl'
 import {Badge} from '~/components/ui/badge'
 import AccountActions from '~/components/settings/account-actions'
+import AccountDialogFlow from '~/components/layouts/account-dialog-flow'
 import {accountRepository} from '~/db/helper/account'
 import {noteRepository} from '~/db/helper/notes'
 import {requireAuth} from '~/server-utils'
@@ -48,17 +49,19 @@ export default async function AccountPage({
         <Badge className="capitalize">{t(`roles.${userInfo.role}`)}</Badge>
       </div>
       <NextIntlClientProvider messages={{user: messages.user}}>
-        <AccountActions
-          ownerId={userInfo.id}
-          email={userInfo.email}
-          activeCount={count}
-          trashCount={trash.count}
-          nextTrashExpiry={trash.nextExpiry?.toISOString()}
-          verifiedAt={session.accountDeleteVerifiedAt}
-          serverNow={serverNow}
-          returning={params.confirmDelete === '1'}
-          verificationFailed={params.deleteVerification === 'failed'}
-        />
+        <AccountDialogFlow ownerId={userInfo.id}>
+          <AccountActions
+            ownerId={userInfo.id}
+            email={userInfo.email}
+            activeCount={count}
+            trashCount={trash.count}
+            nextTrashExpiry={trash.nextExpiry?.toISOString()}
+            verifiedAt={session.accountDeleteVerifiedAt}
+            serverNow={serverNow}
+            returning={params.confirmDelete === '1'}
+            verificationFailed={params.deleteVerification === 'failed'}
+          />
+        </AccountDialogFlow>
       </NextIntlClientProvider>
     </section>
   )

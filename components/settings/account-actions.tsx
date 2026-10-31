@@ -27,7 +27,7 @@ import {
 } from '~/lib/account/client-events'
 import {usePersistStore} from '~/store'
 import {useTrashRefresh} from '~/components/note/trash/use-trash-refresh'
-import BaseConfirmationDialog from '~/components/ui/confirmation-dialog'
+import DialogFlow from '~/components/ui/dialog-flow'
 import {
   pauseAccountDrafts,
   removeAccountRecovery,
@@ -35,6 +35,7 @@ import {
 } from '~/lib/notes/session-sync'
 
 function ConfirmationDialog({
+  step,
   open,
   title,
   description,
@@ -42,6 +43,7 @@ function ConfirmationDialog({
   onClose,
   children,
 }: {
+  step: string
   open: boolean
   title: string
   description: string
@@ -52,7 +54,8 @@ function ConfirmationDialog({
   const titleId = useId()
   const descriptionId = useId()
   return (
-    <BaseConfirmationDialog
+    <DialogFlow
+      step={step}
       open={open}
       busy={busy}
       labelledBy={titleId}
@@ -66,7 +69,7 @@ function ConfirmationDialog({
         {description}
       </p>
       {children}
-    </BaseConfirmationDialog>
+    </DialogFlow>
   )
 }
 
@@ -283,6 +286,7 @@ export default function AccountActions({
         </Button>
       </div>
       <ConfirmationDialog
+        step="account-trash"
         open={dialog === 'trash'}
         title={t('trashConfirmTitle')}
         description={t('trashConfirmBody', {count})}
@@ -327,6 +331,7 @@ export default function AccountActions({
         )}
       </ConfirmationDialog>
       <ConfirmationDialog
+        step="account-delete"
         open={dialog === 'delete'}
         title={t('deleteConfirmTitle')}
         description={t('deleteConfirmBody')}

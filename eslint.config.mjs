@@ -15,6 +15,7 @@ export default defineConfig([
     'next-env.d.ts',
     'public/',
     '*.config.*',
+    '.playwright-mcp/**',
   ]),
   {
     files: ['**/*.{js,mjs,cjs,ts,jsx,tsx}'],

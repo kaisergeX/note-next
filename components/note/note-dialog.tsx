@@ -1,8 +1,7 @@
-import {Dialog} from '@kaiverse/k/ui'
+import DialogFlow from '~/components/ui/dialog-flow'
 import {cn} from 'cn'
 import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useLayoutEffect, useRef} from 'react'
 import {Link} from '~/i18n/navigation'
 import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
@@ -28,16 +27,9 @@ export default function NoteDialog({
   onClose,
   onMoveToTrash,
 }: NoteDialogProps) {
-  const dialogRef = useRef<HTMLDialogElement>(null)
   const search = useSearchParams()
   const fromBrowserWork = search.get('from') === 'browser-work'
   const version = search.get('version')
-  useLayoutEffect(() => {
-    const dialog = dialogRef.current
-    // Cached routes disconnect effects without removing their DOM. Close before
-    // the browser drops the top layer so the dialog can become modal again.
-    return () => dialog?.close()
-  }, [])
   const mutateNoteData = usePersistStore((s) => s.mutateNoteData)
   const sessionIdentity = usePersistStore((s) => s.noteSession?.identity)
   const unavailable = usePersistStore(
@@ -47,8 +39,9 @@ export default function NoteDialog({
   const t = useTranslations('note')
 
   return (
-    <Dialog
-      ref={dialogRef}
+    <DialogFlow
+      step="editor"
+      layout="custom"
       className={cn(
         'min-h-80 flex-col rounded-lg open:flex max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
         'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-2/3 2xl:max-w-(--breakpoint-xl)',
@@ -58,25 +51,10 @@ export default function NoteDialog({
         'backdrop:bg-paper/50 backdrop:backdrop-blur',
       )}
       open={open}
-      preventClose
-      onKeyDownCapture={(event) => {
-        if (
-          event.target instanceof Element &&
-          event.target.closest('dialog') !== event.currentTarget
-        )
-          return
-        if (
-          event.key === 'Escape' &&
-          !event.currentTarget.querySelector(':popover-open')
-        ) {
-          event.preventDefault()
-          if (!loading) onClose()
-        }
-      }}
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget && !loading) onClose()
-      }}
-      aria-label={t(type === 'create' ? 'editor.newNote' : 'editor.editNote')}
+      busy={Boolean(loading)}
+      onRequestClose={onClose}
+      dismissOnBackdrop
+      ariaLabel={t(type === 'create' ? 'editor.newNote' : 'editor.editNote')}
     >
       <NoteWriting
         key={sessionIdentity}
@@ -131,6 +109,6 @@ export default function NoteDialog({
         loading={loading}
         scrollTopCtrl
       />
-    </Dialog>
+    </DialogFlow>
   )
 }

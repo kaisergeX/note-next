@@ -126,7 +126,7 @@ export function useNoteSession(
             note,
             records: selection.records,
             onClose: () => router.replace(returnPath),
-            onChoose: (record?: RecoveryDraft) => {
+            onChoose: async (record?: RecoveryDraft) => {
               setSelection(undefined)
               if (
                 record?.versionId ||
@@ -134,9 +134,21 @@ export function useNoteSession(
               ) {
                 const url = new URL(window.location.href)
                 url.searchParams.set('version', record?.versionId ?? 'saved')
+                if (record?.conflict && !record.unavailable)
+                  url.searchParams.set('review', '1')
                 window.history.replaceState(null, '', url.href)
               }
-              beginNoteSync(ownerId, key, note, record, !record)
+              await beginNoteSync(ownerId, key, note, record, !record)
+              if (
+                getNoteSync()?.record.noteId !== note.id ||
+                !window.location.pathname.endsWith(`/eton/${note.id}`)
+              )
+                return null
+              return getNoteSync()?.record.conflict
+                ? 'review'
+                : window.location.pathname.includes('/full/eton/')
+                  ? null
+                  : 'editor'
             },
           })
       : null
