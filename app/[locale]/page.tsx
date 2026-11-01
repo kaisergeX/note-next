@@ -144,7 +144,7 @@ function InterviewPreview({copy}: {copy: InterviewPreviewCopy}) {
         <div className="bg-ink text-paper ml-auto max-w-sm rounded-xl rounded-br-sm p-3 text-sm">
           {copy.prompt}
         </div>
-        <div className="border-hairline bg-paper max-w-sm rounded-xl rounded-bl-sm border p-3 font-serif leading-relaxed">
+        <div className="border-hairline bg-paper max-w-sm rounded-xl rounded-bl-sm border p-3 text-sm">
           {copy.reply}
         </div>
       </div>

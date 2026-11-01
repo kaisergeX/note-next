@@ -1,10 +1,5 @@
-import {
-  Google_Sans,
-  Inter,
-  Literata,
-  Newsreader,
-  Source_Sans_3,
-} from 'next/font/google'
+import {Inter, Literata, Newsreader, Source_Sans_3} from 'next/font/google'
+import localFont from 'next/font/local'
 
 const inter = Inter({subsets: ['latin'], variable: '--font-inter'})
 const newsreader = Newsreader({
@@ -15,10 +10,21 @@ const newsreader = Newsreader({
 })
 
 // Optional preset fonts load when used, without preloading them for everyone.
-const googleSans = Google_Sans({
+const googleSans = localFont({
+  src: [
+    {
+      path: './fonts/google-sans/GoogleSans-Variable.woff2',
+      weight: '400 700',
+      style: 'normal',
+    },
+    {
+      path: './fonts/google-sans/GoogleSans-Italic-Variable.woff2',
+      weight: '400 700',
+      style: 'italic',
+    },
+  ],
   variable: '--font-google-sans',
-  subsets: ['latin', 'vietnamese'],
-  style: ['normal', 'italic'],
+  adjustFontFallback: 'Arial',
   preload: false,
 })
 const sourceSans = Source_Sans_3({
