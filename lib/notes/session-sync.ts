@@ -22,6 +22,15 @@ import {
 } from './sync'
 
 type Session = NonNullable<NoteStoreState['noteSession']>
+type ResolutionOutcome =
+  | {status: 'resolved' | 'review' | 'blocked' | 'stale' | 'unavailable'}
+  | {status: 'created'; noteId: string}
+  | {
+      status: 'recoverable-copy' | 'copy-pending'
+      draftId: string
+      creationId: string
+    }
+
 export type NoteSyncDependencies = {
   put: typeof putDraft
   clear: typeof clearDraft
@@ -82,6 +91,7 @@ export function setNoteSyncAccount(ownerId?: string) {
 // idle polling; one in-flight request retains its exact retry identity/snapshot.
 export class NoteSyncSession {
   record: RecoveryDraft
+  ready: Promise<void> = Promise.resolve()
   private state: Session
   private stopped = false
   private dirtySince = 0
@@ -91,6 +101,8 @@ export class NoteSyncSession {
   private localTimer?: ReturnType<typeof setTimeout>
   private serverTimer?: ReturnType<typeof setTimeout>
   private running?: Promise<void>
+  private resolving = false
+  private committingRecovery = false
   private refreshing?: Promise<boolean>
   private localWrites: Promise<boolean> = Promise.resolve(true)
   private unsubscribe: () => void
@@ -133,6 +145,11 @@ export class NoteSyncSession {
     if (store.noteSession?.identity === this.record.id)
       usePersistStore.setState({noteSession: {...store.noteSession, ...patch}})
   }
+  private advanceGeneration() {
+    this.record.generation++
+    this.record.updatedAt = Date.now()
+    this.publish({generation: this.record.generation})
+  }
   private replaceContent(value: Partial<Note>) {
     // Only reconciliation/recovery/resolution updates editor content. Ordinary
     // acknowledgements and acquisition of a server ID never replace editors.
@@ -169,9 +186,12 @@ export class NoteSyncSession {
   get localSafe() {
     return this.state.localGeneration === this.record.generation
   }
+  get resolutionPending() {
+    return Boolean(this.record.resolution && this.record.flight)
+  }
   get blocked() {
     return Boolean(
-      this.record.conflict ||
+      (this.record.conflict && !this.resolutionPending) ||
       this.record.unavailable ||
       ['unauthenticated', 'invalid_input', 'account_changed'].includes(
         this.state.syncStatus ?? '',
@@ -179,7 +199,11 @@ export class NoteSyncSession {
     )
   }
 
-  async hydrate(recovery?: RecoveryDraft, skipStored = false) {
+  async hydrate(
+    recovery?: RecoveryDraft,
+    skipStored = false,
+    assignVersionId = false,
+  ) {
     try {
       const capturedCopies = recovery
         ? (
@@ -208,8 +232,18 @@ export class NoteSyncSession {
         this.record = {
           ...saved,
           id: this.record.id,
+          versionId:
+            saved.versionId ??
+            (assignVersionId ? crypto.randomUUID() : undefined),
           generation: saved.generation + 1,
           updatedAt: Date.now(),
+        }
+        if (saved.unavailable) {
+          this.record.conflict = undefined
+          if (saved.resolution) {
+            this.record.resolution = undefined
+            this.record.flight = undefined
+          }
         }
         if (server.id) {
           this.record.noteId = server.id
@@ -218,12 +252,11 @@ export class NoteSyncSession {
             saved.draft,
             snapshot(server),
           )
-          if (!saved.editedCopyOf && !saved.retainedSource)
+          if (!saved.editedCopyOf && !saved.retainedSource && !saved.resolution)
             this.record.draft = result.merged
           if (
-            saved.conflict ||
-            saved.retainedSource ||
-            result.conflicts.length
+            !saved.unavailable &&
+            (saved.conflict || saved.retainedSource || result.conflicts.length)
           ) {
             this.record.conflict = server as Note
           } else {
@@ -322,7 +355,14 @@ export class NoteSyncSession {
     )
     if (!this.blocked && !this.running && !this.failures)
       this.publish({syncStatus: 'pending'})
-    if (this.blocked || this.failures || this.running || this.refreshing) return
+    if (
+      this.blocked ||
+      this.failures ||
+      this.running ||
+      this.refreshing ||
+      this.resolving
+    )
+      return
     if (this.serverTimer) clearTimeout(this.serverTimer)
     const due = Math.max(
       this.lastAttempt + 10000,
@@ -333,8 +373,9 @@ export class NoteSyncSession {
       Math.max(0, due - now),
     )
   }
-  persist(): Promise<boolean> {
-    if (this.stopped) return Promise.resolve(false)
+  persist(fromTransition = false): Promise<boolean> {
+    if (this.stopped || (this.committingRecovery && !fromTransition))
+      return Promise.resolve(false)
     if (
       !this.dirty &&
       !this.record.conflict &&
@@ -369,8 +410,9 @@ export class NoteSyncSession {
   async flush(
     kind: 'save' | 'trash' = 'save',
     explicit = false,
+    fromResolution = false,
   ): Promise<void> {
-    if (this.stopped) return
+    if (this.stopped || (this.resolving && !fromResolution)) return
     if (this.refreshing) {
       await this.refreshing
       if (this.stopped) return
@@ -382,7 +424,7 @@ export class NoteSyncSession {
     if (this.running) {
       await this.running
       if (explicit && !this.blocked && this.dirty && !this.failures)
-        return this.flush(kind, true)
+        return this.flush(kind, true, fromResolution)
       return
     }
     if (this.blocked) {
@@ -411,6 +453,7 @@ export class NoteSyncSession {
       kind,
     }
     const flight = this.record.flight
+    const explicitResolution = this.record.resolution
     // Save retry identity before transport when storage works. Network may still
     // save when local storage is unavailable; status never claims local success.
     await this.persist()
@@ -463,10 +506,13 @@ export class NoteSyncSession {
       return
     }
     this.record.flight = undefined
+    this.record.resolution = undefined
+    if (explicitResolution) this.advanceGeneration()
     this.failures = 0
     if (result.status === 'success') {
       this.record.noteId = result.note.id
       this.record.baseline = result.note
+      this.record.conflict = undefined
       // The composed version is now acknowledged. Later edits use normal
       // reconciliation; the separately retained source keeps its own identity.
       this.record.editedCopyOf = undefined
@@ -482,6 +528,7 @@ export class NoteSyncSession {
       }
       this.publish({
         baseline: result.note,
+        conflict: undefined,
         syncStatus: this.dirty ? 'pending' : 'saved',
       })
       window.dispatchEvent(new CustomEvent('note-saved', {detail: result.note}))
@@ -505,6 +552,12 @@ export class NoteSyncSession {
       return
     }
     if (result.status === 'conflict') {
+      if (explicitResolution) {
+        this.record.conflict = result.note
+        this.publish({syncStatus: 'conflict', conflict: result.note})
+        await this.persist()
+        return
+      }
       // Creation existence proves the stable identity committed earlier. Use
       // that submitted snapshot as the base when its response was lost.
       const base = flight.noteId ? this.record.baseline : flight.content
@@ -548,14 +601,20 @@ export class NoteSyncSession {
       }
     } else {
       this.record.unavailable = result.status === 'unavailable'
-      this.publish({syncStatus: result.status})
+      if (this.record.unavailable) this.record.conflict = undefined
+      this.publish({syncStatus: result.status, conflict: this.record.conflict})
     }
     await this.persist()
   }
   refreshRemote(
     mode: 'review' | 'visibility' = 'visibility',
   ): Promise<boolean> {
-    if (this.stopped || !this.record.noteId || this.record.unavailable)
+    if (
+      this.stopped ||
+      this.resolving ||
+      !this.record.noteId ||
+      this.record.unavailable
+    )
       return Promise.resolve(false)
     if (this.refreshing) return this.refreshing
     if (this.serverTimer) clearTimeout(this.serverTimer)
@@ -587,11 +646,18 @@ export class NoteSyncSession {
     }
     if (result.status !== 'success') {
       this.record.unavailable = result.status === 'unavailable'
-      if (this.record.unavailable) this.record.conflict = undefined
+      if (this.record.unavailable) {
+        this.record.conflict = undefined
+        if (this.record.resolution) {
+          this.record.resolution = undefined
+          this.record.flight = undefined
+          this.advanceGeneration()
+        }
+      }
       this.publish({
         syncStatus: result.status,
         conflict: this.record.conflict,
-        remoteCheckFailed: true,
+        remoteCheckFailed: !this.record.unavailable,
       })
       await this.persist()
       return false
@@ -610,12 +676,18 @@ export class NoteSyncSession {
       this.record.flight = undefined
       this.record.baseline = remote
       this.record.editedCopyOf = undefined
+      if (this.record.resolution) {
+        this.record.resolution = undefined
+        this.record.conflict = undefined
+        this.advanceGeneration()
+      }
       confirmedFlight = true
     }
     if (
       this.record.conflict &&
       (mode === 'review' ||
         this.record.editedCopyOf ||
+        this.resolutionPending ||
         this.record.retainedSource)
     ) {
       const merged = reconcile(
@@ -626,6 +698,7 @@ export class NoteSyncSession {
       if (
         !this.record.editedCopyOf &&
         !this.record.retainedSource &&
+        !this.resolutionPending &&
         !sameContent(this.record.draft, merged)
       )
         this.replaceContent(merged)
@@ -691,7 +764,14 @@ export class NoteSyncSession {
   // A fork must be durable before the UI switches. Never inherit ambiguous
   // transport intent: the copy has its own explicit resolution and creation IDs.
   async editCopy(): Promise<RecoveryDraft | undefined> {
-    if (this.stopped || this.running || !this.record.conflict) return
+    if (
+      this.stopped ||
+      this.running ||
+      this.resolving ||
+      this.resolutionPending ||
+      !this.record.conflict
+    )
+      return
     if (this.record.editedCopyOf) return this.record
     if (this.record.versionId) {
       try {
@@ -723,6 +803,7 @@ export class NoteSyncSession {
       retainedSource: undefined,
       creationId: crypto.randomUUID(),
       flight: undefined,
+      resolution: undefined,
       generation: 0,
       updatedAt: Date.now(),
     }
@@ -734,107 +815,36 @@ export class NoteSyncSession {
       this.publish({storageFailed: true})
     }
   }
-  refreshEditors() {
-    this.publish({editorVersion: (this.state.editorVersion ?? 0) + 1})
-  }
-  async resolve(choice: 'both' | 'saved' | 'mine', shownRevision?: string) {
+  async resolve(
+    choice: 'both' | 'saved' | 'mine',
+    shownRevision?: string,
+  ): Promise<ResolutionOutcome> {
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
     if (
       this.running ||
-      this.stopped ||
+      this.resolving ||
       this.refreshing ||
+      this.resolutionPending ||
       this.state.remoteCheckFailed
     )
-      return
+      return {status: 'blocked'}
     const remote = this.record.conflict
     if (choice !== 'both' && (!remote || remote.revision !== shownRevision))
-      return
-    if (choice === 'saved') {
-      // UI obtains informed discard before calling. New server changes are read
-      // again rather than adopting an out-of-date review snapshot.
-      try {
-        const response = await fetch(`/api/note/${remote!.id}`, {
-          cache: 'no-store',
-        })
-        if (!response.ok) {
-          if (response.status === 404) {
-            this.record.unavailable = true
-            this.record.conflict = undefined
-            this.publish({syncStatus: 'unavailable', conflict: undefined})
-            await this.persist()
-          } else {
-            this.publish({
-              remoteCheckFailed: true,
-              ...(response.status === 401 || response.status === 403
-                ? {syncStatus: 'unauthenticated' as const}
-                : {}),
-            })
-          }
-          return
-        }
-        const latest = (await response.json()) as Note
-        if (this.stopped) return
-        if (latest.authorId !== this.record.ownerId) {
-          this.publish({syncStatus: 'account_changed', remoteCheckFailed: true})
-          return
-        }
-        if (latest.revision !== shownRevision) {
-          this.record.conflict = latest
-          this.publish({conflict: latest})
-          await this.persist()
-          return
-        }
-        this.record.baseline = latest
-        this.record.conflict = undefined
-        this.record.flight = undefined
-        // Use saved is an explicitly confirmed discard of this selected version.
-        this.record.retainedSource = undefined
-        this.record.editedCopyOf = undefined
-        this.replaceContent(latest)
-        this.publish({
-          baseline: latest,
-          conflict: undefined,
-          syncStatus: 'saved',
-        })
-        await this.persist()
-        await this.localWrites
-        if (!this.record.retainedSource)
-          await this.io.clear(this.record.id, this.record.generation)
-      } catch {
-        this.publish({syncStatus: 'failed'})
-      }
-      return
-    }
-    if (choice === 'both' && this.record.retainedSource) {
-      // Keep the explicitly retained version attached to its original note,
-      // even when the author later saves that source as another separate note.
-      if (!(await this.persist())) return
-      try {
-        await this.io.put({
-          ...structuredClone(this.record),
-          id: crypto.randomUUID(),
-        })
-      } catch {
-        this.publish({storageFailed: true})
-        return
-      }
-      if (this.stopped) return
-      this.record.retainedSource = undefined
-      this.record.versionId = undefined
-    }
-    this.record.conflict = undefined
-    this.record.unavailable = false
-    this.record.flight = undefined
-    if (choice === 'both') {
-      this.record.noteId = null
-      this.record.creationId = crypto.randomUUID()
-      this.record.baseline = {}
-    } else this.record.baseline = remote!
-    this.publish({
-      baseline: this.record.baseline,
-      conflict: undefined,
-      syncStatus: 'pending',
-    })
-    if (choice === 'mine') {
+      return {status: 'review'}
+    if (
+      choice === 'both' &&
+      ((!remote && !this.record.unavailable) ||
+        !meaningfulContent(this.record.draft))
+    )
+      return {status: 'blocked'}
+
+    this.resolving = true
+    if (this.serverTimer) clearTimeout(this.serverTimer)
+    try {
+      if (choice === 'saved') return await this.useSaved(remote!)
+      if (choice === 'both') return await this.keepBoth()
+
+      this.record.resolution = 'mine'
       this.record.flight = {
         ownerId: this.record.ownerId,
         noteId: this.record.noteId,
@@ -844,12 +854,161 @@ export class NoteSyncSession {
         content: {...this.record.draft},
         kind: 'save',
       }
+      this.advanceGeneration()
+      await this.flush('save', true, true)
+      if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+      if (this.record.unavailable) return {status: 'unavailable'}
+      if (this.record.conflict)
+        return {status: this.resolutionPending ? 'blocked' : 'review'}
+      return {status: 'resolved'}
+    } finally {
+      this.resolving = false
+      if (this.dirty) this.schedule()
     }
-    await this.persist()
-    await this.flush('save', true)
   }
+
+  private async useSaved(remote: Note): Promise<ResolutionOutcome> {
+    const generation = this.record.generation
+    this.publish({checkingRemote: true, remoteCheckFailed: false})
+    let result: SyncResult
+    try {
+      result = await this.io.read(remote.id, this.record.ownerId)
+    } catch {
+      result = {status: 'retryable_error'}
+    } finally {
+      this.publish({checkingRemote: false})
+    }
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    if (result.status === 'unavailable') {
+      this.record.unavailable = true
+      this.record.conflict = undefined
+      this.advanceGeneration()
+      this.publish({syncStatus: 'unavailable', conflict: undefined})
+      await this.persist()
+      return {status: 'unavailable'}
+    }
+    if (result.status !== 'success') {
+      this.publish({
+        remoteCheckFailed: true,
+        ...(result.status === 'unauthenticated' ||
+        result.status === 'account_changed'
+          ? {syncStatus: result.status}
+          : {}),
+      })
+      return {status: 'blocked'}
+    }
+    const latest = result.note
+    if (latest.revision !== remote.revision) {
+      this.record.conflict = latest
+      this.advanceGeneration()
+      this.publish({syncStatus: 'conflict', conflict: latest})
+      await this.persist()
+      return {status: 'review'}
+    }
+    if (generation !== this.record.generation) return {status: 'review'}
+
+    this.committingRecovery = true
+    try {
+      await this.localWrites
+      if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+      if (generation !== this.record.generation) return {status: 'review'}
+      await this.io.clear(this.record.id, generation)
+    } catch {
+      this.publish({storageFailed: true})
+      return {status: 'blocked'}
+    } finally {
+      this.committingRecovery = false
+    }
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    if (generation !== this.record.generation) return {status: 'review'}
+
+    this.record.baseline = latest
+    this.record.conflict = undefined
+    this.record.flight = undefined
+    this.record.retainedSource = undefined
+    this.record.editedCopyOf = undefined
+    this.replaceContent(latest)
+    this.publish({
+      baseline: latest,
+      conflict: undefined,
+      syncStatus: 'saved',
+      localGeneration: undefined,
+      storageFailed: false,
+    })
+    return {status: 'resolved'}
+  }
+
+  private async keepBoth(): Promise<ResolutionOutcome> {
+    if (this.record.retainedSource) {
+      // Preserve the source under the original note before reusing the live
+      // controller for a separate creation.
+      if (!(await this.persist())) return {status: 'blocked'}
+      try {
+        await this.io.put({
+          ...structuredClone(this.record),
+          id: crypto.randomUUID(),
+        })
+      } catch {
+        this.publish({storageFailed: true})
+        return {status: 'blocked'}
+      }
+    }
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    const original = this.record
+    const creationId = crypto.randomUUID()
+    this.committingRecovery = true
+    this.record = {
+      ...original,
+      noteId: null,
+      creationId,
+      baseline: {},
+      conflict: undefined,
+      unavailable: false,
+      retainedSource: undefined,
+      versionId: original.retainedSource ? undefined : original.versionId,
+      resolution: undefined,
+      flight: {
+        ownerId: original.ownerId,
+        noteId: null,
+        creationId,
+        mutationId: crypto.randomUUID(),
+        expectedRevision: null,
+        content: {...original.draft},
+        kind: 'save',
+      },
+    }
+    this.advanceGeneration()
+    // An ambiguous create must have a durable retry identity before transport.
+    const prepared = await this.persist(true)
+    this.committingRecovery = false
+    if (!prepared) {
+      this.record = {
+        ...original,
+        draft: this.record.draft,
+        generation: this.record.generation,
+      }
+      this.advanceGeneration()
+      return {status: 'blocked'}
+    }
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    this.publish({baseline: this.record.baseline, syncStatus: 'pending'})
+    await this.flush('save', true, true)
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    if (this.record.noteId && this.record.baseline.id === this.record.noteId)
+      return {status: 'created', noteId: this.record.noteId}
+
+    this.publish({conflict: this.record.conflict})
+    if (!this.localSafe) await this.persist()
+    if (this.stopped || getNoteSync() !== this) return {status: 'stale'}
+    return {
+      status: this.localSafe ? 'recoverable-copy' : 'copy-pending',
+      draftId: this.record.id,
+      creationId,
+    }
+  }
+
   async leave(kind: 'save' | 'trash', onSuccess: () => void | Promise<void>) {
-    if (this.state.operation || this.stopped) return
+    if (this.state.operation || this.stopped || this.resolving) return
     this.publish({operation: kind, error: undefined})
     await this.flush(kind, true)
     // A late IME commit during the first request goes through the same queue.
@@ -934,28 +1093,30 @@ export function beginNoteSync(
   note?: Note,
   recovery?: RecoveryDraft,
   skipStored = false,
+  assignVersionId = false,
 ) {
   const current = usePersistStore.getState()
+  const previous = getNoteSync()
   // An autosaved creation can move to its full route without a new session.
   if (
     !recovery &&
     !skipStored &&
     note &&
+    previous &&
     current.noteSession &&
     current.noteSession.baseline.id === note.id &&
     current.noteSession.baseline.authorId === ownerId
   ) {
     usePersistStore.setState({noteSession: {...current.noteSession, key}})
-    return
+    return {controller: previous, ready: previous.ready}
   }
   if (
     !recovery &&
     !skipStored &&
     current.noteSession?.key === key &&
-    getNoteSync()?.record.ownerId === ownerId
+    previous?.record.ownerId === ownerId
   )
-    return
-  const previous = getNoteSync()
+    return {controller: previous, ready: previous.ready}
   // A closed view may leave a retrying controller alive. Stop it before
   // transferring its recovery copy so it cannot write the retired copy back.
   const source = recovery ? controllers.get(recovery.id) : undefined
@@ -973,7 +1134,7 @@ export function beginNoteSync(
     session,
     usePersistStore.getState().mutateNoteData,
   )
-  void (async () => {
+  controller.ready = (async () => {
     await resuming?.drained()
     const recovered =
       resuming &&
@@ -982,8 +1143,9 @@ export function beginNoteSync(
       resuming.record.updatedAt >= recovery.updatedAt
         ? structuredClone(resuming.record)
         : recovery
-    await controller.hydrate(recovered, skipStored)
+    await controller.hydrate(recovered, skipStored, assignVersionId)
   })()
+  return {controller, ready: controller.ready}
 }
 
 export async function persistCurrentDraft() {

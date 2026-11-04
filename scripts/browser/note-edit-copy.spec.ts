@@ -223,6 +223,16 @@ test('an unresolved edited copy survives account switching without exposing eith
   page,
   noteApp,
 }) => {
+  // The fixture injects account cookies directly. A session refresh started
+  // before the switch must not overwrite the newly injected cookie.
+  await page.route('**/api/auth/session', async (route) => {
+    const request = route.request()
+    const cookie = await request.headerValue('cookie')
+    const response = await fetch(request.url(), {
+      headers: cookie ? {cookie} : undefined,
+    })
+    await route.fulfill({status: response.status, json: await response.json()})
+  })
   const {original, local} = await noteApp.conflict()
   await startCopy(page)
   await copyBody(page).fill('Private edited copy')
@@ -355,6 +365,10 @@ test('discarding source then working copy returns to a live saved-note editor', 
   await expect
     .poll(async () => (await drafts(page)).some((row) => row.retainedSource))
     .toBe(false)
+  await page
+    .getByRole('dialog', {name: 'Choose a version to continue', exact: true})
+    .getByRole('button', {name: 'Close comparison', exact: true})
+    .click()
   await page.getByRole('button', {name: 'Review changes', exact: true}).click()
   await expect(copyBody(page)).toBeVisible()
   await review(page)

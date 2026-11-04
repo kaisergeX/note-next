@@ -12,6 +12,7 @@ export type RecoveryDraft = {
   generation: number
   updatedAt: number
   flight?: SyncRequest
+  resolution?: 'mine'
   conflict?: Note
   unavailable?: boolean
   // Stable across session handoffs; indexed fields and legacy records are unchanged.

@@ -14,30 +14,25 @@ import {
 } from '@tiptap/react'
 import type {Node} from '@tiptap/pm/model'
 import StarterKit from '@tiptap/starter-kit'
-import {useEffect} from 'react'
+import {useEffect, useLayoutEffect, useRef} from 'react'
 import {EDITOR_CONTENT_LIMIT} from '~/config/note'
+import type {NoteTheme} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
 import {useDebounced} from '~/util/hooks'
 
-type NoteEditorProps = {
-  id: string
+type NoteEditorOptions = {
   initialValue?: string | null
-  onChange?: (value: string, rawText?: string) => void
+  onChange: (value: string) => void
   onPressEnter?: () => void
-  onReady?: (editor: Editor) => void
-  onFocus?: (editor: Editor) => void
-  className?: string
+  onFocus: () => void
   editorClassName?: string
-  placeholder?: string
-  ariaLabel?: string
-  showCount?: boolean
-  countClassName?: string
+  placeholder: string
+  ariaLabel: string
   limitCharacter?: number
-  disableDefaultEnter?: boolean
   autofocus?: FocusPosition
-  loading?: boolean
-  disabled?: boolean
-  exposeStorage?: boolean
+  pending?: boolean
+  theme?: NoteTheme | null
+  editorVersion: number
 }
 
 const countCache = new WeakMap<Node, {characters: number; words: number}>()
@@ -55,35 +50,24 @@ function documentCounts(editor: Editor | null) {
   return counts
 }
 
-// Content is loaded only when this field mounts for a document. Presentation
-// and save-state changes update options on the same instance, never setContent.
-export default function NoteEditor({
-  id,
+export function useNoteEditor({
   initialValue = '',
   onChange,
   onPressEnter,
-  onReady,
   onFocus,
-  className,
   editorClassName,
   placeholder,
   ariaLabel,
-  showCount,
-  countClassName,
   limitCharacter,
-  disableDefaultEnter = false,
   autofocus = false,
-  loading = false,
-  disabled = false,
-  exposeStorage,
-}: NoteEditorProps) {
-  const theme = usePersistStore((state) => state.mutateNoteData?.theme)
-  const editorVersion = usePersistStore(
-    (state) => state.noteSession?.editorVersion ?? 0,
-  )
-  const setEditorCharCount = usePersistStore(
-    (state) => state.setEditorCharCount,
-  )
+  pending = false,
+  theme,
+  editorVersion,
+}: NoteEditorOptions) {
+  const enter = useRef(onPressEnter)
+  useLayoutEffect(() => {
+    enter.current = onPressEnter
+  }, [onPressEnter])
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -102,8 +86,8 @@ export default function NoteEditor({
         name: 'titleEnter',
         addKeyboardShortcuts: () => ({
           Enter: () => {
-            if (!disableDefaultEnter) return false
-            onPressEnter?.()
+            if (!enter.current) return false
+            enter.current()
             return true
           },
         }),
@@ -117,15 +101,14 @@ export default function NoteEditor({
           editorClassName,
         ),
         role: 'textbox',
-        'aria-label': ariaLabel || placeholder || id,
-        'aria-multiline': String(!disableDefaultEnter),
+        'aria-label': ariaLabel,
+        'aria-multiline': String(!onPressEnter),
       },
     },
     content: initialValue || '',
-    onUpdate: ({editor}) =>
-      onChange?.(editor.isEmpty ? '' : editor.getHTML(), editor.getText()),
-    onFocus: ({editor}) => onFocus?.(editor),
-    editable: !disabled && !loading,
+    onUpdate: ({editor}) => onChange(editor.isEmpty ? '' : editor.getHTML()),
+    onFocus,
+    editable: !pending,
     autofocus,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
@@ -137,21 +120,45 @@ export default function NoteEditor({
       editor &&
       editor.getHTML() !== (initialValue || '<p></p>')
     ) {
-      editor.commands.setContent(initialValue || '', {emitUpdate: false})
+      editor
+        .chain()
+        .setMeta('addToHistory', false)
+        .setContent(initialValue || '', {emitUpdate: false})
+        .run()
     }
     // External updates are recovery/reconciliation, never acknowledgements.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editor, editorVersion])
 
   useEffect(() => {
-    if (editor && editor.isEditable !== (!disabled && !loading)) {
-      editor.setEditable(!disabled && !loading, false)
+    if (editor && editor.isEditable === pending) {
+      editor.setEditable(!pending, false)
     }
-  }, [editor, disabled, loading])
+  }, [editor, pending])
 
-  useEffect(() => {
-    if (editor) onReady?.(editor)
-  }, [editor, onReady])
+  return editor
+}
+
+export default function NoteEditor({
+  id,
+  editor,
+  className,
+  showCount,
+  countClassName,
+  limitCharacter,
+  exposeStorage,
+}: {
+  id: string
+  editor: Editor | null
+  className?: string
+  showCount?: boolean
+  countClassName?: string
+  limitCharacter?: number
+  exposeStorage?: boolean
+}) {
+  const setEditorCharCount = usePersistStore(
+    (state) => state.setEditorCharCount,
+  )
 
   // Cache by immutable document identity: selection-only transactions do not
   // scan the document or serialize HTML.

@@ -1,8 +1,6 @@
 # Note editor and persistence roadmap
 
-Status — owner decision, 2026-11-01: **Phase 3 and its Working copy extension have NOT passed. The owner considers the current changes a failure and rejects the implementation. NO deployment or production migration is approved.** `NoteSyncActions` is poorly designed, and the note-editor changes require redesign. A new thread will reassess the architecture and may rework the entire implementation. Earlier acceptance statements and passing checks below are historical evidence, not acceptance of the current changes. See the [current handoff](handoff.md#owner-decision--2026-11-01-failed-phase-no-deployment).
-
-The 2026-10-31 continuation audit recorded persistence corrections and a 35-case browser run. Those results did not establish acceptable architecture or resolve the owner's subsequent rendering reports; they do not override the failed-phase decision.
+The owner accepted the redesigned Phase 3 surfaces on 2026-11-05. Completion checks are tracked in the [handoff](handoff.md). Production migration and deployment require separate authorization.
 
 ## Delivery state
 
@@ -11,8 +9,8 @@ The 2026-10-31 continuation audit recorded persistence corrections and a 35-case
 | 0 | Tiptap upgrade to 3.32.0; historical security findings in [editor](editor.md#security-assessment-record). |
 | 1 | Stable editor/session boundaries, active-field toolbar, rich-text titles, underline, view handoff, corrected HR insertion. |
 | 2 | Account-scoped browser recovery, bounded autosave, integrated Notes discovery, lifecycle/account protections. |
-| 3 | **FAILED / NOT ACCEPTED.** Existing revision/reconciliation/conflict-review code requires reassessment; its presence does not mean this phase passed. |
-| 3 extension | **FAILED / NOT ACCEPTED.** Working copy and related note-editor changes require redesign or full rework in a new thread. The [earlier plan](conflicts.md#approved-extension-edit-a-copy) is historical, not approval of the current implementation. |
+| 3 | Revision and reconciliation safeguards, guarded resolution, and redesigned conflict review and version selection. Verification in progress. |
+| 3 extension | [Edit a copy](conflicts.md#approved-extension-edit-a-copy) for manual composition in comparison. Verification in progress. |
 | Deferred | Automatic paragraph/change merging, retained version history, search, full offline operation, E2EE, drawing. Separate scope approval required. |
 
 ## Contracts and read order

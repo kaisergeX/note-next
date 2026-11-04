@@ -65,13 +65,13 @@ Use minimal visible wording while retaining accessible labels and explanations o
 - No routine manual cleanup, extra recovery confirmation, mandatory timestamp reading, or automatic conflict modal during typing.
 - Verify EN/VI, desktop/mobile, light/dark, keyboard/touch, accessible status names, reduced motion, blank titles, and authored colors.
 
-Implemented and verified locally: [Edit a copy inside conflict review](conflicts.md#approved-extension-edit-a-copy). The edited copy is an additional browser version attached to the same note, marked Working copy; its source remains available until explicit discard, including after successful resolution. This is an explicit retention exception to automatic redundant-copy cleanup, not permission to retain all internal duplicates.
+[Edit a copy inside conflict review](conflicts.md#approved-extension-edit-a-copy) creates an additional browser version attached to the same note, marked Working copy; its source remains available until explicit discard, including after successful resolution. This is an explicit retention exception to automatic redundant-copy cleanup, not permission to retain all internal duplicates.
 
 Out of scope: retained version history, automatic paragraph merging, full offline support, new search, export formats, E2EE, production migration, and deployment.
 
 ## Layout constraints
 
-- Desktop Review compares the saved note and one selected browser version in bounded, independently scrolling panes. Mobile stacks bounded previews. Date/time identifies checkpoints without ranking the correct version.
+- Desktop Review compares the saved note and one selected browser version in bounded, independently scrolling panes. Mobile shows one bounded pane at a time with accessible tabs. Date/time identifies checkpoints without ranking the correct version.
 - Filters appear only for a distinct Needs review subset. Management stays at the left; Create expands independently at the right. The toolbar has no bottom border.
 - Saved-note menus contain note actions. Version Export/Discard belongs beside that version; browser-only cards may expose local actions. Preserve explicit scope and confirmation.
 - Mixed-height cards preserve source/keyboard order. The fallback lives in `util/hooks/use-masonry.ts`; do not replace it with dense placement or CSS columns that reorder reading.

@@ -51,7 +51,7 @@ Dexie 4.4.7 uses the separate etoN-note-recovery database. Records contain accou
 
 ## Collection, editing, and management contracts
 
-- Existing `/eton/[id]` note links/modal routing remain supported. `/collection/drafts` redirects to Notes; Trash remains separate. Mobile uses `/full/eton/new`, `/full/eton/[id]`, and `/full/eton/recover/[draftId]`. A durable recovery handoff adds `?draft=<current ID>` without replacing the route segment; an available server identity receives the normal full-note URL.
+- Existing `/eton/[id]` note links/modal routing remain supported. `/collection/drafts` redirects to Browser work; Trash remains separate. Mobile uses `/full/eton/new`, `/full/eton/[id]`, and `/full/eton/recover/[draftId]`. A durable recovery handoff adds `?draft=<current ID>` without replacing the route segment; an available server identity receives the normal full-note URL.
 - Equivalent-copy grouping requires account, note/creation identity, HTML/theme, baseline, conflict/unavailable state, and retry intent to agree. Grouping alone never authorizes deletion. Distinct versions remain accessible within their note.
 - Export all/Discard all use the account's captured confirmation snapshot, regardless of filters. Owner/generation checks retain newer or newly created records. Settings' Move all notes to Trash excludes browser drafts.
 - Blank titles remain blank; previews retain authored rich text/colors. Mobile counts toggle words/characters on tap; desktop retains hover behavior.
@@ -70,4 +70,4 @@ Measure content-free request counts, payload size, latency, errors, and DB/list-
 
 ## Verification and open items
 
-See the [completion record](handoff.md) for verification and release limits.
+See the [handoff](handoff.md) for verification and release limits.

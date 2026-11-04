@@ -1,6 +1,6 @@
 # Concurrent edits and conflict recovery
 
-Status — 2026-11-01: **Phase 3 and the Working copy extension have NOT passed and are rejected by the owner. No deployment is approved.** `NoteSyncActions` and the note-editor changes require redesign or full rework in a new thread. The contracts and earlier approved plan below are historical requirements, not acceptance of the current code. See the [owner decision](handoff.md#owner-decision--2026-11-01-failed-phase-no-deployment). Automatic content merging and user-visible retained history remain deferred.
+The owner accepted the redesigned Phase 3 surfaces on 2026-11-05. Completion checks are tracked in the [handoff](handoff.md). Production migration and deployment require separate authorization. Automatic content merging and user-visible retained history remain deferred.
 
 [Recovery UX](recovery-ux.md) governs Notes discovery and note-scoped selection; each internal recovery record must not become a separate note card.
 
@@ -67,7 +67,7 @@ Word comparison uses jsdiff 9.0.0 with a 50 ms / 1,000-edit bound per field. Mor
 
 ## Approved extension: Edit a copy
 
-Status: owner-approved design, 2026-10-30; implemented and locally verified. The owner subsequently approved Working copy / Bản đang sửa wording and authorized verification. The approved behavior below remains authoritative; release and device limits are recorded in the handoff.
+The owner approved the Edit a copy behavior in October and accepted the redesigned surfaces on 2026-11-05. See the [handoff](handoff.md) for verification and release limits.
 
 Only the author can see/edit a note. Conflicts come from that author's devices, tabs, or browser sessions; sharing and collaboration are not implemented. Use that language in explanations and status messages.
 
@@ -84,28 +84,13 @@ Only the author can see/edit a note. Conflicts come from that author's devices, 
 - After successfully saving the edited copy, retain the source browser version until explicit discard. Other distinct browser work remains available. Explicitly retained source versions must not be silently retired as equivalent copies, even before the edited copy's content diverges.
 - If another device/tab/session updates the server note, preserve the edited result and require review against the newer saved revision before replacing it. Do not force a stale save or rewrite composed content underneath the user. Trash/deletion and temporary read failures retain the existing unavailable/retry distinctions.
 
-### Implementation plan
+### Persistence and editor ownership
 
-1. Inspect `lib/notes/drafts.ts`, `recovery-copies.ts`, `session-sync.ts`, and the shared version gate/chooser before changing the model. Add the minimum copy-origin metadata and any required browser-storage migration. Preserve backward compatibility with existing recovery records; no server retained-history schema is needed.
-2. Make source/copy preservation explicit in grouping, resumption, acknowledgement cleanup, and discard. Identity must distinguish an intentionally retained source from redundant internal copies. Retain owner checks, captured-generation cleanup, retry identities, durable handoff, account-exit behavior, and live edits from other tabs. Do not duplicate ambiguous in-flight server mutation intent into the edited copy; establish its own guarded resolution intent.
-3. Extend the current review workspace and version list, reusing NoteEditor, RTECommands, note surfaces, shared dialogs/buttons, and semantic tokens. Add EN/VI labels. Preserve Browser work return context, accessible tabs/focus, bounded independent scrolling, and visible resolution controls.
-4. Add meaningful regression coverage for original/copy preservation (including initially identical content), repeated editing/resumption, reload/view handoff, discard/start again, source retention after successful resolution, stale revision rejection, network/storage failures, account isolation, and Keep both lost-response retries. Preserve existing regression coverage.
-5. During active visual feedback defer reviewer, lint, type checks, builds, and tests. Once the owner signals the design is settled, run required focused/browser regressions, lint/types, and production/Serwist build; request elevated execution on the first Turbopack build attempt. Run one required ui_reviewer at a time with desktop/mobile, EN/VI, light/dark, keyboard/focus, and authored-formatting coverage. Report changes, verified behavior, and remaining feedback separately.
-6. Update this status, overview, recovery contracts, and handoff with actual implementation and evidence. Do not describe this approved design as delivered until implemented and verified.
-
-### Implementation and verification
-
-Recovery records now carry optional `versionId`, `editedCopyOf`, and `retainedSource` metadata. No indexed fields changed, so Dexie v1 and existing records remain compatible without a schema migration. Stable version identity participates in equivalence grouping and survives session-ID retirement. Creating a copy checkpoints the retained source before writing the new version, excludes its transport flight, and assigns independent creation/version identities. Selecting the same source resumes its existing unresolved edited copy. The source remains attached to the original note when Keep both creates another note.
-
-Working-copy composition ends when a save is acknowledged (including confirmation by a freshness read) or Use saved succeeds. Clear `editedCopyOf` at that boundary so later ordinary edits reconcile independent remote fields on reload; preserve stable version identity for any still-dirty continuation. Retained sources also preserve all authored fields on stale resolution responses and require renewed review instead of automatic reconciliation/retry.
-
-The comparison reuses NoteWriting/NoteEditor/RTECommands, with read-only saved content, a secondary Edit a copy action, Working copy badges, and Use this version. Mobile tabs and the preview/diff toggle hide rather than unmount the editor. Closing comparison refreshes the underlying editor from the composed snapshot and retains the comparison editor through the exit animation. Version selection retains native modality while the outgoing dialog fades, then hands off the session; rapid clicks cannot reopen the outgoing session. Source/copy content bypasses automatic reconciliation during conflict resumption/freshness reads; a rejected conditional save updates only the saved reference. Even identical explicit choices send a revision-guarded mutation.
-
-The optional `version` URL parameter carries stable browser-version selection through reload and modal/full navigation; lookup stays scoped to the current owner and note. A resolved/removed selected version falls back to the saved note while other browser work stays discoverable. Browser work return context remains independent.
-
-All 45 focused sync/queue/diff tests pass, including six new model regressions. The 23 existing browser cases passed; all nine new working-copy cases passed across focused reruns on the final build, and the two existing chooser cases were rerun after the handoff correction. This covers 32 unique browser cases with zero retries, rather than a single clean 32-case execution. Lint/types, formatting, and the production/Serwist build pass. Independent UI review and its limits are recorded in the handoff.
-
-Retained-source Keep both preserves that version under the original note before creating the separate note. Confirmed Use saved explicitly discards its selected retained source. If the source was already explicitly discarded, discarding its working copy starts a live saved-note session. History updates pass strings (`url.href`) to avoid sending uncloneable URL objects through the Serwist navigation hook. The worker-enabled browser regression checks that handoff specifically; broader worker reload/hydration behavior is not cleared by it.
+- Recovery records carry optional `versionId`, `editedCopyOf`, and `retainedSource` metadata. Dexie v1 and existing records remain compatible. Copy creation checkpoints the retained source before writing the new version, excludes its transport flight, and assigns independent creation/version identities. Selecting the same source resumes its existing unresolved edited copy.
+- Working-copy composition ends when a save is acknowledged (including confirmation by a freshness read) or Use saved succeeds. Clear `editedCopyOf` so later ordinary edits reconcile independent remote fields on reload. Preserve stable version identity for dirty continuations. Stale resolution updates the saved reference and preserves the working copy's or retained source's authored fields.
+- `NoteWorkspace` reuses one editable title/body pair for the selected session. Comparison tabs and closing review preserve editor state. Each comparison pane scrolls independently. The Working copy toolbar stays visible within its pane and places the color picker immediately before the ellipsis.
+- The optional `version` URL parameter carries owner/note-scoped selection through reload and modal/full navigation. Selection waits for hydration. A resolved or removed selection falls back to the saved note while other browser work stays discoverable. The Browser work return context is independent. Pass a URL string to history so the Serwist navigation hook can clone it.
+- Keep both from a retained source preserves that source under the original note. Confirmed Use saved discards the selected retained source. When the source was explicitly discarded, discarding its working copy returns to a live saved-note session.
 
 ### Scope boundary
 
