@@ -3,7 +3,6 @@
 import {cn} from 'cn'
 import type {Editor} from '@tiptap/react'
 import {
-  useCallback,
   useEffect,
   useRef,
   useState,
@@ -13,14 +12,68 @@ import {
 import {useMessages, useTranslations} from 'next-intl'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
+import type {NoteSnapshot} from '~/lib/notes/sync'
 import {useRandomString} from '~/util/hooks'
 import RTECommands from '~/components/ui/rte-commands'
-import NoteEditor from './note-editor'
+import NoteEditor, {useNoteEditor} from './note-editor'
+
+export function useNoteWriting(
+  identity: string,
+  draft: NoteSnapshot,
+  pending: boolean,
+  autofocus: boolean,
+) {
+  const t = useTranslations('note.editor')
+  const messages = useMessages()
+  const placeholder = useRandomString(messages.note.editor.emptyPlaceholder)
+  const editorVersion = usePersistStore((state) =>
+    state.noteSession?.identity === identity
+      ? (state.noteSession.editorVersion ?? 0)
+      : 0,
+  )
+  const [field, setField] = useState<'title' | 'body'>('title')
+  const update = (value: {title: string} | {content: string}) => {
+    const store = usePersistStore.getState()
+    if (store.noteSession?.identity === identity) store.setMutateNoteData(value)
+  }
+  const body = useNoteEditor({
+    initialValue: draft?.content,
+    editorClassName: 'h-full min-h-64',
+    placeholder,
+    ariaLabel: t('body'),
+    onFocus: () => setField('body'),
+    onChange: (content) => update({content}),
+    pending,
+    theme: draft?.theme,
+    editorVersion,
+  })
+  const title = useNoteEditor({
+    initialValue: draft?.title,
+    editorClassName: 'text-lg font-semibold sm:text-xl',
+    placeholder: t('title'),
+    ariaLabel: t('title'),
+    limitCharacter: NOTE_TITLE_MAX_LENGTH,
+    onFocus: () => setField('title'),
+    onPressEnter: () => body?.commands.focus('start'),
+    onChange: (title) => update({title}),
+    autofocus: autofocus ? 'end' : false,
+    pending,
+    theme: draft?.theme,
+    editorVersion,
+  })
+  return {title, body, field}
+}
+
+export type NoteWritingEditors = {
+  title: Editor | null
+  body: Editor | null
+  field: 'title' | 'body'
+}
 
 export default function NoteWriting({
   id,
+  editors,
   pending,
-  autofocus = true,
   fullPage = false,
   leadingActions,
   viewAction,
@@ -28,8 +81,8 @@ export default function NoteWriting({
   onNavigationHandoffChange,
 }: {
   id: string
+  editors: NoteWritingEditors
   pending?: boolean
-  autofocus?: boolean
   fullPage?: boolean
   leadingActions?: ReactNode
   viewAction?: ReactNode
@@ -37,11 +90,7 @@ export default function NoteWriting({
   onNavigationHandoffChange?: (handedOff: boolean) => void
 }) {
   const t = useTranslations('note.editor')
-  const messages = useMessages()
-  const placeholder = useRandomString(messages.note.editor.emptyPlaceholder)
-  const draft = usePersistStore((state) => state.mutateNoteData)
-  const update = usePersistStore((state) => state.setMutateNoteData)
-  const body = useRef<Editor | null>(null)
+  const theme = usePersistStore((state) => state.mutateNoteData?.theme)
   const bodySurface = useRef<HTMLDivElement>(null)
   const [docked, setDocked] = useState(false)
   const [navigationHandedOff, setNavigationHandedOff] = useState(false)
@@ -83,38 +132,11 @@ export default function NoteWriting({
       observer.disconnect()
     }
   }, [fullPage, id, navigationRef, onNavigationHandoffChange])
-  const [active, setActive] = useState<{
-    editor: Editor | null
-    field: 'title' | 'body'
-  }>({editor: null, field: 'title'})
-  const readyTitle = useCallback(
-    (editor: Editor) =>
-      setActive((previous) =>
-        !previous.editor || previous.editor.isDestroyed
-          ? {editor, field: 'title'}
-          : previous,
-      ),
-    [],
-  )
-  const focusTitle = useCallback(
-    (editor: Editor) => setActive({editor, field: 'title'}),
-    [],
-  )
-  const focusContent = useCallback(
-    (editor: Editor) => setActive({editor, field: 'body'}),
-    [],
-  )
-  const readyBody = useCallback((editor: Editor) => {
-    body.current = editor
-  }, [])
-  const focusBody = useCallback(() => {
-    body.current?.commands.focus('start')
-  }, [])
   const toolbar = (
     <RTECommands
-      editor={active.editor}
+      editor={editors[editors.field]}
       disabled={pending}
-      target={t(active.field)}
+      target={t(editors.field)}
       layout={fullPage ? 'document' : 'dialog'}
       docked={docked}
       leadingActions={
@@ -162,47 +184,26 @@ export default function NoteWriting({
     <>
       {!fullPage && toolbar}
       <NoteEditor
-        key={`${id}-title`}
         id={`${id}-title`}
+        editor={editors.title}
         className={fullPage ? 'my-4 px-4 sm:px-8' : 'p-4'}
-        editorClassName="text-lg font-semibold sm:text-xl"
-        initialValue={draft?.title}
-        onChange={(title) => update({title})}
-        onReady={readyTitle}
-        onFocus={focusTitle}
-        onPressEnter={focusBody}
-        placeholder={t('title')}
-        ariaLabel={t('title')}
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
         showCount
         countClassName={fullPage ? 'text-ink-muted opacity-100' : undefined}
-        disableDefaultEnter
-        autofocus={autofocus ? 'end' : false}
-        loading={pending}
       />
       <div
         ref={bodySurface}
         className={cn(
           'flex flex-1 flex-col p-4',
           fullPage && 'pt-0 sm:m-4 sm:rounded-xl',
-          fullPage && draft?.theme
-            ? `dialog-${draft.theme}`
-            : fullPage && 'sm:shadow-sheet',
+          fullPage && theme ? `dialog-${theme}` : fullPage && 'sm:shadow-sheet',
         )}
       >
         {fullPage && toolbar}
         <NoteEditor
-          key={`${id}-content`}
           id={`${id}-content`}
+          editor={editors.body}
           className="flex flex-1 flex-col [&>div:has(.ProseMirror)]:flex-1"
-          editorClassName="h-full min-h-64"
-          initialValue={draft?.content}
-          placeholder={placeholder}
-          ariaLabel={t('body')}
-          onReady={readyBody}
-          onFocus={focusContent}
-          onChange={(content) => update({content})}
-          loading={pending}
           exposeStorage
         />
       </div>

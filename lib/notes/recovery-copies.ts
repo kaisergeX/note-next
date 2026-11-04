@@ -17,6 +17,7 @@ function copyKey(record: RecoveryDraft) {
     record.conflict?.revision ?? null,
     snapshot(record.conflict),
     record.flight ?? null,
+    record.resolution ?? null,
   ])
 }
 

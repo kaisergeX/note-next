@@ -20,7 +20,6 @@ import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {noteDraftChanged} from './use-note-session'
 import {NoteThemePicker} from './note-theme-picker'
-import NoteSyncActions from './note-sync-actions'
 import NoteSaveStatus from './note-save-status'
 
 export type NoteCustomizeProps = {
@@ -123,14 +122,10 @@ export default function NoteCustomize({
         className,
       )}
     >
-      {syncActions !== undefined ? (
-        syncActions && (
-          <div className="border-hairline col-span-full min-w-0 border-b pb-3">
-            {syncActions}
-          </div>
-        )
-      ) : (
-        <NoteSyncActions className="border-hairline col-span-full min-w-0 border-b pb-3" />
+      {syncActions && (
+        <div className="border-hairline col-span-full min-w-0 border-b pb-3 empty:hidden">
+          {syncActions}
+        </div>
       )}
       <div className="flex shrink-0 items-center gap-2">
         <NoteThemePicker disabled={isLoading} />

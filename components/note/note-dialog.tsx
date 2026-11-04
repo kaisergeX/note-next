@@ -2,13 +2,13 @@ import {Dialog} from '@kaiverse/k/ui'
 import {cn} from 'cn'
 import {IconArrowLeft, IconMaximize} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useLayoutEffect, useRef} from 'react'
+import {useEffect, useLayoutEffect, useRef} from 'react'
 import {Link} from '~/i18n/navigation'
 import {usePersistStore} from '~/store'
 import Button, {buttonClass} from '~/components/ui/button'
 import NoteCustomize, {type NoteCustomizeProps} from './note-customize'
 import NoteWriting from './note-writing'
-import NoteSyncActions from './note-sync-actions'
+import NoteWorkspace, {type WorkspaceView} from './note-workspace'
 import {useSearchParams} from 'next/navigation'
 import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 
@@ -21,14 +21,23 @@ type NoteDialogProps = {
   onMoveToTrash?: () => unknown
 }
 
-export default function NoteDialog({
+export default function NoteDialog(props: NoteDialogProps) {
+  return (
+    <NoteWorkspace>
+      {(workspace) => <NoteDialogSurface {...props} workspace={workspace} />}
+    </NoteWorkspace>
+  )
+}
+
+function NoteDialogSurface({
   type = 'update',
   loading,
   error,
   open = false,
   onClose,
   onMoveToTrash,
-}: NoteDialogProps) {
+  workspace,
+}: NoteDialogProps & {workspace: WorkspaceView}) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const search = useSearchParams()
   const fromBrowserWork = search.get('from') === 'browser-work'
@@ -46,53 +55,83 @@ export default function NoteDialog({
   )
   const noteTheme = mutateNoteData?.theme
   const t = useTranslations('note')
+  const {panel, editors, actions, busy} = workspace
+  const focusId = panel?.titleId
+  const previousPanel = useRef(false)
+  useEffect(() => {
+    if (!open) return
+    if (focusId) document.getElementById(focusId)?.focus()
+    else if (previousPanel.current)
+      dialogRef.current
+        ?.querySelector<HTMLElement>(
+          '[data-editor-toolbar] button:not(:disabled)',
+        )
+        ?.focus()
+    previousPanel.current = Boolean(focusId)
+  }, [open, focusId])
 
   return (
-    <NoteSyncActions>
-      {(actions, comparisonOpen) => (
-        <Dialog
-          ref={dialogRef}
-          className={cn(
-            'min-h-80 flex-col rounded-lg open:flex max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
-            'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-2/3 2xl:max-w-(--breakpoint-xl)',
-            noteTheme
-              ? `dialog-${noteTheme} shadow-xl max-sm:shadow-none shadow-theme-${noteTheme}`
-              : 'bg-paper-raised shadow-sheet',
-            'backdrop:bg-paper/50 backdrop:backdrop-blur',
-          )}
-          open={open && !comparisonOpen}
-          preventClose
-          onKeyDownCapture={(event) => {
-            if (
-              event.target instanceof Element &&
-              event.target.closest('dialog') !== event.currentTarget
+    <Dialog
+      ref={dialogRef}
+      className={cn(
+        'backdrop:bg-paper/50 backdrop:backdrop-blur',
+        panel
+          ? cn(
+              'bg-paper-raised text-ink border-hairline shadow-sheet m-auto h-dvh max-h-dvh w-dvw max-w-none flex-col overflow-hidden rounded-none border-0 p-0 open:flex sm:rounded-lg sm:border',
+              panel.kind === 'versions'
+                ? 'sm:h-5/6 sm:w-11/12 sm:max-w-6xl'
+                : 'sm:h-[calc(100dvh-2rem)] sm:max-h-[calc(100dvh-2rem)] sm:w-[calc(100dvw-2rem)]',
             )
-              return
-            if (
-              event.key === 'Escape' &&
-              !event.currentTarget.querySelector(':popover-open')
-            ) {
-              event.preventDefault()
-              if (!loading) onClose()
-            }
-          }}
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !loading) onClose()
-          }}
-          aria-label={t(
-            type === 'create' ? 'editor.newNote' : 'editor.editNote',
-          )}
-        >
+          : cn(
+              'min-h-80 flex-col rounded-lg open:flex max-sm:h-dvh max-sm:rounded-none sm:max-h-[calc(100dvh-2rem)]',
+              'w-dvw sm:w-3/4 sm:max-w-(--breakpoint-md) md:w-2/3 2xl:max-w-(--breakpoint-xl)',
+              noteTheme
+                ? `dialog-${noteTheme} shadow-xl max-sm:shadow-none shadow-theme-${noteTheme}`
+                : 'bg-paper-raised shadow-sheet',
+            ),
+      )}
+      open={open}
+      preventClose
+      onKeyDownCapture={(event) => {
+        if (
+          event.target instanceof Element &&
+          event.target.closest('dialog') !== event.currentTarget
+        )
+          return
+        if (
+          event.key === 'Escape' &&
+          !event.currentTarget.querySelector(':popover-open')
+        ) {
+          event.preventDefault()
+          if (!busy && !loading) (panel?.onClose ?? onClose)()
+        }
+      }}
+      onMouseDown={(event) => {
+        if (!panel && event.target === event.currentTarget && !loading && !busy)
+          onClose()
+      }}
+      aria-busy={busy}
+      aria-labelledby={panel?.titleId}
+      aria-describedby={panel?.descriptionId}
+      aria-label={
+        panel
+          ? undefined
+          : t(type === 'create' ? 'editor.newNote' : 'editor.editNote')
+      }
+    >
+      {panel?.content ?? (
+        <>
           <NoteWriting
             key={sessionIdentity}
             id={`dialog-note-${sessionIdentity}`}
-            pending={loading}
+            editors={editors}
+            pending={loading || busy}
             leadingActions={
               <Button
                 variant="ghost"
                 iconOnly
                 onClick={onClose}
-                disabled={loading}
+                disabled={loading || busy}
                 aria-label={t('editor.close')}
               >
                 <IconArrowLeft />
@@ -110,9 +149,9 @@ export default function NoteDialog({
                     'max-sm:hidden',
                   )}
                   aria-label={t('editor.fullPage')}
-                  aria-disabled={loading}
+                  aria-disabled={loading || busy}
                   onClick={(event) => {
-                    if (loading) event.preventDefault()
+                    if (loading || busy) event.preventDefault()
                   }}
                   replace
                 >
@@ -137,8 +176,8 @@ export default function NoteDialog({
             loading={loading}
             scrollTopCtrl
           />
-        </Dialog>
+        </>
       )}
-    </NoteSyncActions>
+    </Dialog>
   )
 }

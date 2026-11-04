@@ -777,9 +777,64 @@ test('opening the saved version on the same route starts a fresh controller and 
   )
 })
 
-for (const status of [503, 401, 404]) {
-  test(`Use saved handles HTTP ${status} without confusing a temporary failure with deletion`, async (t) => {
-    const {controller, baseline} = setup(t, async () => ({
+test('Use mine keeps review open through a guarded save and a newer independent change', async (t) => {
+  let complete!: (result: SyncResult) => void
+  const requests: SyncRequest[] = []
+  const {controller, baseline, records, io} = setup(t, (request) => {
+    requests.push(structuredClone(request))
+    return new Promise((resolve) => {
+      complete = resolve
+    })
+  })
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Browser body'})
+  const shown = {
+    ...baseline,
+    revision: crypto.randomUUID(),
+    content: 'Saved body',
+  }
+  io.read = async () => ({status: 'success', note: shown})
+  await controller.refreshRemote('review')
+  const draft = structuredClone(controller.record.draft)
+
+  const resolving = controller.resolve('mine', shown.revision)
+  await settle()
+  assert.equal(controller.resolutionPending, true)
+  assert.equal(
+    usePersistStore.getState().noteSession?.conflict?.revision,
+    shown.revision,
+  )
+  assert.deepEqual(requests[0]?.content, draft)
+  assert.equal(requests[0]?.expectedRevision, shown.revision)
+  const newer = {
+    ...shown,
+    revision: crypto.randomUUID(),
+    title: 'New saved title',
+  }
+  complete({status: 'conflict', note: newer})
+
+  assert.deepEqual(await resolving, {status: 'review'})
+  assert.equal(controller.resolutionPending, false)
+  assert.equal(controller.record.conflict?.revision, newer.revision)
+  assert.deepEqual(controller.record.draft, draft)
+  assert.equal(
+    records.get(controller.record.id)?.conflict?.revision,
+    newer.revision,
+  )
+  assert.deepEqual(await controller.resolve('mine', shown.revision), {
+    status: 'review',
+  })
+  assert.equal(requests.length, 1)
+})
+
+for (const status of [
+  'retryable_error',
+  'unauthenticated',
+  'unavailable',
+  'thrown read',
+] as const) {
+  test(`Use saved handles ${status} without confusing a temporary failure with deletion`, async (t) => {
+    const {controller, baseline, io, records} = setup(t, async () => ({
       status: 'retryable_error',
     }))
     const remote = {
@@ -795,23 +850,112 @@ for (const status of [503, 401, 404]) {
     }
     await controller.hydrate(recovery)
     const shown = controller.record.conflict!.revision
-    t.mock.method(globalThis, 'fetch', async () => new Response('', {status}))
-    await controller.resolve('saved', shown)
+    const durable = structuredClone(records.get(controller.record.id))
+    io.read = async () => {
+      if (status === 'thrown read') throw new Error('Read failed')
+      return {status}
+    }
+    assert.deepEqual(await controller.resolve('saved', shown), {
+      status: status === 'unavailable' ? 'unavailable' : 'blocked',
+    })
     assert.equal(controller.record.draft.content, 'Local alternative')
-    assert.equal(Boolean(controller.record.unavailable), status === 404)
-    assert.equal(Boolean(controller.record.conflict), status !== 404)
-    if (status === 503)
+    assert.equal(
+      Boolean(controller.record.unavailable),
+      status === 'unavailable',
+    )
+    assert.equal(Boolean(controller.record.conflict), status !== 'unavailable')
+    if (status === 'retryable_error' || status === 'thrown read') {
       assert.equal(
         usePersistStore.getState().noteSession?.remoteCheckFailed,
         true,
       )
-    if (status === 401)
+      assert.equal(
+        usePersistStore.getState().noteSession?.checkingRemote,
+        false,
+      )
+      assert.ok(durable)
+      assert.deepEqual(records.get(controller.record.id), durable)
+    }
+    if (status === 'unauthenticated')
       assert.equal(
         usePersistStore.getState().noteSession?.syncStatus,
         'unauthenticated',
       )
   })
 }
+
+test('Use saved requires review if browser edits arrive during its freshness read', async (t) => {
+  const {controller, baseline, io, records} = setup(t, async () => ({
+    status: 'retryable_error',
+  }))
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Browser body'})
+  const remote = {
+    ...baseline,
+    revision: crypto.randomUUID(),
+    content: 'Saved body',
+  }
+  io.read = async () => ({status: 'success', note: remote})
+  await controller.refreshRemote('review')
+  let finish!: (result: SyncResult) => void
+  io.read = () =>
+    new Promise((resolve) => {
+      finish = resolve
+    })
+
+  const resolving = controller.resolve('saved', remote.revision)
+  usePersistStore.getState().setMutateNoteData({content: 'New browser edit'})
+  assert.equal(await controller.persist(), true)
+  finish({status: 'success', note: remote})
+
+  assert.deepEqual(await resolving, {status: 'review'})
+  assert.equal(controller.record.conflict?.revision, remote.revision)
+  assert.equal(controller.record.draft.content, 'New browser edit')
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'New browser edit',
+  )
+})
+
+test('Keep both blocks creation when its local checkpoint fails', async (t) => {
+  const requests: SyncRequest[] = []
+  const {controller, baseline, io, records} = setup(t, async (request) => {
+    requests.push(structuredClone(request))
+    return {status: 'retryable_error'}
+  })
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Browser body'})
+  const remote = {
+    ...baseline,
+    revision: crypto.randomUUID(),
+    content: 'Saved body',
+  }
+  io.read = async () => ({status: 'success', note: remote})
+  await controller.refreshRemote('review')
+  const original = structuredClone(controller.record)
+  const put = io.put
+  io.put = async (record) => {
+    if (!record.noteId) throw new Error('Copy checkpoint failed')
+    await put(record)
+  }
+
+  assert.deepEqual(await controller.resolve('both'), {status: 'blocked'})
+  assert.equal(requests.length, 0)
+  assert.equal(controller.record.noteId, baseline.id)
+  assert.equal(controller.record.creationId, original.creationId)
+  assert.equal(controller.record.conflict?.revision, remote.revision)
+  assert.deepEqual(controller.record.draft, original.draft)
+  assert.deepEqual([...records.values()], [original])
+  assert.equal(usePersistStore.getState().noteSession?.storageFailed, true)
+
+  io.put = put
+  const outcome = await controller.resolve('both')
+  assert.equal(outcome.status, 'recoverable-copy')
+  assert.equal(requests.length, 1)
+  assert.equal(requests[0]?.noteId, null)
+  assert.notEqual(requests[0]?.creationId, original.creationId)
+  assert.deepEqual(records.get(controller.record.id)?.flight, requests[0])
+})
 
 // Deliberately identical content must still represent two intentional versions.
 test('Edit a copy durably preserves its source, isolates transport intent, and resumes one copy', async (t) => {
@@ -1018,7 +1162,7 @@ test('Keep both from a retained source leaves that source attached to the origin
 })
 
 test('confirmed Use saved explicitly discards a retained source', async (t) => {
-  const {controller, baseline, records} = setup(t, async () => ({
+  const {controller, baseline, records, io} = setup(t, async () => ({
     status: 'retryable_error',
   }))
   await controller.hydrate()
@@ -1026,15 +1170,7 @@ test('confirmed Use saved explicitly discards a retained source', async (t) => {
   controller.record.conflict = baseline
   await controller.editCopy()
   const sourceId = controller.record.id
-  t.mock.method(
-    globalThis,
-    'fetch',
-    async () =>
-      new Response(JSON.stringify(baseline), {
-        status: 200,
-        headers: {'Content-Type': 'application/json'},
-      }),
-  )
+  io.read = async () => ({status: 'success', note: baseline})
   await controller.resolve('saved', baseline.revision)
   assert.equal(records.has(sourceId), false)
   assert.equal(controller.record.retainedSource, undefined)
@@ -1128,7 +1264,7 @@ for (const choice of ['saved', 'acknowledged read'] as const) {
     controller.record.conflict = baseline
     usePersistStore.getState().setMutateNoteData({content: 'Composed copy'})
     if (choice === 'saved') {
-      t.mock.method(globalThis, 'fetch', async () => Response.json(baseline))
+      io.read = async () => ({status: 'success', note: baseline})
       await controller.resolve('saved', baseline.revision)
       assert.equal(controller.record.draft.content, baseline.content)
     } else {

@@ -14,6 +14,8 @@ import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
 import {sameContent} from '~/lib/notes/sync'
 import {usePersistStore} from '~/store'
 import {noteReturnPath} from '~/lib/notes/navigation'
+import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
+import {selectNoteVersion, writeNoteSelection} from './note-version-selection'
 
 export const noteDraftChanged = (
   draft: Partial<Note> | undefined,
@@ -47,13 +49,22 @@ export function useNoteSession(
     error?: boolean
   }>()
   const [attempt, setAttempt] = useState(0)
+  const [selecting, setSelecting] = useState(false)
+  const [mountedKey, setMountedKey] = useState<string>()
   const leaving = useRef<string | undefined>(undefined)
   const documentKey = `${ownerId}:${recovery?.id ?? note?.id ?? 'new'}`
+  const matches =
+    active && current?.record.ownerId === ownerId && session?.key === key
+  const hydrated = Boolean(matches && session?.hydrated)
+  if (hydrated && !selecting && mountedKey !== documentKey)
+    setMountedKey(documentKey)
+  if (!active && mountedKey !== undefined) setMountedKey(undefined)
   useLayoutEffect(
     () => () => {
       // Cached routes disconnect layout effects when hidden. A later visit may
       // resume this view after its outgoing navigation has finished.
       leaving.current = undefined
+      setMountedKey(undefined)
     },
     [],
   )
@@ -86,10 +97,19 @@ export function useNoteSession(
             const groups = noteRecoveryGroups(records, ownerId, note.id)
             const candidates = groups.flatMap((group) => group.copies)
             const selected = versionId
-              ? candidates.find((row) => row.versionId === versionId)
+              ? candidates.find(
+                  (row) => row.versionId === versionId || row.id === versionId,
+                )
               : undefined
             if (versionId)
-              beginNoteSync(ownerId, key, note, selected, !selected)
+              beginNoteSync(
+                ownerId,
+                key,
+                note,
+                selected,
+                !selected,
+                Boolean(selected),
+              )
             else if (groups.length > 1) setSelection({key, records: candidates})
             else
               beginNoteSync(
@@ -109,6 +129,16 @@ export function useNoteSession(
       alive = false
     }
   }, [active, ownerId, key, note, recovery, attempt, documentKey, versionId])
+  const live = useRecoveryDrafts(
+    selection?.key === key ? (ownerId ?? '') : '',
+    true,
+  )
+  const choices =
+    live.loaded && !live.error && ownerId && note
+      ? noteRecoveryGroups(live.records, ownerId, note.id).flatMap(
+          (group) => group.copies,
+        )
+      : (selection?.records ?? [])
   const recoveryView =
     selection?.key === key && ownerId && note
       ? selection.error
@@ -124,30 +154,27 @@ export function useNoteSession(
           )
         : createElement(NoteVersionPicker, {
             note,
-            records: selection.records,
+            records: choices,
+            busy: selecting,
+            error: live.error,
             onClose: () => router.replace(returnPath),
             onChoose: (record?: RecoveryDraft) => {
-              setSelection(undefined)
-              if (
-                record?.versionId ||
-                selection.records.some((row) => row.versionId)
-              ) {
-                const url = new URL(window.location.href)
-                url.searchParams.set('version', record?.versionId ?? 'saved')
-                window.history.replaceState(null, '', url.href)
-              }
-              beginNoteSync(ownerId, key, note, record, !record)
+              if (selecting) return
+              setSelecting(true)
+              void selectNoteVersion(ownerId, key, note, record)
+                .then((next) => {
+                  if (!next) return
+                  writeNoteSelection(next, record)
+                  setSelection(undefined)
+                })
+                .finally(() => setSelecting(false))
             },
           })
       : null
   return {
     recoveryView,
     identity: session?.identity,
-    ready:
-      active &&
-      getNoteSync()?.record.ownerId === ownerId &&
-      session?.key === key &&
-      session.hydrated,
+    ready: matches && !selecting && (hydrated || mountedKey === documentKey),
     pending: session?.key === key && Boolean(session.operation),
     error: session?.key === key ? session.error : undefined,
     saveAndLeave: (onSuccess: () => void | Promise<void>) =>

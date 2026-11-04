@@ -1,10 +1,11 @@
 # Editor implementation and upgrade record
 
-Status — 2026-11-01: the owner rejects the current note-editor changes and requires redesign, potentially a full rework in a new thread. **The current Phase 3/editor changes have NOT passed; no deployment is approved.** Earlier Phases 0–1 acceptance and the 2026-10-28 HR/IME confirmations are historical evidence for earlier snapshots, not acceptance of these changes. See the [owner decision](handoff.md#owner-decision--2026-11-01-failed-phase-no-deployment).
+The owner accepted the redesigned Phase 3 surfaces on 2026-11-05. Completion checks are tracked in the [handoff](handoff.md). Production migration and deployment require separate authorization.
 
 ## Current implementation and boundaries
 
 - `NoteEditor` owns Tiptap, HTML changes, and counts cached by immutable document identity. Targeted subscriptions avoid full-document serialization on selection-only changes. Mounted field instances preserve selection/history across theme, status, and ordinary acknowledgements.
+- `NoteWorkspace` owns one editable title/body pair per selected session. The same pair moves between ordinary writing and Working copy review. Comparison tabs and closing the overlay preserve editor state.
 - `NoteWriting` coordinates title/body focus and one active-field toolbar. Title Enter focuses the body. Modal/full-page handoff preserves the draft without a navigation-triggered write. Mobile uses full-page editing; desktop retains modal/full-page choice.
 - Full view has a separate navigation header and sticky body toolbar. Measured untransformed header height starts the navigation handoff before docking; docking independently controls shadow/corners. Mobile fullscreen controls are hidden. Reduced motion removes the transitions.
 - Toolbar: bold, italic, underline, highlight, undo/redo, headings 1–6, lists, quote, inline/block code, strike, HR, and clear marks/blocks. Wider desktop containers expose more controls; narrow/mobile layouts group secondary actions. Existing hard-break, list behavior, and undo grouping remain unchanged.

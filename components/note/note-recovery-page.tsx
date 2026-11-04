@@ -12,8 +12,10 @@ import {useSearchParams} from 'next/navigation'
 import {groupRecoveryDrafts, recoveryNoteId} from '~/lib/notes/recovery-copies'
 import NoteVersionPicker from './note-version-picker'
 import {usePersistStore} from '~/store'
-import {beginNoteSync, getNoteSync} from '~/lib/notes/session-sync'
+import {getNoteSync} from '~/lib/notes/session-sync'
 import {noteReturnPath, withBrowserWorkReturn} from '~/lib/notes/navigation'
+import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
+import {selectNoteVersion} from './note-version-selection'
 
 export default function NoteRecoveryPage({
   ownerId,
@@ -31,10 +33,12 @@ export default function NoteRecoveryPage({
   const recoveryId = search.get('draft') ?? draftId
   const session = usePersistStore((state) => state.noteSession)
   const [choices, setChoices] = useState<RecoveryDraft[]>()
+  const [selecting, setSelecting] = useState(false)
   const [value, setValue] = useState<{record: RecoveryDraft; note?: Note}>()
   const [error, setError] = useState(false)
   const [localRecord, setLocalRecord] = useState<RecoveryDraft>()
   const [attempt, setAttempt] = useState(0)
+  const live = useRecoveryDrafts(choices ? ownerId : '', true)
   useEffect(() => {
     const controller = getNoteSync()
     if (
@@ -108,29 +112,41 @@ export default function NoteRecoveryPage({
     return (
       <NoteVersionPicker
         note={value.note}
-        records={choices}
+        records={
+          live.loaded && !live.error
+            ? live.records.filter(
+                (row) => recoveryNoteId(row) === recoveryNoteId(value.record),
+              )
+            : choices
+        }
+        busy={selecting}
+        error={live.error}
         onClose={() => router.replace(returnPath)}
         onChoose={(record) => {
-          if (record) {
-            setChoices(undefined)
-            setValue({...value, record})
-          } else if (value.note) {
-            // Keep the chooser mounted until navigation; rendering the old
-            // recovery editor here would resume it over the saved selection.
-            beginNoteSync(
-              ownerId,
-              `${ownerId}:${value.note.id}`,
-              value.note,
-              undefined,
-              true,
-            )
-            router.replace(
-              withBrowserWorkReturn(
-                `/full/eton/${value.note.id}`,
-                fromBrowserWork,
-              ),
-            )
-          }
+          const note = value.note
+          if (selecting || (!record && !note)) return
+          setSelecting(true)
+          void selectNoteVersion(
+            ownerId,
+            record ? `recovery:${record.id}` : `${ownerId}:${note!.id}`,
+            note,
+            record,
+          )
+            .then((next) => {
+              if (!next) return
+              if (record) {
+                setChoices(undefined)
+                setValue({...value, record})
+              } else if (note) {
+                router.replace(
+                  withBrowserWorkReturn(
+                    `/full/eton/${note.id}?version=saved`,
+                    fromBrowserWork,
+                  ),
+                )
+              }
+            })
+            .finally(() => setSelecting(false))
         }}
       />
     )

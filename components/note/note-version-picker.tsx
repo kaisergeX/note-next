@@ -7,7 +7,6 @@ import type {Note} from '~/db/schema/notes'
 import type {RecoveryDraft} from '~/lib/notes/drafts'
 import {groupRecoveryDrafts} from '~/lib/notes/recovery-copies'
 import {reconcile, snapshot} from '~/lib/notes/sync'
-import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
 import {Badge} from '~/components/ui/badge'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
@@ -16,7 +15,7 @@ import NoteCard from './note-card'
 import NoteReadOnly from './trash/note-read-only'
 import RecoveryManagement from './recovery-management'
 
-function needsReview(record: RecoveryDraft, note?: Note) {
+export function needsReview(record: RecoveryDraft, note?: Note) {
   return (
     !record.unavailable &&
     Boolean(
@@ -29,48 +28,55 @@ function needsReview(record: RecoveryDraft, note?: Note) {
   )
 }
 
-export default function NoteVersionPicker({
-  open = true,
-  note,
-  records,
-  onChoose,
-  onClose,
-  onDiscard,
-  busy = false,
-  dismissLabel = 'reviewLater',
-}: {
-  open?: boolean
+type PickerProps = {
   note?: Note
   records: RecoveryDraft[]
   onChoose: (record?: RecoveryDraft) => void
   onClose: () => void
   onDiscard?: (record: RecoveryDraft) => void
   busy?: boolean
+  error?: boolean
   dismissLabel?: 'reviewLater' | 'closeComparison'
-}) {
-  const choose = (record?: RecoveryDraft) => {
-    if (busy) return
-    const url = new URL(window.location.href)
-    if (record && needsReview(record, note)) url.searchParams.set('review', '1')
-    else url.searchParams.delete('review')
-    window.history.replaceState(null, '', url.href)
-    onChoose(record)
-  }
+}
+
+export default function NoteVersionPicker(props: PickerProps) {
+  const titleId = useId()
+  const descriptionId = useId()
+  return (
+    <ConfirmationDialog
+      open
+      busy={!!props.busy}
+      labelledBy={titleId}
+      describedBy={descriptionId}
+      initialFocusId={titleId}
+      onRequestClose={props.onClose}
+      layout="comparison"
+    >
+      <NoteVersionPickerContent
+        {...props}
+        titleId={titleId}
+        descriptionId={descriptionId}
+      />
+    </ConfirmationDialog>
+  )
+}
+
+export function NoteVersionPickerContent({
+  note,
+  records,
+  onChoose,
+  onClose,
+  onDiscard,
+  busy = false,
+  error,
+  dismissLabel = 'reviewLater',
+  titleId,
+  descriptionId,
+}: PickerProps & {titleId: string; descriptionId: string}) {
   const disabled = busy
   const t = useTranslations('note.recovery')
   const locale = useLocale()
-  const titleId = useId()
-  const descriptionId = useId()
-  const live = useRecoveryDrafts(
-    records[0]?.ownerId ?? note?.authorId ?? '',
-    true,
-  )
-  const ids = new Set(records.map((record) => record.id))
-  const groups = groupRecoveryDrafts(
-    live.loaded && !live.error
-      ? live.records.filter((record) => ids.has(record.id))
-      : records,
-  )
+  const groups = groupRecoveryDrafts(records)
   const [selectedId, setSelectedId] = useState(groups[0]?.record.id)
   const selected =
     groups.find(({copies}) => copies.some((row) => row.id === selectedId)) ??
@@ -106,15 +112,7 @@ export default function NoteVersionPicker({
       : []),
   ]
   return (
-    <ConfirmationDialog
-      open={open}
-      busy={disabled}
-      labelledBy={titleId}
-      describedBy={descriptionId}
-      initialFocusId={titleId}
-      onRequestClose={onClose}
-      layout="comparison"
-    >
+    <>
       <header className="shrink-0 p-4 sm:p-6">
         <h2 id={titleId} tabIndex={-1} className="text-lg font-semibold">
           {t('versionsTitle')}
@@ -123,7 +121,7 @@ export default function NoteVersionPicker({
           {t('compareVersionsHelp')}
         </p>
       </header>
-      {live.error && (
+      {error && (
         <p role="alert" className="text-destructive px-4 pb-3 text-sm sm:px-6">
           {t('recoveryFailed')}
         </p>
@@ -187,7 +185,7 @@ export default function NoteVersionPicker({
                   )}
                 </h3>
               )}
-              {record && (
+              {record && selected && !busy && (
                 <RecoveryManagement
                   ownerId={record.ownerId}
                   records={selected.copies}
@@ -223,7 +221,7 @@ export default function NoteVersionPicker({
               className="shrink-0"
               variant={record ? 'primary' : 'secondary'}
               disabled={disabled}
-              onClick={() => choose(record)}
+              onClick={() => onChoose(record)}
             >
               {t(
                 record
@@ -241,6 +239,6 @@ export default function NoteVersionPicker({
           {t(dismissLabel)}
         </Button>
       </footer>
-    </ConfirmationDialog>
+    </>
   )
 }
