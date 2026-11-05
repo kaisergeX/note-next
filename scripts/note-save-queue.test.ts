@@ -17,7 +17,11 @@ import {
 import {usePersistStore} from '../store'
 import type {SyncRequest, SyncResult} from '../lib/notes/sync'
 
-function setup(t: TestContext, send: NoteSyncDependencies['send']) {
+function setup(
+  t: TestContext,
+  send: NoteSyncDependencies['send'],
+  newNote = false,
+) {
   t.mock.timers.enable({apis: ['Date', 'setTimeout'], now: 100000})
   const previousWindow = globalThis.window
   Object.defineProperty(globalThis, 'window', {
@@ -48,7 +52,9 @@ function setup(t: TestContext, send: NoteSyncDependencies['send']) {
     storage: {getItem: () => null, setItem: () => {}, removeItem: () => {}},
   })
   usePersistStore.getState().resetNoteStore()
-  usePersistStore.getState().beginNoteSession('queue-test', baseline)
+  usePersistStore
+    .getState()
+    .beginNoteSession('queue-test', newNote ? undefined : baseline)
   const records = new Map<string, RecoveryDraft>()
   let writes = 0
   const io: NoteSyncDependencies = {
@@ -67,7 +73,7 @@ function setup(t: TestContext, send: NoteSyncDependencies['send']) {
   const controller = new NoteSyncSession(
     baseline.authorId,
     usePersistStore.getState().noteSession!,
-    baseline,
+    newNote ? undefined : baseline,
     io,
   )
   t.after(() => {
@@ -78,6 +84,207 @@ function setup(t: TestContext, send: NoteSyncDependencies['send']) {
 }
 const settle = async () => {
   for (let n = 0; n < 30; n++) await Promise.resolve()
+}
+
+test('an untouched or color-only new draft performs no persistence work', async (t) => {
+  let attempts = 0
+  const {controller, io, writes} = setup(
+    t,
+    async () => {
+      attempts++
+      return {status: 'retryable_error'}
+    },
+    true,
+  )
+  let clears = 0
+  io.clear = async () => {
+    clears++
+  }
+  await controller.hydrate()
+  assert.equal(await controller.persist(), true)
+  await controller.flush('save', true)
+  usePersistStore.getState().setMutateNoteData({theme: 'green'})
+  t.mock.timers.tick(60000)
+  await settle()
+  assert.equal(writes(), 0)
+  assert.equal(clears, 0)
+  assert.equal(attempts, 0)
+})
+
+test('clearing a never-submitted new draft retires its local checkpoint', async (t) => {
+  let attempts = 0
+  const {controller, records} = setup(
+    t,
+    async () => {
+      attempts++
+      return {status: 'retryable_error'}
+    },
+    true,
+  )
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Deliberately erased'})
+  t.mock.timers.tick(500)
+  await settle()
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'Deliberately erased',
+  )
+  usePersistStore.getState().setMutateNoteData({content: '<p></p>'})
+  await settle()
+  assert.equal(records.has(controller.record.id), false)
+  assert.equal(await controller.persist(), true)
+  await controller.flush('save', true)
+  t.mock.timers.tick(60000)
+  await settle()
+  assert.equal(attempts, 0)
+  assert.equal(controller.dirty, false)
+  assert.equal(
+    usePersistStore.getState().noteSession?.localGeneration,
+    undefined,
+  )
+})
+
+test('empty-draft cleanup waits for a pending checkpoint', async (t) => {
+  const {controller, records, io} = setup(
+    t,
+    async () => ({status: 'retryable_error'}),
+    true,
+  )
+  await controller.hydrate()
+  let finish!: () => void
+  const put = io.put
+  io.put = async (record) => {
+    await new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    await put(record)
+  }
+  usePersistStore.getState().setMutateNoteData({content: 'Pending checkpoint'})
+  const checkpoint = controller.persist()
+  await settle()
+  usePersistStore.getState().setMutateNoteData({content: ''})
+  const cleared = controller.persist()
+  finish()
+  await checkpoint
+  assert.equal(await cleared, true)
+  assert.equal(records.has(controller.record.id), false)
+})
+
+test('newer typing and its checkpoint wait for pending empty-draft cleanup', async (t) => {
+  const {controller, records, io} = setup(
+    t,
+    async () => ({status: 'retryable_error'}),
+    true,
+  )
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Old checkpoint'})
+  await controller.persist()
+  let finish!: () => void
+  const clear = io.clear
+  io.clear = async (id, generation) => {
+    await new Promise<void>((resolve) => {
+      finish = resolve
+    })
+    await clear(id, generation)
+  }
+  usePersistStore.getState().setMutateNoteData({content: ''})
+  await settle()
+  assert.equal(typeof finish, 'function')
+  usePersistStore.getState().setMutateNoteData({content: 'Newer typing'})
+  const checkpoint = controller.persist()
+  await settle()
+  assert.equal(
+    records.get(controller.record.id)?.draft.content,
+    'Old checkpoint',
+  )
+  finish()
+  assert.equal(await checkpoint, true)
+  assert.equal(records.get(controller.record.id)?.draft.content, 'Newer typing')
+  assert.equal(controller.localSafe, true)
+})
+
+test('failed empty-draft cleanup can be retried by a checkpoint', async (t) => {
+  const {controller, records, io} = setup(
+    t,
+    async () => ({status: 'retryable_error'}),
+    true,
+  )
+  await controller.hydrate()
+  usePersistStore.getState().setMutateNoteData({content: 'Old checkpoint'})
+  await controller.persist()
+  const clear = io.clear
+  io.clear = async () => {
+    throw new Error('Storage unavailable')
+  }
+  usePersistStore.getState().setMutateNoteData({content: ''})
+  await settle()
+  assert.equal(await controller.persist(), false)
+  assert.equal(usePersistStore.getState().noteSession?.storageFailed, true)
+  assert.equal(records.has(controller.record.id), true)
+  io.clear = clear
+  assert.equal(await controller.persist(), true)
+  assert.equal(records.has(controller.record.id), false)
+  assert.equal(usePersistStore.getState().noteSession?.storageFailed, false)
+})
+
+for (const action of ['retry', 'leave'] as const) {
+  test(`${action} settles an ambiguous creation before saving the latest empty draft`, async (t) => {
+    const requests: SyncRequest[] = []
+    const {controller, baseline, records} = setup(
+      t,
+      async (request) => {
+        requests.push(structuredClone(request))
+        if (requests.length === 1) return {status: 'retryable_error'}
+        return {
+          status: 'success',
+          note: {
+            ...baseline,
+            ...request.content,
+            id: request.noteId ?? request.creationId,
+            revision: crypto.randomUUID(),
+          },
+        }
+      },
+      true,
+    )
+    await controller.hydrate()
+    usePersistStore
+      .getState()
+      .setMutateNoteData({content: 'Submitted creation'})
+    await controller.flush('save', true)
+    const savedId = requests[0]!.creationId
+    usePersistStore.getState().setMutateNoteData({content: ''})
+    await controller.persist()
+    assert.deepEqual(records.get(controller.record.id)?.flight, requests[0])
+    let left = false
+    if (action === 'retry') {
+      await controller.retry()
+      assert.equal(controller.record.noteId, savedId)
+      assert.equal(controller.record.draft.content, null)
+      t.mock.timers.tick(10000)
+      await settle()
+    } else {
+      await controller.leave('save', () => {
+        assert.equal(requests.length, 3)
+        left = true
+      })
+    }
+    assert.equal(requests.length, 3)
+    assert.deepEqual(requests[1], requests[0])
+    assert.equal(requests[0]?.noteId, null)
+    assert.equal(requests[2]?.noteId, savedId)
+    assert.equal(controller.record.noteId, savedId)
+    assert.equal(requests[2]?.creationId, requests[0]?.creationId)
+    assert.notEqual(requests[2]?.mutationId, requests[0]?.mutationId)
+    assert.deepEqual(requests[2]?.content, {
+      title: null,
+      content: null,
+      theme: null,
+    })
+    assert.equal(controller.dirty, false)
+    assert.equal(records.has(controller.record.id), false)
+    assert.equal(left, action === 'leave')
+  })
 }
 
 test('hydrating a same-field conflict preserves local HTML and independent remote changes', async (t) => {

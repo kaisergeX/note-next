@@ -4,7 +4,7 @@ import {defineConfig} from '@playwright/test'
 const origin = process.env.NOTES_TEST_ORIGIN
 assert.ok(
   origin,
-  'Set NOTES_TEST_ORIGIN to the running local app (see docs/note-editor/browser-tests.md).',
+  'Set NOTES_TEST_ORIGIN to the running local app (see docs/archive/note-editor/testing.md).',
 )
 const url = new URL(origin)
 assert.ok(

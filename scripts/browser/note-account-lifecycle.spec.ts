@@ -263,9 +263,10 @@ for (const view of ['collection', 'editor'] as const) {
       await expect(body(page)).toHaveText('Previous account local work content')
     }
     const secondId = await noteApp.signIn('secondary')
-    const session = page.waitForResponse(
-      (response) => new URL(response.url()).pathname === '/api/auth/session',
-    )
+    const session = page.waitForResponse(async (response) => {
+      if (new URL(response.url()).pathname !== '/api/auth/session') return false
+      return (await response.json()).user?.id === secondId
+    })
     await page.evaluate(() =>
       document.dispatchEvent(new Event('visibilitychange')),
     )

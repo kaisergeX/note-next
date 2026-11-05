@@ -105,6 +105,7 @@ export class NoteSyncSession {
   private committingRecovery = false
   private refreshing?: Promise<boolean>
   private localWrites: Promise<boolean> = Promise.resolve(true)
+  private checkpointQueued = false
   private unsubscribe: () => void
 
   constructor(
@@ -325,6 +326,7 @@ export class NoteSyncSession {
     ) {
       if (this.localTimer) clearTimeout(this.localTimer)
       if (this.serverTimer) clearTimeout(this.serverTimer)
+      void this.persist()
       return
     }
     if (!this.dirty && !this.record.conflict && !this.record.retainedSource) {
@@ -377,19 +379,39 @@ export class NoteSyncSession {
     if (this.stopped || (this.committingRecovery && !fromTransition))
       return Promise.resolve(false)
     if (
+      !this.record.noteId &&
+      !this.record.flight &&
+      !meaningfulContent(this.record.draft)
+    ) {
+      // Opening an empty draft needs no storage work. Once a checkpoint was
+      // queued, retire it after that write and before any newer checkpoint.
+      if (!this.checkpointQueued) return Promise.resolve(true)
+      const {id, generation} = this.record
+      this.localWrites = this.localWrites.then(async () => {
+        if (this.stopped) return false
+        try {
+          await this.io.clear(id, generation)
+          if (this.record.generation === generation && !this.dirty) {
+            this.checkpointQueued = false
+            this.publish({localGeneration: undefined, storageFailed: false})
+          }
+          return true
+        } catch {
+          this.publish({storageFailed: true})
+          return false
+        }
+      })
+      return this.localWrites
+    }
+    if (
       !this.dirty &&
       !this.record.conflict &&
       !this.record.unavailable &&
       !this.record.retainedSource
     )
       return Promise.resolve(true)
-    if (
-      !this.record.noteId &&
-      !this.record.flight &&
-      !meaningfulContent(this.record.draft)
-    )
-      return Promise.resolve(true)
     const captured = structuredClone(this.record)
+    this.checkpointQueued = true
     this.localWrites = this.localWrites.then(async () => {
       if (this.stopped) return false
       try {
@@ -432,7 +454,12 @@ export class NoteSyncSession {
       return
     }
     if (kind === 'save' && !this.dirty) return
-    if (!this.record.noteId && !meaningfulContent(this.record.draft)) return
+    if (
+      !this.record.noteId &&
+      !this.record.flight &&
+      !meaningfulContent(this.record.draft)
+    )
+      return
     const run = this.send(kind)
     this.running = run
     try {

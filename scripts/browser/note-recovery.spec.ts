@@ -301,7 +301,11 @@ test('direct Open saved keeps competing browser versions through navigation and 
   await page
     .getByRole('button', {name: 'Open saved version', exact: true})
     .click()
-  await expect(page).toHaveURL(new RegExp(`/full/eton/${note.id}$`))
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === fullPath(note) &&
+      url.searchParams.get('version') === 'saved',
+  )
   await expect(body(page)).toHaveText('Original body')
   await refresh(page)
   await expect(
