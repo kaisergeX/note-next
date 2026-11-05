@@ -4,6 +4,7 @@ import {IconLoader2, IconPlayerStop, IconSparkles} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {useRef, useState, useTransition} from 'react'
+import {Textarea} from '~/components/ui/textarea'
 import Button from '~/components/ui/button'
 import {
   generatePersonaCandidateAction,
@@ -192,7 +193,7 @@ export default function BulkDraftWorkbench({
               })}
             </span>
           </div>
-          <textarea
+          <Textarea
             id="bulk-mix-description"
             rows={4}
             maxLength={MIX_DESCRIPTION_MAX_CHARS}
@@ -200,7 +201,7 @@ export default function BulkDraftWorkbench({
             disabled={isPending}
             placeholder={t('mixDescriptionPlaceholder')}
             onChange={(e) => setMixDescription(e.target.value)}
-            className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+            className="placeholder:text-ink-muted"
           />
         </div>
 

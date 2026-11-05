@@ -187,6 +187,17 @@ export class NoteSyncSession {
   get localSafe() {
     return this.state.localGeneration === this.record.generation
   }
+  private get emptyNewDraft() {
+    return (
+      !this.record.noteId &&
+      !this.record.flight &&
+      !meaningfulContent(this.record.draft)
+    )
+  }
+  private clearTimers() {
+    if (this.localTimer) clearTimeout(this.localTimer)
+    if (this.serverTimer) clearTimeout(this.serverTimer)
+  }
   get resolutionPending() {
     return Boolean(this.record.resolution && this.record.flight)
   }
@@ -319,19 +330,13 @@ export class NoteSyncSession {
   }
   private schedule() {
     if (this.stopped || !this.state.hydrated) return
-    if (
-      !this.record.noteId &&
-      !this.record.flight &&
-      !meaningfulContent(this.record.draft)
-    ) {
-      if (this.localTimer) clearTimeout(this.localTimer)
-      if (this.serverTimer) clearTimeout(this.serverTimer)
+    if (this.emptyNewDraft) {
+      this.clearTimers()
       void this.persist()
       return
     }
     if (!this.dirty && !this.record.conflict && !this.record.retainedSource) {
-      if (this.localTimer) clearTimeout(this.localTimer)
-      if (this.serverTimer) clearTimeout(this.serverTimer)
+      this.clearTimers()
       this.publish({syncStatus: this.record.noteId ? 'saved' : undefined})
       // A reverted draft can be cleared only when no ambiguous request exists.
       const generation = this.record.generation
@@ -378,11 +383,7 @@ export class NoteSyncSession {
   persist(fromTransition = false): Promise<boolean> {
     if (this.stopped || (this.committingRecovery && !fromTransition))
       return Promise.resolve(false)
-    if (
-      !this.record.noteId &&
-      !this.record.flight &&
-      !meaningfulContent(this.record.draft)
-    ) {
+    if (this.emptyNewDraft) {
       // Opening an empty draft needs no storage work. Once a checkpoint was
       // queued, retire it after that write and before any newer checkpoint.
       if (!this.checkpointQueued) return Promise.resolve(true)
@@ -454,12 +455,7 @@ export class NoteSyncSession {
       return
     }
     if (kind === 'save' && !this.dirty) return
-    if (
-      !this.record.noteId &&
-      !this.record.flight &&
-      !meaningfulContent(this.record.draft)
-    )
-      return
+    if (this.emptyNewDraft) return
     const run = this.send(kind)
     this.running = run
     try {
@@ -1049,10 +1045,7 @@ export class NoteSyncSession {
       !this.failures
     )
       await this.flush('trash', true)
-    const empty =
-      !this.record.noteId &&
-      !this.record.flight &&
-      !meaningfulContent(this.record.draft)
+    const empty = this.emptyNewDraft
     const safe =
       empty || !this.dirty || (kind === 'save' && (await this.persist()))
     if ((kind === 'trash' && !this.record.baseline.pendingDeleteAt) || !safe) {
@@ -1083,8 +1076,7 @@ export class NoteSyncSession {
   }
   suspendForDiscard() {
     this.stopped = true
-    if (this.localTimer) clearTimeout(this.localTimer)
-    if (this.serverTimer) clearTimeout(this.serverTimer)
+    this.clearTimers()
   }
   resumeAfterDiscardFailure() {
     // Account exit or a view switch may have stopped it while storage failed.
@@ -1097,8 +1089,7 @@ export class NoteSyncSession {
     this.stopped = true
     this.unsubscribe()
     controllers.delete(this.record.id)
-    if (this.localTimer) clearTimeout(this.localTimer)
-    if (this.serverTimer) clearTimeout(this.serverTimer)
+    this.clearTimers()
   }
   async drained() {
     await this.running
@@ -1107,8 +1098,7 @@ export class NoteSyncSession {
   }
   async detach() {
     this.unsubscribe()
-    if (this.localTimer) clearTimeout(this.localTimer)
-    if (this.serverTimer) clearTimeout(this.serverTimer)
+    this.clearTimers()
     if (this.dirty) await this.persist()
     this.stop()
   }

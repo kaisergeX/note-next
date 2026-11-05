@@ -7,6 +7,7 @@ import {useTranslations} from 'next-intl'
 import Link from 'next/link'
 import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
+import {Textarea} from '~/components/ui/textarea'
 import Button from '~/components/ui/button'
 import {
   createRunAction,
@@ -174,13 +175,13 @@ export default function RunNewForm({personas}: RunNewFormProps) {
         >
           {t('script')}
         </label>
-        <textarea
+        <Textarea
           id="run-script"
           rows={8}
           value={script}
           onChange={(e) => setScript(e.target.value)}
           placeholder={t('scriptPlaceholder')}
-          className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          className="placeholder:text-ink-muted"
           disabled={busy}
         />
         <div className="mt-2 flex items-center gap-2">
@@ -206,14 +207,14 @@ export default function RunNewForm({personas}: RunNewFormProps) {
         >
           {t('context')}
         </label>
-        <textarea
+        <Textarea
           id="run-context"
           rows={3}
           value={context}
           onChange={(e) => setContext(e.target.value)}
           placeholder={t('contextPlaceholder')}
           maxLength={2000}
-          className="border-control-border bg-paper-raised text-ink placeholder:text-ink-muted focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
+          className="placeholder:text-ink-muted"
           disabled={busy}
         />
         <p className="text-ink-muted mt-1 text-xs">{t('contextHint')}</p>
