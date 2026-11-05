@@ -25,8 +25,10 @@ import type {PersonaDraft} from '~/lib/ai/persona-drafting'
 import PersonaBioPanel from './persona-bio-panel'
 import PersonaCombobox, {type PersonaComboboxOption} from './persona-combobox'
 import PersonaSlider from './persona-slider'
+import {SLIDER_AXES} from './persona-slider-axes'
 import PersonaTags from './persona-tags'
 import {Input} from '~/components/ui/input'
+import {Textarea} from '~/components/ui/textarea'
 import Button from '~/components/ui/button'
 
 export type PersonaFormInitial = {
@@ -56,12 +58,6 @@ type PersonaFormProps = {
   mode: 'create' | 'edit'
   initial?: PersonaFormInitial
 }
-
-const SLIDER_AXES = [
-  {key: 'calm_anxious', start: 'sliderCalm', end: 'sliderAnxious'},
-  {key: 'optimistic_cynical', start: 'sliderOptimistic', end: 'sliderCynical'},
-  {key: 'frugal_spendthrift', start: 'sliderFrugal', end: 'sliderSpendthrift'},
-] as const
 
 const INCOME_VALUES = ['low', 'medium', 'high'] as const
 const STANCE_VALUES = [
@@ -336,12 +332,11 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
             <label htmlFor="persona-seed" className="block text-sm font-medium">
               {t('seed')}
             </label>
-            <textarea
+            <Textarea
               id="persona-seed"
               rows={5}
               value={seed}
               onChange={(e) => setSeed(e.target.value)}
-              className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
               maxLength={10000}
               disabled={generating || saving}
             />
@@ -563,12 +558,11 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
                   >
                     {t('quirks')}
                   </label>
-                  <textarea
+                  <Textarea
                     id="persona-quirks"
                     rows={3}
                     value={field.state.value}
                     onChange={(e) => field.handleChange(e.target.value)}
-                    className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
                   />
                   {renderErrors(field.state.meta.errors)}
                 </div>

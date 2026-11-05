@@ -12,6 +12,8 @@ import type {Metadata} from 'next'
 import {getFormatter, getLocale, getTranslations} from 'next-intl/server'
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
+import PersonaBackgroundTags from '~/components/ai/interview/persona-background-tags'
+import {SLIDER_AXES} from '~/components/ai/interview/persona-slider-axes'
 import {Badge} from '~/components/ui/badge'
 import {buttonClass} from '~/components/ui/button'
 import LinkButton from '~/components/ui/link-button'
@@ -19,12 +21,6 @@ import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {getPersonaById} from '~/db/helper/personas'
 import {isShapedUuid} from '~/lib/ai/id-shape'
 import {requireAuth} from '~/server-utils'
-
-const SLIDER_AXES = [
-  {key: 'calm_anxious', start: 'sliderCalm', end: 'sliderAnxious'},
-  {key: 'optimistic_cynical', start: 'sliderOptimistic', end: 'sliderCynical'},
-  {key: 'frugal_spendthrift', start: 'sliderFrugal', end: 'sliderSpendthrift'},
-] as const
 
 function ProfileField({label, value}: {label: string; value: string}) {
   return (
@@ -215,16 +211,7 @@ export default async function PersonaProfilePage({
         <div>
           <h2 className="mb-2 text-sm font-medium">{tForm('tags')}</h2>
           {persona.backgroundTags.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {persona.backgroundTags.map((tag) => (
-                <span
-                  key={tag}
-                  className="border-hairline bg-paper text-ink rounded-full border px-2 py-0.5 text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
+            <PersonaBackgroundTags tags={persona.backgroundTags} />
           ) : (
             <p className="text-ink-muted text-sm">—</p>
           )}

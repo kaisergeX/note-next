@@ -2,6 +2,7 @@
 
 import {IconLoader2, IconSparkles} from '@tabler/icons-react'
 import {useId} from 'react'
+import {Textarea} from '~/components/ui/textarea'
 import Button from '~/components/ui/button'
 
 type PersonaBioPanelProps = {
@@ -44,13 +45,12 @@ export default function PersonaBioPanel({
         <label htmlFor={bioId} className="mb-1 block text-sm font-medium">
           {labels.bio}
         </label>
-        <textarea
+        <Textarea
           id={bioId}
           rows={4}
           value={bio}
           disabled={regenerating}
           onChange={(e) => onBioChange(e.target.value)}
-          className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
         />
       </div>
 
@@ -82,13 +82,12 @@ export default function PersonaBioPanel({
           <label htmlFor={promptId} className="mb-1 block text-sm font-medium">
             {labels.systemPrompt}
           </label>
-          <textarea
+          <Textarea
             id={promptId}
             rows={4}
             value={systemPrompt}
             disabled={regenerating}
             onChange={(e) => onSystemPromptChange(e.target.value)}
-            className="border-control-border bg-paper-raised text-ink focus:border-accent focus:ring-accent w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:outline-none"
           />
         </div>
       </details>

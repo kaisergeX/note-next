@@ -18,7 +18,9 @@ import {
   setPersonaStatusAction,
 } from '~/app/[locale]/ai/interview/actions'
 import type {PersonalitySliders} from '~/db/schema/transcripts'
+import PersonaBackgroundTags from './persona-background-tags'
 import PersonaSlider from './persona-slider'
+import {SLIDER_AXES} from './persona-slider-axes'
 import type {BulkBannerReason} from './bulk-draft-workbench'
 import Button from '~/components/ui/button'
 import {Badge} from '~/components/ui/badge'
@@ -145,46 +147,22 @@ export default function PersonaDraftCard({
       </p>
 
       {persona.backgroundTags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {persona.backgroundTags.map((tag) => (
-            <span
-              key={tag}
-              className="border-hairline bg-paper text-ink rounded-full border px-2 py-0.5 text-xs"
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
+        <PersonaBackgroundTags tags={persona.backgroundTags} />
       )}
 
       <div className="grid gap-2">
-        <PersonaSlider
-          axisKey="calm_anxious"
-          value={persona.personalitySliders.calm_anxious ?? 50}
-          onChange={() => {}}
-          poleStartLabel={tForm('sliderCalm')}
-          poleEndLabel={tForm('sliderAnxious')}
-          ariaLabel={tForm('sliderCalm')}
-          disabled
-        />
-        <PersonaSlider
-          axisKey="optimistic_cynical"
-          value={persona.personalitySliders.optimistic_cynical ?? 50}
-          onChange={() => {}}
-          poleStartLabel={tForm('sliderOptimistic')}
-          poleEndLabel={tForm('sliderCynical')}
-          ariaLabel={tForm('sliderOptimistic')}
-          disabled
-        />
-        <PersonaSlider
-          axisKey="frugal_spendthrift"
-          value={persona.personalitySliders.frugal_spendthrift ?? 50}
-          onChange={() => {}}
-          poleStartLabel={tForm('sliderFrugal')}
-          poleEndLabel={tForm('sliderSpendthrift')}
-          ariaLabel={tForm('sliderFrugal')}
-          disabled
-        />
+        {SLIDER_AXES.map((axis) => (
+          <PersonaSlider
+            key={axis.key}
+            axisKey={axis.key}
+            value={persona.personalitySliders[axis.key] ?? 50}
+            onChange={() => {}}
+            poleStartLabel={tForm(axis.start)}
+            poleEndLabel={tForm(axis.end)}
+            ariaLabel={tForm(axis.start)}
+            disabled
+          />
+        ))}
       </div>
 
       {persona.bio && (

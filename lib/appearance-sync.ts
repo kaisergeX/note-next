@@ -78,6 +78,15 @@ export function createAppearanceSync(options: SyncOptions) {
     return entry
   }
 
+  async function writeRemote(value: AppearancePreference, initialize: boolean) {
+    writing = true
+    try {
+      return await options.writeRemote(value, initialize)
+    } finally {
+      writing = false
+    }
+  }
+
   async function reconcile() {
     do {
       again = false
@@ -103,12 +112,7 @@ export function createAppearanceSync(options: SyncOptions) {
       let didSave = false
       if (pending?.pending) {
         options.status('syncing')
-        writing = true
-        try {
-          remote = await options.writeRemote(pending, false)
-        } finally {
-          writing = false
-        }
+        remote = await writeRemote(pending, false)
         if (stopped) return
         didSave = true
         lastSaved = remote
@@ -129,12 +133,7 @@ export function createAppearanceSync(options: SyncOptions) {
         }
         if (!remote) {
           options.status('syncing')
-          writing = true
-          try {
-            remote = await options.writeRemote(options.current(), true)
-          } finally {
-            writing = false
-          }
+          remote = await writeRemote(options.current(), true)
           if (stopped) return
           didSave = true
           if (
