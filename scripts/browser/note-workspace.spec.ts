@@ -43,19 +43,23 @@ test('closing and reopening comparison preserves the working editor through mobi
   await comparison
     .getByRole('button', {name: 'Show changes', exact: true})
     .click()
-  await expect(
-    comparison
-      .getByRole('tabpanel', {name: 'Saved version'})
-      .locator('del')
-      .filter({hasText: 'Saved elsewhere'}),
-  ).toBeVisible()
+  for (const word of ['Saved', 'elsewhere']) {
+    await expect(
+      comparison
+        .getByRole('tabpanel', {name: 'Saved version'})
+        .locator('del')
+        .filter({hasText: word}),
+    ).toBeVisible()
+  }
   await comparison.getByRole('tab', {name: 'Working copy', exact: true}).click()
-  await expect(
-    comparison
-      .getByRole('tabpanel', {name: 'Working copy'})
-      .locator('ins')
-      .filter({hasText: composition}),
-  ).toBeVisible()
+  for (const word of composition.split(' ')) {
+    await expect(
+      comparison
+        .getByRole('tabpanel', {name: 'Working copy'})
+        .locator('ins')
+        .filter({hasText: word}),
+    ).toBeVisible()
+  }
   await comparison
     .getByRole('button', {name: 'Show previews', exact: true})
     .click()

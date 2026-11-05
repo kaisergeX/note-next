@@ -124,15 +124,26 @@ export const test = base.extend<{noteApp: NoteApp}>({
             role: selected.role,
           },
         })
-        await context.addCookies([
-          {
-            name: 'authjs.session-token',
-            value: token,
-            url: baseURL!,
-            httpOnly: true,
-            sameSite: 'Lax',
-          },
-        ])
+        const cookie = {
+          name: 'authjs.session-token',
+          value: token,
+          url: baseURL!,
+          httpOnly: true,
+          sameSite: 'Lax' as const,
+        }
+        await context.addCookies([cookie])
+        if (maxAge === undefined) {
+          // In-flight session reads can rotate the previous account's cookie
+          // over this synthetic sign-in. Verify setup before refreshing the UI.
+          await expect
+            .poll(async () => {
+              const response = await context.request.get('/api/auth/session')
+              const id = (await response.json()).user?.id
+              if (id !== selected.id) await context.addCookies([cookie])
+              return id
+            })
+            .toBe(selected.id)
+        }
         return selected.id
       }
       await signIn()

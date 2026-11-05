@@ -419,9 +419,8 @@ for (const width of [1440, 390]) {
     await pane.evaluate((el) => {
       el.scrollTop = 0
     })
-    const box = await pane.boundingBox()
-    expect(box).not.toBeNull()
-    await page.mouse.move(box!.x + 40, box!.y + 60)
+    // Hover waits for the comparison's opening animation to stop moving.
+    await pane.hover({position: {x: 40, y: 60}})
     await page.mouse.wheel(0, 900)
     await expect
       .poll(() => pane.evaluate((el) => el.scrollTop))
@@ -455,8 +454,7 @@ for (const width of [1440, 390]) {
       exact: true,
     })
     expect(await saved.evaluate((el) => el.scrollTop)).toBe(0)
-    const savedBox = await saved.boundingBox()
-    await page.mouse.move(savedBox!.x + 40, savedBox!.y + 60)
+    await saved.hover({position: {x: 40, y: 60}})
     await page.mouse.wheel(0, 900)
     await expect
       .poll(() => saved.evaluate((el) => el.scrollTop))

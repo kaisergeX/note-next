@@ -105,6 +105,13 @@ test('Review later and Open saved retain Browser work context and competing vers
   )
 
   await card.click()
+  // Wait for the new route before targeting its chooser, not a cached one.
+  await expect(page).toHaveURL(
+    (url) =>
+      url.pathname === fullPath(saved) &&
+      url.searchParams.get('review') === '1' &&
+      url.searchParams.get('from') === 'browser-work',
+  )
   await page
     .getByRole('button', {name: 'Continue this version', exact: true})
     .click()
