@@ -1,11 +1,15 @@
 'use client'
 
-import {useEffect, useId, useState} from 'react'
+import {useEffect, useId, useRef, useState} from 'react'
 import {useSession} from 'next-auth/react'
 import {useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {IconX} from '@tabler/icons-react'
 import {Dialog} from '@kaiverse/k/ui'
+import {
+  cancelNoteListTransition,
+  startNoteListTransition,
+} from '~/lib/notes/transitions'
 import {Link} from '~/i18n/navigation'
 import {useWindowEvent} from '~/util/hooks/use-window-event'
 import Button, {buttonClass} from '~/components/ui/button'
@@ -25,6 +29,7 @@ export default function NotePersistence() {
   const {data: session, status} = useSession()
   const ownerId = session?.user?.id
   const router = useRouter()
+  const refreshKey = useRef({})
   const t = useTranslations('note.recovery')
   const [exit, setExit] = useState<ExitRequest>()
   const [busy, setBusy] = useState(false)
@@ -36,6 +41,10 @@ export default function NotePersistence() {
   useEffect(() => {
     if (status !== 'loading') setNoteSyncAccount(ownerId)
   }, [ownerId, status])
+  useEffect(() => {
+    const key = refreshKey.current
+    return () => cancelNoteListTransition(key)
+  }, [])
   useWindowEvent('online', () => {
     void flushVisibleDrafts()
   })
@@ -47,7 +56,9 @@ export default function NotePersistence() {
       event.returnValue = ''
     }
   })
-  useWindowEvent('note-list-stale', () => router.refresh())
+  useWindowEvent('note-list-stale', () =>
+    startNoteListTransition(() => router.refresh(), refreshKey.current),
+  )
   useWindowEvent('note-account-exit', (event) => {
     setExit((event as CustomEvent<ExitRequest>).detail)
     setError(false)

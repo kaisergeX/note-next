@@ -1,6 +1,6 @@
 # Note editor and persistence
 
-Phases 0–3, including Edit a copy, are complete locally and owner-accepted as of 2026-11-05. This folder is the maintenance reference for the completed feature.
+Phases 0–3, including Edit a copy, are complete locally and owner-accepted as of 2026-11-05. On 2026-11-06, the owner confirmed deployment and reported that the feature appears to work in production. This folder is the maintenance reference for the completed feature.
 
 - [Architecture](architecture.md): ownership, persistence, recovery, conflict resolution, and invariants to preserve.
 - [Testing](testing.md): repeatable checks and browser-fixture requirements.
@@ -22,11 +22,11 @@ Verification on 2026-11-05:
 
 The follow-up audit fixed stale browser checkpoints after clearing never-submitted drafts and blocked creation retries after clearing a draft with a lost response. The fixes preserve newer edits during cleanup and exact retry identities. The 60-test sync suite, lint/types, and diff checks passed after these fixes; database/account, browser, production/Serwist build, and UI-review results above predate them and were not rerun. Regression details are in [Testing](testing.md#local-checks).
 
-## Release limits
+## Production status and verification limits
 
-Production migration `drizzle/20261027120859_note_autosave` and deployment require separate authorization; migration evidence is local only. The target is Vercel Hobby with Neon Free for roughly 10–20 active users; measure actual traffic and database amplification before optimizing.
+Deployment and initial production behavior are owner-reported; no independent production verification was performed for this update. Migration evidence for `drizzle/20261027120859_note_autosave` remains local only; the production migration was not separately confirmed. The target is Vercel Hobby with Neon Free for roughly 10–20 active users; measure actual traffic and database amplification before optimizing.
 
-Before release, refresh the historical dependency/HTML-safety assessment. Stored HTML rendering remains an explicit [security boundary](architecture.md#security-and-future-boundaries). A worker-enabled run emitted React hydration error 418; general PWA hydration is not cleared by the persistence suite. Physical-device/IME, actual fullscreen, exhaustive locale/appearance/engine coverage, and production performance remain unverified.
+The historical dependency/HTML-safety assessment still needs refreshing; deployment does not close that assessment. Stored HTML rendering remains an explicit [security boundary](architecture.md#security-and-future-boundaries). A worker-enabled run emitted React hydration error 418; general PWA hydration is not cleared by the persistence suite. Physical-device/IME, actual fullscreen, exhaustive locale/appearance/engine coverage, and production performance remain unverified.
 
 ## Deferred scope
 

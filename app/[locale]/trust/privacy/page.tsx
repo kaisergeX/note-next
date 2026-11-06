@@ -1,10 +1,18 @@
 import Link from 'next/link'
+import {useTranslations} from 'next-intl'
 
 export default function Privacy() {
+  const t = useTranslations('common.pages')
   return (
     <main className="bg-dotgrid p-4">
       <div className="border-hairline bg-paper-raised shadow-sheet mx-auto w-full max-w-4xl rounded-lg border px-6 py-12 lg:pt-16 lg:pb-28">
-        <article className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose">
+        <p className="text-ink-muted mx-auto mb-6 max-w-prose text-sm">
+          {t('privacyLanguage')}
+        </p>
+        <article
+          lang="en"
+          className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose"
+        >
           <h1 className="mb-4">etoN Privacy Policy</h1>
           <div className="text-right text-sm">
             Last Update Date: July, 11 2023

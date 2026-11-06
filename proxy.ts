@@ -44,6 +44,30 @@ function apiMiddleware() {
 const proxy: NextProxy = (req) => {
   const {pathname} = req.nextUrl
 
+  if (pathname === '/sw.js') {
+    if (process.env.NODE_ENV !== 'development') return NextResponse.next()
+
+    // Disabling registration does not retire a worker from a local production run.
+    // Replace it without cache handlers, storage deletion, or forced page reloads.
+    return new NextResponse(
+      `self.addEventListener('install', (event) => {
+  event.waitUntil(self.skipWaiting());
+});
+self.addEventListener('activate', (event) => {
+  event.waitUntil((async () => {
+    await self.clients.claim();
+    await self.registration.unregister();
+  })());
+});`,
+      {
+        headers: {
+          'Content-Type': 'text/javascript; charset=utf-8',
+          'Cache-Control': 'no-store',
+        },
+      },
+    )
+  }
+
   // const isPublicPage = publicPathnameRegex.test(pathname)
   const isProtectedRoutes = protectedPathnameRegex.test(pathname)
   if (!isProtectedRoutes) {
@@ -59,7 +83,7 @@ const proxy: NextProxy = (req) => {
 
 export const config: ProxyConfig = {
   // Skip all paths that should not be internationalized and authenticated
-  matcher: ['/((?!api/auth/.*|_next|_vercel|.*\\..*).*)'],
+  matcher: ['/sw.js', '/((?!api/auth/.*|_next|_vercel|.*\\..*).*)'],
 }
 
 export default proxy

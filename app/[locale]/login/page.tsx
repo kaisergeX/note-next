@@ -53,14 +53,14 @@ export default async function Login() {
       </SignInButton>
 
       <div className="text-ink-muted text-center text-sm">
-        By clicking Sign In, you are setting up a etoN account and agree to our{' '}
+        {t('consentBefore')}{' '}
         <Link
           className="text-accent underline"
           href="/trust/privacy"
           rel="noopener noreferrer nofollow"
           target="_blank"
         >
-          Privacy Policy
+          {t('privacyPolicy')}
         </Link>
         .
       </div>

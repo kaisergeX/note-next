@@ -7,6 +7,8 @@ import type {Note} from '~/db/schema/notes'
 import type {RecoveryDraft} from '~/lib/notes/drafts'
 import {useSearchParams} from 'next/navigation'
 import {noteReturnPath} from '~/lib/notes/navigation'
+import {useTranslations} from 'next-intl'
+import {NoteEditorLoading} from '~/components/note/note-loading'
 
 export default function NoteDetail({
   noteData,
@@ -16,9 +18,11 @@ export default function NoteDetail({
   recovery?: RecoveryDraft
 }) {
   const router = useRouter()
+  const t = useTranslations('note.loading')
   const source = useSearchParams().get('from')
   const session = useNoteSession(noteData, true, recovery)
-  if (!session.ready || !session.identity) return session.recoveryView
+  if (!session.ready || !session.identity)
+    return session.recoveryView ?? <NoteEditorLoading label={t('editor')} />
   return (
     <NoteFullView
       identity={session.identity}

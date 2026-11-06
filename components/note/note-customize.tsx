@@ -1,12 +1,7 @@
 'use client'
 
 import {cn} from 'cn'
-import {
-  IconArrowUp,
-  IconDotsVertical,
-  IconTexture,
-  IconTrash,
-} from '@tabler/icons-react'
+import {IconArrowUp, IconDotsVertical, IconTrash} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
 import {
   useLayoutEffect,
@@ -59,10 +54,7 @@ export default function NoteCustomize({
   details,
   syncActions,
 }: NoteCustomizeProps) {
-  const {noteId, theme} = usePersistStore((s) => ({
-    noteId: s.mutateNoteData?.id,
-    theme: s.mutateNoteData?.theme,
-  }))
+  const noteId = usePersistStore((s) => s.mutateNoteData?.id)
   const draft = usePersistStore((state) => state.mutateNoteData)
   const session = usePersistStore((state) => state.noteSession)
   const dirty = session ? noteDraftChanged(draft, session.baseline) : false
@@ -129,17 +121,6 @@ export default function NoteCustomize({
       )}
       <div className="flex shrink-0 items-center gap-2">
         <NoteThemePicker disabled={isLoading} />
-
-        <Button
-          variant="secondary"
-          size="sm"
-          iconOnly
-          className={theme ? `border-theme-${theme}` : ''}
-          title={t('editor.texture')}
-          disabled
-        >
-          <IconTexture size="18" />
-        </Button>
       </div>
 
       <div className="min-w-0 justify-self-end">{details}</div>

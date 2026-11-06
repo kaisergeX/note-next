@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl'
 import {useRouter} from '~/i18n/navigation'
 import Button from '~/components/ui/button'
 import NoteCard, {
+  NoteCardEmpty,
   NoteCardFooter,
   NoteCardSummary,
 } from '~/components/note/note-card'
@@ -13,7 +14,6 @@ import TrashActions from './trash-actions'
 import ExpiryDate from './expiry-date'
 import {useTrashRefresh} from './use-trash-refresh'
 import TrashBulkActions from './trash-bulk-actions'
-import styles from './trash-layout.module.css'
 import TrashPreviewDialog from './trash-preview-dialog'
 
 export default function TrashList({
@@ -26,6 +26,7 @@ export default function TrashList({
   ownerId: string
 }) {
   const t = useTranslations('note.trash')
+  const tNote = useTranslations('note')
   const router = useRouter()
   const [removed, setRemoved] = useState<string[]>([])
   const [selected, setSelected] = useState<{item: TrashItem; request: number}>()
@@ -54,7 +55,7 @@ export default function TrashList({
         </p>
       )}
       {visible.length ? (
-        <ul className={`${styles.grid} grid gap-4`}>
+        <ul className="note-trash-grid grid gap-4">
           {visible.map((item) => (
             <li key={`${item.id}:${item.deadlineToken}`} className="min-w-0">
               <NoteCard theme={item.theme} className="flex h-full flex-col">
@@ -63,20 +64,31 @@ export default function TrashList({
                   pressMotion={false}
                   className="block h-auto w-full flex-1 p-4 text-left font-normal whitespace-normal"
                   aria-label={t('previewNamed', {
-                    title: item.title || t('untitled'),
+                    title: item.isEmpty
+                      ? tNote('emptyNote')
+                      : item.title || t('untitled'),
                   })}
                   onClick={() => {
                     setSelected({item, request: ++previewRequest.current})
                     setPreviewOpen(true)
                   }}
                 >
-                  <NoteCardSummary
-                    title={item.title || null}
-                    content={item.excerpt}
-                    theme={item.theme}
-                    plainText
-                    compact
-                  />
+                  {item.isEmpty ? (
+                    <NoteCardEmpty label={tNote('emptyNote')} />
+                  ) : (
+                    <>
+                      <NoteCardSummary
+                        title={item.title || null}
+                        content={item.excerpt}
+                        theme={item.theme}
+                        plainText
+                        compact
+                      />
+                      {!item.title && !item.excerpt && (
+                        <hr className="border-hairline my-3" />
+                      )}
+                    </>
+                  )}
                 </Button>
                 <NoteCardFooter
                   actions={

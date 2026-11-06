@@ -15,18 +15,18 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function PermissionDenied() {
   const t = useTranslations('common.navigation')
+  const pages = useTranslations('common.pages')
 
   return (
     <main className="flex-center h-full flex-col p-4">
       <div className="divide-hairline mb-8 items-stretch gap-4 max-sm:text-center sm:flex sm:divide-x">
         <h1 className="content-center sm:pr-4">429</h1>
         <div className="sm:py-2">
-          <h2>Rate limit exceeded</h2>
+          <h2>{pages('rateLimitTitle')}</h2>
           <p className="text-ink-muted mt-4 text-sm">
-            We detected too many requests from your devices in a short period.
-            <br />
-            If you believe this is an error, please contact support team.
+            {pages('rateLimitBody')}
           </p>
+          <p className="text-ink-muted mt-2 text-sm">{pages('support')}</p>
         </div>
       </div>
 

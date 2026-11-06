@@ -41,6 +41,14 @@ export function NoteCardFooter({
   )
 }
 
+export function NoteCardEmpty({label}: {label: string}) {
+  return (
+    <p className="text-ink-muted font-sans text-sm font-normal italic">
+      {label}
+    </p>
+  )
+}
+
 export function NoteCardSummary({
   title,
   content,

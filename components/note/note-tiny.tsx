@@ -11,8 +11,13 @@ import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom, {type MenuCustomItem} from '~/components/ui/menu'
 import {performNoteMutation} from '~/lib/notes/client-mutation'
 import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
+import {meaningfulContent} from '~/lib/notes/sync'
 import type {Note} from '~/db/schema/notes'
-import NoteCard, {NoteCardFooter, NoteCardSummary} from './note-card'
+import NoteCard, {
+  NoteCardEmpty,
+  NoteCardFooter,
+  NoteCardSummary,
+} from './note-card'
 
 type NoteProps = {
   data: Pick<Note, 'id' | 'title' | 'content' | 'theme'>
@@ -55,8 +60,7 @@ export default function NoteTiny({
         setDeleteError(true)
         return
       }
-      // The action returns the refreshed list. Keep this card mounted until
-      // that commit removes its ViewTransition boundary and animates the gap.
+      window.dispatchEvent(new CustomEvent('note-saved', {detail: result.note}))
     })
   }
 
@@ -99,12 +103,10 @@ export default function NoteTiny({
           }
         }}
       >
-        {title || content ? (
+        {meaningfulContent(data) ? (
           <NoteCardSummary title={title} content={content} theme={theme} />
         ) : (
-          <p className="text-ink-muted font-sans text-sm italic">
-            {t('recovery.emptyDraft')}
-          </p>
+          <NoteCardEmpty label={t('emptyNote')} />
         )}
       </Link>
 

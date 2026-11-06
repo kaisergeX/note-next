@@ -1,5 +1,4 @@
 import {getTranslations} from 'next-intl/server'
-import styles from '~/components/note/trash/trash-layout.module.css'
 import NoteCard from '~/components/note/note-card'
 import {buttonClass} from '~/components/ui/button'
 import {cn} from 'cn'
@@ -39,7 +38,7 @@ export default async function TrashLoading() {
             </span>
           </div>
         </div>
-        <div className={`${styles.grid} grid gap-4`}>
+        <div className="note-trash-grid grid gap-4">
           {Array.from({length: 6}).map((_, index) => (
             <NoteCard key={index}>
               <div className="space-y-3 p-4">

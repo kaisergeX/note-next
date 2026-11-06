@@ -44,9 +44,17 @@ function NoteDialogSurface({
   const version = search.get('version')
   useLayoutEffect(() => {
     const dialog = dialogRef.current
+    const beforeToggle = (event: ToggleEvent) => {
+      if (event.newState === 'open')
+        document.activeViewTransition?.skipTransition()
+    }
+    dialog?.addEventListener('beforetoggle', beforeToggle)
     // Cached routes disconnect effects without removing their DOM. Close before
     // the browser drops the top layer so the dialog can become modal again.
-    return () => dialog?.close()
+    return () => {
+      dialog?.removeEventListener('beforetoggle', beforeToggle)
+      dialog?.close()
+    }
   }, [])
   const mutateNoteData = usePersistStore((s) => s.mutateNoteData)
   const sessionIdentity = usePersistStore((s) => s.noteSession?.identity)
