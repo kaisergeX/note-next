@@ -58,6 +58,14 @@
   position-try: most-block-size flip-block;
 }
 
+@utility note-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(17rem, 100%), 1fr));
+}
+
+@utility note-trash-grid {
+  grid-template-columns: repeat(auto-fill, minmax(min(22rem, 100%), 1fr));
+}
+
 @utility touch-target-expand {
   @media (any-pointer: coarse) {
     &::after {

@@ -24,7 +24,7 @@ export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
 
   return (
     <NextIntlClientProvider messages={{note: noteMessages}}>
-      <ViewTransition>
+      <ViewTransition update="none">
         <NoteCollectionLayout
           ownerId={userInfo.id}
           creationLabel={genRandom(noteMessages.creation)}

@@ -1,6 +1,7 @@
 import TrashList from '~/components/note/trash/trash-list'
 import {noteRepository} from '~/db/helper/notes'
 import {noteText} from '~/lib/notes/text'
+import {meaningfulContent} from '~/lib/notes/sync'
 import {requireAuth} from '~/server-utils'
 
 export default async function TrashPage() {
@@ -15,6 +16,7 @@ export default async function TrashPage() {
           id: note.id,
           title: noteText(note.title),
           excerpt: noteText(note.content).slice(0, 240),
+          isEmpty: !meaningfulContent(note),
           deadlineToken: note.deadlineToken!,
           theme: note.theme,
         }))}

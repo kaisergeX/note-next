@@ -23,6 +23,16 @@
     "devtools": {
       "warn": "⚠️ Cảnh báo!!!",
       "description": "Xin hãy đóng công cụ dành cho nhà phát triển để tiếp tục sử dụng trang web.\nNếu ai đó bảo bạn sao chép hoặc dán bất kì thứ gì vào đây, đó là lừa đảo để đánh cắp thông tin của bạn."
+    },
+    "loading": "Đang tải…",
+    "pages": {
+      "notFound": "Không tìm thấy trang này.",
+      "permissionTitle": "Không có quyền truy cập",
+      "permissionBody": "Bạn không có quyền truy cập trang này.",
+      "support": "Nếu bạn cho rằng đây là lỗi, vui lòng liên hệ đội ngũ hỗ trợ etoN.",
+      "rateLimitTitle": "Quá nhiều yêu cầu",
+      "rateLimitBody": "Chúng tôi nhận được quá nhiều yêu cầu từ thiết bị của bạn trong thời gian ngắn. Vui lòng đợi trước khi thử lại.",
+      "privacyLanguage": "Chính sách quyền riêng tư hiện chỉ có bằng tiếng Anh."
     }
   },
   "auth": {
@@ -30,7 +40,9 @@
     "signIn": {
       "withGoogle": "Đăng nhập bằng Google"
     },
-    "signOut": "Đăng xuất"
+    "signOut": "Đăng xuất",
+    "consentBefore": "Khi đăng nhập, bạn đồng ý với",
+    "privacyPolicy": "Chính sách quyền riêng tư"
   },
   "homepage": {
     "title": "🏡 Tưởng tượng một trang giới thiệu rất fancy"
@@ -434,6 +446,7 @@
     }
   },
   "note": {
+    "emptyNote": "Ghi chú trống",
     "title": "Ghi chú",
     "collections": {
       "all": "Tất cả ghi chú",
@@ -729,6 +742,10 @@
       "thisVersion": "Phiên bản này",
       "exportAction": "Xuất",
       "discardAction": "Bỏ"
+    },
+    "loading": {
+      "collection": "Đang tải ghi chú…",
+      "editor": "Đang mở ghi chú…"
     }
   },
   "landing": {

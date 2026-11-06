@@ -4,8 +4,13 @@ import {useEffect, useState} from 'react'
 import {usePersistStore} from '~/store'
 import {listDrafts, type RecoveryDraft} from './drafts'
 import {groupRecoveryDrafts} from './recovery-copies'
+import {cancelNoteListTransition, startNoteListTransition} from './transitions'
 
-export function useRecoveryDrafts(ownerId: string, includeActive = false) {
+export function useRecoveryDrafts(
+  ownerId: string,
+  includeActive = false,
+  animateList = false,
+) {
   const [state, setState] = useState<{
     ownerId: string
     records: RecoveryDraft[]
@@ -16,12 +21,19 @@ export function useRecoveryDrafts(ownerId: string, includeActive = false) {
   useEffect(() => {
     let alive = true
     let request = 0
+    const transitionKey = {}
     const load = () => {
       const current = ++request
       void listDrafts(ownerId).then(
         (records) => {
-          if (alive && current === request)
-            setState({ownerId, records, error: false, loaded: true})
+          if (alive && current === request) {
+            const update = () => {
+              if (alive && current === request)
+                setState({ownerId, records, error: false, loaded: true})
+            }
+            if (animateList) startNoteListTransition(update, transitionKey)
+            else update()
+          }
         },
         () => {
           if (alive && current === request)
@@ -44,11 +56,12 @@ export function useRecoveryDrafts(ownerId: string, includeActive = false) {
     window.addEventListener('focus', load)
     return () => {
       alive = false
+      cancelNoteListTransition(transitionKey)
       channel?.close()
       window.removeEventListener('note-recovery-changed', load)
       window.removeEventListener('focus', load)
     }
-  }, [ownerId])
+  }, [ownerId, animateList])
   if (state.ownerId !== ownerId)
     return {records: [], groups: [], error: false, loaded: false}
   const records = state.records.filter(

@@ -1,6 +1,6 @@
 'use client'
 
-import {useEffect, useState} from 'react'
+import {useEffect, useState, ViewTransition} from 'react'
 import {useTranslations} from 'next-intl'
 import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
@@ -12,7 +12,7 @@ import {
 } from '~/lib/notes/recovery-copies'
 import {usePersistStore} from '~/store'
 import {useMobileNoteView} from '~/lib/notes/mobile'
-import {Link} from '~/i18n/navigation'
+import {Link, usePathname} from '~/i18n/navigation'
 import Button, {buttonClass} from '~/components/ui/button'
 import NoteTiny from './note-tiny'
 import RecoveryStatus from './recovery-status'
@@ -21,6 +21,11 @@ import NoteCreateEditor from './note-create'
 import {useMasonry} from '~/util/hooks/use-masonry'
 import CollectionTitle from './collection-title'
 import {withBrowserWorkReturn} from '~/lib/notes/navigation'
+import {
+  cancelNoteListTransition,
+  startNoteListTransition,
+} from '~/lib/notes/transitions'
+import {NoteListSkeleton} from './note-loading'
 
 export default function NotesCollection({
   ownerId,
@@ -34,31 +39,44 @@ export default function NotesCollection({
   const t = useTranslations('note.recovery')
   const editor = useTranslations('note.editor')
   const mobile = useMobileNoteView()
-  const {records, loaded, error} = useRecoveryDrafts(ownerId, true)
+  const pathname = usePathname()
+  const isCollectionRoute =
+    pathname === '/eton' || pathname === '/collection/browser-work'
+  const {records, loaded, error} = useRecoveryDrafts(ownerId, true, true)
   const [acknowledged, setAcknowledged] = useState<{
     source: Note[]
     notes: Record<string, Note>
   }>({source: notes, notes: {}})
-  const active = usePersistStore((state) => state.noteSession)
+  const storageFailed = usePersistStore(
+    (state) => state.noteSession?.storageFailed,
+  )
   const [filter, setFilter] = useState<'all' | 'review'>('all')
   const [ordering, setOrdering] = useState<{ownerId: string; ids: string[]}>({
     ownerId,
     ids: [],
   })
   useEffect(() => {
+    const keys = new Map<string, object>()
     const saved = (event: Event) => {
       const note = (event as CustomEvent<Note>).detail
-      if (note.authorId === ownerId)
-        setAcknowledged((previous) => ({
-          source: notes,
-          notes: {
-            ...(previous.source === notes ? previous.notes : {}),
-            [note.id]: note,
-          },
-        }))
+      if (note.authorId === ownerId) {
+        if (!keys.has(note.id)) keys.set(note.id, {})
+        startNoteListTransition(() => {
+          setAcknowledged((previous) => ({
+            source: notes,
+            notes: {
+              ...(previous.source === notes ? previous.notes : {}),
+              [note.id]: note,
+            },
+          }))
+        }, keys.get(note.id)!)
+      }
     }
     window.addEventListener('note-saved', saved)
-    return () => window.removeEventListener('note-saved', saved)
+    return () => {
+      window.removeEventListener('note-saved', saved)
+      keys.forEach(cancelNoteListTransition)
+    }
   }, [ownerId, notes])
   const server = new Map(
     notes
@@ -80,7 +98,7 @@ export default function NotesCollection({
   const known = new Set(ordered)
   const added = [...present].filter((id) => !known.has(id))
   if (added.length || ordering.ownerId !== ownerId) {
-    ordered = [...ordered, ...added]
+    ordered = [...added, ...ordered]
     setOrdering({ownerId, ids: ordered})
   }
   const ids = ordered.filter((id) => present.has(id))
@@ -99,8 +117,24 @@ export default function NotesCollection({
       ? reviewIds
       : ids
   if (!hasFilters && filter !== 'all') setFilter('all')
+  const layoutKey = displayed.join('|')
+  const [settledLayout, setSettledLayout] = useState(layoutKey)
+  const layoutChanged = settledLayout !== layoutKey
+  useEffect(() => {
+    let current = true
+    const settle = () => {
+      if (current) setSettledLayout(layoutKey)
+    }
+    void (document.activeViewTransition?.finished ?? Promise.resolve()).then(
+      settle,
+      settle,
+    )
+    return () => {
+      current = false
+    }
+  }, [layoutKey])
   const list = useMasonry<HTMLUListElement>(
-    loaded || error ? displayed.join('|') : 'loading',
+    loaded || error ? layoutKey : 'loading',
   )
   const card = (id: string) => {
     const saved = server.get(id)
@@ -134,35 +168,47 @@ export default function NotesCollection({
         ? undefined
         : `/full/eton/recover/${record!.id}${ambiguous ? '?review=1' : ''}`
     return (
-      <li key={id} className="min-w-0">
-        <NoteTiny
-          data={data}
-          href={href}
-          localOnly={!saved || unavailable}
-          pendingWork={copies.length > 0}
-          notice={unavailable ? t('draftOriginalUnavailable') : undefined}
-          actions={
-            !saved && groups.length === 1
-              ? () => <RecoveryManagement ownerId={ownerId} records={copies} />
-              : undefined
-          }
-          status={
-            copies.length ? (
-              <div className="flex items-center gap-1">
-                <RecoveryStatus review={review || unavailable} />
-                {(review || unavailable) && (
-                  <Link
-                    className={buttonClass({variant: 'link', size: 'sm'})}
-                    href={href ?? `${mobile ? '/full' : ''}/eton/${id}`}
-                  >
-                    {t(unavailable ? 'recoverNew' : 'reviewShort')}
-                  </Link>
-                )}
-              </div>
-            ) : undefined
-          }
-        />
-      </li>
+      <ViewTransition
+        key={id}
+        default="none"
+        enter={isCollectionRoute && layoutChanged ? 'auto' : 'none'}
+        exit={
+          isCollectionRoute ? {'note-list': 'auto', default: 'none'} : 'none'
+        }
+        update={isCollectionRoute && layoutChanged ? 'auto' : 'none'}
+      >
+        <li className="min-w-0">
+          <NoteTiny
+            data={data}
+            href={href}
+            localOnly={!saved || unavailable}
+            pendingWork={copies.length > 0}
+            notice={unavailable ? t('draftOriginalUnavailable') : undefined}
+            actions={
+              !saved && groups.length === 1
+                ? () => (
+                    <RecoveryManagement ownerId={ownerId} records={copies} />
+                  )
+                : undefined
+            }
+            status={
+              copies.length ? (
+                <div className="flex items-center gap-1">
+                  <RecoveryStatus review={review || unavailable} />
+                  {(review || unavailable) && (
+                    <Link
+                      className={buttonClass({variant: 'link', size: 'sm'})}
+                      href={href ?? `${mobile ? '/full' : ''}/eton/${id}`}
+                    >
+                      {t(unavailable ? 'recoverNew' : 'reviewShort')}
+                    </Link>
+                  )}
+                </div>
+              ) : undefined
+            }
+          />
+        </li>
+      </ViewTransition>
     )
   }
   return (
@@ -234,10 +280,11 @@ export default function NotesCollection({
           {t('recoveryFailed')}
         </p>
       )}
-      {!loaded && (
-        <p role="status" className="text-ink-muted mb-4 text-sm">
-          {t('loadingWork')}
-        </p>
+      {!loaded && !error && (
+        <div role="status" aria-busy="true">
+          <p className="text-ink-muted mb-4 text-sm">{t('loadingWork')}</p>
+          <NoteListSkeleton />
+        </div>
       )}
       {loaded && !error && !displayed.length && (
         <p className="text-ink-muted py-16 text-center font-serif">
@@ -246,11 +293,11 @@ export default function NotesCollection({
       )}
       <ul
         ref={list}
-        className="relative grid grid-cols-[repeat(auto-fill,minmax(min(17rem,100%),1fr))] grid-rows-[masonry] items-start gap-4 pb-8"
+        className="note-grid relative grid grid-rows-[masonry] items-start gap-4 pb-8"
       >
         {(loaded || error) && displayed.map(card)}
       </ul>
-      {active?.storageFailed && (
+      {storageFailed && (
         <p role="alert" className="text-destructive text-sm">
           {t('storageFailed')}
         </p>

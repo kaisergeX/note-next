@@ -20,7 +20,7 @@
   - [x] Move all notes to Trash with 30-day recovery.
 - [x] Note: [Restore all and Empty Trash](docs/archive/trash-bulk-actions.md) — implemented with recoverable counts and read-only card previews; validation is recorded in the archive.
 - [x] Settings: Note
-  - [x] [Editor, autosave, recovery, and conflict handling](docs/archive/note-editor/overview.md) — complete locally, including Working copies; production migration/deployment remain separate.
+  - [x] [Editor, autosave, recovery, and conflict handling](docs/archive/note-editor/overview.md) — Verification limits are recorded in the archive.
   - [x] Persistent formatting toolbar with desktop groups and a compact mobile panel.
   - [x] Theme.
 - [ ] Note: Drawable Mode,

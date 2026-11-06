@@ -32,6 +32,7 @@ export type TrashItem = {
   id: string
   title: string
   excerpt: string
+  isEmpty: boolean
   deadlineToken: string
   theme?: NoteTheme | null
 }

@@ -23,6 +23,16 @@
     "devtools": {
       "warn": "⚠️ Developer tools detected",
       "description": "Please close the developer tools!\nIf someone told you to copy/paste something, it is a SCAM and will compromise your account security."
+    },
+    "loading": "Loading…",
+    "pages": {
+      "notFound": "This page could not be found.",
+      "permissionTitle": "Permission denied",
+      "permissionBody": "You do not have permission to access this page.",
+      "support": "If you believe this is an error, please contact the etoN support team.",
+      "rateLimitTitle": "Rate limit exceeded",
+      "rateLimitBody": "We detected too many requests from your devices in a short period. Please wait before trying again.",
+      "privacyLanguage": "This privacy policy is currently available in English only."
     }
   },
   "auth": {
@@ -30,7 +40,9 @@
     "signIn": {
       "withGoogle": "Sign in with Google"
     },
-    "signOut": "Sign Out"
+    "signOut": "Sign Out",
+    "consentBefore": "By signing in, you agree to our",
+    "privacyPolicy": "Privacy Policy"
   },
   "homepage": {
     "title": "Imagine a home page here 🏡"
@@ -434,6 +446,7 @@
     }
   },
   "note": {
+    "emptyNote": "Empty note",
     "title": "Notes",
     "collections": {
       "all": "All notes",
@@ -729,6 +742,10 @@
       "thisVersion": "This version",
       "exportAction": "Export",
       "discardAction": "Discard"
+    },
+    "loading": {
+      "collection": "Loading notes…",
+      "editor": "Opening note…"
     }
   },
   "landing": {

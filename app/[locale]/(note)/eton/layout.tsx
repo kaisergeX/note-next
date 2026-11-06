@@ -7,9 +7,10 @@ export default function NoteLayout({
   modal,
 }: LayoutProps<'/[locale]/eton'>) {
   return (
-    <ViewTransition>
+    <ViewTransition update="none">
       {children}
-      {modal}
+      {/* The native dialog owns its animation; route snapshots flash the list. */}
+      <ViewTransition default="none">{modal}</ViewTransition>
     </ViewTransition>
   )
 }

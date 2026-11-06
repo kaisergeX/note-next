@@ -335,6 +335,7 @@ export default function AppHeader({
 
       <Dialog
         id="main-menu"
+        aria-label={navigationLabels.navigation}
         className="bg-paper-raised border-hairline shadow-sheet text-ink pt-[calc(.5rem+env(safe-area-inset-top))] max-xl:pb-[calc(1rem+env(safe-area-inset-bottom))]"
         open={isMenuDialogOpen}
         onClose={closeMenuDialog}
