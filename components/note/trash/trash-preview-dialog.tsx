@@ -14,6 +14,7 @@ import {useTranslations} from 'next-intl'
 import {unstable_rethrow} from 'next/navigation'
 import {cn} from 'cn'
 import Button from '~/components/ui/button'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import {Badge} from '~/components/ui/badge'
 import type {TrashItem} from '~/lib/notes/text'
 import type {LifecycleNote} from '~/lib/notes/lifecycle'
@@ -167,9 +168,7 @@ export default function TrashPreviewDialog({
             {t('changed')}
           </p>
         ) : loading ? (
-          <p role="status" className="text-ink-muted py-6 text-sm">
-            {t('loading')}
-          </p>
+          <LoadingIndicator label={t('loading')} className="py-6" />
         ) : error ? (
           <div className="space-y-3">
             <p role="alert" className="text-destructive text-sm">

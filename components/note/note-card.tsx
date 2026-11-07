@@ -1,6 +1,7 @@
 import {cn} from 'cn'
 import type {ReactNode} from 'react'
 import type {NoteTheme} from '~/db/schema/notes'
+import {sanitizeNoteHtml} from '~/lib/notes/html'
 
 export default function NoteCard({
   theme,
@@ -73,7 +74,7 @@ export function NoteCardSummary({
           )}
           {...(plainText
             ? {children: title}
-            : {dangerouslySetInnerHTML: {__html: title}})}
+            : {dangerouslySetInnerHTML: {__html: sanitizeNoteHtml(title)}})}
         />
       )}
       <article
@@ -85,7 +86,7 @@ export function NoteCardSummary({
         )}
         {...(plainText
           ? {children: content}
-          : {dangerouslySetInnerHTML: {__html: content || ''}})}
+          : {dangerouslySetInnerHTML: {__html: sanitizeNoteHtml(content)}})}
       />
     </>
   )

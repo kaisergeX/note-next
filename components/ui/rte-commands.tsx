@@ -14,6 +14,7 @@ import {
   IconListNumbers,
   IconBlockquote,
   IconCode,
+  IconCodeblock,
   IconStrikethrough,
   IconClearFormatting,
   IconClearAll,
@@ -163,7 +164,7 @@ export default function RTECommands({
     },
     {
       label: t('codeBlock'),
-      icon: <IconCode size={20} />,
+      icon: <IconCodeblock size={20} />,
       active: editor?.isActive('codeBlock'),
       action: () => editor?.chain().focus().toggleCodeBlock().run(),
     },

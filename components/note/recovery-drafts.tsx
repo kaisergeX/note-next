@@ -23,6 +23,7 @@ import {groupRecoveryDrafts} from '~/lib/notes/recovery-copies'
 import {Link, useRouter} from '~/i18n/navigation'
 import {isMobileNoteView} from '~/lib/notes/mobile'
 import type {Note} from '~/db/schema/notes'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import Button, {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
 import PopoverBase from '~/components/ui/popover'
@@ -204,9 +205,7 @@ export default function RecoveryDrafts({ownerId}: {ownerId: string}) {
         </p>
       )}
       {!loaded && (
-        <p role="status" className="text-ink-muted py-6 text-sm">
-          {t('loadingDrafts')}
-        </p>
+        <LoadingIndicator label={t('loadingDrafts')} className="py-6" />
       )}
       {loaded && !visible.length && !error && !storageError && (
         <div className="border-hairline flex min-h-64 flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-4 py-10 text-center">

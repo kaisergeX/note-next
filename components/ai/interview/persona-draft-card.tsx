@@ -178,7 +178,10 @@ export default function PersonaDraftCard({
           onClick={handleKeep}
         >
           {isPending ? (
-            <IconLoader2 className="animate-spin" size="1.2rem" />
+            <IconLoader2
+              className="animate-spin motion-reduce:animate-none"
+              size="1.2rem"
+            />
           ) : (
             <IconUserCheck size="18" />
           )}
@@ -233,7 +236,10 @@ export default function PersonaDraftCard({
             onClick={handleReroll}
           >
             {isPending ? (
-              <IconLoader2 className="animate-spin" size="16" />
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="16"
+              />
             ) : (
               <IconRefresh size="16" />
             )}{' '}

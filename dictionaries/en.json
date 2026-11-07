@@ -18,13 +18,24 @@
       "sthWrong": "Something went wrong!"
     },
     "action": {
-      "tryAgain": "Try again"
+      "tryAgain": "Try again",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing"
     },
     "devtools": {
       "warn": "⚠️ Developer tools detected",
       "description": "Please close the developer tools!\nIf someone told you to copy/paste something, it is a SCAM and will compromise your account security."
     },
     "loading": "Loading…",
+    "loadingUsers": "Loading users",
+    "loadingPhrases": {
+      "gathering": "Gathering ideas",
+      "sharpening": "Sharpening pencils",
+      "opening": "Opening a fresh page",
+      "sketching": "Sketching possibilities",
+      "ink": "Getting the ink flowing",
+      "inspiration": "Making room for inspiration"
+    },
     "pages": {
       "notFound": "This page could not be found.",
       "permissionTitle": "Permission denied",
@@ -224,7 +235,7 @@
         "generateMore": "Generate more",
         "generating": "Generating…",
         "cancel": "Cancel",
-        "progress": "Generating {done}/{total}…",
+        "progress": "Generating {done}/{total}",
         "draftsHeading": "Draft candidates",
         "empty": "No draft candidates yet",
         "emptyHint": "Describe your mix and generate the first batch.",
@@ -346,7 +357,7 @@
         "actionFailed": "The last action failed. Please try again.",
         "runSessions": "Run sessions",
         "runBadge": "Run",
-        "typing": "Typing…",
+        "typing": "Preparing a reply",
         "expandInput": "Expand input",
         "collapseInput": "Collapse input",
         "scrollToBottom": "Scroll to latest",
@@ -579,7 +590,7 @@
       "readOnly": "Read-only",
       "previewNamed": "Preview “{title}”",
       "closePreview": "Close preview",
-      "loading": "Loading Trash…",
+      "loading": "Loading Trash",
       "loadFailed": "Could not load Trash. Please try again.",
       "retry": "Try again"
     },
@@ -654,7 +665,7 @@
       "clearSearch": "Clear search",
       "draftsInfo": "About device drafts",
       "draftActions": "Actions for {title}",
-      "loadingDrafts": "Loading device drafts…",
+      "loadingDrafts": "Loading device drafts",
       "noDrafts": "No note drafts on this device",
       "draftsDescription": "Recover or export work saved in this browser. Opening a draft resumes that copy. Copies updated in another tab are kept separately. Browser storage can be cleared or evicted.",
       "recoveryFailed": "Could not access recovery storage. Keep this page open and retry, or export your current draft.",
@@ -699,9 +710,9 @@
       "discardTitle": "Discard your changes?",
       "backToChoices": "Back to choices",
       "versionTabs": "Compare note versions",
-      "opening": "Opening draft…",
+      "opening": "Opening draft",
       "keepBothShortHelp": "Save yours as a new note.",
-      "checkingSaved": "Checking the saved version…",
+      "checkingSaved": "Checking the saved version",
       "refreshFailed": "Couldn’t refresh. Retry before choosing a version.",
       "notesHome": "Notes",
       "browserOnly": "Only in this browser",
@@ -721,7 +732,7 @@
       "attentionCount": "{count, plural, one {# note needs review} other {# notes need review}}",
       "needsAttention": "Needs attention",
       "unavailableHelp": "The original notes are unavailable. Your browser copies are kept here.",
-      "loadingWork": "Loading browser work…",
+      "loadingWork": "Loading browser work",
       "emptyNotes": "Your next thought starts here.",
       "trashWithLocal": "Move the saved note to Trash? Local versions stay in Notes and can be saved as new notes.",
       "reviewVersions": "Review other versions",

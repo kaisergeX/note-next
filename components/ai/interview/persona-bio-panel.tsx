@@ -61,7 +61,10 @@ export default function PersonaBioPanel({
         disabled={regenerating}
       >
         {regenerating ? (
-          <IconLoader2 className="animate-spin" size="1.2rem" />
+          <IconLoader2
+            className="animate-spin motion-reduce:animate-none"
+            size="1.2rem"
+          />
         ) : (
           <IconSparkles size="1.2rem" />
         )}

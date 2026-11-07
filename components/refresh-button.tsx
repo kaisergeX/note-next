@@ -4,7 +4,11 @@ import {useRouter} from 'next/navigation'
 import {useTransition} from 'react'
 import Button from '~/components/ui/button'
 
-export default function RefreshButton() {
+export default function RefreshButton({
+  labels,
+}: {
+  labels: {refresh: string; refreshing: string}
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
@@ -19,7 +23,7 @@ export default function RefreshButton() {
         })
       }}
     >
-      {isPending ? 'Refreshing...' : 'Refresh'}
+      {isPending ? labels.refreshing : labels.refresh}
     </Button>
   )
 }

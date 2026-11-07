@@ -15,6 +15,7 @@ import {useMobileNoteView} from '~/lib/notes/mobile'
 import {Link, usePathname} from '~/i18n/navigation'
 import Button, {buttonClass} from '~/components/ui/button'
 import NoteTiny from './note-tiny'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import RecoveryStatus from './recovery-status'
 import RecoveryManagement from './recovery-management'
 import NoteCreateEditor from './note-create'
@@ -281,8 +282,8 @@ export default function NotesCollection({
         </p>
       )}
       {!loaded && !error && (
-        <div role="status" aria-busy="true">
-          <p className="text-ink-muted mb-4 text-sm">{t('loadingWork')}</p>
+        <div aria-busy="true">
+          <LoadingIndicator label={t('loadingWork')} className="mb-4" />
           <NoteListSkeleton />
         </div>
       )}

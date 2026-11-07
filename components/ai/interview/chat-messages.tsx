@@ -5,6 +5,7 @@ import {IconRefresh} from '@tabler/icons-react'
 import {useFormatter, useTranslations} from 'next-intl'
 import ChatBubble from '~/components/ai/interview/chat-bubble'
 import Button from '~/components/ui/button'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 
 type ChatMessagesProps = {
   messages: UIMessage[]
@@ -129,16 +130,7 @@ export default function ChatMessages({
             {personaName}
           </span>
           <ChatBubble variant="assistant">
-            {/* Visual-only dots; the label is for screen readers. */}
-            <div
-              role="status"
-              aria-label={t('typing')}
-              className="flex items-center gap-1.5 py-1"
-            >
-              <span className="typing-dot bg-ink-muted size-1.5 rounded-full" />
-              <span className="typing-dot bg-ink-muted size-1.5 rounded-full [animation-delay:200ms]" />
-              <span className="typing-dot bg-ink-muted size-1.5 rounded-full [animation-delay:400ms]" />
-            </div>
+            <LoadingIndicator label={t('typing')} className="py-1" />
           </ChatBubble>
         </div>
       )}

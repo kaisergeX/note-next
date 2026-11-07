@@ -8,6 +8,7 @@ Recorded completion results and release limits are in the [overview](overview.md
 pnpm test:notes:sync
 pnpm test:account
 node --import tsx --test scripts/note-editor-commands.test.ts
+node --import tsx --test scripts/note-html.test.ts
 pnpm lint
 pnpm build
 ```
@@ -53,6 +54,7 @@ Run the suite with NOTES_TEST_ORIGIN=http://localhost:3002. Matching auth origin
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | note-recovery                   | Failed-sync reopening, durable URLs, RSC/editor identity, guarded decisions, lost-response retries, competing versions                                   |
 | note-card-colors / note-close   | Authored card fills, one-card identity, close during committed/in-flight creation                                                                        |
+| note-html-safety                | Unsafe saved/recovery title/body HTML cannot execute in cards; formatting survives and source HTML is not rewritten                                      |
 | note-account-lifecycle          | Account-exit choices, real sign-out, expired sessions, live account switching and recovery retention                                                     |
 | note-browser-work               | Return context, reload, chooser dismissal, saved/browser choices, cached editor reopening                                                                |
 | note-edit-copy / note-workspace | Source retention, copy reuse/discard, stale resolution, reload, undo/editor identity, diff tabs, independent long-pane scrolling, worker history handoff |
