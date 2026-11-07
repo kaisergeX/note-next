@@ -1,6 +1,7 @@
 'use client'
 
 import {IconLoader2, IconPlayerStop, IconSparkles} from '@tabler/icons-react'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import {useTranslations} from 'next-intl'
 import {useRouter} from 'next/navigation'
 import {useRef, useState, useTransition} from 'react'
@@ -233,7 +234,10 @@ export default function BulkDraftWorkbench({
             onClick={() => generate('primary')}
           >
             {primaryActive ? (
-              <IconLoader2 className="animate-spin" size="1.2rem" />
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="1.2rem"
+              />
             ) : (
               <IconSparkles size="1.2rem" />
             )}
@@ -266,6 +270,12 @@ export default function BulkDraftWorkbench({
       </div>
 
       <div className="flex flex-col gap-3">
+        {loop !== null && (
+          <LoadingIndicator
+            label={t('progress', {done: loop.done, total: loop.total})}
+            className="tabular-nums"
+          />
+        )}
         <div className="flex-center-between gap-2">
           <h2 className="text-lg font-semibold">{t('draftsHeading')}</h2>
           <Button
@@ -275,7 +285,10 @@ export default function BulkDraftWorkbench({
             onClick={() => generate('more')}
           >
             {moreActive ? (
-              <IconLoader2 className="animate-spin" size="1.2rem" />
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="1.2rem"
+              />
             ) : (
               <IconSparkles size="1.2rem" />
             )}
@@ -315,16 +328,16 @@ export default function BulkDraftWorkbench({
                 aria-hidden
                 className="border-hairline bg-paper-raised flex flex-col gap-2 rounded-lg border p-4"
               >
-                <div className="bg-ink-tint h-5 w-2/3 animate-pulse rounded" />
-                <div className="bg-ink-tint h-4 w-1/2 animate-pulse rounded" />
+                <div className="bg-ink-tint h-5 w-2/3 rounded motion-safe:animate-pulse" />
+                <div className="bg-ink-tint h-4 w-1/2 rounded motion-safe:animate-pulse" />
                 <div className="mt-2 flex flex-col gap-2">
-                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
-                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
-                  <div className="bg-ink-tint h-1.5 w-full animate-pulse rounded" />
+                  <div className="bg-ink-tint h-1.5 w-full rounded motion-safe:animate-pulse" />
+                  <div className="bg-ink-tint h-1.5 w-full rounded motion-safe:animate-pulse" />
+                  <div className="bg-ink-tint h-1.5 w-full rounded motion-safe:animate-pulse" />
                 </div>
                 <div className="mt-auto flex gap-2 pt-2">
-                  <div className="bg-ink-tint h-8 w-16 animate-pulse rounded" />
-                  <div className="bg-ink-tint h-8 w-16 animate-pulse rounded" />
+                  <div className="bg-ink-tint h-8 w-16 rounded motion-safe:animate-pulse" />
+                  <div className="bg-ink-tint h-8 w-16 rounded motion-safe:animate-pulse" />
                 </div>
               </div>
             ))}

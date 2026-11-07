@@ -53,7 +53,10 @@ export default function StartInterviewButton({
         disabled={isPending}
       >
         {isPending ? (
-          <IconLoader2 className="animate-spin" size="1.2rem" />
+          <IconLoader2
+            className="animate-spin motion-reduce:animate-none"
+            size="1.2rem"
+          />
         ) : (
           <IconMessages size="1.2rem" />
         )}

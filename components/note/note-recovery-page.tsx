@@ -3,6 +3,7 @@
 import {useEffect, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import {exportDrafts, listDrafts, type RecoveryDraft} from '~/lib/notes/drafts'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import type {Note} from '~/db/schema/notes'
 import NoteDetail from '~/app/[locale]/(note)/eton/[id]/note-detail'
 import Button from '~/components/ui/button'
@@ -175,7 +176,7 @@ export default function NoteRecoveryPage({
           )}
         </>
       ) : (
-        <p role="status">{t('recovery.opening')}</p>
+        <LoadingIndicator label={t('recovery.opening')} />
       )}
       <Link
         className="text-accent mt-4 block underline underline-offset-4"

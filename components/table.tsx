@@ -4,8 +4,10 @@ import Image from 'next/image'
 import RefreshButton from './refresh-button'
 import {db} from '~/db'
 import {usersTable} from '~/db/schema/users'
+import {getTranslations} from 'next-intl/server'
 
 export default async function Table() {
+  const t = await getTranslations('common.action')
   const startTime = performance.now()
   const users = await db.select().from(usersTable)
   const duration = (performance.now() - startTime).toFixed()
@@ -19,7 +21,9 @@ export default async function Table() {
             Fetched {users.length} users in {duration}ms
           </p>
         </div>
-        <RefreshButton />
+        <RefreshButton
+          labels={{refresh: t('refresh'), refreshing: t('refreshing')}}
+        />
       </div>
       <div className="divide-hairline divide-y">
         {users.map((user) => (

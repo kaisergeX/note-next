@@ -5,6 +5,7 @@ import {useTranslations} from 'next-intl'
 import {cn} from 'cn'
 import {IconArrowsDiff, IconEye} from '@tabler/icons-react'
 import Button from '~/components/ui/button'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import {Badge} from '~/components/ui/badge'
 import type {Note, NoteTheme} from '~/db/schema/notes'
 import type {RecoveryDraft} from '~/lib/notes/drafts'
@@ -107,9 +108,10 @@ export default function NoteConflictReview({
           </div>
         )}
         {session?.checkingRemote && (
-          <p role="status" className="text-ink-muted mt-2 text-xs">
-            {t('checkingSaved')}
-          </p>
+          <LoadingIndicator
+            label={t('checkingSaved')}
+            className="mt-2 text-xs"
+          />
         )}
         {session?.remoteCheckFailed && (
           <div

@@ -7,7 +7,14 @@ export default async function Loading() {
     <LogoLoading
       className="min-h-0 flex-1"
       label={t('note.loading.collection')}
-      pulse
+      captions={[
+        t('common.loadingPhrases.gathering'),
+        t('common.loadingPhrases.sharpening'),
+        t('common.loadingPhrases.opening'),
+        t('common.loadingPhrases.sketching'),
+        t('common.loadingPhrases.ink'),
+        t('common.loadingPhrases.inspiration'),
+      ]}
     />
   )
 }

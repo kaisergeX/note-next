@@ -18,13 +18,24 @@
       "sthWrong": "Có gì đó sai sai!"
     },
     "action": {
-      "tryAgain": "Thử lại"
+      "tryAgain": "Thử lại",
+      "refresh": "Làm mới",
+      "refreshing": "Đang làm mới"
     },
     "devtools": {
       "warn": "⚠️ Cảnh báo!!!",
       "description": "Xin hãy đóng công cụ dành cho nhà phát triển để tiếp tục sử dụng trang web.\nNếu ai đó bảo bạn sao chép hoặc dán bất kì thứ gì vào đây, đó là lừa đảo để đánh cắp thông tin của bạn."
     },
     "loading": "Đang tải…",
+    "loadingUsers": "Đang tải người dùng",
+    "loadingPhrases": {
+      "gathering": "Đang gom ý tưởng",
+      "sharpening": "Đang gọt bút chì",
+      "opening": "Mở một trang mới",
+      "sketching": "Đang phác thảo",
+      "ink": "Chuẩn bị bút, mực",
+      "inspiration": "Tìm cảm hứng"
+    },
     "pages": {
       "notFound": "Không tìm thấy trang này.",
       "permissionTitle": "Không có quyền truy cập",
@@ -224,7 +235,7 @@
         "generateMore": "Tạo thêm",
         "generating": "Đang tạo…",
         "cancel": "Hủy",
-        "progress": "Đang tạo {done}/{total}…",
+        "progress": "Đang tạo {done}/{total}",
         "draftsHeading": "Ứng viên nháp",
         "empty": "Chưa có ứng viên nháp nào",
         "emptyHint": "Mô tả nhóm của bạn và tạo lô đầu tiên.",
@@ -346,7 +357,7 @@
         "actionFailed": "Thao tác vừa rồi không thành công. Vui lòng thử lại.",
         "runSessions": "Phiên chạy hàng loạt",
         "runBadge": "Loạt",
-        "typing": "Đang nhập…",
+        "typing": "Đang chuẩn bị trả lời",
         "expandInput": "Mở rộng khung nhập",
         "collapseInput": "Thu gọn khung nhập",
         "scrollToBottom": "Xuống tin nhắn mới nhất",
@@ -579,7 +590,7 @@
       "readOnly": "Chỉ đọc",
       "previewNamed": "Xem trước “{title}”",
       "closePreview": "Đóng bản xem trước",
-      "loading": "Đang tải thùng rác…",
+      "loading": "Đang tải thùng rác",
       "loadFailed": "Không thể tải thùng rác. Vui lòng thử lại.",
       "retry": "Thử lại"
     },
@@ -654,7 +665,7 @@
       "clearSearch": "Xóa tìm kiếm",
       "draftsInfo": "Về bản nháp trên máy",
       "draftActions": "Thao tác với {title}",
-      "loadingDrafts": "Đang tải bản nháp trên máy…",
+      "loadingDrafts": "Đang tải bản nháp trên máy",
       "noDrafts": "Không có bản nháp ghi chú trên thiết bị này",
       "draftsDescription": "Khôi phục hoặc xuất nội dung đã lưu trong trình duyệt. Mở bản nháp để tiếp tục chỉnh sửa bản đó. Bản được cập nhật ở tab khác vẫn được giữ riêng. Dữ liệu trình duyệt có thể bị xóa hoặc thu hồi.",
       "recoveryFailed": "Không thể truy cập dữ liệu khôi phục. Giữ trang này mở và thử lại hoặc xuất bản nháp hiện tại.",
@@ -699,9 +710,9 @@
       "discardTitle": "Bỏ thay đổi của bạn?",
       "backToChoices": "Quay lại lựa chọn",
       "versionTabs": "So sánh phiên bản ghi chú",
-      "opening": "Đang mở bản nháp…",
+      "opening": "Đang mở bản nháp",
       "keepBothShortHelp": "Lưu bản của bạn thành ghi chú mới.",
-      "checkingSaved": "Đang kiểm tra phiên bản đã lưu…",
+      "checkingSaved": "Đang kiểm tra phiên bản đã lưu",
       "refreshFailed": "Chưa thể cập nhật. Thử lại trước khi chọn phiên bản.",
       "notesHome": "Ghi chú",
       "browserOnly": "Chỉ trong trình duyệt này",
@@ -721,7 +732,7 @@
       "attentionCount": "{count} ghi chú cần xem lại",
       "needsAttention": "Cần chú ý",
       "unavailableHelp": "Ghi chú gốc không còn khả dụng. Các bản trong trình duyệt vẫn được giữ ở đây.",
-      "loadingWork": "Đang tải bản trong trình duyệt…",
+      "loadingWork": "Đang tải bản trong trình duyệt",
       "emptyNotes": "Bắt đầu ghi lại suy nghĩ của bạn.",
       "trashWithLocal": "Chuyển ghi chú đã lưu vào thùng rác? Các bản cục bộ vẫn ở Ghi chú và có thể lưu thành ghi chú mới.",
       "reviewVersions": "Xem các phiên bản khác",

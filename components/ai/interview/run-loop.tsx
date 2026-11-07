@@ -17,6 +17,7 @@ import {
 import type {RunItemStatus, RunStatus} from '~/db/schema/transcripts'
 import {Badge} from '~/components/ui/badge'
 import Button from '~/components/ui/button'
+import LoadingIndicator from '~/components/ui/loading-indicator'
 import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
 
 export type RunProgressView = {
@@ -220,9 +221,16 @@ export default function RunLoop({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm tabular-nums">
-          {t('progress', {done: progress.done, total: progress.total})}
-        </span>
+        {loopActive ? (
+          <LoadingIndicator
+            label={t('progress', {done: progress.done, total: progress.total})}
+            className="tabular-nums"
+          />
+        ) : (
+          <span className="text-sm tabular-nums">
+            {t('progress', {done: progress.done, total: progress.total})}
+          </span>
+        )}
         <div className="grow" />
         {showStartResume && (
           <Button className="min-h-11" onClick={() => void runLoop()}>
@@ -243,7 +251,10 @@ export default function RunLoop({
             disabled={loopActive || retrying}
           >
             {retrying ? (
-              <IconLoader2 className="animate-spin" size="1.2rem" />
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="1.2rem"
+              />
             ) : (
               <IconRefresh size="1.2rem" />
             )}

@@ -109,8 +109,36 @@
   }
 }
 
-@utility typing-dot {
-  animation: typing-bounce 1.2s ease-in-out infinite;
+@utility loading-spark {
+  @media (prefers-reduced-motion: no-preference) {
+    & > span {
+      animation: loading-bloom 2.4s ease-in-out infinite;
+    }
+    & > :nth-child(2) {
+      animation-delay: 0.15s;
+    }
+    & > :nth-child(4) {
+      animation-delay: 0.3s;
+    }
+    & > :nth-child(3) {
+      animation-delay: 0.45s;
+    }
+  }
+}
+
+@utility loading-caption {
+  @media (prefers-reduced-motion: no-preference) and (forced-colors: none) {
+    background-image: linear-gradient(
+      110deg,
+      var(--ink-muted) 35%,
+      var(--ink) 50%,
+      var(--ink-muted) 65%
+    );
+    background-size: 250% 100%;
+    background-clip: text;
+    color: transparent;
+    animation: loading-shimmer 2.6s linear infinite;
+  }
 }
 
 @utility animate-composer-thinking {
@@ -610,17 +638,27 @@
   }
 }
 
-@keyframes typing-bounce {
+@keyframes loading-bloom {
   0%,
-  60%,
+  75%,
   100% {
-    transform: translateY(0);
-    opacity: 0.4;
+    transform: scale(0.65) rotate(0deg);
+    border-radius: 50%;
+    opacity: 0.5;
   }
-
-  30% {
-    transform: translateY(-3px);
+  35% {
+    transform: scale(1) rotate(45deg);
+    border-radius: 15%;
     opacity: 1;
+  }
+}
+
+@keyframes loading-shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
   }
 }
 

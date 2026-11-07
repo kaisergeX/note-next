@@ -192,7 +192,10 @@ export default function RunNewForm({personas}: RunNewFormProps) {
             disabled={busy}
           >
             {detecting && (
-              <IconLoader2 className="animate-spin" size="1.2rem" />
+              <IconLoader2
+                className="animate-spin motion-reduce:animate-none"
+                size="1.2rem"
+              />
             )}
             {detecting ? t('detecting') : t('detect')}
           </Button>
@@ -266,7 +269,12 @@ export default function RunNewForm({personas}: RunNewFormProps) {
 
       <div>
         <Button className="min-h-11" onClick={handleSubmit} disabled={busy}>
-          {busy && <IconLoader2 className="animate-spin" size="1.2rem" />}
+          {busy && (
+            <IconLoader2
+              className="animate-spin motion-reduce:animate-none"
+              size="1.2rem"
+            />
+          )}
           {busy ? t('creating') : t('create')}
         </Button>
       </div>
