@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  ViewTransition,
-} from 'react'
+import {useEffect, useRef, useState, ViewTransition} from 'react'
 import {useTranslations} from 'next-intl'
 import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
@@ -25,7 +19,7 @@ import LoadingIndicator from '~/components/ui/loading-indicator'
 import RecoveryStatus from './recovery-status'
 import RecoveryManagement from './recovery-management'
 import NoteCreateEditor from './note-create'
-import {useMasonry} from '~/util/hooks/use-masonry'
+import NoteMasonry from './note-masonry'
 import CollectionTitle from './collection-title'
 import {withBrowserWorkReturn} from '~/lib/notes/navigation'
 import {
@@ -60,6 +54,7 @@ export default function NotesCollection({
   )
   const sentinel = useRef<HTMLDivElement>(null)
   const positionRef = useNoteListPosition()
+  const [returnId, setReturnId] = useState<string>()
   const [acknowledged, setAcknowledged] = useState<{
     source: NotePreview[]
     notes: Record<string, NotePreview>
@@ -176,25 +171,33 @@ export default function NotesCollection({
       current = false
     }
   }, [layoutKey])
-  const list = useMasonry<HTMLUListElement>(
-    loaded || error ? layoutKey : 'loading',
-  )
+  const list = useRef<HTMLUListElement>(null)
   const restored = useRef(false)
-  useLayoutEffect(() => {
-    if (restored.current || (!loaded && !error) || !isCollectionRoute) return
-    restored.current = true
+  const restorePosition = () => {
+    if (!isCollectionRoute) {
+      restored.current = false
+      return
+    }
+    if (restored.current || (!loaded && !error)) return
     const previous = positionRef.current
-    if (!previous || previous.browserWorkOnly !== browserWorkOnly) return
-    positionRef.current = undefined
+    if (!previous || previous.browserWorkOnly !== browserWorkOnly) {
+      restored.current = true
+      return
+    }
+    setReturnId(previous.id)
     const anchor = list.current?.querySelector<HTMLAnchorElement>(
       `a[data-note-id="${previous.id}"]`,
     )
-    if (anchor)
+    if (anchor) {
+      restored.current = true
+      positionRef.current = undefined
       window.scrollBy({
         top: anchor.getBoundingClientRect().top - previous.top,
         behavior: 'instant',
       })
-  }, [loaded, error, isCollectionRoute, positionRef, list, browserWorkOnly])
+      anchor.focus({preventScroll: true})
+    }
+  }
   const canLoad =
     !browserWorkOnly &&
     (loaded || error) &&
@@ -279,10 +282,11 @@ export default function NotesCollection({
         }
         update={isCollectionRoute && layoutChanged ? 'auto' : 'none'}
       >
-        <li className="min-w-0">
+        <>
           <NoteTiny
             data={data}
             onOpen={(anchor) => {
+              setReturnId(id)
               positionRef.current = {
                 id,
                 top: anchor.getBoundingClientRect().top,
@@ -316,7 +320,7 @@ export default function NotesCollection({
               ) : undefined
             }
           />
-        </li>
+        </>
       </ViewTransition>
     )
   }
@@ -400,12 +404,13 @@ export default function NotesCollection({
           {t(browserWorkOnly ? 'emptyBrowserWork' : 'emptyNotes')}
         </p>
       )}
-      <ul
-        ref={list}
-        className="note-grid relative grid grid-rows-[masonry] items-start gap-4 pb-8"
-      >
-        {(loaded || error) && displayed.map(card)}
-      </ul>
+      <NoteMasonry
+        ids={loaded || error ? displayed : []}
+        renderCard={card}
+        listRef={list}
+        pinnedId={returnId}
+        onLayout={restorePosition}
+      />
       {identities.isError && (
         <div role="alert" className="text-destructive mb-4 text-sm">
           <p>{t('loadFailed')}</p>

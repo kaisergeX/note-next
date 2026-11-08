@@ -139,7 +139,8 @@ for (const mobile of [false, true]) {
       .getByRole('button', {name: 'Save and go back', exact: true})
       .click()
     await expect(page).toHaveURL(/\/en\/eton$/)
-    await expect(cards).toHaveCount(48)
+    // Restoring near the end can legitimately trigger the final cursor page.
+    await expect.poll(() => cards.count()).toBeGreaterThanOrEqual(48)
     await expect(cards.filter({hasText: 'Edited older note'})).toHaveCount(1)
     await expect(cards.locator(`a[href="/en/eton/${older}"]`)).toBeInViewport()
   })
@@ -223,13 +224,13 @@ for (const lostCreation of [false, true]) {
     ).toBeVisible()
     await page.getByRole('button', {name: 'Review later', exact: true}).click()
     await page.getByRole('button', {name: 'All notes', exact: true}).click()
-    await page
-      .getByRole('button', {name: 'Load more notes', exact: true})
-      .scrollIntoViewIfNeeded()
+    await page.evaluate(() =>
+      scrollTo({top: document.body.scrollHeight, behavior: 'instant'}),
+    )
     await expect(cards).toHaveCount(49)
-    await page
-      .getByRole('button', {name: 'Load more notes', exact: true})
-      .scrollIntoViewIfNeeded()
+    await page.evaluate(() =>
+      scrollTo({top: document.body.scrollHeight, behavior: 'instant'}),
+    )
     await expect(cards).toHaveCount(60)
     await expect(cards.locator(`a[data-note-id="${old.id}"]`)).toHaveCount(1)
     await page.goto('/en/collection/browser-work')
