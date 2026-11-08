@@ -17,6 +17,11 @@ import {
 import {getNoteMutationCacheKeys} from '../db/helper'
 import {createNoteCleanupRepository} from '../db/repositories/note-cleanup'
 import {snapshot, type SyncRequest, type SyncResult} from '../lib/notes/sync'
+import {
+  NOTE_PAGE_SIZE,
+  NOTE_PREVIEW_LENGTH,
+  type NoteCursor,
+} from '../lib/notes/pages'
 
 const url = process.env.NOTES_TEST_DATABASE_URL
 assert.ok(
@@ -38,6 +43,74 @@ const cleanup = createNoteCleanupRepository(db)
 const owners: string[] = []
 let alice: string
 let bob: string
+
+test('cursor pages preserve tied timestamps, microseconds, bounded previews and owner isolation', async () => {
+  const [owner] = await db
+    .insert(usersTable)
+    .values({
+      name: 'Pagination fixture',
+      email: `pages-${randomUUID()}@test.invalid`,
+    })
+    .returning()
+  owners.push(owner.id)
+  const rows = await db
+    .insert(notesTable)
+    .values(
+      Array.from({length: 57}, (_, index) => ({
+        authorId: owner.id,
+        id: randomUUID(),
+        title: `<p>Page ${index}</p>`,
+        content: `<p>${'x'.repeat(NOTE_PREVIEW_LENGTH * 3)}</p>`,
+        createdAt: sql`'2030-01-01T00:00:00.123456Z'::timestamptz`,
+      })),
+    )
+    .returning()
+  const [newer] = await db
+    .insert(notesTable)
+    .values({
+      authorId: owner.id,
+      createdAt: sql`'2030-01-01T00:00:00.123457Z'::timestamptz`,
+    })
+    .returning()
+  const expected = [
+    newer.id,
+    ...rows
+      .map((row) => row.id)
+      .sort()
+      .reverse(),
+  ]
+  const ids: string[] = []
+  let cursor: NoteCursor | null = null
+  do {
+    const page = await repo.getNotePage(owner.id, cursor)
+    assert.ok(page.notes.length <= NOTE_PAGE_SIZE)
+    assert.ok(
+      page.notes.every(
+        (note) =>
+          note.authorId === owner.id &&
+          (note.content?.length ?? 0) <= NOTE_PREVIEW_LENGTH + 10,
+      ),
+    )
+    ids.push(...page.notes.map((note) => note.id))
+    if (page.nextCursor) assert.match(page.nextCursor.createdAt, /\.123456Z$/)
+    cursor = page.nextCursor
+  } while (cursor)
+  assert.deepEqual(ids, expected)
+  const first = await repo.getNotePage(owner.id)
+  assert.deepEqual(
+    await repo.getNotePage(owner.id, first.nextCursor),
+    await repo.getNotePage(owner.id, first.nextCursor),
+  )
+  assert.ok(
+    (await repo.getNote(owner.id, rows[0].id))!.content!.length >
+      NOTE_PREVIEW_LENGTH,
+  )
+  assert.deepEqual(await repo.getNotePreviews(bob, [rows[0].id]), [])
+  const outside = await repo.getNotePreviews(owner.id, [expected.at(-1)!])
+  assert.equal(outside[0].id, expected.at(-1))
+  await repo.moveNoteToTrash(owner.id, outside[0].id)
+  assert.deepEqual(await repo.getNotePreviews(owner.id, [outside[0].id]), [])
+})
 
 function success(result: NoteMutationResult) {
   assert.ok(noteMutationSucceeded(result), result.status)

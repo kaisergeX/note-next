@@ -8,6 +8,7 @@ import {
   getTableColumns,
   gt,
   isNull,
+  inArray,
   min,
   sql,
 } from 'drizzle-orm'
@@ -32,6 +33,13 @@ import {
   type SyncResult,
 } from '../../lib/notes/sync'
 import type {TrashIdentity} from '../../lib/notes/trash-bulk'
+import {
+  NOTE_PAGE_SIZE,
+  NOTE_PREVIEW_LENGTH,
+  notePreview,
+  type NoteCursor,
+  type NotePage,
+} from '../../lib/notes/pages'
 
 type NoteDatabase = Pick<
   PostgresJsDatabase,
@@ -78,6 +86,66 @@ export function createNoteRepository(db: NoteDatabase) {
       .from(notesTable)
       .where(and(owned(ownerId), active))
       .orderBy(desc(notesTable.createdAt), desc(notesTable.id))
+  }
+  const previewProjection = {
+    id: notesTable.id,
+    authorId: notesTable.authorId,
+    title: notesTable.title,
+    content: sql<
+      string | null
+    >`left(${notesTable.content}, ${NOTE_PREVIEW_LENGTH})`,
+    theme: notesTable.theme,
+    createdAt: notesTable.createdAt,
+    // Retain microseconds for both page boundaries and client-side ordering.
+    createdOrder: sql<string>`to_char(${notesTable.createdAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+    updatedAt: notesTable.updatedAt,
+    pendingDeleteAt: notesTable.pendingDeleteAt,
+  }
+  async function getNotePage(
+    ownerId: string,
+    cursor: NoteCursor | null = null,
+  ): Promise<NotePage> {
+    if (!validOwner(ownerId)) return {notes: [], nextCursor: null}
+    const rows = await db
+      .select(previewProjection)
+      .from(notesTable)
+      .where(
+        and(
+          owned(ownerId),
+          active,
+          cursor
+            ? sql`(${notesTable.createdAt}, ${notesTable.id}) < (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)`
+            : undefined,
+        ),
+      )
+      .orderBy(
+        sql`${notesTable.createdAt} desc nulls last`,
+        sql`${notesTable.id} desc nulls last`,
+      )
+      .limit(NOTE_PAGE_SIZE + 1)
+    const page = rows.slice(0, NOTE_PAGE_SIZE)
+    const last = page.at(-1)
+    return {
+      notes: page.map(notePreview),
+      nextCursor:
+        rows.length > NOTE_PAGE_SIZE && last
+          ? {createdAt: last.createdOrder, id: last.id}
+          : null,
+    }
+  }
+  async function getNotePreviews(ownerId: string, ids: string[]) {
+    if (
+      !validOwner(ownerId) ||
+      !ids.length ||
+      ids.length > 100 ||
+      ids.some((id) => !valid(ownerId, id))
+    )
+      return []
+    const rows = await db
+      .select(previewProjection)
+      .from(notesTable)
+      .where(and(owned(ownerId), active, inArray(notesTable.id, ids)))
+    return rows.map(notePreview)
   }
   async function getTrashNote(ownerId: string, noteId: string) {
     if (!valid(ownerId, noteId)) return null
@@ -334,6 +402,8 @@ export function createNoteRepository(db: NoteDatabase) {
     getServerTime,
     getNote,
     getListNote,
+    getNotePage,
+    getNotePreviews,
     getTrashNote,
     getTrashNotes,
     getTrashSummary,

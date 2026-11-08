@@ -45,7 +45,8 @@ export function useMasonry<T extends HTMLElement = HTMLDivElement>(
     return () => {
       cancelAnimationFrame(frame)
       observer.disconnect()
-      element.style.height = ''
+      // Keep the previous height until the next arrangement. Collapsing the
+      // list during a page append clamps the document scroll position to zero.
       for (const item of items) {
         item.style.position = ''
         item.style.width = ''

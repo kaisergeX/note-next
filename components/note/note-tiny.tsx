@@ -13,6 +13,7 @@ import {performNoteMutation} from '~/lib/notes/client-mutation'
 import {noteMutationSucceeded} from '~/lib/notes/lifecycle'
 import {meaningfulContent} from '~/lib/notes/sync'
 import type {Note} from '~/db/schema/notes'
+import {NOTE_PREVIEW_LENGTH} from '~/lib/notes/pages'
 import NoteCard, {
   NoteCardEmpty,
   NoteCardFooter,
@@ -27,6 +28,7 @@ type NoteProps = {
   actions?: (items: MenuCustomItem[]) => ReactNode
   pendingWork?: boolean
   localOnly?: boolean
+  onOpen?: (anchor: HTMLAnchorElement) => void
 }
 
 export default function NoteTiny({
@@ -37,6 +39,7 @@ export default function NoteTiny({
   actions,
   pendingWork,
   localOnly,
+  onOpen,
 }: NoteProps) {
   const {id: noteId, title, content, theme} = data
   const [pendingTransition, startTransition] = useTransition()
@@ -83,12 +86,21 @@ export default function NoteTiny({
     <NoteCard theme={theme} className="flex h-full flex-col">
       <Link
         className="block flex-1 p-4"
+        data-note-id={noteId}
         href={href ?? `/eton/${noteId}`}
         onClick={(e) => {
           if (pendingTransition) {
             e.preventDefault()
             return
           }
+          if (
+            !e.defaultPrevented &&
+            !e.metaKey &&
+            !e.ctrlKey &&
+            !e.shiftKey &&
+            !e.altKey
+          )
+            onOpen?.(e.currentTarget)
           if (
             !e.defaultPrevented &&
             !e.metaKey &&
@@ -104,7 +116,11 @@ export default function NoteTiny({
         }}
       >
         {meaningfulContent(data) ? (
-          <NoteCardSummary title={title} content={content} theme={theme} />
+          <NoteCardSummary
+            title={title}
+            content={content?.slice(0, NOTE_PREVIEW_LENGTH) ?? null}
+            theme={theme}
+          />
         ) : (
           <NoteCardEmpty label={t('emptyNote')} />
         )}

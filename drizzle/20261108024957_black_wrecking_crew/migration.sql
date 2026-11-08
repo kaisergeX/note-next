@@ -1,0 +1,1 @@
+CREATE INDEX "notes_owner_created_idx" ON "notes" ("author_id","created_at" DESC NULLS LAST,"id" DESC NULLS LAST) WHERE "pending_deleted_at" IS NULL;
