@@ -13,6 +13,7 @@ import {
   sql,
 } from 'drizzle-orm'
 import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js'
+import {writeSearchDocument} from './note-search'
 import {
   NOTE_RETENTION_SECONDS,
   type NoteMutationResult,
@@ -26,7 +27,7 @@ import {
   trashDraftSchema,
   syncRequestSchema,
 } from '~/lib/notes/validation'
-import {notesTable, noteCreationKeysTable} from '../schema/notes'
+import {notesTable, noteCreationKeysTable, type Note} from '../schema/notes'
 import {
   sameContent,
   meaningfulContent,
@@ -48,7 +49,7 @@ type NoteDatabase = Pick<
 
 // Internal factory, not a Server Action. Callers derive ownerId from auth.
 // Connection injection lets tests exercise real queries in a disposable database.
-export function createNoteRepository(db: NoteDatabase) {
+function createNoteQueries(db: NoteDatabase) {
   const projection = {
     ...getTableColumns(notesTable),
     // Preserve PostgreSQL microseconds; Date alone loses precision.
@@ -419,5 +420,56 @@ export function createNoteRepository(db: NoteDatabase) {
       noteId: string,
       deadline: unknown,
     ) => mutateTrash(ownerId, noteId, deadline, true),
+  }
+}
+
+// A projection and its note commit together. Existing owner transactions use
+// savepoints here; no intermediate plaintext projection is visible to readers.
+export function createNoteRepository(
+  db: NoteDatabase & Pick<PostgresJsDatabase, 'transaction'>,
+) {
+  const queries = createNoteQueries(db)
+  function indexed<
+    Args extends unknown[],
+    Result extends {status: string; note?: Note},
+  >(
+    run: (
+      repo: ReturnType<typeof createNoteQueries>,
+      ...args: Args
+    ) => Promise<Result>,
+  ) {
+    return (...args: Args) =>
+      db.transaction(async (tx) => {
+        const result = await run(createNoteQueries(tx), ...args)
+        if (
+          result.note &&
+          (result.status === 'success' || result.status === 'already_applied')
+        )
+          await writeSearchDocument(tx, result.note)
+        return result
+      })
+  }
+  return {
+    ...queries,
+    createNote: indexed(
+      (repo, ...args: Parameters<typeof queries.createNote>) =>
+        repo.createNote(...args),
+    ),
+    updateNote: indexed(
+      (repo, ...args: Parameters<typeof queries.updateNote>) =>
+        repo.updateNote(...args),
+    ),
+    syncNote: indexed((repo, ...args: Parameters<typeof queries.syncNote>) =>
+      repo.syncNote(...args),
+    ),
+    moveNoteToTrash: indexed(
+      (repo, ...args: Parameters<typeof queries.moveNoteToTrash>) =>
+        repo.moveNoteToTrash(...args),
+    ),
+    restoreNote: indexed(
+      (repo, ...args: Parameters<typeof queries.restoreNote>) =>
+        repo.restoreNote(...args),
+    ),
+    permanentlyDeleteTrashedNote: queries.permanentlyDeleteTrashedNote,
   }
 }
