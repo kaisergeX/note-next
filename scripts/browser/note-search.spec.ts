@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import postgres from 'postgres'
+import type {Page} from '@playwright/test'
 import {test, expect, body, drafts, fullPath} from './fixtures'
 
 // Search browser verification must use the isolated app/test database, never
@@ -11,6 +12,242 @@ assert.ok(
   ['localhost', '127.0.0.1', '[::1]'].includes(database.hostname) &&
     /_test(?:_|$)/.test(database.pathname),
 )
+
+async function openSearch(page: Page, name = 'Search notes') {
+  await page.getByRole('button', {name, exact: true}).click()
+  return page.getByRole('searchbox', {name, exact: true})
+}
+
+test('mobile search fills the row and New note floats clear of the final card', async ({
+  page,
+  noteApp,
+}) => {
+  await page.setViewportSize({width: 390, height: 844})
+  await noteApp.createMany(8)
+  await page.goto('/en/eton')
+  await expect(page.getByRole('searchbox')).toHaveCount(0)
+  const input = await openSearch(page)
+  await expect(input).toBeFocused()
+  await expect
+    .poll(() =>
+      input.evaluate((el) =>
+        Math.abs(
+          el.getBoundingClientRect().width -
+            document.querySelector('#browser-work')!.getBoundingClientRect()
+              .width,
+        ),
+      ),
+    )
+    .toBeLessThan(1)
+  const create = page.getByRole('button', {name: 'New note', exact: true})
+  await expect(create).toHaveCSS('position', 'fixed')
+  await expect(create).toHaveCSS('width', '48px')
+  await input.press('Escape')
+  await expect(input).toBeHidden()
+  await expect(
+    page.getByRole('button', {name: 'Search notes', exact: true}),
+  ).toBeFocused()
+  await page.evaluate(() =>
+    scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'}),
+  )
+  await expect
+    .poll(() =>
+      create.evaluate((el) => {
+        const lastBottom = Math.max(
+          ...Array.from(document.querySelectorAll('a[data-note-id]')).map(
+            (card) => card.closest('li')!.getBoundingClientRect().bottom,
+          ),
+        )
+        return el.getBoundingClientRect().top - lastBottom
+      }),
+    )
+    .toBeGreaterThan(0)
+})
+
+test('pending search uses the field indicator and hides pagination until results settle', async ({
+  page,
+  noteApp,
+}) => {
+  for (let index = 0; index < 30; index++) await noteApp.create()
+  await page.addInitScript(() => {
+    window.IntersectionObserver = class extends IntersectionObserver {
+      observe(target: Element) {
+        if (target.matches('li')) super.observe(target)
+      }
+    }
+  })
+  let release!: () => void
+  const gate = new Promise<void>((resolve) => {
+    release = resolve
+  })
+  await page.route('**/api/note/search', async (route) => {
+    await gate
+    await route.continue()
+  })
+  try {
+    await page.goto('/en/eton')
+    const input = await openSearch(page)
+    await input.fill('Original body')
+    await expect(input).toHaveAttribute('aria-busy', 'true')
+    await expect(
+      page.getByRole('button', {name: 'Load more matches', exact: true}),
+    ).toHaveCount(0)
+    await expect(page.locator('.note-search .loading-spark')).toBeVisible()
+    const height = await page
+      .locator('#browser-work')
+      .evaluate((el) => el.getBoundingClientRect().height)
+    release()
+    await expect(input).toHaveAttribute('aria-busy', 'false')
+    await expect(page.locator('a[data-note-id]')).toHaveCount(24)
+    await expect(
+      page.getByRole('button', {name: 'Load more matches', exact: true}),
+    ).toBeVisible()
+    expect(
+      await page
+        .locator('#browser-work')
+        .evaluate((el) => el.getBoundingClientRect().height),
+    ).toBe(height)
+    await expect(page.getByText(/matching notes?(?: loaded)?$/)).toHaveCount(0)
+  } finally {
+    release()
+  }
+})
+
+test('uneven typing debounces requests and keeps settled empty results visible', async ({
+  page,
+  noteApp,
+}) => {
+  await noteApp.create()
+  const requests: string[] = []
+  await page.route('**/api/note/search', async (route) => {
+    requests.push(route.request().postDataJSON().query)
+    await route.fulfill({
+      json: {ownerId: noteApp.ownerId, notes: [], nextCursor: null},
+    })
+  })
+  await page.goto('/en/eton')
+  const input = await openSearch(page)
+  const loading = page.locator('.note-search .loading-spark')
+  const empty = page.getByRole('status').filter({hasText: 'No matching notes.'})
+  await input.fill('n')
+  // Deliberately model pauses on both sides of the 300ms request debounce.
+  await page.waitForTimeout(100)
+  await input.fill('no')
+  await page.waitForTimeout(100)
+  expect(requests).toEqual([])
+  for (const value of ['non', 'none', 'none-found']) {
+    await input.fill(value)
+    await expect(input).toHaveAttribute('aria-busy', 'true')
+    await expect(loading).toHaveCount(0)
+    if (value !== 'non') await expect(empty).toBeVisible()
+    await expect(input).toHaveAttribute('aria-busy', 'false')
+    await expect(loading).toHaveCount(0)
+    await expect(empty).toBeVisible()
+    await page.waitForTimeout(100)
+  }
+  expect(requests).toEqual(['non', 'none', 'none-found'])
+  await expect(empty).toBeVisible()
+  await input.press('Escape')
+  await expect(empty).toHaveCount(0)
+})
+
+test('search retains notes while pending and transitions to ready results without remounting shared cards', async ({
+  page,
+  noteApp,
+}) => {
+  await page.emulateMedia({reducedMotion: 'no-preference'})
+  const common = await noteApp.save(await noteApp.create(), {
+    content: '<p>alpha beta</p>',
+  })
+  const alpha = await noteApp.save(await noteApp.create(), {
+    content: '<p>alpha only</p>',
+  })
+  const beta = await noteApp.save(await noteApp.create(), {
+    content: '<p>beta only</p>',
+  })
+  const releases: Array<() => void> = []
+  const gates = ['alpha', 'beta'].map(
+    () => new Promise<void>((resolve) => releases.push(resolve)),
+  )
+  await page.route('**/api/note/search', async (route) => {
+    const term = route.request().postDataJSON().query
+    const index = ['alpha', 'beta'].indexOf(term)
+    if (index >= 0) {
+      await gates[index]
+      await route.continue()
+    } else await route.fulfill({status: 503, json: {code: 'search_not_ready'}})
+  })
+  try {
+    await page.goto('/en/eton')
+    const input = await openSearch(page)
+    const cards = page.locator('a[data-note-id]')
+    await expect(cards).toHaveCount(3)
+    const shared = await page
+      .locator(`a[data-note-id="${common.id}"]`)
+      .elementHandle()
+    const list = await page.locator('ul[data-masonry]').elementHandle()
+    const motion = await page.evaluateHandle(() => {
+      const state = {effects: 0, running: true}
+      const seen = new WeakSet<Animation>()
+      const sample = () => {
+        for (const animation of document.getAnimations()) {
+          if (seen.has(animation)) continue
+          seen.add(animation)
+          if (
+            animation.effect instanceof KeyframeEffect &&
+            animation.effect.pseudoElement?.includes('view-transition')
+          )
+            state.effects++
+        }
+        if (state.running) requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+      return state
+    })
+    try {
+      await input.fill('alpha')
+      await expect(input).toHaveAttribute('aria-busy', 'true')
+      await expect(cards).toHaveCount(3)
+      await expect(page.locator('.note-search .loading-spark')).toBeVisible()
+      await expect(cards).toHaveCount(3)
+      releases[0]()
+      await expect(input).toHaveAttribute('aria-busy', 'false')
+      await expect(cards).toHaveCount(2)
+      await expect(page.locator(`a[data-note-id="${beta.id}"]`)).toHaveCount(0)
+      await page.waitForFunction(() => !document.activeViewTransition)
+      await expect
+        .poll(() => motion.evaluate((state) => state.effects))
+        .toBeGreaterThan(0)
+      await input.fill('beta')
+      await expect(input).toHaveAttribute('aria-busy', 'true')
+      await expect(page.locator(`a[data-note-id="${alpha.id}"]`)).toBeVisible()
+      await expect(page.locator(`a[data-note-id="${beta.id}"]`)).toHaveCount(0)
+      await expect(page.locator('.note-search .loading-spark')).toBeVisible()
+      releases[1]()
+      await expect(input).toHaveAttribute('aria-busy', 'false')
+      await expect(page.locator(`a[data-note-id="${alpha.id}"]`)).toHaveCount(0)
+      await expect(page.locator(`a[data-note-id="${beta.id}"]`)).toBeVisible()
+      expect(await shared!.evaluate((el) => el.isConnected)).toBe(true)
+      expect(await list!.evaluate((el) => el.isConnected)).toBe(true)
+      await input.fill('failed-query')
+      await expect(
+        page.getByRole('alert').filter({hasText: 'Search is being prepared.'}),
+      ).toBeVisible()
+      await expect(cards).toHaveCount(2)
+      await input.press('Escape')
+      await expect(cards).toHaveCount(3)
+    } finally {
+      await motion.evaluate((state) => {
+        state.running = false
+      })
+      await motion.dispose()
+      await shared?.dispose()
+      await list?.dispose()
+    }
+  } finally {
+    releases.forEach((release) => release())
+  }
+})
 
 test('typing searches unloaded notes and visible inline text; Clear restores the loaded list', async ({
   page,
@@ -32,13 +269,11 @@ test('typing searches unloaded notes and visible inline text; Clear restores the
   await page.goto('/en/eton')
   const target = page.locator(`a[data-note-id="${older.id}"]`)
   await expect(target).toHaveCount(0)
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   await input.fill('hello世界')
   await expect(target).toBeVisible()
   await expect(target).toContainText('hello世界')
-  await expect(
-    page.getByRole('status').filter({hasText: '1 matching note'}),
-  ).toBeVisible()
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
   await input.fill('cafe\u0301')
   await expect(target).toBeVisible()
   await input.fill('100%')
@@ -68,10 +303,7 @@ for (const mobile of [false, true]) {
       content: '<p>return-search-needle</p>',
     })
     await page.goto('/en/eton')
-    const input = page.getByRole('searchbox', {
-      name: 'Search notes',
-      exact: true,
-    })
+    const input = await openSearch(page)
     await input.fill('return-search-needle')
     const target = page.locator(`a[data-note-id="${note.id}"]`)
     await expect(target).toBeVisible()
@@ -113,7 +345,7 @@ test('a displayed browser draft suppresses a stale server hit and supplies a new
     )
     .toBe(true)
   await page.goto('/en/eton')
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   const target = page.locator(`a[data-note-id="${note.id}"]`)
   await input.fill('server-only-needle')
   await expect(
@@ -135,20 +367,15 @@ test('search and Needs review filter operate together on the displayed version',
   })
   const conflict = await noteApp.conflict()
   await page.goto('/en/eton')
-  await page
-    .getByRole('searchbox', {name: 'Search notes', exact: true})
-    .fill('Local browser work')
-  await expect(
-    page.getByRole('status').filter({hasText: '2 matching notes'}),
-  ).toBeVisible()
+  const input = await openSearch(page)
+  await input.fill('Local browser work')
+  await expect(page.locator('a[data-note-id]')).toHaveCount(2)
   await page.getByRole('button', {name: 'Needs review 1', exact: true}).click()
   await expect(
     page.locator(`a[data-note-id="${conflict.original.id}"]`),
   ).toBeVisible()
   await expect(page.locator(`a[data-note-id="${ordinary.id}"]`)).toHaveCount(0)
-  await expect(
-    page.getByRole('status').filter({hasText: '1 matching note'}),
-  ).toBeVisible()
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
 })
 
 test('encrypted title matches never inherit a body from the ordinary card preview', async ({
@@ -181,9 +408,8 @@ test('encrypted title matches never inherit a body from the ordinary card previe
     isEncrypted: true,
   })
   await page.goto('/en/eton')
-  await page
-    .getByRole('searchbox', {name: 'Search notes', exact: true})
-    .fill('encrypted-title-needle')
+  const input = await openSearch(page)
+  await input.fill('encrypted-title-needle')
   const target = page.locator(`a[data-note-id="${note.id}"]`)
   await expect(target).toBeVisible()
   await expect(target).not.toContainText('previous-plaintext-secret')
@@ -196,7 +422,7 @@ test('Vietnamese search reports no results and clears with localized controls', 
 }) => {
   await noteApp.create()
   await page.goto('/vi/eton')
-  const input = page.getByRole('searchbox', {name: 'Tìm ghi chú', exact: true})
+  const input = await openSearch(page, 'Tìm ghi chú')
   await input.fill('không-có-nội-dung-này')
   await expect(
     page.getByRole('status').filter({hasText: 'Không có ghi chú phù hợp.'}),
@@ -218,7 +444,7 @@ test('preparation failures preserve the query and retry without false no-results
       : route.continue(),
   )
   await page.goto('/en/eton')
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   await input.fill('Original body')
   await expect(
     page.getByRole('alert').filter({hasText: 'Search is being prepared.'}),
@@ -232,9 +458,7 @@ test('preparation failures preserve the query and retry without false no-results
     .getByRole('button', {name: 'Try again', exact: true})
     .first()
     .click()
-  await expect(
-    page.getByRole('status').filter({hasText: '1 matching note'}),
-  ).toBeVisible()
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
 })
 
 test('switching accounts resets search state and cannot display the previous account results', async ({
@@ -243,13 +467,12 @@ test('switching accounts resets search state and cannot display the previous acc
 }) => {
   await noteApp.create()
   await page.goto('/en/eton')
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   await input.fill('Original body')
-  await expect(
-    page.getByRole('status').filter({hasText: '1 matching note'}),
-  ).toBeVisible()
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
   await noteApp.signIn('secondary')
   await page.reload()
+  await openSearch(page)
   await expect(input).toHaveValue('')
   await expect(page.locator('a[data-note-id]')).toHaveCount(0)
   await input.fill('Original body')
@@ -268,7 +491,7 @@ test('an older acknowledged search card cannot survive a later authoritative edi
   })
   for (let index = 0; index < 26; index++) await noteApp.create()
   await page.goto('/en/eton')
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   await input.fill('older-acknowledgement-needle')
   const target = page.locator(`a[data-note-id="${targetNote.id}"]`)
   await target.click()
@@ -278,9 +501,7 @@ test('an older acknowledged search card cannot survive a later authoritative edi
     .click()
   await expect(input).toHaveValue('older-acknowledgement-needle')
   await expect(target).toBeVisible()
-  await expect(
-    page.getByRole('status').filter({hasText: '1 matching note'}),
-  ).toBeVisible()
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
   await expect
     .poll(
       async () =>
@@ -312,7 +533,7 @@ test('long search results keep card bodies bounded and restore their mounted ret
     }
   })
   await page.goto('/en/eton')
-  const input = page.getByRole('searchbox', {name: 'Search notes', exact: true})
+  const input = await openSearch(page)
   await input.fill('Original body')
   const list = page.locator('ul[data-masonry]')
   for (let loaded = 24; loaded < 160; loaded += 24) {

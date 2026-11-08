@@ -554,6 +554,90 @@
     }
   }
 
+  @media (width < 40rem) {
+    .note-create-action {
+      bottom: calc(var(--spacing) * 4 + env(safe-area-inset-bottom, 0px));
+    }
+
+    .note-collection {
+      padding-bottom: calc(
+        var(--spacing) * 24 + env(safe-area-inset-bottom, 0px)
+      );
+    }
+  }
+
+  /* Keep search mounted so CSS can finish the closing transition. */
+  .note-search-slot {
+    @apply w-10 max-w-full min-w-0;
+  }
+
+  .note-search-slot:has(> [data-expanded='true']) {
+    @apply w-80;
+  }
+
+  @media (width < 40rem) {
+    .note-search-slot:has(> [data-expanded='true']) {
+      @apply w-full;
+    }
+  }
+
+  .note-search {
+    @apply grid h-10 w-full items-start;
+    interpolate-size: allow-keywords;
+  }
+
+  .note-search[data-expanded='true'] {
+    @apply h-auto;
+  }
+
+  .note-search-trigger,
+  .note-search-panel {
+    grid-area: 1 / 1;
+  }
+
+  .note-search-panel {
+    display: none;
+    opacity: 0;
+  }
+
+  .note-search[data-expanded='true'] > .note-search-panel {
+    display: block;
+    opacity: 1;
+  }
+
+  .note-search[data-expanded='true'] > .note-search-trigger {
+    visibility: hidden;
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .note-search-slot {
+      transition: width 200ms ease;
+    }
+
+    .note-search {
+      transition: height 200ms ease;
+    }
+
+    .note-search-trigger {
+      transition:
+        opacity 200ms ease,
+        visibility 200ms;
+    }
+
+    .note-search-panel {
+      transition:
+        opacity 150ms ease,
+        display 200ms allow-discrete;
+    }
+
+    @starting-style {
+      .note-search[data-expanded='true'] > .note-search-panel {
+        opacity: 0;
+      }
+    }
+  }
+
   /* Menu popover (components/ui/popover.tsx): open/close transition via
    :popover-open + @starting-style. Closed state is the default rule; the open
    state overrides. Lives in @layer components so Tailwind's layered `mt-2` /

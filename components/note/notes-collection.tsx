@@ -61,7 +61,7 @@ export default function NotesCollection({
     browserWorkOnly ? '' : collection.search,
     composing,
   )
-  const searching = !browserWorkOnly && search.active
+  const searching = !browserWorkOnly && Boolean(search.displayTerm)
   const searchField = useRef<HTMLDivElement>(null)
   const mobile = useMobileNoteView()
   const pathname = usePathname()
@@ -74,7 +74,9 @@ export default function NotesCollection({
     records,
   )
   const listQuery = searching ? search.query : query
-  const listSettled = searching ? search.pagesSettled : pagesSettled
+  const listSettled = searching
+    ? search.pagesSettled
+    : !search.pending && pagesSettled
   const reconciledAt =
     isCollectionRoute &&
     listSettled &&
@@ -204,12 +206,19 @@ export default function NotesCollection({
   }
   const matches = reconcileNoteSearch(
     ownerId,
-    collection.search,
+    search.displayTerm,
     search.notes,
     overrides,
   )
   const searchPending =
     search.pending || (!loaded && !error) || identities.isFetching
+  const searchInProgress =
+    !browserWorkOnly && (search.active || searching) && searchPending
+  const searchFailure = search.error
+    ? search.error instanceof NoteSearchRequestError
+      ? search.error.code
+      : 'failed'
+    : null
   const present = new Set([...server.keys(), ...local.keys()])
   let ordered = ordering.ownerId === ownerId ? ordering.ids : []
   const known = new Set(ordered)
@@ -259,6 +268,7 @@ export default function NotesCollection({
   const displayed = searching
     ? filtered.filter((id) => matches.has(id))
     : filtered
+  const searchEmpty = searching && !searchFailure && displayed.length === 0
   if (!hasFilters && filter !== 'all') setFilter('all')
   const layoutKey = displayed.join('|')
   const [settledLayout, setSettledLayout] = useState(layoutKey)
@@ -294,7 +304,7 @@ export default function NotesCollection({
     if (!previous.departed) return
     if (
       (previous.search ?? '') !==
-      (searching ? foldSearchText(collection.search) : '')
+      (browserWorkOnly ? '' : foldSearchText(collection.search))
     ) {
       positionRef.current = undefined
       restored.current = true
@@ -314,7 +324,7 @@ export default function NotesCollection({
     setReturnId(previous.id)
     // A mobile route can first mount cached hits, then replace them with the
     // post-save response. Restore focus after that reconciliation has settled.
-    if (searching && searchPending) return
+    if (searchInProgress) return
     const anchor = list.current?.querySelector<HTMLAnchorElement>(
       `a[data-note-id="${previous.id}"]`,
     )
@@ -332,6 +342,7 @@ export default function NotesCollection({
     !browserWorkOnly &&
     (loaded || error) &&
     (searching || filter === 'all') &&
+    !searchInProgress &&
     listQuery.hasNextPage
   const {isFetching, isError, fetchNextPage} = listQuery
   useEffect(() => {
@@ -427,7 +438,9 @@ export default function NotesCollection({
                 id,
                 top: anchor.getBoundingClientRect().top,
                 browserWorkOnly,
-                search: searching ? foldSearchText(collection.search) : '',
+                search: browserWorkOnly
+                  ? ''
+                  : foldSearchText(collection.search),
               }
             }}
             href={href}
@@ -462,46 +475,23 @@ export default function NotesCollection({
     )
   }
   return (
-    <section aria-label={t(browserWorkOnly ? 'browserWorkTitle' : 'notesHome')}>
-      {!browserWorkOnly && (
-        <div ref={searchField}>
-          <NoteSearchControls
-            value={collection.search}
-            onChange={(value) =>
-              setCollection((state) => ({...state, search: value}))
-            }
-            onCompositionChange={setComposing}
-            pending={searchPending}
-            count={displayed.length}
-            complete={search.complete && !searchPending}
-            error={
-              search.error
-                ? search.error instanceof NoteSearchRequestError
-                  ? search.error.code
-                  : 'failed'
-                : null
-            }
-            onRetry={() =>
-              search.error instanceof NoteSearchRequestError &&
-              search.error.code === 'account_changed'
-                ? router.refresh()
-                : search.query.isFetchNextPageError
-                  ? void search.query.fetchNextPage()
-                  : void search.query.refetch()
-            }
-          />
-        </div>
-      )}
+    <section
+      aria-label={t(browserWorkOnly ? 'browserWorkTitle' : 'notesHome')}
+      className={browserWorkOnly ? undefined : 'note-collection'}
+    >
       <div
         id="browser-work"
         className={cn(
-          'bg-paper sticky top-16 z-10 mb-4 flex min-h-10 items-center justify-between gap-6',
+          'bg-paper sticky top-16 z-10 mb-4 flex min-h-10 justify-between',
+          browserWorkOnly ? 'items-center gap-6' : 'items-start gap-2',
           hasFilters && 'py-2',
         )}
       >
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
           {!browserWorkOnly && loaded && records.length > 0 && (
-            <RecoveryManagement ownerId={ownerId} records={records} all />
+            <div className="shrink-0">
+              <RecoveryManagement ownerId={ownerId} records={records} all />
+            </div>
           )}
           {browserWorkOnly && (
             <>
@@ -519,7 +509,7 @@ export default function NotesCollection({
             <div
               role="group"
               aria-label={t('filterNotes')}
-              className="flex flex-wrap items-center gap-1"
+              className="flex flex-wrap items-center gap-2 py-1"
             >
               <Button
                 variant={filter === 'all' ? 'secondary' : 'ghost'}
@@ -542,6 +532,19 @@ export default function NotesCollection({
               )}
             </div>
           )}
+          {!browserWorkOnly && (
+            <div ref={searchField} className="note-search-slot">
+              <NoteSearchControls
+                value={collection.search}
+                onChange={(value) =>
+                  setCollection((state) => ({...state, search: value}))
+                }
+                onCompositionChange={setComposing}
+                pending={searchPending && !search.error}
+                fetching={search.fetching && !search.error}
+              />
+            </div>
+          )}
         </div>
         {browserWorkOnly ? (
           loaded &&
@@ -549,11 +552,47 @@ export default function NotesCollection({
             <RecoveryManagement ownerId={ownerId} records={records} all />
           )
         ) : (
-          <div className="ml-auto shrink-0">
+          <div className="contents sm:ml-auto sm:block sm:shrink-0">
             <NoteCreateEditor creationLabel={editor('newNote')} />
           </div>
         )}
       </div>
+      {search.active && searchFailure && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <p role="alert" className="text-destructive text-sm">
+            {searchText(
+              searchFailure === 'not_ready'
+                ? 'notReady'
+                : searchFailure === 'account_changed'
+                  ? 'accountChanged'
+                  : 'failed',
+            )}
+          </p>
+          <Button
+            variant="secondary"
+            onClick={() =>
+              search.error instanceof NoteSearchRequestError &&
+              search.error.code === 'account_changed'
+                ? router.refresh()
+                : search.query.isFetchNextPageError
+                  ? void search.query.fetchNextPage()
+                  : void search.query.refetch()
+            }
+          >
+            {searchText(
+              searchFailure === 'account_changed' ? 'refresh' : 'retry',
+            )}
+          </Button>
+        </div>
+      )}
+      {searchEmpty && (
+        <p
+          role="status"
+          className="text-ink-muted py-16 text-center font-serif"
+        >
+          {searchText('noResults')}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-destructive mb-4 text-sm">
           {t('recoveryFailed')}
@@ -571,7 +610,6 @@ export default function NotesCollection({
         </p>
       )}
       <NoteMasonry
-        key={searching ? 'search' : 'notes'}
         ids={loaded || error ? displayed : []}
         renderCard={card}
         listRef={list}
@@ -587,6 +625,7 @@ export default function NotesCollection({
         </div>
       )}
       {!browserWorkOnly &&
+        !searchInProgress &&
         (!searching || !listQuery.isError) &&
         (searching || filter === 'all') &&
         (canLoad ||
