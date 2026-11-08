@@ -1,0 +1,321 @@
+{
+  "date": "2026-11-08",
+  "command": "node --env-file=.env.local scripts/run-note-search-tests.mjs --benchmark",
+  "method": {
+    "queries": "One first observed call, then six warm samples; nearest-rank p50/p95. Database caches are not reset.",
+    "baseline": "Drop only the two trigram indexes inside a rolled-back transaction; retain owner B-tree indexes and identical data.",
+    "shortQueries": "Both runs use explicit owner-indexed correlated primary-key lookups for patterns without a word trigram.",
+    "repositoryCalls": "One observed repository call including readiness, repeatable-read transaction and bounded snippets. Response size is serialized JSON; excludes HTTP/browser latency.",
+    "writes": "Five real body edits, five theme edits and five repeated idempotent acknowledgements per size; p95 is the maximum of five samples."
+  },
+  "dataset": {
+    "fixtures": 12000,
+    "ownerNotes": 3000,
+    "longNotes": 626,
+    "sourceMiB": 124.4,
+    "seedSeconds": 74.5,
+    "server": "15.14 (Debian 15.14-1.pgdg13+1)"
+  },
+  "node": "v26.12.1",
+  "unicode": "17.0",
+  "queryResults": [
+    {
+      "indexed": false,
+      "query": "selectivebeacon",
+      "firstMs": 272.8,
+      "p50Ms": 239.18,
+      "p95Ms": 250.77,
+      "executionMs": 236.515,
+      "indexes": ["notes_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "東京",
+      "firstMs": 3.71,
+      "p50Ms": 3.25,
+      "p95Ms": 4.35,
+      "executionMs": 3.34,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "العربية",
+      "firstMs": 216.86,
+      "p50Ms": 212.25,
+      "p95Ms": 222.56,
+      "executionMs": 204.972,
+      "indexes": ["notes_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "rare-title-beacon",
+      "firstMs": 337.15,
+      "p50Ms": 342.36,
+      "p95Ms": 397.82,
+      "executionMs": 325.957,
+      "indexes": []
+    },
+    {
+      "indexed": false,
+      "query": "世",
+      "firstMs": 1.88,
+      "p50Ms": 1.09,
+      "p95Ms": 1.51,
+      "executionMs": 0.388,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "🚀",
+      "firstMs": 3.31,
+      "p50Ms": 3.54,
+      "p95Ms": 4.65,
+      "executionMs": 4.291,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "🧬",
+      "firstMs": 49.24,
+      "p50Ms": 52.39,
+      "p95Ms": 56.53,
+      "executionMs": 57.582,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "龘龘",
+      "firstMs": 78.36,
+      "p50Ms": 54.56,
+      "p95Ms": 59.87,
+      "executionMs": 67.633,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "%",
+      "firstMs": 5.53,
+      "p50Ms": 4.76,
+      "p95Ms": 5.86,
+      "executionMs": 3.916,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "absent-query-zzzz",
+      "firstMs": 285.7,
+      "p50Ms": 266.42,
+      "p95Ms": 311.44,
+      "executionMs": 284.974,
+      "indexes": ["notes_pkey"]
+    },
+    {
+      "indexed": false,
+      "query": "word",
+      "firstMs": 182.11,
+      "p50Ms": 174.41,
+      "p95Ms": 188.51,
+      "executionMs": 168.167,
+      "indexes": ["notes_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "selectivebeacon",
+      "firstMs": 15.69,
+      "p50Ms": 6.32,
+      "p95Ms": 7.43,
+      "executionMs": 4.194,
+      "indexes": [
+        "note_search_title_trgm_idx",
+        "note_search_body_trgm_idx",
+        "notes_pkey"
+      ]
+    },
+    {
+      "indexed": true,
+      "query": "東京",
+      "firstMs": 4.06,
+      "p50Ms": 3.95,
+      "p95Ms": 4.99,
+      "executionMs": 2.743,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "العربية",
+      "firstMs": 28.74,
+      "p50Ms": 27.58,
+      "p95Ms": 37.35,
+      "executionMs": 27.974,
+      "indexes": [
+        "note_search_title_trgm_idx",
+        "note_search_body_trgm_idx",
+        "notes_pkey"
+      ]
+    },
+    {
+      "indexed": true,
+      "query": "rare-title-beacon",
+      "firstMs": 3.71,
+      "p50Ms": 3.01,
+      "p95Ms": 3.84,
+      "executionMs": 1.779,
+      "indexes": ["note_search_title_trgm_idx", "note_search_body_trgm_idx"]
+    },
+    {
+      "indexed": true,
+      "query": "世",
+      "firstMs": 1.64,
+      "p50Ms": 1.37,
+      "p95Ms": 1.58,
+      "executionMs": 0.392,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "🚀",
+      "firstMs": 3.66,
+      "p50Ms": 3.74,
+      "p95Ms": 4.13,
+      "executionMs": 2.834,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "🧬",
+      "firstMs": 47.21,
+      "p50Ms": 50.79,
+      "p95Ms": 61.77,
+      "executionMs": 49.508,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "龘龘",
+      "firstMs": 49.36,
+      "p50Ms": 57.7,
+      "p95Ms": 78,
+      "executionMs": 66.839,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "%",
+      "firstMs": 4.22,
+      "p50Ms": 5.36,
+      "p95Ms": 7.43,
+      "executionMs": 4.11,
+      "indexes": ["notes_owner_created_idx", "note_search_documents_pkey"]
+    },
+    {
+      "indexed": true,
+      "query": "absent-query-zzzz",
+      "firstMs": 2.01,
+      "p50Ms": 1.18,
+      "p95Ms": 1.39,
+      "executionMs": 0.16,
+      "indexes": [
+        "note_search_title_trgm_idx",
+        "note_search_body_trgm_idx",
+        "notes_pkey"
+      ]
+    },
+    {
+      "indexed": true,
+      "query": "word",
+      "firstMs": 220.2,
+      "p50Ms": 213.22,
+      "p95Ms": 307.26,
+      "executionMs": 179.506,
+      "indexes": [
+        "note_search_title_trgm_idx",
+        "note_search_body_trgm_idx",
+        "notes_pkey"
+      ]
+    }
+  ],
+  "storage": [
+    {
+      "relname": "note_search_body_trgm_idx",
+      "total_size": "105 MB"
+    },
+    {
+      "relname": "note_search_documents",
+      "total_size": "278 MB"
+    },
+    {
+      "relname": "note_search_title_trgm_idx",
+      "total_size": "3064 kB"
+    },
+    {
+      "relname": "notes",
+      "total_size": "89 MB"
+    }
+  ],
+  "repositoryCalls": [
+    {
+      "query": "selectivebeacon",
+      "ms": 18.11,
+      "rows": 24,
+      "responseBytes": 12399
+    },
+    {
+      "query": "東京",
+      "ms": 12.07,
+      "rows": 24,
+      "responseBytes": 15589
+    },
+    {
+      "query": "🚀",
+      "ms": 12.47,
+      "rows": 24,
+      "responseBytes": 15350
+    },
+    {
+      "query": "absent-query-zzzz",
+      "ms": 6.43,
+      "rows": 0,
+      "responseBytes": 30
+    }
+  ],
+  "writes": [
+    {
+      "bodyChars": 1757,
+      "p50Ms": 7.58,
+      "p95Ms": 9.81,
+      "themeP50Ms": 5.21,
+      "themeP95Ms": 5.45,
+      "retryP50Ms": 5,
+      "retryP95Ms": 6.22
+    },
+    {
+      "bodyChars": 59894,
+      "p50Ms": 109.29,
+      "p95Ms": 114.25,
+      "themeP50Ms": 6.81,
+      "themeP95Ms": 8.17,
+      "retryP50Ms": 6.01,
+      "retryP95Ms": 6.26
+    },
+    {
+      "bodyChars": 182595,
+      "p50Ms": 93.51,
+      "p95Ms": 338.78,
+      "themeP50Ms": 8.01,
+      "themeP95Ms": 8.59,
+      "retryP50Ms": 7.26,
+      "retryP95Ms": 8
+    }
+  ],
+  "limitations": [
+    "Synthetic deterministic local data on PostgreSQL 15; timings describe this run, not a production service-level guarantee.",
+    "Common queries can remain slower than selective indexed queries. Absent short/symbol queries scan the current owner only.",
+    "Projection table total size includes indexes and TOAST; do not add its index sizes again.",
+    "Source plaintext remains in notes as before. Clearing an encrypted projection is not a promise to erase historical WAL, backups or old MVCC versions."
+  ],
+  "references": [
+    "https://www.postgresql.org/docs/current/pgtrgm.html",
+    "https://github.com/apostrophecms/sanitize-html",
+    "https://orm.drizzle.team/docs/transactions"
+  ]
+}
