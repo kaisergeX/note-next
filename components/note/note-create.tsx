@@ -26,7 +26,7 @@ export default function NoteCreateEditor({
     <>
       <Button
         variant="secondary"
-        className="group btn-light-sweep w-auto gap-0 p-2 transition-all duration-300 sm:hover:gap-2"
+        className="note-create-action group btn-light-sweep max-sm:shadow-sheet w-auto gap-0 p-2 transition-all duration-300 max-sm:fixed max-sm:right-4 max-sm:z-20 max-sm:size-12 max-sm:rounded-full sm:hover:gap-2"
         aria-label={creationLabel}
         onClick={() => {
           if (isMobileNoteView()) router.push('/full/eton/new')

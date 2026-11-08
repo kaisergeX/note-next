@@ -16,7 +16,7 @@ export function useNoteSearch(
   const [settled, setSettled] = useState({ownerId, term})
   useEffect(() => {
     if (composing) return
-    const timer = setTimeout(() => setSettled({ownerId, term}), 200)
+    const timer = setTimeout(() => setSettled({ownerId, term}), 300)
     return () => clearTimeout(timer)
   }, [ownerId, term, composing])
   const waiting =
@@ -41,27 +41,52 @@ export function useNoteSearch(
     ownerId: string
     term: string
     notes: NoteSearchMatch[]
-  }>({ownerId, term: settled.term, notes: fetched})
+  }>({ownerId, term: query.isSuccess ? settled.term : '', notes: fetched})
   useEffect(() => {
+    if (active && (waiting || !query.isSuccess || query.isFetching)) return
     const key = {}
     startNoteListTransition(
-      () => setShown({ownerId, term: settled.term, notes: fetched}),
+      () =>
+        setShown((previous) => {
+          const nextTerm = active ? settled.term : ''
+          const nextNotes = active ? fetched : []
+          return previous.ownerId === ownerId &&
+            previous.term === nextTerm &&
+            (active
+              ? previous.notes === nextNotes
+              : previous.notes.length === 0)
+            ? previous
+            : {ownerId, term: nextTerm, notes: nextNotes}
+        }),
       key,
     )
     return () => cancelNoteListTransition(key)
-  }, [ownerId, settled.term, fetched])
-  const notes =
-    active && !waiting && shown.ownerId === ownerId && shown.term === term
-      ? shown.notes
-      : []
-  const pagesSettled = shown.notes === fetched && shown.term === term
+  }, [
+    ownerId,
+    settled.term,
+    fetched,
+    active,
+    waiting,
+    query.isSuccess,
+    query.isFetching,
+  ])
+  const displayTerm = shown.ownerId === ownerId ? shown.term : ''
+  const notes = shown.ownerId === ownerId ? shown.notes : []
+  const pagesSettled =
+    !waiting &&
+    shown.ownerId === ownerId &&
+    shown.notes === fetched &&
+    shown.term === term
   return {
     query,
     notes,
     active,
+    displayTerm,
+    fetching: active && !waiting && query.isFetching,
     pending:
-      active &&
-      (waiting || query.isPending || query.isFetching || !pagesSettled),
+      displayTerm !== term ||
+      (active &&
+        (waiting || query.isPending || query.isFetching || !pagesSettled)),
     complete:
       active &&
       !waiting &&
