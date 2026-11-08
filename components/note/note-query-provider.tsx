@@ -10,6 +10,7 @@ import {
   type RefObject,
 } from 'react'
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query'
+import type {VirtualItem} from '@tanstack/react-virtual'
 import type {Note} from '~/db/schema/notes'
 import {
   cancelNoteListTransition,
@@ -22,6 +23,10 @@ const NoteListPosition = createContext<RefObject<ListPosition>>({
   current: undefined,
 })
 export const useNoteListPosition = () => useContext(NoteListPosition)
+const MasonryCache = createContext(new Map<string, VirtualItem[]>())
+export const useNoteMasonryCache = () => useContext(MasonryCache)
+const NativeMasonryCache = createContext(new Map<string, number>())
+export const useNativeMasonryCache = () => useContext(NativeMasonryCache)
 
 export default function NoteQueryProvider({
   children,
@@ -31,6 +36,8 @@ export default function NoteQueryProvider({
   ownerId: string
 }) {
   const position = useRef<ListPosition>(undefined)
+  const [masonryCache] = useState(() => new Map<string, VirtualItem[]>())
+  const [nativeMasonryCache] = useState(() => new Map<string, number>())
   const [client] = useState(
     () =>
       new QueryClient({
@@ -63,7 +70,11 @@ export default function NoteQueryProvider({
   }, [client, ownerId])
   return (
     <QueryClientProvider client={client}>
-      <NoteListPosition value={position}>{children}</NoteListPosition>
+      <MasonryCache value={masonryCache}>
+        <NativeMasonryCache value={nativeMasonryCache}>
+          <NoteListPosition value={position}>{children}</NoteListPosition>
+        </NativeMasonryCache>
+      </MasonryCache>
     </QueryClientProvider>
   )
 }
