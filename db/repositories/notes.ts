@@ -94,7 +94,9 @@ function createNoteQueries(db: NoteDatabase) {
     title: notesTable.title,
     content: sql<
       string | null
-    >`left(${notesTable.content}, ${NOTE_PREVIEW_LENGTH})`,
+    >`case when ${notesTable.isEncrypted} then null else left(${notesTable.content}, ${NOTE_PREVIEW_LENGTH}) end`,
+    isEncrypted: notesTable.isEncrypted,
+    revision: notesTable.revision,
     theme: notesTable.theme,
     createdAt: notesTable.createdAt,
     // Retain microseconds for both page boundaries and client-side ordering.

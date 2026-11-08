@@ -21,7 +21,10 @@ import NoteCard, {
 } from './note-card'
 
 type NoteProps = {
-  data: Pick<Note, 'id' | 'title' | 'content' | 'theme'>
+  data: Pick<Note, 'id' | 'title' | 'content' | 'theme'> & {
+    isEncrypted?: boolean
+  }
+  snippet?: string
   href?: string
   status?: ReactNode
   notice?: ReactNode
@@ -40,6 +43,7 @@ export default function NoteTiny({
   pendingWork,
   localOnly,
   onOpen,
+  snippet,
 }: NoteProps) {
   const {id: noteId, title, content, theme} = data
   const [pendingTransition, startTransition] = useTransition()
@@ -115,10 +119,15 @@ export default function NoteTiny({
           }
         }}
       >
-        {meaningfulContent(data) ? (
+        {meaningfulContent(data) || Boolean(snippet) ? (
           <NoteCardSummary
             title={title}
-            content={content?.slice(0, NOTE_PREVIEW_LENGTH) ?? null}
+            content={
+              data.isEncrypted
+                ? null
+                : (content?.slice(0, NOTE_PREVIEW_LENGTH) ?? null)
+            }
+            bodyText={data.isEncrypted ? '' : snippet}
             theme={theme}
           />
         ) : (

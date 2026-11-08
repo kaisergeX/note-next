@@ -462,6 +462,22 @@
   "note": {
     "emptyNote": "Empty note",
     "title": "Notes",
+    "search": {
+      "label": "Search notes",
+      "placeholder": "Type to filter your notes…",
+      "scope": "Searches titles and unencrypted note text. Encrypted notes match by title only.",
+      "clear": "Clear",
+      "loadMore": "Load more matches",
+      "searching": "Searching notes…",
+      "noResults": "No matching notes. Try different text or clear the search.",
+      "count": "{count, plural, one {# matching note} other {# matching notes}}",
+      "loadedCount": "{count, plural, one {# matching note loaded} other {# matching notes loaded}}",
+      "failed": "Could not search your notes. Please try again.",
+      "notReady": "Search is being prepared. Your notes are still available when you clear the search.",
+      "accountChanged": "The signed-in account has changed. Refresh this page to continue.",
+      "retry": "Try again",
+      "refresh": "Refresh"
+    },
     "collections": {
       "all": "All notes",
       "deleted": "Recently deleted"

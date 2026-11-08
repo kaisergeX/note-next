@@ -3,7 +3,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-000?style=for-the-badge&logo=vercel)](https://nextjs.org/)
 [![TailwindCSS](https://img.shields.io/badge/TailwindCSS-fff?style=for-the-badge&logo=tailwindcss)](https://tailwindcss.com/)
 [![neon](https://img.shields.io/badge/neon-000?style=for-the-badge&logo=postgresql&logoColor=white)](https://neon.com/)
-[![Drizzle](https://img.shields.io/badge/drizzile-fff?style=for-the-badge&logo=drizzile&logoColor=4bb74a)](https://orm.drizzle.team/)
+[![Drizzle](https://img.shields.io/badge/drizzle-fff?style=for-the-badge&logo=drizzle&logoColor=4bb74a)](https://orm.drizzle.team/)
 
 ## Roadmap
 

@@ -56,12 +56,14 @@ export function NoteCardSummary({
   theme,
   plainText = false,
   compact = false,
+  bodyText,
 }: {
   title: string | null
   content: string | null
   theme?: NoteTheme | null
   plainText?: boolean
   compact?: boolean
+  bodyText?: string
 }) {
   const prose = theme ? `prose-${theme}` : 'prose-appearance'
   return (
@@ -84,8 +86,8 @@ export function NoteCardSummary({
           compact ? 'line-clamp-2' : 'line-clamp-10',
           prose,
         )}
-        {...(plainText
-          ? {children: content}
+        {...(bodyText !== undefined || plainText
+          ? {children: bodyText ?? content}
           : {dangerouslySetInnerHTML: {__html: sanitizeNoteHtml(content)}})}
       />
     </>

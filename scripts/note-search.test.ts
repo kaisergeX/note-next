@@ -219,6 +219,9 @@ test('encryption transition clears derived body and title-only search never retu
   assert.equal(match.content, null)
   assert.equal(match.snippet, '')
   assert.equal(match.isEncrypted, true)
+  const [preview] = await repo.getNotePreviews(alice, [note.id])
+  assert.equal(preview.content, null)
+  assert.equal(preview.isEncrypted, true)
   assert.ok(!JSON.stringify(match).includes('secret-body'))
   // Database guard also protects accidental writes outside the repository.
   await db

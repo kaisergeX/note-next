@@ -119,11 +119,20 @@ export default function NoteMasonry({
           const anchor = containerRef.current?.querySelector<HTMLAnchorElement>(
             `a[data-note-id="${previous.id}"]`,
           )
-          if (anchor)
-            window.scrollBy({
-              top: anchor.getBoundingClientRect().top - previous.top,
-              behavior: 'instant',
-            })
+          if (anchor) {
+            if (native)
+              window.scrollBy({
+                top: anchor.getBoundingClientRect().top - previous.top,
+                behavior: 'instant',
+              })
+            else
+              virtualizer.scrollToIndex(
+                Number(anchor.closest('li')!.dataset.index),
+                {
+                  align: 'center',
+                },
+              )
+          }
           record()
         })
       })
@@ -134,7 +143,7 @@ export default function NoteMasonry({
       cancelAnimationFrame(frame)
       window.removeEventListener('scroll', record)
     }
-  }, [geometry.width, focused, pinnedId, containerRef])
+  }, [geometry.width, focused, pinnedId, containerRef, native, virtualizer])
   const totalSize = virtualizer.getTotalSize()
   const offset = virtualizer.scrollOffset ?? 0
   const viewport = virtualizer.scrollRect?.height ?? 0
