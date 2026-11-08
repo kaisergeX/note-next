@@ -15,7 +15,7 @@ export type NotePreview = Pick<
   | 'createdAt'
   | 'updatedAt'
   | 'pendingDeleteAt'
-> & {createdOrder?: string}
+> & {createdOrder?: string; isEncrypted?: boolean; revision?: string}
 export type NoteCursor = {createdAt: string; id: string}
 export type NotePage = {notes: NotePreview[]; nextCursor: NoteCursor | null}
 
@@ -24,10 +24,12 @@ export function notePreview<T extends NotePreview>(note: T): NotePreview {
     id: note.id,
     authorId: note.authorId,
     title: sanitizeNoteHtml(note.title?.slice(0, NOTE_PREVIEW_LENGTH) ?? null),
-    content: sanitizeNoteHtml(
-      note.content?.slice(0, NOTE_PREVIEW_LENGTH) ?? null,
-    ),
+    content: note.isEncrypted
+      ? null
+      : sanitizeNoteHtml(note.content?.slice(0, NOTE_PREVIEW_LENGTH) ?? null),
     theme: note.theme,
+    isEncrypted: note.isEncrypted,
+    revision: note.revision,
     createdAt: note.createdAt,
     createdOrder:
       note.createdOrder ??

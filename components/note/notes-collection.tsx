@@ -1,10 +1,9 @@
 'use client'
 
-import {useEffect, useRef, useState, ViewTransition} from 'react'
+import {useEffect, useMemo, useRef, useState, ViewTransition} from 'react'
 import {useTranslations} from 'next-intl'
 import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
-import type {Note} from '~/db/schema/notes'
 import {useRecoveryDrafts} from '~/lib/notes/use-recovery-drafts'
 import {
   groupNoteRecovery,
@@ -12,7 +11,7 @@ import {
 } from '~/lib/notes/recovery-copies'
 import {usePersistStore} from '~/store'
 import {useMobileNoteView} from '~/lib/notes/mobile'
-import {Link, usePathname} from '~/i18n/navigation'
+import {Link, usePathname, useRouter} from '~/i18n/navigation'
 import Button, {buttonClass} from '~/components/ui/button'
 import NoteTiny from './note-tiny'
 import LoadingIndicator from '~/components/ui/loading-indicator'
@@ -22,14 +21,22 @@ import NoteCreateEditor from './note-create'
 import NoteMasonry from './note-masonry'
 import CollectionTitle from './collection-title'
 import {withBrowserWorkReturn} from '~/lib/notes/navigation'
-import {
-  cancelNoteListTransition,
-  startNoteListTransition,
-} from '~/lib/notes/transitions'
 import {NoteListSkeleton} from './note-loading'
-import {notePreview, type NotePage, type NotePreview} from '~/lib/notes/pages'
+import {notePreview, type NotePage} from '~/lib/notes/pages'
 import {useNotePages} from '~/lib/notes/use-note-pages'
-import {useNoteListPosition} from './note-query-provider'
+import {
+  useNoteCollectionState,
+  useNoteListPosition,
+} from './note-query-provider'
+import {useNoteSearch} from '~/lib/notes/use-note-search'
+import {foldSearchText, searchableNoteText} from '~/lib/notes/search'
+import {
+  reconcileNoteSearch,
+  pendingNoteAcknowledgements,
+  type SearchDisplayOverride,
+} from '~/lib/notes/search-reconciliation'
+import {NoteSearchRequestError} from '~/lib/notes/search-client'
+import NoteSearchControls from './note-search-controls'
 
 export default function NotesCollection({
   ownerId,
@@ -42,6 +49,20 @@ export default function NotesCollection({
 }) {
   const t = useTranslations('note.recovery')
   const editor = useTranslations('note.editor')
+  const searchText = useTranslations('note.search')
+  const router = useRouter()
+  const [collection, setCollection] = useNoteCollectionState()
+  const {filter, acknowledged} = collection
+  const setFilter = (filter: 'all' | 'review') =>
+    setCollection((state) => ({...state, filter}))
+  const [composing, setComposing] = useState(false)
+  const search = useNoteSearch(
+    ownerId,
+    browserWorkOnly ? '' : collection.search,
+    composing,
+  )
+  const searching = !browserWorkOnly && search.active
+  const searchField = useRef<HTMLDivElement>(null)
   const mobile = useMobileNoteView()
   const pathname = usePathname()
   const isCollectionRoute =
@@ -52,52 +73,93 @@ export default function NotesCollection({
     initialPage,
     records,
   )
+  const listQuery = searching ? search.query : query
+  const listSettled = searching ? search.pagesSettled : pagesSettled
+  const reconciledAt =
+    isCollectionRoute &&
+    listSettled &&
+    listQuery.isSuccess &&
+    !listQuery.isFetching
+      ? listQuery.dataUpdatedAt
+      : 0
+  const pendingAcknowledged = pendingNoteAcknowledgements(
+    acknowledged,
+    reconciledAt,
+  )
+  useEffect(() => {
+    if (!reconciledAt) return
+    setCollection((previous) => {
+      const pending = pendingNoteAcknowledgements(
+        previous.acknowledged,
+        reconciledAt,
+      )
+      return Object.keys(pending).length ===
+        Object.keys(previous.acknowledged).length
+        ? previous
+        : {...previous, acknowledged: pending}
+    })
+  }, [reconciledAt, setCollection])
+  const draftSearchText = useMemo(
+    () =>
+      new Map(
+        records.map((record) => [
+          record.id,
+          {
+            title: searchableNoteText(record.draft.title),
+            body: record.baseline.isEncrypted
+              ? ''
+              : searchableNoteText(record.draft.content),
+          },
+        ]),
+      ),
+    [records],
+  )
+  const acknowledgedSearchText = useMemo(
+    () =>
+      new Map(
+        Object.values(acknowledged).map(({note}) => [
+          note.id,
+          {
+            title: searchableNoteText(note.title),
+            body: note.isEncrypted ? '' : searchableNoteText(note.content),
+          },
+        ]),
+      ),
+    [acknowledged],
+  )
   const sentinel = useRef<HTMLDivElement>(null)
   const positionRef = useNoteListPosition()
   const [returnId, setReturnId] = useState<string>()
-  const [acknowledged, setAcknowledged] = useState<{
-    source: NotePreview[]
-    notes: Record<string, NotePreview>
-  }>({source: notes, notes: {}})
   const storageFailed = usePersistStore(
     (state) => state.noteSession?.storageFailed,
   )
-  const [filter, setFilter] = useState<'all' | 'review'>('all')
   const [ordering, setOrdering] = useState<{ownerId: string; ids: string[]}>({
     ownerId,
     ids: [],
   })
-  useEffect(() => {
-    const keys = new Map<string, object>()
-    const saved = (event: Event) => {
-      const note = (event as CustomEvent<Note>).detail
-      if (note.authorId === ownerId) {
-        if (!keys.has(note.id)) keys.set(note.id, {})
-        startNoteListTransition(() => {
-          setAcknowledged((previous) => ({
-            source: notes,
-            notes: {
-              ...(previous.source === notes ? previous.notes : {}),
-              [note.id]: notePreview(note),
-            },
-          }))
-        }, keys.get(note.id)!)
-      }
-    }
-    window.addEventListener('note-saved', saved)
-    return () => {
-      window.removeEventListener('note-saved', saved)
-      keys.forEach(cancelNoteListTransition)
-    }
-  }, [ownerId, notes])
   const server = new Map(
     notes
       .filter((note) => note.authorId === ownerId)
       .map((note) => [note.id, note]),
   )
-  for (const note of Object.values(
-    acknowledged.source === notes ? acknowledged.notes : {},
-  )) {
+  for (const note of searching ? search.notes : []) {
+    const current = server.get(note.id)
+    if (
+      note.authorId === ownerId &&
+      (!current || new Date(note.updatedAt) >= new Date(current.updatedAt))
+    )
+      server.set(note.id, note)
+  }
+  const currentAcknowledged = Object.values(pendingAcknowledged)
+    .map(({note}) => note)
+    .filter((note) => {
+      const current = server.get(note.id)
+      return (
+        note.authorId === ownerId &&
+        (!current || new Date(note.updatedAt) >= new Date(current.updatedAt))
+      )
+    })
+  for (const note of currentAcknowledged) {
     if (note.authorId !== ownerId) continue
     const current = server.get(note.id)
     if (!current || new Date(note.updatedAt) >= new Date(current.updatedAt))
@@ -108,6 +170,46 @@ export default function NotesCollection({
   }
   const local = groupNoteRecovery(records)
   for (const [id, note] of server) if (note.pendingDeleteAt) server.delete(id)
+  const overrides: SearchDisplayOverride[] = currentAcknowledged.map(
+    (note) => ({
+      ...note,
+      ownerId,
+      deleted: Boolean(note.pendingDeleteAt),
+      searchText: acknowledgedSearchText.get(note.id),
+    }),
+  )
+  for (const note of server.values())
+    if (note.isEncrypted)
+      overrides.push({
+        id: note.id,
+        ownerId,
+        title: note.title,
+        content: null,
+        isEncrypted: true,
+      })
+  for (const [id, copies] of local) {
+    const groups = groupRecoveryDrafts(copies)
+    if (groups.length !== 1) continue
+    const record = groups[0].record
+    overrides.push({
+      id,
+      ownerId,
+      ...record.draft,
+      isEncrypted:
+        server.get(id)?.isEncrypted ??
+        record.baseline.isEncrypted ??
+        Boolean(record.noteId || record.baseline.id),
+      searchText: draftSearchText.get(record.id),
+    })
+  }
+  const matches = reconcileNoteSearch(
+    ownerId,
+    collection.search,
+    search.notes,
+    overrides,
+  )
+  const searchPending =
+    search.pending || (!loaded && !error) || identities.isFetching
   const present = new Set([...server.keys(), ...local.keys()])
   let ordered = ordering.ownerId === ownerId ? ordering.ids : []
   const known = new Set(ordered)
@@ -149,11 +251,14 @@ export default function NotesCollection({
   })
   const hasFilters =
     !browserWorkOnly && reviewIds.length > 0 && reviewIds.length < ids.length
-  const displayed = browserWorkOnly
+  const filtered = browserWorkOnly
     ? ids.filter((id) => local.has(id))
     : hasFilters && filter === 'review'
       ? reviewIds
       : ids
+  const displayed = searching
+    ? filtered.filter((id) => matches.has(id))
+    : filtered
   if (!hasFilters && filter !== 'all') setFilter('all')
   const layoutKey = displayed.join('|')
   const [settledLayout, setSettledLayout] = useState(layoutKey)
@@ -184,7 +289,32 @@ export default function NotesCollection({
       restored.current = true
       return
     }
+    // Opening can remeasure the list before navigation commits. Keep its return
+    // marker until the provider has observed the actual editor route.
+    if (!previous.departed) return
+    if (
+      (previous.search ?? '') !==
+      (searching ? foldSearchText(collection.search) : '')
+    ) {
+      positionRef.current = undefined
+      restored.current = true
+      return
+    }
+    if (
+      searching &&
+      !matches.has(previous.id) &&
+      (overrides.some((note) => note.id === previous.id) ||
+        (!searchPending && search.complete))
+    ) {
+      positionRef.current = undefined
+      restored.current = true
+      searchField.current?.querySelector('input')?.focus()
+      return
+    }
     setReturnId(previous.id)
+    // A mobile route can first mount cached hits, then replace them with the
+    // post-save response. Restore focus after that reconciliation has settled.
+    if (searching && searchPending) return
     const anchor = list.current?.querySelector<HTMLAnchorElement>(
       `a[data-note-id="${previous.id}"]`,
     )
@@ -201,15 +331,15 @@ export default function NotesCollection({
   const canLoad =
     !browserWorkOnly &&
     (loaded || error) &&
-    filter === 'all' &&
-    query.hasNextPage
-  const {isFetching, isError, fetchNextPage} = query
+    (searching || filter === 'all') &&
+    listQuery.hasNextPage
+  const {isFetching, isError, fetchNextPage} = listQuery
   useEffect(() => {
     const target = sentinel.current
     if (
       !target ||
       !canLoad ||
-      !pagesSettled ||
+      !listSettled ||
       isFetching ||
       isError ||
       !isCollectionRoute
@@ -225,7 +355,7 @@ export default function NotesCollection({
     return () => observer.disconnect()
   }, [
     canLoad,
-    pagesSettled,
+    listSettled,
     isFetching,
     isError,
     fetchNextPage,
@@ -257,6 +387,10 @@ export default function NotesCollection({
             ...record.draft,
             id,
             authorId: ownerId,
+            isEncrypted:
+              saved?.isEncrypted ??
+              record.baseline.isEncrypted ??
+              Boolean(record.noteId || record.baseline.id),
           }
         : saved
     // Multiple new-note versions have no server preview. Keep their common
@@ -285,12 +419,15 @@ export default function NotesCollection({
         <>
           <NoteTiny
             data={data}
+            snippet={searching ? matches.get(id) : undefined}
             onOpen={(anchor) => {
+              restored.current = false
               setReturnId(id)
               positionRef.current = {
                 id,
                 top: anchor.getBoundingClientRect().top,
                 browserWorkOnly,
+                search: searching ? foldSearchText(collection.search) : '',
               }
             }}
             href={href}
@@ -326,6 +463,35 @@ export default function NotesCollection({
   }
   return (
     <section aria-label={t(browserWorkOnly ? 'browserWorkTitle' : 'notesHome')}>
+      {!browserWorkOnly && (
+        <div ref={searchField}>
+          <NoteSearchControls
+            value={collection.search}
+            onChange={(value) =>
+              setCollection((state) => ({...state, search: value}))
+            }
+            onCompositionChange={setComposing}
+            pending={searchPending}
+            count={displayed.length}
+            complete={search.complete && !searchPending}
+            error={
+              search.error
+                ? search.error instanceof NoteSearchRequestError
+                  ? search.error.code
+                  : 'failed'
+                : null
+            }
+            onRetry={() =>
+              search.error instanceof NoteSearchRequestError &&
+              search.error.code === 'account_changed'
+                ? router.refresh()
+                : search.query.isFetchNextPageError
+                  ? void search.query.fetchNextPage()
+                  : void search.query.refetch()
+            }
+          />
+        </div>
+      )}
       <div
         id="browser-work"
         className={cn(
@@ -399,12 +565,13 @@ export default function NotesCollection({
           <NoteListSkeleton />
         </div>
       )}
-      {loaded && !error && !displayed.length && (
+      {loaded && !error && !searching && !displayed.length && (
         <p className="text-ink-muted py-16 text-center font-serif">
           {t(browserWorkOnly ? 'emptyBrowserWork' : 'emptyNotes')}
         </p>
       )}
       <NoteMasonry
+        key={searching ? 'search' : 'notes'}
         ids={loaded || error ? displayed : []}
         renderCard={card}
         listRef={list}
@@ -420,39 +587,47 @@ export default function NotesCollection({
         </div>
       )}
       {!browserWorkOnly &&
-        filter === 'all' &&
+        (!searching || !listQuery.isError) &&
+        (searching || filter === 'all') &&
         (canLoad ||
-          query.isError ||
-          !pagesSettled ||
-          (query.data?.pages.length ?? 0) > 1) && (
+          listQuery.isError ||
+          !listSettled ||
+          (listQuery.data?.pages.length ?? 0) > 1) && (
           <div
             ref={sentinel}
             className="flex min-h-28 flex-col items-center gap-3 pb-8"
           >
-            {query.isError && (
+            {listQuery.isError && (
               <p role="alert" className="text-destructive text-sm">
                 {t('loadFailed')}
               </p>
             )}
             <div role="status" aria-live="polite">
-              {query.isFetchingNextPage && (
+              {listQuery.isFetchingNextPage && (
                 <LoadingIndicator label={t('loadingNotes')} />
               )}
-              {!query.hasNextPage && pagesSettled && !query.isError && (
-                <p className="text-ink-muted text-sm">{t('allNotesLoaded')}</p>
-              )}
+              {!searching &&
+                !listQuery.hasNextPage &&
+                listSettled &&
+                !listQuery.isError && (
+                  <p className="text-ink-muted text-sm">
+                    {t('allNotesLoaded')}
+                  </p>
+                )}
             </div>
-            {(query.hasNextPage || query.isError || !pagesSettled) && (
+            {(listQuery.hasNextPage || listQuery.isError || !listSettled) && (
               <Button
                 variant="secondary"
-                disabled={query.isFetching || !pagesSettled}
+                disabled={listQuery.isFetching || !listSettled}
                 onClick={() => {
-                  if (query.isFetchNextPageError || !query.isError)
-                    void query.fetchNextPage()
-                  else void query.refetch()
+                  if (listQuery.isFetchNextPageError || !listQuery.isError)
+                    void listQuery.fetchNextPage()
+                  else void listQuery.refetch()
                 }}
               >
-                {t(query.isError ? 'retryLoad' : 'loadMore')}
+                {searching
+                  ? searchText(listQuery.isError ? 'retry' : 'loadMore')
+                  : t(listQuery.isError ? 'retryLoad' : 'loadMore')}
               </Button>
             )}
           </div>

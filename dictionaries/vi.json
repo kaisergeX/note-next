@@ -462,6 +462,22 @@
   "note": {
     "emptyNote": "Ghi chú trống",
     "title": "Ghi chú",
+    "search": {
+      "label": "Tìm ghi chú",
+      "placeholder": "Nhập để lọc ghi chú…",
+      "scope": "Tìm trong tiêu đề và nội dung chưa mã hóa. Ghi chú đã mã hóa chỉ được tìm theo tiêu đề.",
+      "clear": "Xóa tìm kiếm",
+      "loadMore": "Tải thêm kết quả",
+      "searching": "Đang tìm ghi chú…",
+      "noResults": "Không có ghi chú phù hợp. Hãy thử nội dung khác hoặc xóa tìm kiếm.",
+      "count": "{count, number} ghi chú phù hợp",
+      "loadedCount": "Đã tải {count, number} ghi chú phù hợp",
+      "failed": "Không thể tìm ghi chú. Vui lòng thử lại.",
+      "notReady": "Đang chuẩn bị tìm kiếm. Bạn vẫn có thể xem ghi chú khi xóa tìm kiếm.",
+      "accountChanged": "Tài khoản đăng nhập đã thay đổi. Hãy làm mới trang để tiếp tục.",
+      "retry": "Thử lại",
+      "refresh": "Làm mới"
+    },
     "collections": {
       "all": "Tất cả ghi chú",
       "deleted": "Đã xóa gần đây"
