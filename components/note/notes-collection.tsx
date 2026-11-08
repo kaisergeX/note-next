@@ -1,6 +1,12 @@
 'use client'
 
-import {useEffect, useState, ViewTransition} from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  ViewTransition,
+} from 'react'
 import {useTranslations} from 'next-intl'
 import {IconArrowLeft} from '@tabler/icons-react'
 import {cn} from 'cn'
@@ -27,14 +33,17 @@ import {
   startNoteListTransition,
 } from '~/lib/notes/transitions'
 import {NoteListSkeleton} from './note-loading'
+import {notePreview, type NotePage, type NotePreview} from '~/lib/notes/pages'
+import {useNotePages} from '~/lib/notes/use-note-pages'
+import {useNoteListPosition} from './note-query-provider'
 
 export default function NotesCollection({
   ownerId,
-  notes,
+  initialPage,
   browserWorkOnly = false,
 }: {
   ownerId: string
-  notes: Note[]
+  initialPage?: NotePage
   browserWorkOnly?: boolean
 }) {
   const t = useTranslations('note.recovery')
@@ -44,9 +53,16 @@ export default function NotesCollection({
   const isCollectionRoute =
     pathname === '/eton' || pathname === '/collection/browser-work'
   const {records, loaded, error} = useRecoveryDrafts(ownerId, true, true)
+  const {query, identities, notes, pagesSettled} = useNotePages(
+    ownerId,
+    initialPage,
+    records,
+  )
+  const sentinel = useRef<HTMLDivElement>(null)
+  const positionRef = useNoteListPosition()
   const [acknowledged, setAcknowledged] = useState<{
-    source: Note[]
-    notes: Record<string, Note>
+    source: NotePreview[]
+    notes: Record<string, NotePreview>
   }>({source: notes, notes: {}})
   const storageFailed = usePersistStore(
     (state) => state.noteSession?.storageFailed,
@@ -67,7 +83,7 @@ export default function NotesCollection({
             source: notes,
             notes: {
               ...(previous.source === notes ? previous.notes : {}),
-              [note.id]: note,
+              [note.id]: notePreview(note),
             },
           }))
         }, keys.get(note.id)!)
@@ -90,7 +106,10 @@ export default function NotesCollection({
     if (note.authorId !== ownerId) continue
     const current = server.get(note.id)
     if (!current || new Date(note.updatedAt) >= new Date(current.updatedAt))
-      server.set(note.id, note)
+      server.set(note.id, {
+        ...notePreview(note),
+        ...(current?.createdOrder ? {createdOrder: current.createdOrder} : {}),
+      })
   }
   const local = groupNoteRecovery(records)
   for (const [id, note] of server) if (note.pendingDeleteAt) server.delete(id)
@@ -99,7 +118,30 @@ export default function NotesCollection({
   const known = new Set(ordered)
   const added = [...present].filter((id) => !known.has(id))
   if (added.length || ordering.ownerId !== ownerId) {
-    ordered = [...added, ...ordered]
+    const created = (id: string) => {
+      const note = server.get(id)
+      const record = local.get(id)?.[0]
+      return (
+        note?.createdOrder ??
+        new Date(
+          note?.createdAt ??
+            record?.baseline.createdAt ??
+            record?.updatedAt ??
+            0,
+        )
+          .toISOString()
+          .replace('Z', '000Z')
+      )
+    }
+    ordered = [...ordered]
+    for (const id of added) {
+      const position = ordered.findIndex(
+        (other) =>
+          created(id) > created(other) ||
+          (created(id) === created(other) && id > other),
+      )
+      ordered.splice(position < 0 ? ordered.length : position, 0, id)
+    }
     setOrdering({ownerId, ids: ordered})
   }
   const ids = ordered.filter((id) => present.has(id))
@@ -137,6 +179,55 @@ export default function NotesCollection({
   const list = useMasonry<HTMLUListElement>(
     loaded || error ? layoutKey : 'loading',
   )
+  const restored = useRef(false)
+  useLayoutEffect(() => {
+    if (restored.current || (!loaded && !error) || !isCollectionRoute) return
+    restored.current = true
+    const previous = positionRef.current
+    if (!previous || previous.browserWorkOnly !== browserWorkOnly) return
+    positionRef.current = undefined
+    const anchor = list.current?.querySelector<HTMLAnchorElement>(
+      `a[data-note-id="${previous.id}"]`,
+    )
+    if (anchor)
+      window.scrollBy({
+        top: anchor.getBoundingClientRect().top - previous.top,
+        behavior: 'instant',
+      })
+  }, [loaded, error, isCollectionRoute, positionRef, list, browserWorkOnly])
+  const canLoad =
+    !browserWorkOnly &&
+    (loaded || error) &&
+    filter === 'all' &&
+    query.hasNextPage
+  const {isFetching, isError, fetchNextPage} = query
+  useEffect(() => {
+    const target = sentinel.current
+    if (
+      !target ||
+      !canLoad ||
+      !pagesSettled ||
+      isFetching ||
+      isError ||
+      !isCollectionRoute
+    )
+      return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) void fetchNextPage()
+      },
+      {rootMargin: '600px'},
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [
+    canLoad,
+    pagesSettled,
+    isFetching,
+    isError,
+    fetchNextPage,
+    isCollectionRoute,
+  ])
   const card = (id: string) => {
     const saved = server.get(id)
     const copies = local.get(id) ?? []
@@ -145,6 +236,16 @@ export default function NotesCollection({
     const ambiguous = groups.length > 1
     const review = ambiguous || Boolean(record?.conflict)
     const unavailable = Boolean(record?.unavailable)
+    // The saved page may not be loaded yet. Existing-note drafts still open
+    // their saved editor (which fetches the complete document independently).
+    const savedIdentity = Boolean(
+      saved ||
+      (!identities.isSuccess &&
+        !unavailable &&
+        copies.some(
+          (copy) => copy.noteId || copy.baseline.id || copy.conflict?.id,
+        )),
+    )
     const preview =
       !ambiguous && record
         ? {
@@ -160,12 +261,12 @@ export default function NotesCollection({
     const data = preview ?? {id, title: null, content: null, theme: null}
     const href = browserWorkOnly
       ? withBrowserWorkReturn(
-          saved
+          savedIdentity
             ? `/full/eton/${id}${review ? '?review=1' : ''}`
             : `/full/eton/recover/${record!.id}${review ? '?review=1' : ''}`,
           true,
         )
-      : saved
+      : savedIdentity
         ? undefined
         : `/full/eton/recover/${record!.id}${ambiguous ? '?review=1' : ''}`
     return (
@@ -181,12 +282,19 @@ export default function NotesCollection({
         <li className="min-w-0">
           <NoteTiny
             data={data}
+            onOpen={(anchor) => {
+              positionRef.current = {
+                id,
+                top: anchor.getBoundingClientRect().top,
+                browserWorkOnly,
+              }
+            }}
             href={href}
-            localOnly={!saved || unavailable}
+            localOnly={!savedIdentity || unavailable}
             pendingWork={copies.length > 0}
             notice={unavailable ? t('draftOriginalUnavailable') : undefined}
             actions={
-              !saved && groups.length === 1
+              !savedIdentity && groups.length === 1
                 ? () => (
                     <RecoveryManagement ownerId={ownerId} records={copies} />
                   )
@@ -298,6 +406,52 @@ export default function NotesCollection({
       >
         {(loaded || error) && displayed.map(card)}
       </ul>
+      {identities.isError && (
+        <div role="alert" className="text-destructive mb-4 text-sm">
+          <p>{t('loadFailed')}</p>
+          <Button variant="secondary" onClick={() => void identities.refetch()}>
+            {t('retryLoad')}
+          </Button>
+        </div>
+      )}
+      {!browserWorkOnly &&
+        filter === 'all' &&
+        (canLoad ||
+          query.isError ||
+          !pagesSettled ||
+          (query.data?.pages.length ?? 0) > 1) && (
+          <div
+            ref={sentinel}
+            className="flex min-h-28 flex-col items-center gap-3 pb-8"
+          >
+            {query.isError && (
+              <p role="alert" className="text-destructive text-sm">
+                {t('loadFailed')}
+              </p>
+            )}
+            <div role="status" aria-live="polite">
+              {query.isFetchingNextPage && (
+                <LoadingIndicator label={t('loadingNotes')} />
+              )}
+              {!query.hasNextPage && pagesSettled && !query.isError && (
+                <p className="text-ink-muted text-sm">{t('allNotesLoaded')}</p>
+              )}
+            </div>
+            {(query.hasNextPage || query.isError || !pagesSettled) && (
+              <Button
+                variant="secondary"
+                disabled={query.isFetching || !pagesSettled}
+                onClick={() => {
+                  if (query.isFetchNextPageError || !query.isError)
+                    void query.fetchNextPage()
+                  else void query.refetch()
+                }}
+              >
+                {t(query.isError ? 'retryLoad' : 'loadMore')}
+              </Button>
+            )}
+          </div>
+        )}
       {storageFailed && (
         <p role="alert" className="text-destructive text-sm">
           {t('storageFailed')}

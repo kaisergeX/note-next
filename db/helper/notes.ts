@@ -7,4 +7,5 @@ import {createNoteRepository} from '../repositories/notes'
 // detail cache could otherwise serve an active snapshot after a trash transition.
 // Keep tags at the action boundary for route refreshes and future bounded caches.
 export const noteRepository = createNoteRepository(db)
-export const {getListNote, getNote} = noteRepository
+export const {getListNote, getNote, getNotePage, getNotePreviews} =
+  noteRepository

@@ -5,6 +5,7 @@ import {ViewTransition} from 'react'
 import NoteCollectionLayout from '~/components/note/note-collection-layout'
 import {requireAuth} from '~/server-utils'
 import {genRandom} from '~/util'
+import NoteQueryProvider from '~/components/note/note-query-provider'
 
 export const instant = false
 
@@ -25,12 +26,14 @@ export default async function NoteLayout({children}: LayoutProps<'/[locale]'>) {
   return (
     <NextIntlClientProvider messages={{note: noteMessages}}>
       <ViewTransition update="none">
-        <NoteCollectionLayout
-          ownerId={userInfo.id}
-          creationLabel={genRandom(noteMessages.creation)}
-        >
-          {children}
-        </NoteCollectionLayout>
+        <NoteQueryProvider key={userInfo.id} ownerId={userInfo.id}>
+          <NoteCollectionLayout
+            ownerId={userInfo.id}
+            creationLabel={genRandom(noteMessages.creation)}
+          >
+            {children}
+          </NoteCollectionLayout>
+        </NoteQueryProvider>
       </ViewTransition>
     </NextIntlClientProvider>
   )

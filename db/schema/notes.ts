@@ -64,6 +64,9 @@ export const notesTable = pgTable(
       .notNull(),
   },
   (table) => [
+    index('notes_owner_created_idx')
+      .on(table.authorId, table.createdAt.desc(), table.id.desc())
+      .where(sql`${table.pendingDeleteAt} IS NULL`),
     index('notes_owner_trash_deadline_idx')
       .on(table.authorId, table.pendingDeleteAt.desc(), table.id.desc())
       .where(sql`${table.pendingDeleteAt} IS NOT NULL`),

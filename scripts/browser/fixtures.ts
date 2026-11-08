@@ -79,6 +79,7 @@ type NoteApp = {
     maxAge?: number,
   ) => Promise<string>
   create: () => Promise<Note>
+  createMany: (count: number) => Promise<Note[]>
   save: (note: Note, content: Partial<NoteSnapshot>) => Promise<Note>
   read: (id: string) => Promise<Note>
   all: () => Promise<Note[]>
@@ -201,6 +202,21 @@ export const test = base.extend<{noteApp: NoteApp}>({
         ownerId: user.id,
         signIn,
         create,
+        createMany: (count) =>
+          db
+            .insert(notesTable)
+            .values(
+              Array.from({length: count}, (_, index) => ({
+                authorId: user.id,
+                title: `<p>Paginated note ${index}</p>`,
+                content:
+                  '<p>Preview paragraph with enough content to exercise the existing card layout.</p>'.repeat(
+                    20,
+                  ),
+                createdAt: new Date('2030-01-01T00:00:00.123Z'),
+              })),
+            )
+            .returning(),
         save,
         read,
         all: () =>
