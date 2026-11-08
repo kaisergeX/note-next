@@ -1,5 +1,65 @@
-import {test, expect, body, title, drafts} from './fixtures'
+import {test, expect, body, title, drafts, fullPath} from './fixtures'
 import type {SyncRequest} from '../../lib/notes/sync'
+
+for (const browserWork of [false, true]) {
+  test(`direct note entry and reload return to ${browserWork ? 'Browser work' : 'Notes'} instead of unrelated history`, async ({
+    page,
+    noteApp,
+  }) => {
+    const note = await noteApp.create()
+    await page.goto('/en/settings/appearance')
+    await page.goto(
+      `${fullPath(note)}${browserWork ? '?from=browser-work' : ''}`,
+    )
+    await expect(body(page)).toBeVisible()
+    await page.reload()
+    await expect(body(page)).toBeVisible()
+    await page
+      .getByRole('button', {name: 'Save and go back', exact: true})
+      .click()
+    await expect(page).toHaveURL(
+      browserWork ? /\/en\/collection\/browser-work$/ : /\/en\/eton$/,
+    )
+  })
+}
+
+test('a note opened in a fresh tab has an in-app return destination', async ({
+  page,
+  noteApp,
+}) => {
+  const note = await noteApp.create()
+  await page.goto(fullPath(note))
+  await expect(body(page)).toBeVisible()
+  await page
+    .getByRole('button', {name: 'Save and go back', exact: true})
+    .click()
+  await expect(page).toHaveURL(/\/en\/eton$/)
+})
+
+test('intercepted note dismissal restores the collection', async ({
+  page,
+  noteApp,
+}) => {
+  const note = await noteApp.create()
+  await page.goto('/en/eton')
+  await page.locator(`a[href="/en/eton/${note.id}"]`).first().click()
+  await expect(page.getByRole('dialog')).toBeVisible()
+  await page
+    .getByRole('button', {name: 'Save and go back', exact: true})
+    .click()
+  await expect(page).toHaveURL(/\/en\/eton$/)
+  await expect(page.getByRole('dialog')).not.toBeVisible()
+})
+
+test('a directly opened missing page provides a localized in-app back link', async ({
+  page,
+}) => {
+  await page.goto('/vi/missing-navigation-test')
+  const back = page.getByRole('link', {name: 'Quay lại', exact: true})
+  await expect(back).toHaveAttribute('href', /^\/vi\/?$/)
+  await back.click()
+  await expect(page).toHaveURL(/\/vi\/?$/)
+})
 
 for (const inFlight of [false, true]) {
   test(`closing recovered creation ${inFlight ? 'waits for an in-flight retry' : 'starts the retry'} and returns to Notes`, async ({

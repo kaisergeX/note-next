@@ -9,8 +9,7 @@ import {
 } from '@tabler/icons-react'
 import {useForm} from '@tanstack/react-form'
 import {useTranslations} from 'next-intl'
-import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {Link, useRouter} from '~/i18n/navigation'
 import {useEffect, useState, useTransition} from 'react'
 import {
   createPersonaAction,
@@ -57,6 +56,7 @@ export type PersonaFormInitial = {
 type PersonaFormProps = {
   mode: 'create' | 'edit'
   initial?: PersonaFormInitial
+  returnTo?: 'roster' | 'bulk'
 }
 
 const INCOME_VALUES = ['low', 'medium', 'high'] as const
@@ -73,7 +73,11 @@ const requiredValidator = {
     value.trim() ? undefined : {key: 'required'},
 }
 
-export default function PersonaForm({mode, initial}: PersonaFormProps) {
+export default function PersonaForm({
+  mode,
+  initial,
+  returnTo,
+}: PersonaFormProps) {
   const t = useTranslations('ai.interview.form')
   const tErrors = useTranslations('ai.interview.form.errors') as (
     key: string,
@@ -296,9 +300,24 @@ export default function PersonaForm({mode, initial}: PersonaFormProps) {
         }}
       >
         <div className="flex-center-between gap-2">
-          <Link href="/ai/interview" className="inline-flex items-center gap-1">
+          <Link
+            href={
+              returnTo === 'bulk'
+                ? '/ai/interview/bulk'
+                : mode === 'create' || returnTo === 'roster'
+                  ? '/ai/interview'
+                  : `/ai/interview/${initial!.id}`
+            }
+            className="navigation-link"
+          >
             <IconArrowLeft className="inline-block" size="18" />{' '}
-            {tRoot('chat.backToRoster')}
+            {tRoot(
+              returnTo === 'bulk'
+                ? 'chat.backToBulk'
+                : mode === 'create' || returnTo === 'roster'
+                  ? 'chat.backToRoster'
+                  : 'chat.backToPersona',
+            )}
           </Link>
           {mode === 'edit' &&
             initial!.systemPrompt &&

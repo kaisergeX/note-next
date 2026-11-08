@@ -8,8 +8,8 @@ import {
   IconEdit,
   IconMessages,
 } from '@tabler/icons-react'
-import {useTranslations} from 'next-intl'
-import Link from 'next/link'
+import {useLocale, useTranslations} from 'next-intl'
+import {Link, getPathname} from '~/i18n/navigation'
 import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
 import {setPersonaStatusAction} from '~/app/[locale]/ai/interview/actions'
@@ -26,6 +26,7 @@ type PersonaRosterCardProps = {
 }
 
 export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
+  const locale = useLocale()
   const t = useTranslations('ai.interview')
   const tGender = useTranslations('ai.interview.form.options.gender')
   const router = useRouter()
@@ -48,7 +49,10 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
   const menuItems: MenuCustomItem[] = [
     {
       type: 'link',
-      url: `/ai/interview/${persona.id}/edit`,
+      url: getPathname({
+        locale,
+        href: `/ai/interview/${persona.id}/edit?from=roster`,
+      }),
       label: (
         <>
           <IconEdit size="18" /> {t('roster.edit')}
@@ -139,7 +143,10 @@ export default function PersonaRosterCard({persona}: PersonaRosterCardProps) {
       {persona.systemPrompt && persona.status !== 'draft' && (
         <div className="mt-auto pt-2">
           <LinkButton
-            href={`/ai/interview/${persona.id}/chat`}
+            href={getPathname({
+              locale,
+              href: `/ai/interview/${persona.id}/chat?from=roster`,
+            })}
             className="flex-1 text-center"
             size="sm"
           >

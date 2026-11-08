@@ -10,7 +10,7 @@ import {
 import {cn} from 'cn'
 import type {Metadata} from 'next'
 import {getFormatter, getLocale, getTranslations} from 'next-intl/server'
-import Link from 'next/link'
+import {Link, getPathname} from '~/i18n/navigation'
 import {notFound} from 'next/navigation'
 import PersonaBackgroundTags from '~/components/ai/interview/persona-background-tags'
 import {SLIDER_AXES} from '~/components/ai/interview/persona-slider-axes'
@@ -80,7 +80,6 @@ export default async function PersonaProfilePage({
 
   const t = await getTranslations('ai.interview')
   const tForm = await getTranslations('ai.interview.form')
-  const tCommon = await getTranslations('common')
   const format = await getFormatter()
   // Export API routes live outside the [locale] segment, so the UI locale is
   // forwarded for the Markdown report labels.
@@ -145,11 +144,8 @@ export default async function PersonaProfilePage({
   return (
     <section className="container mx-auto space-y-4 p-4 pb-16">
       <div>
-        <Link
-          href="/ai/interview"
-          className="inline-flex items-center gap-1 text-sm"
-        >
-          <IconArrowLeft size="18" /> {tCommon('navigation.back')}
+        <Link href="/ai/interview" className="navigation-link text-sm">
+          <IconArrowLeft size="18" /> {t('chat.backToRoster')}
         </Link>
       </div>
 
@@ -165,14 +161,20 @@ export default async function PersonaProfilePage({
       <div className="flex flex-wrap items-center gap-2">
         {persona.systemPrompt && persona.status !== 'draft' && (
           <LinkButton
-            href={`/ai/interview/${persona.id}/chat`}
+            href={getPathname({
+              locale,
+              href: `/ai/interview/${persona.id}/chat`,
+            })}
             variant="primary"
             size="sm"
           >
             <IconMessages size="1.2rem" /> {t('chat.openChat')}
           </LinkButton>
         )}
-        <LinkButton href={`/ai/interview/${persona.id}/edit`} size="sm">
+        <LinkButton
+          href={getPathname({locale, href: `/ai/interview/${persona.id}/edit`})}
+          size="sm"
+        >
           <IconEdit size="1.2rem" /> {t('roster.edit')}
         </LinkButton>
         <MenuCustom

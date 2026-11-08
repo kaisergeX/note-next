@@ -21,6 +21,7 @@ export async function generateMetadata({
 
 export default async function EditPersonaPage({
   params,
+  searchParams,
 }: PageProps<'/[locale]/ai/interview/[id]/edit'>) {
   await requireAuth()
   const {id} = await params
@@ -45,5 +46,12 @@ export default async function EditPersonaPage({
     status: persona.status,
   }
 
-  return <PersonaForm mode="edit" initial={initial} />
+  const {from} = await searchParams
+  return (
+    <PersonaForm
+      mode="edit"
+      initial={initial}
+      returnTo={from === 'roster' || from === 'bulk' ? from : undefined}
+    />
+  )
 }

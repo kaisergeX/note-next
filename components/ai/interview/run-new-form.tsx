@@ -4,8 +4,7 @@ import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
 import {IconArrowLeft, IconLoader2} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {Link, useRouter} from '~/i18n/navigation'
 import {useState, useTransition} from 'react'
 import {Textarea} from '~/components/ui/textarea'
 import Button from '~/components/ui/button'
@@ -141,7 +140,7 @@ export default function RunNewForm({personas}: RunNewFormProps) {
       <div>
         <Link
           href="/ai/interview/runs"
-          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="navigation-link min-h-11 text-sm"
         >
           <IconArrowLeft size="18" /> {t('backToRuns')}
         </Link>

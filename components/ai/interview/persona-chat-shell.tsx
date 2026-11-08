@@ -4,8 +4,7 @@ import {useDisclosure} from '@kaiverse/k/hooks'
 import {Dialog} from '@kaiverse/k/ui'
 import {IconArrowLeft, IconInfoCircle, IconMenu2} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {Link, useRouter} from '~/i18n/navigation'
 import {
   cloneElement,
   isValidElement,
@@ -38,6 +37,7 @@ type PersonaChatShellProps = {
   /** Batch-run sessions, listed read-only under the single sessions. */
   runSessions?: ChatSessionSummary[]
   activeId: string | null
+  fromRoster?: boolean
   /** The chat area for the active session (a PersonaChat element), if any. */
   children?: ReactNode
 }
@@ -54,6 +54,7 @@ export default function PersonaChatShell({
   sessions,
   runSessions = [],
   activeId,
+  fromRoster = false,
   children,
 }: PersonaChatShellProps) {
   const t = useTranslations('ai.interview.chat')
@@ -98,11 +99,23 @@ export default function PersonaChatShell({
     <>
       <div className="flex-center-between gap-2 p-4">
         <Link
-          href="/ai/interview"
-          className="focus-visible:outline-accent inline-flex items-center gap-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2"
+          href={
+            activeId
+              ? `/ai/interview/${personaId}/chat${fromRoster ? '?from=roster' : ''}`
+              : fromRoster
+                ? '/ai/interview'
+                : `/ai/interview/${personaId}`
+          }
+          className="navigation-link"
         >
           <IconArrowLeft className="inline-block" size="18" />{' '}
-          {t('backToRoster')}
+          {t(
+            activeId
+              ? 'backToSessions'
+              : fromRoster
+                ? 'backToRoster'
+                : 'backToPersona',
+          )}
         </Link>
 
         {onClose && (
@@ -123,7 +136,11 @@ export default function PersonaChatShell({
           <IconInfoCircle size="18" />
         </Link>
 
-        <StartInterviewButton personaId={personaId} fullWidth />
+        <StartInterviewButton
+          personaId={personaId}
+          fromRoster={fromRoster}
+          fullWidth
+        />
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
@@ -182,6 +199,7 @@ export default function PersonaChatShell({
                   personaId={personaId}
                   session={session}
                   isActive={session.id === activeId}
+                  fromRoster={fromRoster}
                   onSessionNavigate={onClose}
                 />
               </li>

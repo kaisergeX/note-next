@@ -2,7 +2,7 @@
 
 import {IconLoader2, IconMessages} from '@tabler/icons-react'
 import {useTranslations} from 'next-intl'
-import {useRouter} from 'next/navigation'
+import {useRouter} from '~/i18n/navigation'
 import {useState, useTransition} from 'react'
 import {startInterviewAction} from '~/app/[locale]/ai/interview/actions'
 import Button from '~/components/ui/button'
@@ -10,11 +10,13 @@ import Button from '~/components/ui/button'
 type StartInterviewButtonProps = {
   personaId: string
   fullWidth?: boolean
+  fromRoster?: boolean
 }
 
 export default function StartInterviewButton({
   personaId,
   fullWidth = false,
+  fromRoster = false,
 }: StartInterviewButtonProps) {
   const t = useTranslations('ai.interview')
   const router = useRouter()
@@ -29,7 +31,7 @@ export default function StartInterviewButton({
       const result = await startInterviewAction(personaId)
       if (result.ok) {
         router.push(
-          `/ai/interview/${personaId}/chat?t=${result.data.transcriptId}`,
+          `/ai/interview/${personaId}/chat?t=${result.data.transcriptId}${fromRoster ? '&from=roster' : ''}`,
         )
         return
       }

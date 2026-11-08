@@ -2,7 +2,7 @@ import type {UIMessage} from 'ai'
 import type {Metadata} from 'next'
 import type {ReactNode} from 'react'
 import {getFormatter, getTranslations} from 'next-intl/server'
-import Link from 'next/link'
+import {Link} from '~/i18n/navigation'
 import {notFound} from 'next/navigation'
 import PersonaChat from '~/components/ai/interview/persona-chat'
 import PersonaChatShell, {
@@ -92,7 +92,7 @@ export default async function PersonaChatPage({
 }: PageProps<'/[locale]/ai/interview/[id]/chat'>) {
   await requireAuth()
   const {id} = await params
-  const {t: requestedTranscriptId} = await searchParams
+  const {t: requestedTranscriptId, from} = await searchParams
   if (!isShapedUuid(id)) notFound()
   const persona = await getPersonaById(id)
   if (!persona) notFound()
@@ -120,10 +120,7 @@ export default async function PersonaChatPage({
           {isDraft ? t('blockedDraftHint') : t('blockedHint')}
         </p>
         <div className="flex flex-wrap gap-3">
-          <Link
-            href="/ai/interview"
-            className="inline-flex items-center gap-1 text-sm"
-          >
+          <Link href="/ai/interview" className="navigation-link text-sm">
             {t('backToRoster')}
           </Link>
           <LinkButton href={`/ai/interview/${persona.id}`} variant="secondary">
@@ -178,6 +175,7 @@ export default async function PersonaChatPage({
       sessions={sessions}
       runSessions={runSessions}
       activeId={activeId}
+      fromRoster={from === 'roster'}
     >
       {chatArea}
     </PersonaChatShell>
