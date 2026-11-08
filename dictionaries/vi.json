@@ -329,6 +329,9 @@
       "chat": {
         "title": "Phỏng vấn",
         "backToRoster": "Về danh sách",
+        "backToPersona": "Về thông tin nhân vật",
+        "backToBulk": "Về tạo nhân vật hàng loạt",
+        "backToSessions": "Về danh sách trò chuyện",
         "viewPersona": "Thông tin nhân vật",
         "blockedTitle": "Chưa phỏng vấn được",
         "blockedHint": "Hãy tạo system prompt cho nhân vật trước, rồi quay lại đây để bắt đầu phỏng vấn.",

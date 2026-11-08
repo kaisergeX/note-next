@@ -36,7 +36,9 @@ export default function NoteDetailModal({noteData}: {noteData: Note}) {
     setOpen(false)
     await sleep(200)
     if (fromBrowserWork) router.replace(noteReturnPath(source))
-    else window.history.length > 1 ? router.back() : router.push('/eton')
+    // This intercepted route only mounts after in-app navigation. Going back
+    // restores the collection beneath the modal, including its scroll position.
+    else router.back()
   }
   if (!session.ready) return session.recoveryView
   return (

@@ -329,6 +329,9 @@
       "chat": {
         "title": "Interview",
         "backToRoster": "Back to roster",
+        "backToPersona": "Back to persona",
+        "backToBulk": "Back to bulk drafts",
+        "backToSessions": "Back to sessions",
         "viewPersona": "View persona",
         "blockedTitle": "Interview not available yet",
         "blockedHint": "Generate a system prompt for this persona first — then come back to start the interview.",

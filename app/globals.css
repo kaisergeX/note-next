@@ -513,6 +513,10 @@
 }
 
 @layer components {
+  .navigation-link {
+    @apply focus-visible:outline-accent inline-flex min-h-10 items-center gap-1 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2;
+  }
+
   input::placeholder,
   textarea::placeholder {
     opacity: 0.75;

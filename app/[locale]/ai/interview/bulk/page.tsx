@@ -1,6 +1,6 @@
 import type {Metadata} from 'next'
 import {IconArrowLeft} from '@tabler/icons-react'
-import Link from 'next/link'
+import {Link} from '~/i18n/navigation'
 import {getTranslations} from 'next-intl/server'
 import BulkDraftWorkbench from '~/components/ai/interview/bulk-draft-workbench'
 import {listPersonasByStatuses} from '~/db/helper/personas'
@@ -21,10 +21,7 @@ export default async function BulkDraftPage() {
   return (
     <section className="container mx-auto space-y-4 p-4 pb-16">
       <div>
-        <Link
-          href="/ai/interview"
-          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
-        >
+        <Link href="/ai/interview" className="navigation-link min-h-11 text-sm">
           <IconArrowLeft size="18" /> {tRoot('chat.backToRoster')}
         </Link>
       </div>

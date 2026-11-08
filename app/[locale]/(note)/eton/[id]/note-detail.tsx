@@ -32,8 +32,7 @@ export default function NoteDetail({
       creating={!noteData}
       onClose={() =>
         void session.saveAndLeave(() => {
-          if (source === 'browser-work') router.replace(noteReturnPath(source))
-          else window.history.length > 1 ? router.back() : router.push('/eton')
+          router.replace(noteReturnPath(source))
         })
       }
       onTrash={() =>

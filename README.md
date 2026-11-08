@@ -13,6 +13,7 @@
 <sup>List in order of priority</sup>
 
 - [ ] Note: Encrypt contents.
+- [ ] [Paginate and virtualize All notes, then add collection search](docs/note-list-and-search.md).
 - [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — deployed; local checks, production recovery flow, manual cleanup, and endpoint protection pass. Automatic scheduled cleanup verification remains pending.
 - [x] System: PWA supported.
 - [x] Settings: [Account data actions](docs/archive/account-data-actions.md) — implemented and accepted; validation coverage and remaining manual checks are recorded in the archive.
@@ -25,7 +26,6 @@
   - [x] Theme.
 - [ ] Note: Drawable Mode,
 - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.
-- [ ] Note: Link to others.
 - [x] Landing page.
 - [ ] Settings: Note - Option to disable modal view and always show full-size notes.[^1]
 - [ ] System: EXP, Level & Achievement system, sync with other apps.[^2]
@@ -41,6 +41,7 @@
 Keep active feature plans directly under `docs/`, or in a feature folder when several documents are needed. Completed features belong in `docs/archive/`: use descriptive standalone filenames for single documents, and a feature folder for multiple documents. Use `overview.md` as a feature folder's entry point; fold routine follow-ups into existing documents instead of adding dated reports.
 
 - [Note editor and persistence](docs/archive/note-editor/overview.md): completed feature, maintenance contracts, test runbook, and release limits.
+- [Note feature ideas](docs/note-ideas.md) collects open questions for future design discussions.
 
 ## Engines Requirements
 

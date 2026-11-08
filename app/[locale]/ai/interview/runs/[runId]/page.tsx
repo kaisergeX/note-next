@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons-react'
 import type {Metadata} from 'next'
 import {getFormatter, getLocale, getTranslations} from 'next-intl/server'
-import Link from 'next/link'
+import {Link} from '~/i18n/navigation'
 import {notFound} from 'next/navigation'
 import RunLoop, {type RunItemView} from '~/components/ai/interview/run-loop'
 import {RUN_STATUS_BADGE} from '~/components/ai/interview/run-status'
@@ -161,7 +161,7 @@ export default async function RunDetailPage({
       <div>
         <Link
           href="/ai/interview/runs"
-          className="focus-visible:outline-accent inline-flex min-h-11 items-center gap-1 text-sm focus-visible:outline-2 focus-visible:outline-offset-2"
+          className="navigation-link min-h-11 text-sm"
         >
           <IconArrowLeft size="18" /> {t('backToRuns')}
         </Link>

@@ -11,8 +11,7 @@ import {
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useLocale, useTranslations} from 'next-intl'
-import Link from 'next/link'
-import {useRouter} from 'next/navigation'
+import {Link, useRouter} from '~/i18n/navigation'
 import {useState, useTransition} from 'react'
 import {
   deleteInterviewSessionAction,
@@ -27,6 +26,7 @@ type SessionRowProps = {
   personaId: string
   session: ChatSessionSummary
   isActive: boolean
+  fromRoster?: boolean
   /** Optional: closes the mobile drawer when a session link is tapped. */
   onSessionNavigate?: () => void
 }
@@ -40,6 +40,7 @@ export default function SessionRow({
   personaId,
   session,
   isActive,
+  fromRoster = false,
   onSessionNavigate,
 }: SessionRowProps) {
   const t = useTranslations('ai.interview.chat')
@@ -88,7 +89,9 @@ export default function SessionRow({
       if (isActive) {
         // Removing the open session lands on the picker state; the chat area
         // must not keep rendering a deleted transcript.
-        router.push(`/ai/interview/${personaId}/chat`)
+        router.push(
+          `/ai/interview/${personaId}/chat${fromRoster ? '?from=roster' : ''}`,
+        )
       } else {
         router.refresh()
       }
@@ -175,7 +178,7 @@ export default function SessionRow({
           )}
         >
           <Link
-            href={`/ai/interview/${personaId}/chat?t=${session.id}`}
+            href={`/ai/interview/${personaId}/chat?t=${session.id}${fromRoster ? '&from=roster' : ''}`}
             className="focus-visible:outline-accent min-w-0 flex-1 p-2 focus-visible:outline-2 focus-visible:outline-offset-2"
             onClick={onSessionNavigate}
           >

@@ -7,9 +7,9 @@ import {
   IconTrash,
   IconUserCheck,
 } from '@tabler/icons-react'
-import {useTranslations} from 'next-intl'
+import {useLocale, useTranslations} from 'next-intl'
 import {Dialog} from '@kaiverse/k/ui'
-import Link from 'next/link'
+import {Link, getPathname} from '~/i18n/navigation'
 import {useRouter} from 'next/navigation'
 import {useState, useTransition} from 'react'
 import {
@@ -62,6 +62,7 @@ export default function PersonaDraftCard({
   onRerolled,
   onDiscarded,
 }: PersonaDraftCardProps) {
+  const locale = useLocale()
   const t = useTranslations('ai.interview.bulk')
   const tForm = useTranslations('ai.interview.form')
   const tChat = useTranslations('ai.interview.chat')
@@ -132,7 +133,7 @@ export default function PersonaDraftCard({
     <div className="border-hairline bg-paper-raised text-ink flex flex-col gap-2 rounded-lg border p-4">
       <div className="flex-center-between gap-2">
         <Link
-          href={`/ai/interview/${persona.id}/edit`}
+          href={`/ai/interview/${persona.id}/edit?from=bulk`}
           className="font-semibold wrap-anywhere hover:underline"
         >
           {persona.name}
@@ -187,7 +188,13 @@ export default function PersonaDraftCard({
           )}
           {t('keep')}
         </Button>
-        <LinkButton href={`/ai/interview/${persona.id}/edit`} size="sm">
+        <LinkButton
+          href={getPathname({
+            locale,
+            href: `/ai/interview/${persona.id}/edit?from=bulk`,
+          })}
+          size="sm"
+        >
           <IconEdit size="18" /> {t('edit')}
         </LinkButton>
         <Button
