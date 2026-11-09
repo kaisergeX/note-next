@@ -482,9 +482,8 @@ export default function NotesCollection({
       <div
         id="browser-work"
         className={cn(
-          'bg-paper sticky top-16 z-10 mb-4 flex min-h-10 justify-between',
+          'bg-paper sticky top-16 z-10 mb-4 flex min-h-10 justify-between py-2',
           browserWorkOnly ? 'items-center gap-6' : 'items-start gap-2',
-          hasFilters && 'py-2',
         )}
       >
         <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
