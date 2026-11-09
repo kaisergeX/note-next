@@ -31,6 +31,7 @@ type NoteEditorOptions = {
   limitCharacter?: number
   autofocus?: FocusPosition
   pending?: boolean
+  readOnly?: boolean
   theme?: NoteTheme | null
   editorVersion: number
 }
@@ -61,6 +62,7 @@ export function useNoteEditor({
   limitCharacter,
   autofocus = false,
   pending = false,
+  readOnly = false,
   theme,
   editorVersion,
 }: NoteEditorOptions) {
@@ -103,13 +105,14 @@ export function useNoteEditor({
         role: 'textbox',
         'aria-label': ariaLabel,
         'aria-multiline': String(!onPressEnter),
+        'aria-readonly': String(readOnly),
       },
     },
     content: initialValue || '',
     onUpdate: ({editor}) => onChange(editor.isEmpty ? '' : editor.getHTML()),
     onFocus,
-    editable: !pending,
-    autofocus,
+    editable: !pending && !readOnly,
+    autofocus: readOnly ? false : autofocus,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
   })
@@ -131,10 +134,11 @@ export function useNoteEditor({
   }, [editor, editorVersion])
 
   useEffect(() => {
-    if (editor && editor.isEditable === pending) {
-      editor.setEditable(!pending, false)
+    const editable = !pending && !readOnly
+    if (editor && editor.isEditable !== editable) {
+      editor.setEditable(editable, false)
     }
-  }, [editor, pending])
+  }, [editor, pending, readOnly])
 
   return editor
 }

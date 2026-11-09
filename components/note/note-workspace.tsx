@@ -59,24 +59,27 @@ function WorkspaceEditors({
   identity,
   pending,
   autofocus,
+  existing,
   draft,
   onEditors,
 }: {
   identity: string
   pending: boolean
   autofocus: boolean
+  existing: boolean
   draft: ReturnType<typeof snapshot>
   onEditors: (editors: NoteWritingEditors & {identity: string}) => void
 }) {
-  const {title, body, field} = useNoteWriting(
+  const {title, body, field, readOnly, toggleReadOnly} = useNoteWriting(
     identity,
     draft,
     pending,
     autofocus,
+    existing,
   )
   useLayoutEffect(() => {
-    onEditors({identity, title, body, field})
-  }, [identity, title, body, field, onEditors])
+    onEditors({identity, title, body, field, readOnly, toggleReadOnly})
+  }, [identity, title, body, field, readOnly, toggleReadOnly, onEditors])
   return null
 }
 
@@ -406,6 +409,9 @@ export default function NoteWorkspace({
         draft={shownDraft}
         pending={pending}
         autofocus={!comparing}
+        existing={Boolean(
+          shownSession?.baseline.id && !shownRecord?.editedCopyOf,
+        )}
         onEditors={setOwnedEditors}
       />
       <WorkspaceContent

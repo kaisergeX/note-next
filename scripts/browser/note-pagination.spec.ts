@@ -134,6 +134,8 @@ for (const mobile of [false, true]) {
     await cards.locator(`a[href="/en/eton/${older}"]`).click()
     await expect(body(page)).toBeVisible()
     await expect(body(page)).toContainText('Preview paragraph')
+    if (mobile)
+      await page.getByRole('button', {name: 'Edit', exact: true}).click()
     await title(page).fill('Edited older note')
     await page
       .getByRole('button', {name: 'Save and go back', exact: true})

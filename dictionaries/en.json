@@ -509,6 +509,9 @@
       "moving": "Moving to Trash…"
     },
     "editor": {
+      "read": "Read",
+      "edit": "Edit",
+      "readingMode": "Reading mode",
       "title": "Title",
       "emptyPlaceholder": {
         "nothing": "Nothing here yet 😶‍🌫️",

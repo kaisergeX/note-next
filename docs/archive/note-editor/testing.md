@@ -52,6 +52,7 @@ Run the suite with NOTES_TEST_ORIGIN=http://localhost:3002. Matching auth origin
 
 | Browser spec                    | Main regressions                                                                                                                                         |
 | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| note-read-mode                 | Mobile/desktop defaults, read-only title/body, selection-to-edit, no saves from reading, autosave after switching, undo/editor identity, modal navigation, new mobile notes |
 | note-recovery                   | Failed-sync reopening, durable URLs, RSC/editor identity, guarded decisions, lost-response retries, competing versions                                   |
 | note-card-colors / note-close   | Authored card fills, one-card identity, close during committed/in-flight creation                                                                        |
 | note-html-safety                | Unsafe saved/recovery title/body HTML cannot execute in cards; formatting survives and source HTML is not rewritten                                      |
@@ -60,6 +61,20 @@ Run the suite with NOTES_TEST_ORIGIN=http://localhost:3002. Matching auth origin
 | note-edit-copy / note-workspace | Source retention, copy reuse/discard, stale resolution, reload, undo/editor identity, diff tabs, independent long-pane scrolling, worker history handoff |
 
 Specs live in [scripts/browser](../../../scripts/browser); fixture behavior lives in [fixtures.ts](../../../scripts/browser/fixtures.ts). Each test creates unique accounts and fresh contexts, verifies server identity before mutations, and cleans up only its own accounts/notes after closing controllers. No existing QA account, OAuth login, or feature grant is required. Real authenticated sync HTTP and UI editing are used; interception supplies failures, stale writes, and lost responses.
+
+## Reading mode closeout
+
+On 2026-11-09, after the final icon and spacing design was accepted, lint/type checks, the production/Serwist build, formatting, and all seven focused browser checks passed against the local development app. Repeat the browser checks with:
+
+```sh
+NOTES_TEST_ORIGIN=http://localhost:3000 pnpm test:notes:browser scripts/browser/note-read-mode.spec.ts scripts/browser/note-pagination.spec.ts scripts/browser/note-workspace.spec.ts --grep 'reading mode|new mobile note|returning from an older|closing and reopening comparison'
+```
+
+This covers four reading-mode cases, desktop/mobile pagination return, and mobile comparison (seven checks). Existing mobile editing tests now explicitly choose Edit before changing a saved note. The broader search suite requires an isolated database whose name includes `_test`; do not bypass that guard or run its migration setup against the interactive app database.
+
+Final independent visual review passed at 390×844 and 1440×1000: modal/full-page controls are circular 40×40px ghost buttons with 24px icons and an 8px gap; mobile controls remain available without horizontal overflow. Localized tooltips and accessible names were checked, no console warnings or errors were observed, and the review browser was closed. The earlier reading-mode review also covered English/Vietnamese and Paper & Ink light/dark.
+
+Native phone keyboard and IME behavior still need a physical-device check. Browser emulation verifies `contenteditable=false`, selection, and focus, but does not establish virtual-keyboard behavior.
 
 ## Avoid misleading regressions
 

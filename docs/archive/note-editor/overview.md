@@ -22,6 +22,16 @@ Verification on 2026-11-05:
 
 The follow-up audit fixed stale browser checkpoints after clearing never-submitted drafts and blocked creation retries after clearing a draft with a lost response. The fixes preserve newer edits during cleanup and exact retry identities. The 60-test sync suite, lint/types, and diff checks passed after these fixes; database/account, browser, production/Serwist build, and UI-review results above predate them and were not rerun. Regression details are in [Testing](testing.md#local-checks).
 
+## Reading mode
+
+Implemented and owner-accepted on 2026-11-09. Saved notes open in reading mode on phones (below 40rem). Desktop notes, new notes, and conflict Working copies start editable. Removing autofocus alone would still let a tap activate editing, so reading explicitly makes the title and body read-only while keeping text selectable and copyable.
+
+The modal and full-page toolbar share an icon-only mode action: a pencil enters Edit; a book enters Read. It uses the same circular ghost button and icon size as fullscreen, with the two actions grouped using `gap-2`. Localized tooltips and accessible names identify the next action in English and Vietnamese. Reading hides formatting tools; navigation remains available.
+
+Edit resumes at the selected passage, or the last active field when there is no selection. Mode switches reuse the same editor, document, selection, and undo history. Switching modes does not itself change content or trigger a save; existing autosave continues for edits made before entering Read. Mode choice belongs to the current workspace; reopening uses the device default again. Resizing a mounted workspace does not override the chosen mode.
+
+Verification and remaining device limits are recorded in [Testing](testing.md#reading-mode-closeout).
+
 ## Production status and verification limits
 
 Deployment and initial production behavior are owner-reported; no independent production verification was performed for this update. On 2026-11-07, the owner confirmed that the production migration `drizzle/20261027120859_note_autosave` is complete. The target is Vercel Hobby with Neon Free for roughly 10–20 active users; measure actual traffic and database amplification before optimizing.
