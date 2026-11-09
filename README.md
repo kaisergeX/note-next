@@ -12,9 +12,8 @@
 
 <sup>List in order of priority</sup>
 
-- [ ] Note: Encrypt contents.
-- [x] [All notes pagination, masonry, and collection search](docs/note-list-and-search.md) — implemented; refined UI accepted.
-  - [ ] Close release checks: confirm deployment/backfill and reconcile the privacy page's encryption claims before archiving the feature document.
+- [ ] Note: Encrypt contents; update the public privacy page when encryption goes live (see the [recorded follow-up](docs/archive/note-list-and-search.md#encryption-follow-up)).
+- [x] [All notes pagination, masonry, and collection search](docs/archive/note-list-and-search.md).
 - [ ] Note: [Recovery and trash](docs/note-recovery-trash.md) — deployed; local checks, production recovery flow, manual cleanup, and endpoint protection pass. Automatic scheduled cleanup verification remains pending.
 - [x] System: PWA supported.
 - [x] Settings: [Account data actions](docs/archive/account-data-actions.md) — implemented and accepted; validation coverage and remaining manual checks are recorded in the archive.
