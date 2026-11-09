@@ -23,6 +23,7 @@
 - [x] Settings: Note
   - [x] [Editor, autosave, recovery, and conflict handling](docs/archive/note-editor/overview.md) — Verification limits are recorded in the archive.
   - [x] Persistent formatting toolbar with desktop groups and a compact mobile panel.
+  - [x] [Reading mode](docs/archive/note-editor/overview.md#reading-mode) with mobile reading defaults and icon controls in modal/full-page views.
   - [x] Theme.
 - [ ] Note: Drawable Mode,
 - [ ] Note: Download/Export the content of selected or all notes to csv/xlsx/images.

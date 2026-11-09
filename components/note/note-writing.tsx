@@ -3,12 +3,16 @@
 import {cn} from 'cn'
 import type {Editor} from '@tiptap/react'
 import {
+  useCallback,
   useEffect,
   useRef,
   useState,
   type ReactNode,
   type RefObject,
 } from 'react'
+import {IconBook, IconPencil} from '@tabler/icons-react'
+import Button from '~/components/ui/button'
+import {isMobileNoteView} from '~/lib/notes/mobile'
 import {useMessages, useTranslations} from 'next-intl'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
 import {usePersistStore} from '~/store'
@@ -22,6 +26,7 @@ export function useNoteWriting(
   draft: NoteSnapshot,
   pending: boolean,
   autofocus: boolean,
+  existing: boolean,
 ) {
   const t = useTranslations('note.editor')
   const messages = useMessages()
@@ -30,6 +35,14 @@ export function useNoteWriting(
     state.noteSession?.identity === identity
       ? (state.noteSession.editorVersion ?? 0)
       : 0,
+  )
+  const [readOnly, setReadOnly] = useState(() =>
+    Boolean(
+      existing &&
+      autofocus &&
+      typeof window !== 'undefined' &&
+      isMobileNoteView(),
+    ),
   )
   const [field, setField] = useState<'title' | 'body'>('title')
   const update = (value: {title: string} | {content: string}) => {
@@ -44,6 +57,7 @@ export function useNoteWriting(
     onFocus: () => setField('body'),
     onChange: (content) => update({content}),
     pending,
+    readOnly,
     theme: draft?.theme,
     editorVersion,
   })
@@ -58,16 +72,56 @@ export function useNoteWriting(
     onChange: (title) => update({title}),
     autofocus: autofocus ? 'end' : false,
     pending,
+    readOnly,
     theme: draft?.theme,
     editorVersion,
   })
-  return {title, body, field}
+  const toggleReadOnly = useCallback(() => {
+    if (pending) return
+    // Read-only prose uses the browser selection rather than an editable caret.
+    const selection = window.getSelection()
+    const selectedEditor = [title, body].find(
+      (editor) =>
+        selection?.anchorNode &&
+        selection.focusNode &&
+        editor?.view.dom.contains(selection.anchorNode) &&
+        editor.view.dom.contains(selection.focusNode),
+    )
+    const range =
+      readOnly && selectedEditor && selection?.anchorNode && selection.focusNode
+        ? {
+            from: selectedEditor.view.posAtDOM(
+              selection.anchorNode,
+              selection.anchorOffset,
+            ),
+            to: selectedEditor.view.posAtDOM(
+              selection.focusNode,
+              selection.focusOffset,
+            ),
+          }
+        : undefined
+    // Keep the same editor, document, selection, and undo history in both modes.
+    title?.setEditable(readOnly, false)
+    body?.setEditable(readOnly, false)
+    if (readOnly) {
+      const target = selectedEditor ?? (field === 'title' ? title : body)
+      if (range) target?.commands.setTextSelection(range)
+      target?.commands.focus()
+    } else {
+      title?.commands.blur()
+      body?.commands.blur()
+    }
+    setReadOnly(!readOnly)
+  }, [pending, title, body, field, readOnly])
+  return {title, body, field, readOnly, toggleReadOnly}
 }
 
 export type NoteWritingEditors = {
   title: Editor | null
   body: Editor | null
   field: 'title' | 'body'
+  readOnly?: boolean
+  toggleReadOnly?: () => void
 }
 
 export default function NoteWriting({
@@ -136,6 +190,22 @@ export default function NoteWriting({
     <RTECommands
       editor={editors[editors.field]}
       disabled={pending}
+      readOnly={editors.readOnly}
+      modeAction={
+        editors.toggleReadOnly && (
+          <Button
+            variant="ghost"
+            iconOnly
+            aria-label={t(editors.readOnly ? 'edit' : 'read')}
+            title={t(editors.readOnly ? 'edit' : 'read')}
+            disabled={pending || !editors.title || !editors.body}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={editors.toggleReadOnly}
+          >
+            {editors.readOnly ? <IconPencil /> : <IconBook />}
+          </Button>
+        )
+      }
       target={t(editors.field)}
       layout={fullPage ? 'document' : 'dialog'}
       docked={docked}
@@ -188,7 +258,7 @@ export default function NoteWriting({
         editor={editors.title}
         className={fullPage ? 'my-4 px-4 sm:px-8' : 'p-4'}
         limitCharacter={NOTE_TITLE_MAX_LENGTH}
-        showCount
+        showCount={!editors.readOnly}
         countClassName={fullPage ? 'text-ink-muted opacity-100' : undefined}
       />
       <div

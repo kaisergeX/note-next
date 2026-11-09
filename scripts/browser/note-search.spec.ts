@@ -309,6 +309,8 @@ for (const mobile of [false, true]) {
     await expect(target).toBeVisible()
     await target.click()
     await expect(body(page)).toContainText('return-search-needle')
+    if (mobile)
+      await page.getByRole('button', {name: 'Edit', exact: true}).click()
     await body(page).fill('Edited return-search-needle')
     await page
       .getByRole('button', {name: 'Save and go back', exact: true})

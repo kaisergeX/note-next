@@ -225,6 +225,8 @@ export const test = base.extend<{noteApp: NoteApp}>({
           const original = await create()
           await page.goto(fullPath(original))
           await expect(body(page)).toHaveText('Original body')
+          if (!(await body(page).isEditable()))
+            await page.getByRole('button', {name: 'Edit', exact: true}).click()
           const remote = await save(original, {
             title: '<p>Independent saved title</p>',
             content: '<p>Saved elsewhere</p>',

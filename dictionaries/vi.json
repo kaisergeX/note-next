@@ -509,6 +509,9 @@
       "moving": "Đang chuyển vào thùng rác…"
     },
     "editor": {
+      "read": "Đọc",
+      "edit": "Chỉnh sửa",
+      "readingMode": "Chế độ đọc",
       "title": "Tiêu đề",
       "emptyPlaceholder": {
         "nothing": "Chưa có gì ở đây 😶‍🌫️",

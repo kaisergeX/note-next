@@ -4,7 +4,7 @@ These sketches capture situations worth exploring. When revisiting one, start wi
 
 ## Reading mode
 
-Someone opens a note on their phone to read or copy a passage and a tap brings up the keyboard. Would a reading mode help? Could a change to how the editor takes focus solve that annoyance with one fewer mode to manage? Consider how someone moves from reading a passage to editing that same passage.
+Implemented and accepted. See the [note editor maintenance reference](archive/note-editor/overview.md#reading-mode) for behavior, controls, and verification limits.
 
 ## Mentions and linked notes
 
