@@ -106,6 +106,6 @@ Sanitization is a display projection, not a write transform. Server validation s
 
 The [2026-11-07 assessment](overview.md#html-safety-review-2026-11-07) records the HTML safety findings and verification. This closes the identified raw card-rendering gap locally; it is not an assurance against every vulnerability or confirmation of deployment.
 
-Future E2EE is opt-in for bodies, with plaintext titles. Keep title/body transforms separable before transport/local storage and conflict handling usable without server parsing of bodies. Keys/recovery, local plaintext, transitions, backups/history, and privacy promises need a dedicated design; an encryption flag alone provides no protection. Do not claim retroactive secrecy or automatically delete old history.
+The editor design originally anticipated opt-in body encryption with plaintext titles. The [current encryption plan](../../note-encryption-plan.md) supersedes that assumption and covers both fields, key recovery, conflicts, and historical copies.
 
 Full offline launch requires its own shell/data availability, durable mutation queue, authentication/isolation, tombstone/reconnect, and eviction design. Search must distinguish plaintext titles from protected bodies. Drawing needs a separate format/undo model. None of these deferred features authorizes changing current HTML storage or adding a generic document framework.

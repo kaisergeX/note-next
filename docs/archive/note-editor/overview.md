@@ -46,4 +46,4 @@ Stored HTML rendering remains an explicit [security boundary](architecture.md#se
 
 ## Deferred scope
 
-No Phase 4 is defined or approved. Automatic content merging, retained server history, search, full offline operation, E2EE, drawing, and additional export formats require their own scope. Future opt-in E2EE protects bodies; titles remain plaintext. Preserve that boundary without adding speculative encryption infrastructure.
+No Phase 4 is defined or approved. Automatic content merging, retained server history, search, full offline operation, E2EE, drawing, and additional export formats require their own scope. The [current encryption plan](../../note-encryption-plan.md) supersedes the original plaintext-title assumption.
