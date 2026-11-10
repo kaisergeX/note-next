@@ -24,7 +24,7 @@
     "db:audit:notes": "node --import tsx scripts/note-recovery-audit.ts",
     "test:notes:http": "node --conditions=react-server --import tsx --test scripts/note-recovery-http.test.ts",
     "test:notes:cleanup:http": "node --conditions=react-server --import tsx --test scripts/note-cleanup-http.test.ts",
-    "test:notes:sync": "node --conditions=react-server --import tsx --test scripts/note-sync.test.ts scripts/note-save-queue.test.ts scripts/note-diff.test.ts",
+    "test:notes:sync": "node --conditions=react-server --import tsx --test scripts/note-sync.test.ts scripts/note-sync-body.test.ts scripts/note-save-queue.test.ts scripts/note-diff.test.ts",
     "test:notes:autosave:http": "node --env-file=.env.local --conditions=react-server --import tsx --test scripts/note-autosave-http.test.ts",
     "test:notes:browser": "node --env-file=.env.local node_modules/@playwright/test/cli.js test"
   },
