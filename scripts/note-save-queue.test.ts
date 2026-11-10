@@ -45,6 +45,8 @@ function setup(
     pendingDeleteAt: null,
     isArchived: false,
     isEncrypted: false,
+    vaultId: null,
+    encryptedPayload: null,
     createdAt: new Date(),
     updatedAt: new Date(),
   }

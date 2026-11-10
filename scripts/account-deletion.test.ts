@@ -1,3 +1,4 @@
+import {noteVaultsTable} from '../db/schema/note-vaults'
 import assert from 'node:assert/strict'
 import {after, before, test} from 'node:test'
 import {randomUUID} from 'node:crypto'
@@ -320,6 +321,16 @@ test('Restore all restores only this owner’s recoverable notes and preserves n
   const alice = await owner()
   const bob = await owner()
   const future = new Date(Date.now() + 100000)
+  const vaultId = randomUUID()
+  const encryptedId = randomUUID()
+  await db.insert(noteVaultsTable).values({
+    id: vaultId,
+    ownerId: alice.id,
+    setupId: randomUUID(),
+    lastOperationId: randomUUID(),
+    primaryWrapper: {},
+    recoveryWrapper: {},
+  })
   const [active, archived, encrypted, expired, other] = await db
     .insert(notesTable)
     .values([
@@ -338,7 +349,26 @@ test('Restore all restores only this owner’s recoverable notes and preserves n
       },
       {
         authorId: alice.id,
-        title: 'Bulk restore encrypted',
+        title: null,
+        id: encryptedId,
+        vaultId,
+        encryptedPayload: {
+          version: 1,
+          algorithm: 'AES-256-GCM',
+          noteId: encryptedId,
+          vaultId,
+          title: {
+            salt: 'A'.repeat(43),
+            iv: 'A'.repeat(16),
+            ciphertext: 'A'.repeat(22),
+          },
+          body: {
+            salt: 'A'.repeat(43),
+            iv: 'A'.repeat(16),
+            ciphertext: 'A'.repeat(22),
+          },
+          contentId: randomUUID(),
+        },
         isEncrypted: true,
         theme: 'encrypted',
         pendingDeleteAt: future,

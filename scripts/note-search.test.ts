@@ -10,6 +10,7 @@ import {
   writeSearchDocument,
 } from '../db/repositories/note-search'
 import {notesTable} from '../db/schema/notes'
+import {noteVaultsTable} from '../db/schema/note-vaults'
 import {noteSearchDocumentsTable as documents} from '../db/schema/note-search'
 import {usersTable} from '../db/schema/users'
 import {
@@ -93,9 +94,9 @@ test('local matching suppresses stale server hits and uses representative draft 
     matchNoteSearch({...saved, isEncrypted: true}, 'old-query'),
     null,
   )
-  assert.deepEqual(
+  assert.equal(
     matchNoteSearch({...saved, isEncrypted: true}, 'Draft fixture'),
-    {snippet: ''},
+    null,
   )
   const body = `<p>${'İ'.repeat(300)} ${'🌏'.repeat(300)} late-draft-needle café</p>`
   const match = matchNoteSearch(
@@ -197,46 +198,78 @@ test('representative snippets find late body matches and account for Unicode low
   assert.match(match.snippet, /^…/)
 })
 
-test('encryption transition clears derived body and title-only search never returns ciphertext or plaintext body', async () => {
-  const note = await create(
-    '<p>private-title-fixture</p>',
-    '<p>previous-secret-body</p>',
-  )
+test('encrypted titles and bodies stay out of search and legacy writes are fenced', async () => {
+  const note = await create('private-title-fixture', 'previous-secret-body')
   assert.ok((await ids('previous-secret-body')).includes(note.id))
   await db
-    .update(notesTable)
-    .set({isEncrypted: true, content: 'CIPHERTEXT-secret-body'})
-    .where(eq(notesTable.id, note.id))
-  let [doc] = await db
+    .insert(noteVaultsTable)
+    .values({
+      id: randomUUID(),
+      ownerId: alice,
+      setupId: randomUUID(),
+      lastOperationId: randomUUID(),
+      primaryWrapper: {},
+      recoveryWrapper: {},
+    })
+    .onConflictDoNothing()
+  const [vault] = await db
     .select()
-    .from(documents)
-    .where(eq(documents.noteId, note.id))
-  assert.equal(doc.bodyText, null)
-  assert.equal(doc.bodyFold, null)
-  for (const query of ['previous-secret-body', 'CIPHERTEXT-secret-body'])
-    assert.ok(!(await ids(query)).includes(note.id))
-  const [match] = (await search.search(alice, 'private-title-fixture')).notes
-  assert.equal(match.content, null)
-  assert.equal(match.snippet, '')
-  assert.equal(match.isEncrypted, true)
-  const [preview] = await repo.getNotePreviews(alice, [note.id])
-  assert.equal(preview.content, null)
-  assert.equal(preview.isEncrypted, true)
-  assert.ok(!JSON.stringify(match).includes('secret-body'))
-  // Database guard also protects accidental writes outside the repository.
+    .from(noteVaultsTable)
+    .where(eq(noteVaultsTable.ownerId, alice))
   await db
-    .update(documents)
-    .set({bodyText: 'accidental plaintext', bodyFold: 'accidental plaintext'})
-    .where(eq(documents.noteId, note.id))
-  ;[doc] = await db
+    .update(notesTable)
+    .set({
+      isEncrypted: true,
+      title: null,
+      content: null,
+      vaultId: vault.id,
+      encryptedPayload: {
+        version: 1,
+        algorithm: 'AES-256-GCM',
+        noteId: note.id,
+        vaultId: vault.id,
+        title: {
+          salt: 'A'.repeat(43),
+          iv: 'A'.repeat(16),
+          ciphertext: 'A'.repeat(22),
+        },
+        body: {
+          salt: 'A'.repeat(43),
+          iv: 'A'.repeat(16),
+          ciphertext: 'A'.repeat(22),
+        },
+        contentId: randomUUID(),
+      },
+    })
+    .where(eq(notesTable.id, note.id))
+  assert.deepEqual(
+    await db.select().from(documents).where(eq(documents.noteId, note.id)),
+    [],
+  )
+  for (const query of ['previous-secret-body', 'private-title-fixture'])
+    assert.ok(!(await ids(query)).includes(note.id))
+  await db.insert(documents).values({
+    noteId: note.id,
+    titleText: 'accidental title',
+    titleFold: 'accidental title',
+    bodyText: 'accidental body',
+    bodyFold: 'accidental body',
+  })
+  const [doc] = await db
     .select()
     .from(documents)
     .where(eq(documents.noteId, note.id))
+  assert.equal(doc.titleText, '')
+  assert.equal(doc.titleFold, '')
   assert.equal(doc.bodyText, null)
   assert.equal(doc.bodyFold, null)
-  await repo.updateNote(alice, note.id, {title: '<p>renamed-private-title</p>'})
-  assert.ok((await ids('renamed-private-title')).includes(note.id))
-  assert.ok(!(await ids('private-title-fixture')).includes(note.id))
+  assert.equal(
+    (await repo.updateNote(alice, note.id, {title: 'plaintext'})).status,
+    'unavailable',
+  )
+  const [preview] = await repo.getNotePreviews(alice, [note.id])
+  assert.equal(preview.title, '')
+  assert.equal(preview.content, null)
 })
 
 test('updates, trash/restore and account deletion cannot retain stale searchable bodies', async () => {

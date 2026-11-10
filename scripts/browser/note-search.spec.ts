@@ -380,7 +380,7 @@ test('search and Needs review filter operate together on the displayed version',
   await expect(page.locator('a[data-note-id]')).toHaveCount(1)
 })
 
-test('encrypted title matches never inherit a body from the ordinary card preview', async ({
+test('encrypted notes are absent from ordinary title and body search', async ({
   page,
   noteApp,
   context,
@@ -392,30 +392,45 @@ test('encrypted title matches never inherit a body from the ordinary card previe
   })
   const client = postgres(databaseUrl, {max: 1})
   try {
-    await client`UPDATE notes SET is_encrypted = true, content = 'opaque-encrypted-body' WHERE id = ${note.id} AND author_id = ${noteApp.ownerId}`
+    const [{id: vaultId}] = await client`
+      INSERT INTO note_vaults (id, owner_id, setup_id, last_operation_id, primary_wrapper, recovery_wrapper)
+      VALUES (gen_random_uuid(), ${noteApp.ownerId}, gen_random_uuid(), gen_random_uuid(), '{}', '{}')
+      RETURNING id`
+    const envelope = {
+      salt: 'A'.repeat(43),
+      iv: 'A'.repeat(16),
+      ciphertext: 'A'.repeat(24),
+    }
+    const payload = {
+      version: 1,
+      algorithm: 'AES-256-GCM',
+      vaultId,
+      noteId: note.id,
+      contentId: crypto.randomUUID(),
+      title: envelope,
+      body: envelope,
+    }
+    await client`UPDATE notes SET is_encrypted = true, title = NULL, content = NULL,
+      vault_id = ${vaultId}, encrypted_payload = ${client.json(payload)}
+      WHERE id = ${note.id} AND author_id = ${noteApp.ownerId}`
   } finally {
     await client.end()
   }
-  const response = await context.request.post('/api/note/search', {
-    data: {query: 'encrypted-title-needle', cursor: null},
-  })
-  expect(response.ok()).toBe(true)
-  expect(response.headers()['cache-control']).toBe('private, no-store')
-  const pageData = await response.json()
-  expect(pageData.notes).toHaveLength(1)
-  expect(pageData.notes[0]).toMatchObject({
-    id: note.id,
-    content: null,
-    snippet: '',
-    isEncrypted: true,
-  })
+  for (const query of ['encrypted-title-needle', 'previous-plaintext-secret']) {
+    const response = await context.request.post('/api/note/search', {
+      data: {query, cursor: null},
+    })
+    expect(response.ok()).toBe(true)
+    expect(response.headers()['cache-control']).toBe('private, no-store')
+    expect((await response.json()).notes).toEqual([])
+  }
   await page.goto('/en/eton')
   const input = await openSearch(page)
   await input.fill('encrypted-title-needle')
-  const target = page.locator(`a[data-note-id="${note.id}"]`)
-  await expect(target).toBeVisible()
-  await expect(target).not.toContainText('previous-plaintext-secret')
-  await expect(target).not.toContainText('opaque-encrypted-body')
+  await expect(
+    page.getByRole('status').filter({hasText: 'No matching notes.'}),
+  ).toBeVisible()
+  await expect(page.locator(`a[data-note-id="${note.id}"]`)).toHaveCount(0)
 })
 
 test('Vietnamese search reports no results and clears with localized controls', async ({

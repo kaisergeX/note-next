@@ -133,7 +133,8 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
       }),
     )
     assert.equal((await api()).status, 404)
-    const trashList = () => fetch(`${origin}/en/trash`, {headers: headers()})
+    const trashList = () =>
+      fetch(`${origin}/en/collection/trash`, {headers: headers()})
     const preview = () =>
       fetch(`${origin}/en/trash/${note.id}`, {headers: headers()})
     assert.ok(
@@ -144,9 +145,11 @@ test('authenticated app reads reconcile active/trash/restore/delete without cach
     const previewHtml = await previewResponse.text()
     assert.ok(
       (previewResponse.redirected &&
-        new URL(previewResponse.url).pathname === '/en/trash') ||
-        /NEXT_REDIRECT;replace;\/en\/trash;307;/.test(previewHtml) ||
-        /content="0;url=\/en\/trash"/.test(previewHtml),
+        new URL(previewResponse.url).pathname === '/en/collection/trash') ||
+        /NEXT_REDIRECT;replace;\/en\/collection\/trash;307;/.test(
+          previewHtml,
+        ) ||
+        /content="0;url=\/en\/collection\/trash"/.test(previewHtml),
       'Legacy preview route redirects to Trash, including a streamed redirect',
     )
     for (const full of [false, true]) {

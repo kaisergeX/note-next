@@ -60,10 +60,11 @@ export function matchNoteSearch(
   note: {title: string | null; content: string | null; isEncrypted?: boolean},
   rawQuery: string,
 ): {snippet: string} | null {
+  if (note.isEncrypted) return null
   return matchNoteSearchText(
     {
       title: searchableNoteText(note.title),
-      body: note.isEncrypted ? '' : searchableNoteText(note.content),
+      body: searchableNoteText(note.content),
     },
     rawQuery,
     note.isEncrypted,
@@ -77,11 +78,12 @@ export function matchNoteSearchText(
   rawQuery: string,
   isEncrypted = false,
 ): {snippet: string} | null {
+  if (isEncrypted) return null
   const query = foldSearchText(rawQuery)
   if (!query || normalizeSearchText(rawQuery).length > NOTE_SEARCH_QUERY_LIMIT)
     return null
   const title = text.title
-  const body = isEncrypted ? '' : text.body
+  const body = text.body
   const hit = foldSearchText(body).indexOf(query)
   if (!foldSearchText(title).includes(query) && hit < 0) return null
   const points = Array.from(body)

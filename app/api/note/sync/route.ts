@@ -1,3 +1,4 @@
+import {encryptionRepository} from '~/lib/notes/encryption/server-http'
 import {type NextRequest, NextResponse} from 'next/server'
 import {auth} from '~/auth'
 import {accountRepository} from '~/db/helper/account'
@@ -17,6 +18,14 @@ export async function POST(request: NextRequest) {
   const session = await auth()
   if (!session?.user?.id || session.error)
     return reply({status: 'unauthenticated'}, 401)
+  if (
+    request.headers.get('x-note-encryption-protocol') !== '1' &&
+    (await encryptionRepository.getVault(session.user.id))
+  )
+    return NextResponse.json(
+      {status: 'reload_required'},
+      {status: 426, headers: {'Cache-Control': 'private, no-store'}},
+    )
   // Bound the wire payload before parsing; never echo exceptions/SQL parameters.
   if (Number(request.headers.get('content-length')) > SYNC_BODY_BYTE_LIMIT)
     return reply({status: 'invalid_input'}, 413)

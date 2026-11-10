@@ -48,7 +48,7 @@ export async function writeSearchDocument(
   // The source-change trigger invalidates projections atomically. Theme edits,
   // restore and idempotent acknowledgements reuse one; missing legacy rows heal.
   if (current.indexedId) return
-  const titleText = searchableNoteText(note.title)
+  const titleText = note.isEncrypted ? '' : searchableNoteText(note.title)
   const bodyText = note.isEncrypted ? null : searchableNoteText(note.content)
   const document = {
     noteId: note.id,
@@ -113,6 +113,7 @@ export function createNoteSearchRepository(db: SearchDatabase) {
               and(
                 eq(notesTable.authorId, ownerId),
                 isNull(notesTable.pendingDeleteAt),
+                eq(notesTable.isEncrypted, false),
                 isNull(documents.noteId),
               ),
             )
@@ -161,16 +162,14 @@ export function createNoteSearchRepository(db: SearchDatabase) {
               and(
                 eq(notesTable.authorId, ownerId),
                 isNull(notesTable.pendingDeleteAt),
+                eq(notesTable.isEncrypted, false),
                 // Keep the candidate predicate on the document table so PostgreSQL
                 // can combine both trigram indexes before applying owner checks.
                 or(
                   sql`${source.titleFold} LIKE ${pattern}`,
                   sql`${source.bodyFold} LIKE ${pattern}`,
                 ),
-                or(
-                  eq(notesTable.isEncrypted, false),
-                  sql`${source.titleFold} LIKE ${pattern}`,
-                ),
+
                 cursor
                   ? sql`(${notesTable.createdAt}, ${notesTable.id}) < (${cursor.createdAt}::timestamptz, ${cursor.id}::uuid)`
                   : undefined,

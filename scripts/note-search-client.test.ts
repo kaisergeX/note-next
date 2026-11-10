@@ -47,7 +47,13 @@ function displayed(
 }
 
 test('authoritative refetch expires an acknowledgement even when its older off-page note is absent', () => {
-  const note = {...match(), isArchived: false, lastMutationId: null}
+  const note = {
+    ...match(),
+    vaultId: null,
+    encryptedPayload: null,
+    isArchived: false,
+    lastMutationId: null,
+  }
   const entries = {[note.id]: {note, recordedAt: 100}}
   assert.equal(Object.keys(pendingNoteAcknowledgements(entries, 0)).length, 1)
   assert.equal(Object.keys(pendingNoteAcknowledgements(entries, 99)).length, 1)
@@ -101,7 +107,7 @@ test('search requests keep terms out of URLs and preserve cursors/cancellation s
   assert.notDeepEqual(noteSearchKey(alice, 'same'), noteSearchKey(bob, 'same'))
 })
 
-test('response boundary rejects changed accounts and strips encrypted bodies/snippets', async (t) => {
+test('response boundary rejects changed accounts and excludes encrypted notes', async (t) => {
   const saved = match({
     isEncrypted: true,
     content: 'opaque-body',
@@ -120,9 +126,7 @@ test('response boundary rejects changed accounts and strips encrypted bodies/sni
     null,
     new AbortController().signal,
   )
-  assert.equal(page.notes.length, 1)
-  assert.equal(page.notes[0].content, null)
-  assert.equal(page.notes[0].snippet, '')
+  assert.deepEqual(page.notes, [])
   await assert.rejects(
     readNoteSearchPage(bob, 'title', null, new AbortController().signal),
     (error: unknown) =>
@@ -210,7 +214,7 @@ test('only exact displayed versions participate; ambiguous hidden candidates sta
   )
 })
 
-test('reconciliation isolates accounts, removes trashed matches, and enforces encrypted title-only matches', () => {
+test('reconciliation isolates accounts, removes trashed matches, and excludes encrypted titles and bodies', () => {
   const saved = match()
   assert.equal(
     reconcileNoteSearch(alice, 'saved query', [match({authorId: bob})], [])
@@ -253,9 +257,7 @@ test('reconciliation isolates accounts, removes trashed matches, and enforces en
     0,
   )
   assert.equal(
-    reconcileNoteSearch(alice, 'encrypted-title', [], [encrypted]).get(
-      saved.id,
-    ),
-    '',
+    reconcileNoteSearch(alice, 'encrypted-title', [], [encrypted]).size,
+    0,
   )
 })

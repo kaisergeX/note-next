@@ -43,8 +43,8 @@ export function reconcileNoteSearch(
 ) {
   const matches = new Map<string, string>()
   for (const note of serverMatches)
-    if (note.authorId === ownerId && !note.pendingDeleteAt)
-      matches.set(note.id, note.isEncrypted ? '' : note.snippet)
+    if (note.authorId === ownerId && !note.pendingDeleteAt && !note.isEncrypted)
+      matches.set(note.id, note.snippet)
   for (const note of overrides) {
     if (note.ownerId !== ownerId) continue
     // A displayed draft that stopped matching must suppress every loaded server

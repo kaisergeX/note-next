@@ -394,7 +394,7 @@ test('atomic draft trash preserves metadata and elapsed retention across DST; re
   const note = await fixture()
   await db
     .update(notesTable)
-    .set({isArchived: true, isEncrypted: true})
+    .set({isArchived: true})
     .where(eq(notesTable.id, note.id))
   await db.transaction(async (tx) => {
     await tx.execute(sql`SET LOCAL TIME ZONE 'America/New_York'`)
@@ -444,7 +444,7 @@ test('atomic draft trash preserves metadata and elapsed retention across DST; re
     assert.equal(restored.authorId, alice)
     assert.equal(restored.createdAt.getTime(), note.createdAt.getTime())
     assert.equal(restored.isArchived, true)
-    assert.equal(restored.isEncrypted, true)
+    assert.equal(restored.isEncrypted, false)
     assert.equal(restored.title, 'Draft')
     assert.equal(restored.content, 'Unsaved body')
     assert.equal(restored.theme, 'pink')

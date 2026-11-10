@@ -162,7 +162,11 @@ function createNoteQueries(db: NoteDatabase) {
   async function getTrashNotes(ownerId: string) {
     if (!validOwner(ownerId)) return []
     return db
-      .select(projection)
+      .select({
+        ...projection,
+        // Trash cards use metadata only; fetch encrypted bodies on detail open.
+        encryptedPayload: sql<unknown>`null`,
+      })
       .from(notesTable)
       .where(and(owned(ownerId), recoverable))
       .orderBy(desc(notesTable.pendingDeleteAt), desc(notesTable.id))
@@ -257,7 +261,13 @@ function createNoteQueries(db: NoteDatabase) {
       await db
         .update(notesTable)
         .set(parsed.data)
-        .where(and(owned(ownerId, noteId), active))
+        .where(
+          and(
+            owned(ownerId, noteId),
+            active,
+            eq(notesTable.isEncrypted, false),
+          ),
+        )
         .returning(projection),
     )
   }
@@ -278,7 +288,13 @@ function createNoteQueries(db: NoteDatabase) {
         // are elapsed time; calendar days vary across daylight-saving changes.
         pendingDeleteAt: sql`clock_timestamp() + ${NOTE_RETENTION_SECONDS} * interval '1 second'`,
       })
-      .where(and(owned(ownerId, noteId), active))
+      .where(
+        and(
+          owned(ownerId, noteId),
+          active,
+          parsed ? eq(notesTable.isEncrypted, false) : undefined,
+        ),
+      )
       .returning(projection)
     if (rows[0]) return {status: 'success', note: rows[0]}
     const current = await getTrashNote(ownerId, noteId)
@@ -371,6 +387,7 @@ function createNoteQueries(db: NoteDatabase) {
       }
       return {status: 'unavailable'}
     }
+    if (current.isEncrypted) return {status: 'conflict', note: current}
     if (
       current.lastMutationId === request.mutationId &&
       sameContent(current, request.content) &&
@@ -395,6 +412,7 @@ function createNoteQueries(db: NoteDatabase) {
           owned(ownerId, request.noteId),
           active,
           eq(notesTable.revision, request.expectedRevision!),
+          eq(notesTable.isEncrypted, false),
         ),
       )
       .returning(projection)

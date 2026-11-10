@@ -39,11 +39,10 @@ export async function readNoteSearchPage(
   return {
     nextCursor: page.nextCursor,
     notes: page.notes
-      .filter((note) => note.authorId === ownerId)
+      .filter((note) => note.authorId === ownerId && !note.isEncrypted)
       .map((note) => ({
         ...note,
         content: null,
-        snippet: note.isEncrypted ? '' : note.snippet,
       })),
   }
 }
