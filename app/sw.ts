@@ -59,6 +59,8 @@ const serwist = new Serwist({
     // First match wins. Protect bodies and mutations before generic runtime rules.
     {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'GET'},
     {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'POST'},
+    {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'PUT'},
+    {matcher: isNoteRoute, handler: new NetworkOnly(), method: 'PATCH'},
     {matcher: isAiApiRoute, handler: new NetworkOnly(), method: 'GET'},
     {matcher: isAiApiRoute, handler: new NetworkOnly(), method: 'POST'},
     {matcher: isAppearanceApiRoute, handler: new NetworkOnly(), method: 'GET'},

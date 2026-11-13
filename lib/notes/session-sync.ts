@@ -61,7 +61,10 @@ const defaultDependencies: NoteSyncDependencies = {
       method: 'POST',
       credentials: 'same-origin',
       cache: 'no-store',
-      headers: {'Content-Type': 'application/json'},
+      headers: {
+        'Content-Type': 'application/json',
+        'x-note-encryption-protocol': '1',
+      },
       body: JSON.stringify(request),
       signal: AbortSignal.timeout(20000),
     })
@@ -1253,11 +1256,15 @@ export async function removeAccountRecovery(ownerId: string) {
 
 export async function requestAccountExit(): Promise<boolean> {
   if (!account) return true
+  const {lockVault} = await import('./encryption/runtime')
+  if (!(await lockVault(account))) return false
   const controller = getNoteSync()
   const durable = !controller?.dirty || (await controller.persist())
   try {
     const drafts = await listDrafts(account)
-    if (!drafts.length && durable) return true
+    const {listEncryptedRecovery} = await import('./encryption/storage')
+    const encrypted = await listEncryptedRecovery(account, 0, 1)
+    if (!drafts.length && !encrypted.length && durable) return true
     return await new Promise<boolean>((resolve) =>
       window.dispatchEvent(
         new CustomEvent('note-account-exit', {

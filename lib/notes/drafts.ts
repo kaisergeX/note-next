@@ -1,6 +1,7 @@
 import {Dexie, type EntityTable} from 'dexie'
 import type {Note} from '~/db/schema/notes'
 import type {NoteSnapshot, SyncRequest} from './sync'
+import {clearEncryptedAccountStorage} from './encryption/storage'
 
 export type RecoveryDraft = {
   id: string
@@ -34,6 +35,7 @@ function changed() {
   }
 }
 export async function putDraft(record: RecoveryDraft) {
+  assertOrdinaryDraft(record)
   await db.transaction('rw', db.drafts, async () => {
     const previous = await db.drafts.get(record.id)
     if (!previous || previous.generation <= record.generation)
@@ -70,12 +72,14 @@ export async function clearDraftBatch(
 export const listDrafts = (ownerId: string) =>
   db.drafts.where('ownerId').equals(ownerId).reverse().sortBy('updatedAt')
 export async function clearAccountDrafts(ownerId: string) {
+  await clearEncryptedAccountStorage(ownerId)
   await db.drafts.where('ownerId').equals(ownerId).delete()
   changed()
 }
 
 // Export only on an explicit user action. The file contains plaintext HTML.
 export function exportDrafts(records: RecoveryDraft[]) {
+  records.forEach(assertOrdinaryDraft)
   const blob = new Blob([JSON.stringify(records, null, 2)], {
     type: 'application/json',
   })
@@ -85,4 +89,18 @@ export function exportDrafts(records: RecoveryDraft[]) {
   link.download = 'eton-unsynced-notes.json'
   link.click()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+function assertOrdinaryDraft(record: RecoveryDraft) {
+  if (
+    record.baseline.isEncrypted ||
+    record.conflict?.isEncrypted ||
+    'envelope' in record ||
+    'capturedEpoch' in record ||
+    ('mode' in record && record.mode === 'encrypted') ||
+    ('status' in record && record.status === 'quarantined')
+  )
+    throw new Error(
+      'Encrypted browser work cannot use ordinary storage or export',
+    )
 }
