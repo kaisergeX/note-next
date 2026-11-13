@@ -1,4 +1,4 @@
-import {test, expect, drafts} from './fixtures'
+import {test, expect, drafts, title} from './fixtures'
 
 test('saved title and body cannot execute HTML in note cards', async ({
   page,
@@ -34,6 +34,19 @@ test('browser recovery HTML is sanitized without modifying its source', async ({
   await expect(
     page.getByRole('button', {name: 'New note', exact: true}),
   ).toBeVisible()
+  // Let the editor initialize the real recovery schema before inserting a fixture.
+  await page.goto('/en/full/eton/new')
+  await expect(title(page)).toBeVisible()
+  await expect
+    .poll(() =>
+      page.evaluate(async () =>
+        (await indexedDB.databases()).some(
+          (database) => database.name === 'etoN-note-recovery',
+        ),
+      ),
+    )
+    .toBe(true)
+  await page.goto('/en/eton')
   const content =
     '<p><em>Browser content</em><img src="x" onerror="window.__noteXss=1"></p>'
   await page.evaluate(
@@ -43,6 +56,11 @@ test('browser recovery HTML is sanitized without modifying its source', async ({
         request.onerror = () => reject(request.error)
         request.onsuccess = () => {
           const db = request.result
+          if (!db.objectStoreNames.contains('drafts')) {
+            db.close()
+            reject(new Error('Recovery drafts store was not initialized'))
+            return
+          }
           const transaction = db.transaction('drafts', 'readwrite')
           transaction.objectStore('drafts').put({
             id: crypto.randomUUID(),
@@ -64,6 +82,10 @@ test('browser recovery HTML is sanitized without modifying its source', async ({
             resolve()
           }
           transaction.onerror = () => {
+            db.close()
+            reject(transaction.error)
+          }
+          transaction.onabort = () => {
             db.close()
             reject(transaction.error)
           }
