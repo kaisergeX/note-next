@@ -9,6 +9,12 @@ export default function Privacy() {
         <p className="text-ink-muted mx-auto mb-6 max-w-prose text-sm">
           {t('privacyLanguage')}
         </p>
+        <div
+          lang="en"
+          className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose"
+        >
+          <h1 className="mb-4">etoN Privacy Policy</h1>
+        </div>
         <section className="prose prose-sm prose-appearance mx-auto mb-8 max-w-prose">
           <h2>{t('noteStorageTitle')}</h2>
           <p>{t('noteStorage')}</p>
@@ -17,7 +23,6 @@ export default function Privacy() {
           lang="en"
           className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose"
         >
-          <h1 className="mb-4">etoN Privacy Policy</h1>
           <div className="text-right text-sm">
             Last Update Date: July, 11 2023
           </div>
