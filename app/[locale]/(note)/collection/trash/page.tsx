@@ -14,6 +14,7 @@ export default async function TrashPage() {
         ownerId={userInfo.id}
         items={notes.map((note) => ({
           id: note.id,
+          isEncrypted: note.isEncrypted,
           title: noteText(note.title),
           excerpt: noteText(note.content).slice(0, 240),
           isEmpty: !meaningfulContent(note),

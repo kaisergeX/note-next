@@ -42,9 +42,11 @@ export default function NotesCollection({
   ownerId,
   initialPage,
   browserWorkOnly = false,
+  encryptionAvailable = false,
 }: {
   ownerId: string
   initialPage?: NotePage
+  encryptionAvailable?: boolean
   browserWorkOnly?: boolean
 }) {
   const t = useTranslations('note.recovery')
@@ -556,6 +558,19 @@ export default function NotesCollection({
           </div>
         )}
       </div>
+      {encryptionAvailable && (
+        <div className="mb-4 flex flex-wrap items-center gap-x-3">
+          <Link
+            className={buttonClass({variant: 'link'})}
+            href="/collection/encrypted"
+          >
+            {editor('encryptedNotes')}
+          </Link>
+          {!browserWorkOnly && (
+            <p className="text-ink-muted text-sm">{searchText('scope')}</p>
+          )}
+        </div>
+      )}
       {search.active && searchFailure && (
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <p role="alert" className="text-destructive text-sm">

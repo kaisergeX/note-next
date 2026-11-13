@@ -14,6 +14,7 @@ import TrashActions from './trash-actions'
 import ExpiryDate from './expiry-date'
 import {useTrashRefresh} from './use-trash-refresh'
 import TrashBulkActions from './trash-bulk-actions'
+import EncryptedDetail from '../encryption/encrypted-detail'
 import TrashPreviewDialog from './trash-preview-dialog'
 
 export default function TrashList({
@@ -64,16 +65,20 @@ export default function TrashList({
                   pressMotion={false}
                   className="block h-auto w-full flex-1 p-4 text-left font-normal whitespace-normal"
                   aria-label={t('previewNamed', {
-                    title: item.isEmpty
-                      ? tNote('emptyNote')
-                      : item.title || t('untitled'),
+                    title: item.isEncrypted
+                      ? tNote('encryption.lockedNote')
+                      : item.isEmpty
+                        ? tNote('emptyNote')
+                        : item.title || t('untitled'),
                   })}
                   onClick={() => {
                     setSelected({item, request: ++previewRequest.current})
                     setPreviewOpen(true)
                   }}
                 >
-                  {item.isEmpty ? (
+                  {item.isEncrypted ? (
+                    <p>{tNote('encryption.lockedNote')}</p>
+                  ) : item.isEmpty ? (
                     <NoteCardEmpty label={tNote('emptyNote')} />
                   ) : (
                     <>
@@ -118,29 +123,39 @@ export default function TrashList({
           <p className="text-ink-muted mt-2 text-sm">{t('emptyBody')}</p>
         </section>
       )}
-      {selected && (
-        <TrashPreviewDialog
-          key={selected.request}
-          item={selected.item}
-          ownerId={ownerId}
-          open={previewOpen}
-          online={online}
-          available={visible.some(
-            (item) =>
-              item.id === selected.item.id &&
-              item.deadlineToken === selected.item.deadlineToken,
+      {selected?.item.isEncrypted
+        ? previewOpen && (
+            <EncryptedDetail
+              ownerId={ownerId}
+              noteId={selected.item.id}
+              readOnly
+              modal
+              onClose={() => setPreviewOpen(false)}
+            />
+          )
+        : selected && (
+            <TrashPreviewDialog
+              key={selected.request}
+              item={selected.item}
+              ownerId={ownerId}
+              open={previewOpen}
+              online={online}
+              available={visible.some(
+                (item) =>
+                  item.id === selected.item.id &&
+                  item.deadlineToken === selected.item.deadlineToken,
+              )}
+              onClose={() => setPreviewOpen(false)}
+              onComplete={() => {
+                setPreviewOpen(false)
+                setRemoved((previous) => [
+                  ...previous,
+                  `${selected.item.id}:${selected.item.deadlineToken}`,
+                ])
+                router.refresh()
+              }}
+            />
           )}
-          onClose={() => setPreviewOpen(false)}
-          onComplete={() => {
-            setPreviewOpen(false)
-            setRemoved((previous) => [
-              ...previous,
-              `${selected.item.id}:${selected.item.deadlineToken}`,
-            ])
-            router.refresh()
-          }}
-        />
-      )}
     </>
   )
 }

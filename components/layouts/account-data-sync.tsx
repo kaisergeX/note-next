@@ -1,6 +1,7 @@
 'use client'
 
-import {useEffect} from 'react'
+import {useEffect, useRef} from 'react'
+import {installVaultLifecycle, lockVault} from '~/lib/notes/encryption/runtime'
 import {useSession} from 'next-auth/react'
 import {useRouter} from 'next/navigation'
 import {
@@ -18,6 +19,13 @@ export default function AccountDataSync() {
   const {data: session} = useSession()
   const id = session?.user?.id
   const email = session?.user?.email
+  const previousOwner = useRef<string | undefined>(undefined)
+  useEffect(() => {
+    if (previousOwner.current && previousOwner.current !== id)
+      void lockVault(previousOwner.current)
+    previousOwner.current = id
+    if (id) return installVaultLifecycle(id)
+  }, [id])
   useEffect(() => {
     async function onStorage(event: StorageEvent) {
       if (event.key !== ACCOUNT_EVENT_KEY || !event.newValue || !id) return

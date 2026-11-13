@@ -1,6 +1,6 @@
 'use client'
 
-import {IconDotsVertical, IconTrash} from '@tabler/icons-react'
+import {IconDotsVertical, IconLock, IconTrash} from '@tabler/icons-react'
 import {cn} from 'cn'
 import {useTranslations} from 'next-intl'
 import {Link, useRouter} from '~/i18n/navigation'
@@ -119,7 +119,12 @@ export default function NoteTiny({
           }
         }}
       >
-        {meaningfulContent(data) || Boolean(snippet) ? (
+        {data.isEncrypted ? (
+          <p className="flex items-center gap-2 font-serif">
+            <IconLock size={16} aria-hidden />
+            {t('encryption.lockedNote')}
+          </p>
+        ) : meaningfulContent(data) || Boolean(snippet) ? (
           <NoteCardSummary
             title={title}
             content={

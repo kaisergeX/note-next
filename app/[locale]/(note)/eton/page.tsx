@@ -1,5 +1,6 @@
 import {NextIntlClientProvider} from 'next-intl'
 import {getMessages} from 'next-intl/server'
+import {encryptionRepository} from '~/lib/notes/encryption/server-http'
 import NotesCollection from '~/components/note/notes-collection'
 import {getNotePage} from '~/db/helper/notes'
 import {requireAuth} from '~/server-utils'
@@ -19,7 +20,14 @@ export default async function Notes({
   return (
     <main className="body-h-auto">
       <NextIntlClientProvider messages={{note: noteMsgs}}>
-        <NotesCollection ownerId={userInfo.id} initialPage={initialPage} />
+        <NotesCollection
+          encryptionAvailable={
+            process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED === 'true' ||
+            Boolean(await encryptionRepository.getVault(userInfo.id))
+          }
+          ownerId={userInfo.id}
+          initialPage={initialPage}
+        />
       </NextIntlClientProvider>
     </main>
   )

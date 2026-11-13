@@ -1,3 +1,4 @@
+import EncryptedDetail from '~/components/note/encryption/encrypted-detail'
 import {notFound} from 'next/navigation'
 import {getNote} from '~/db/helper/notes'
 import {requireAuth} from '~/server-utils'
@@ -10,5 +11,7 @@ export default async function FullNotePage({
   const {userInfo} = await requireAuth()
   const note = await getNote(userInfo.id, id)
   if (!note) notFound()
+  if (note.isEncrypted)
+    return <EncryptedDetail ownerId={userInfo.id} noteId={note.id} />
   return <NoteDetail noteData={note} />
 }

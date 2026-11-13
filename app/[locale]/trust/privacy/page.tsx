@@ -9,6 +9,10 @@ export default function Privacy() {
         <p className="text-ink-muted mx-auto mb-6 max-w-prose text-sm">
           {t('privacyLanguage')}
         </p>
+        <section className="prose prose-sm prose-appearance mx-auto mb-8 max-w-prose">
+          <h2>{t('noteStorageTitle')}</h2>
+          <p>{t('noteStorage')}</p>
+        </section>
         <article
           lang="en"
           className="prose prose-sm prose-appearance text-ink mx-auto max-w-prose"
@@ -88,17 +92,6 @@ export default function Privacy() {
             as social security numbers, genetic data, health information, or
             religious information.
           </p>
-          <p>
-            Although etoN does not request or intentionally store any sensitive
-            personal information, we realize that you might store this kind of
-            information in Note.
-            <br /> We automatically encrypt the title and body of your Note on
-            our server to protect your data.
-            <br /> If you use Note to store any sensitive personal information,
-            you are consenting to our storage of that encrypted information on
-            our servers.
-          </p>
-
           <h3>How we share the information we collect</h3>
           <p>
             We <strong>do not</strong> share, sell, rent, or trade User Personal
@@ -124,16 +117,6 @@ export default function Privacy() {
             Information. The organization receiving any User Personal
             Information will have to honor any promises we have made in our
             Privacy Statement
-          </p>
-
-          <h2>How etoN secures your information</h2>
-          <p>
-            As mentioned on{' '}
-            <Link href="#what-not-collect">
-              What information etoN does not collect
-            </Link>{' '}
-            section, we automatically encrypt the title and body of your Note on
-            our server to protect your data.
           </p>
 
           <h2 id="compelled-disclosure">

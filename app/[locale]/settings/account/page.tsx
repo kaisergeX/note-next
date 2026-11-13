@@ -1,3 +1,6 @@
+import {Link} from '~/i18n/navigation'
+import {buttonClass} from '~/components/ui/button'
+import {encryptionRepository} from '~/lib/notes/encryption/server-http'
 import {IconUserCircle} from '@tabler/icons-react'
 import Image from 'next/image'
 import {getLocale, getMessages, getTranslations} from 'next-intl/server'
@@ -47,6 +50,15 @@ export default async function AccountPage({
         </dl>
         <Badge className="capitalize">{t(`roles.${userInfo.role}`)}</Badge>
       </div>
+      {(process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED === 'true' ||
+        (await encryptionRepository.getVault(userInfo.id))) && (
+        <Link
+          href="/collection/encrypted"
+          className={buttonClass({variant: 'link'})}
+        >
+          {messages.note.encryption.heading}
+        </Link>
+      )}
       <NextIntlClientProvider messages={{user: messages.user}}>
         <AccountActions
           ownerId={userInfo.id}
