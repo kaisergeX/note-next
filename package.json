@@ -27,7 +27,7 @@
     "test:notes:sync": "node --conditions=react-server --import tsx --test scripts/note-sync.test.ts scripts/note-sync-body.test.ts scripts/note-save-queue.test.ts scripts/note-diff.test.ts",
     "test:notes:autosave:http": "node --env-file=.env.local --conditions=react-server --import tsx --test scripts/note-autosave-http.test.ts",
     "test:notes:browser": "node --env-file=.env.local node_modules/@playwright/test/cli.js test",
-    "test:notes:encryption": "node --conditions=react-server --import tsx --test scripts/note-encryption-crypto.test.ts scripts/note-encryption-runtime.test.ts scripts/note-encryption-storage.test.ts scripts/note-encryption-body.test.ts",
+    "test:notes:encryption": "node --conditions=react-server --import tsx --test scripts/note-encryption-crypto.test.ts scripts/note-encryption-storage.test.ts scripts/note-encryption-body.test.ts && node --import tsx --test scripts/note-encryption-runtime.test.ts",
     "test:notes:encryption:server": "node --env-file=.env.local scripts/run-note-encryption-server-tests.mjs"
   },
   "dependencies": {

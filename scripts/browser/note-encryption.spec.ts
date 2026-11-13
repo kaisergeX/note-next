@@ -106,4 +106,3 @@ test('encrypted setup, ciphertext persistence, tab locking and fresh-tab recover
     await fresh.close()
   }
 })
-
