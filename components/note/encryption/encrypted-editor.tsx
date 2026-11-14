@@ -14,12 +14,14 @@ import {
 } from '~/lib/notes/encryption/runtime'
 import {
   initializeEncryptedNote,
-  listEncryptedNoteRecovery,
+  findEncryptedWorkingRecovery,
+  getEncryptedRecoveryHeader,
   openEncryptedRecovery,
   putEncryptedRecovery,
 } from '~/lib/notes/encryption/storage'
 import {
   RecoverySealQueue,
+  hasPendingEncryptedEdits,
   type RecoveryPayload,
 } from '~/lib/notes/encryption/recovery'
 import {
@@ -39,6 +41,11 @@ type PersistenceStatus =
   | 'conflict'
   | 'error'
   | 'unavailable'
+  | 'disabled'
+  | 'invalid_input'
+  | 'reload_required'
+  | 'review_required'
+  | 'recovery_error'
 type Actions = {
   edit: (field: 'title' | 'content', value: string) => void
   flush: () => Promise<void>
@@ -111,6 +118,7 @@ export default function EncryptedEditor({
     let record: RecoveryPayload | null = null
     let persistedFlight: string | null = null
     let revision: string | null = null
+    let needsReconciliation = false
     let idle: ReturnType<typeof setTimeout>,
       maximum: ReturnType<typeof setTimeout>
     let saveIdle: ReturnType<typeof setTimeout>,
@@ -122,6 +130,15 @@ export default function EncryptedEditor({
     const report = (next: PersistenceStatus) => {
       if (valid()) setStatus(next)
     }
+    const localStatus = (): PersistenceStatus =>
+      record?.refusal ??
+      (record?.conflict
+        ? 'conflict'
+        : needsReconciliation
+          ? 'review_required'
+          : record && !hasPendingEncryptedEdits(record)
+            ? 'synced'
+            : 'local')
     const checkpoint = async () => {
       if (!record || record.route.generation <= durable) return
       const snapshot = structuredClone(record)
@@ -135,10 +152,7 @@ export default function EncryptedEditor({
             ? 'conflict'
             : snapshot.flight
               ? 'flight'
-              : snapshot.baseline &&
-                  snapshot.draft.title === snapshot.baseline.title &&
-                  snapshot.draft.content === snapshot.baseline.content &&
-                  snapshot.draft.theme === snapshot.baseline.theme
+              : snapshot.baselineVerified && !hasPendingEncryptedEdits(snapshot)
                 ? 'synced'
                 : 'local',
           versionId: snapshot.route.recordId,
@@ -163,7 +177,7 @@ export default function EncryptedEditor({
       }
       durable = snapshot.route.generation
       persistedFlight = snapshot.route.mutationId
-      report(record.route.generation <= durable ? 'local' : 'unsaved')
+      report(record.route.generation <= durable ? localStatus() : 'unsaved')
     }
     const flush = async () => {
       if (readOnly) return
@@ -186,7 +200,18 @@ export default function EncryptedEditor({
       setConflict(record.conflict)
     }
     const save = async () => {
-      if (!record || !valid() || saving || readOnly || record.conflict) return
+      if (
+        !record ||
+        !valid() ||
+        saving ||
+        readOnly ||
+        record.conflict ||
+        record.refusal ||
+        needsReconciliation ||
+        !navigator.onLine ||
+        !hasPendingEncryptedEdits(record)
+      )
+        return
       saving = true
       clearTimeout(saveIdle)
       clearTimeout(saveMaximum)
@@ -244,6 +269,7 @@ export default function EncryptedEditor({
             return
           }
           record.baseline = {...remote, theme: result.note.theme}
+          record.baselineVerified = true
           record.flight = null
           Object.assign(record.route, {
             generation: record.route.generation + 1,
@@ -253,14 +279,17 @@ export default function EncryptedEditor({
             noteId,
           })
           await flush()
-          report(
-            record.draft.title === remote.title &&
-              record.draft.content === remote.content
-              ? 'synced'
-              : 'local',
-          )
+          report(localStatus())
           window.dispatchEvent(new Event('encrypted-notes-changed'))
-        } else report(result.status === 'unavailable' ? 'unavailable' : 'local')
+        } else if (result.status === 'retryable_error') report('local')
+        else {
+          // Keep the exact flight for recovery, but persist a terminal stop so
+          // timers, reconnects and reopening cannot resend a refused operation.
+          record.refusal = result.status
+          record.route.generation++
+          await flush()
+          report(result.status)
+        }
       } catch {
         report('error')
       } finally {
@@ -269,15 +298,23 @@ export default function EncryptedEditor({
           valid() &&
           record &&
           !record.conflict &&
-          (record.flight ||
-            !record.baseline ||
-            record.draft.title !== record.baseline.title ||
-            record.draft.content !== record.baseline.content)
+          !record.refusal &&
+          !needsReconciliation &&
+          hasPendingEncryptedEdits(record)
         )
           scheduleSave()
       }
     }
     const scheduleSave = () => {
+      if (
+        readOnly ||
+        !record ||
+        record.conflict ||
+        record.refusal ||
+        needsReconciliation ||
+        !navigator.onLine
+      )
+        return
       clearTimeout(saveIdle)
       const wait = Math.max(3000, 10_000 - (Date.now() - lastAttempt))
       saveIdle = setTimeout(() => {
@@ -322,6 +359,7 @@ export default function EncryptedEditor({
           if (!valid()) return
           if (!mine) record.draft = structuredClone(record.conflict)
           record.baseline = structuredClone(record.conflict)
+          record.baselineVerified = true
           record.conflict = null
           record.conflictRevision = null
           record.flight = null
@@ -333,8 +371,8 @@ export default function EncryptedEditor({
           })
           await flush()
           display()
-          report('local')
-          scheduleSave()
+          report(localStatus())
+          if (hasPendingEncryptedEdits(record)) scheduleSave()
         } catch {
           report('error')
         }
@@ -342,16 +380,31 @@ export default function EncryptedEditor({
     }
     void (async () => {
       try {
-        const headers = readOnly
-          ? []
-          : await listEncryptedNoteRecovery(ownerId, noteId)
         const header = recordId
-          ? headers.find((h) => h.id === recordId)
-          : headers
-              .filter((h) => h.status !== 'retained')
-              .sort((a, b) => b.updatedAt - a.updatedAt)[0]
+          ? await getEncryptedRecoveryHeader(ownerId, recordId)
+          : readOnly
+            ? undefined
+            : await findEncryptedWorkingRecovery(ownerId, noteId)
         if (header) {
-          record = await openEncryptedRecovery(root, ownerId, header.id)
+          if (
+            header.vaultId !== vaultId ||
+            header.stableNoteId !== noteId ||
+            header.recordId !== header.id
+          )
+            throw new Error('Recovery selection mismatch')
+          const openedRecord = await openEncryptedRecovery(
+            root,
+            ownerId,
+            header.id,
+          )
+          if (
+            openedRecord.route.ownerId !== ownerId ||
+            openedRecord.route.vaultId !== vaultId ||
+            openedRecord.route.stableNoteId !== noteId ||
+            openedRecord.route.recordId !== header.id
+          )
+            throw new Error('Recovery selection mismatch')
+          record = openedRecord
           durable = record.route.generation
           persistedFlight = record.route.mutationId
           revision = record.conflictRevision ?? record.route.expectedRevision
@@ -363,21 +416,29 @@ export default function EncryptedEditor({
             persistedFlight = null
           }
           if (
-            !recordId &&
             record.route.noteId &&
             !record.flight &&
-            !record.conflict
+            !record.conflict &&
+            !record.refusal
           ) {
             // Local recovery remains usable offline; an online reopen checks
             // whether another device has changed or removed the note.
             const remote = await fetchEncryptedNote(noteId).catch(
               () => undefined,
             )
+            if (!valid()) return
+            needsReconciliation = !record.baselineVerified
             if (remote === null) {
-              report('unavailable')
-              return
+              record.refusal = 'unavailable'
+              record.route.generation++
+              await flush()
             }
-            if (remote && remote.revision !== revision) {
+            if (
+              remote &&
+              (remote.revision !== revision ||
+                needsReconciliation ||
+                header.status === 'retained')
+            ) {
               if (remote.authorId !== ownerId || remote.id !== noteId)
                 throw new Error('Remote identity mismatch')
               const opened = await openNote(
@@ -388,19 +449,25 @@ export default function EncryptedEditor({
               )
               if (!valid()) return
               revision = remote.revision
+              const matchesRemote =
+                record.draft.title === opened.title &&
+                record.draft.content === opened.content &&
+                record.draft.theme === remote.theme
               const clean =
-                record.baseline &&
-                record.draft.title === record.baseline.title &&
-                record.draft.content === record.baseline.content &&
-                record.draft.theme === record.baseline.theme
+                matchesRemote ||
+                (record.baselineVerified &&
+                  header.status !== 'retained' &&
+                  !hasPendingEncryptedEdits(record))
               if (clean) {
                 record.baseline = {...opened, theme: remote.theme}
+                record.baselineVerified = true
                 record.draft = structuredClone(record.baseline)
                 record.route.expectedRevision = revision
               } else {
                 record.conflict = {...opened, theme: remote.theme}
                 record.conflictRevision = revision
               }
+              needsReconciliation = false
               record.route.generation++
               await flush()
             }
@@ -412,7 +479,7 @@ export default function EncryptedEditor({
             report('unavailable')
             return
           }
-          if (remote && remote.authorId !== ownerId)
+          if (remote && (remote.authorId !== ownerId || remote.id !== noteId))
             throw new Error('Remote identity mismatch')
           const opened = remote
             ? await openNote(root, ownerId, remote.encryptedPayload, {
@@ -443,7 +510,8 @@ export default function EncryptedEditor({
               mutationId: null,
               expectedRevision: revision,
             },
-            baseline: remote ? draft : null,
+            baseline: remote ? structuredClone(draft) : null,
+            baselineVerified: true,
             draft,
             conflict: null,
             flight: null,
@@ -452,23 +520,27 @@ export default function EncryptedEditor({
         }
         if (!valid()) return
         display()
-        report(
-          record.conflict
-            ? 'conflict'
-            : record.baseline &&
-                record.draft.title === record.baseline.title &&
-                record.draft.content === record.baseline.content &&
-                !record.flight
-              ? 'synced'
-              : 'local',
-        )
-        if (record.flight) void save()
+        report(localStatus())
+        if (
+          header &&
+          header.status !== 'retained' &&
+          hasPendingEncryptedEdits(record)
+        ) {
+          if (record.flight) void save()
+          else scheduleSave()
+        }
       } catch {
-        report('error')
+        report(recordId ? 'recovery_error' : 'error')
       }
     })()
     const online = () => {
-      void save()
+      if (needsReconciliation)
+        void flush()
+          .then(() => {
+            if (valid()) setAttempt((value) => value + 1)
+          })
+          .catch(() => report('error'))
+      else void save()
     }
     window.addEventListener('online', online)
     return () => {
@@ -497,7 +569,17 @@ export default function EncryptedEditor({
           {!readOnly && (
             <Button
               variant="secondary"
-              disabled={!ready || Boolean(conflict)}
+              disabled={
+                !ready ||
+                Boolean(conflict) ||
+                [
+                  'unavailable',
+                  'disabled',
+                  'invalid_input',
+                  'reload_required',
+                  'review_required',
+                ].includes(status)
+              }
               onClick={() => {
                 void actions.current?.save()
               }}
@@ -565,9 +647,9 @@ export default function EncryptedEditor({
           </div>
         </div>
       )}
-      {status === 'error' && (
+      {(status === 'error' || status === 'recovery_error') && (
         <div role="alert" className="text-destructive text-sm">
-          {t('failure')}{' '}
+          {t(status === 'recovery_error' ? 'recoveryFailure' : 'failure')}{' '}
           <Button
             variant="link"
             onClick={() => {
@@ -582,7 +664,7 @@ export default function EncryptedEditor({
                 .catch(() => setStatus('error'))
             }}
           >
-            {t('retry')}
+            {t(status === 'recovery_error' ? 'retryOpen' : 'retry')}
           </Button>
         </div>
       )}

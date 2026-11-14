@@ -1,0 +1,67 @@
+# Encrypted note recovery and autosave fixes
+
+Audit baseline `3e2333c` on `feature/note-e2ee`, 2026-11-14. The first three findings were observed in Chromium against a production build with synthetic notes and a disposable database. The fourth follows from the save response handler and retry scheduler. The existing encryption and database suites passed on this revision.
+
+The immediate goal is to preserve each local edit, open the version the user selected, and report what the server actually acknowledged. The 50-item limit applies to list pages. A record's position in a list must never determine whether it can be recovered. The broader release gates remain in the [encryption plan](note-encryption-plan.md#9-acceptance-criteria).
+
+## 1. P1 — Preserve the last acknowledged baseline
+
+Opening a remote note on a browser with no checkpoint assigns the same object to `baseline` and `draft`. Editing mutates both. In the audit, reopening showed “Encrypted and synced” with zero uploads. After another device saved a newer revision, reopening replaced the local edit with the remote text without offering conflict review.
+
+Give the editable draft its own copy. Advance the baseline only on an authoritative read or acknowledgement. Account for existing checkpoints written by the affected editor. An equal draft and baseline in one of these records can contain an unsent edit. If the available evidence cannot establish that an older checkpoint is clean, preserve it for review before replacing it.
+
+**Regression check.** Start with an existing encrypted note on a fresh browser profile. Edit, wait for the local checkpoint, and lock before the first upload. Verify the local-only status and content. In a separate case, advance the server revision before reopening. Both versions must remain available for conflict review. Include a checkpoint shaped like one written by the affected release.
+
+## 2. P1 — Open the selected recovery record by identity
+
+The list passes a specific record ID, but the editor searches only the first 50 headers for that note. In the audit, selecting the newest of 52 retained versions silently opened the server copy. Ordinary reopening can also miss the current working record if retained headers fill the first page.
+
+Use the selected record ID for a direct lookup. Verify its owner, vault, stable note identity, record ID, and existing authenticated routing before showing content or enabling writes. Keep retained originals intact. If the selected record is missing or unusable, show a recoverable error. For an ordinary reopen, locate the applicable working checkpoint even when many retained records precede it. Preserve paginated, header-only list reads.
+
+**Regression check.** Seed more than 50 headers for one note, with distinct content in the selected retained version, working checkpoint, and server copy. Exercise both explicit selection and ordinary reopening. Verify the exact displayed text, preservation of the original record, and safe handling of a missing or mismatched selection.
+
+## 3. P2 — Resume autosave after reopening a dirty checkpoint
+
+On reopen the editor resumes an existing encrypted request, but a dirty checkpoint can be sealed before any request has been prepared. Closing or locking cancels the save timer. During the audit the reopened checkpoint remained local with zero uploads after the usual idle delay.
+
+After reconciliation, schedule the existing autosave flow for pending edits when the editor is unlocked, writable, and online. Preserve the original serialized request and mutation ID for an existing flight. A clean reopen, read-only preview, or unresolved conflict should produce zero automatic writes.
+
+**Regression check.** Reopen a locally saved edit that has no flight. Without another keystroke, verify the server receives the edit and the UI reports synced only after acknowledgement. Cover an offline reopen followed by reconnect, along with the existing lost-acknowledgement case.
+
+## 4. P2 — Stop automatic retries after a definitive refusal
+
+The save handler retains the flight on `unavailable`, `disabled`, `invalid_input`, or `reload_required`. Its `finally` block then schedules another attempt. The latter three outcomes appear as a generic local-save status. Keep the sealed work recoverable and surface the relevant next action. Reserve automatic retries for recoverable transport or server failures. A timer or reconnect must never silently recreate a deleted note or resend a definitively refused operation.
+
+**Regression check.** Return each refusal for an otherwise valid save, advance the retry timers, and verify the request count stays at one while the checkpoint remains readable. Separately simulate a lost acknowledgement and verify the retry uses the exact original bytes and mutation ID.
+
+## Implementation and verification
+
+Start in [the encrypted editor](../components/note/encryption/encrypted-editor.tsx), [recovery storage](../lib/notes/encryption/storage.ts), and [encrypted sync](../lib/notes/encryption/sync.ts). Extend the [browser stress suite](../scripts/browser/note-encryption-stress.spec.ts) for user-visible behavior and the existing focused tests where appropriate. Use the repository's UI workflow for visible changes and provide EN/VI text for new states.
+
+Run the focused browser regressions against an isolated production preview, the encryption and disposable-database suites, lint, and the production build. Record what passed, what remains unverified, and the revision or working-tree state tested. Keep both rollout flags disabled by default. Physical-device testing, independent protocol review, and the other production gates remain separate release work.
+
+### Implementation (2026-11-14)
+
+- Remote reads now create independent baseline and draft objects. New checkpoints carry an encrypted `baselineVerified` marker. Older checkpoints remain readable, but equal baseline/draft text without that marker is not treated as evidence of a clean copy. An authoritative read either confirms identical content or preserves local and remote text for conflict review, even at the same server revision. Offline legacy work stays visible and waits for reconciliation; reconnect checkpoints current edits before reopening that comparison.
+- Explicit selection loads the header by record ID and verifies owner, vault, stable note identity, record identity, authenticated routing and epoch fences before displaying content or enabling writes. Missing or mismatched selections show a retryable opening error without falling back to server content. Ordinary reopening walks only the note's headers to find its working checkpoint, using constant candidate memory and no history-body reads. Lists remain header-only and paginated at 50. Opening retained work starts a separate working copy and preserves the original ciphertext.
+- Reopening a dirty checkpoint schedules the existing autosave flow without a keystroke. Offline reopening waits for reconnect; clean copies, previews and unresolved conflicts do not automatically write. Existing flights retain their original serialized bytes and mutation IDs. The production Serwist provider now sets `reloadOnOnline={false}`: its default online reload otherwise destroyed the unlocked session before autosave could finish. Existing connectivity handlers handle reconnect; protected offline navigations remain NetworkOnly.
+- Definitive save refusals are sealed with the recovery payload and stop scheduled, reconnect, manual and reopen sends of that flight. Local edits and the exact request remain recoverable. EN/VI states explain the refusal and next action. Transient read failures are no longer interpreted as confirmed deletion. Recoverable transport failures still retry the exact flight.
+
+### Verification
+
+Tested the uncommitted remediation working tree based on `3e2333c0b0a2f39fc63d2d4a9bd43c66cd37fc10` on `feature/note-e2ee`. No commit was created. The pre-existing `debug.log` was preserved. All browser fixtures used synthetic notes, fresh browser contexts and a dedicated disposable `eton_test_remediation_*` PostgreSQL database. The isolated preview used `http://localhost:3150`, matching auth/test origins, and explicit test-only flag overrides. `.env.example` still defaults both rollout flags to `false`; application defaults still require explicit `true`.
+
+- **Reproduced before fixing:** four new browser cases failed against the unchanged baseline production build: a fresh-profile edit falsely reported synced after relock; an equal legacy baseline skipped review at an unchanged revision; a newer remote revision replaced the legacy unsent text; selecting a retained record beyond the first 50 note headers displayed server content. Traces/screenshots: `.playwright-mcp/remediation-baseline/`.
+- **Focused suites passed:** `pnpm test:notes:encryption` (18 tests: 5 crypto, 10 storage/sync, 2 body and 1 runtime), `pnpm test:notes:encryption:server` (4 disposable-database tests), `node --env-file=.env.local scripts/run-note-search-tests.mjs` (41 search/recovery/account tests), and `pnpm test:notes:sync` (68 tests).
+- **Static/build checks passed:** `pnpm lint` (TypeScript and ESLint), `pnpm build` (production and Serwist), formatting of changed source/test files, and `git diff --check`. Changed UI files contain no new hex colors or arbitrary sizing utilities.
+- **Final production browser run passed:** all 101 configured tests in 7.0 minutes using Playwright 1.65.0 Chromium on Windows. This includes all 23 encryption stress cases (18 new remediation cases), encrypted setup/recovery, virtual-authenticator passkeys, and the complete configured ordinary-note browser suite. The new coverage checks fresh-profile relock/local status, legacy equal baselines at unchanged/new revisions and offline reconnect, exact selected content and retained-ciphertext preservation beyond 50 headers, a 50-row header-only list with zero recovery-body reads, ordinary working-checkpoint reopening beyond that page, six missing/identity/authentication failures with successful retry after repair, autosave without another keystroke and only acknowledged sync status, zero writes from clean/read-only/conflict states, all four permanent refusals across timers/reconnect/edits/reload, and exact lost-acknowledgement retry after reopening followed by the newer local edit. Artifacts: `.playwright-mcp/remediation-production/`; log: `.playwright-mcp/remediation-production.log`; tested source hashes: `.playwright-mcp/remediation-tested-source.json`.
+- **Required UI review passed:** one `ui_reviewer` returned PASS at `http://localhost:3151` for EN at 1440px and VI at 390px, Paper & Ink light. All four refusal states retained visible work and disabled Sync; selected recovery errors exposed localized Retry opening and Close; the legacy conflict displayed both versions. No horizontal overflow, affected mobile controls measured 40px high, the retry action had a visible 2px keyboard focus outline, and status/error contrast measured 7.21:1 / 6.12:1. No console errors were observed; development CSS-preload warnings remained. The automation browser was closed and no extra contexts remained. Offline legacy `review_required` was covered by the production browser regression, not this visual review. Screen-reader and physical-device behavior remain unverified.
+- **Cleanup completed:** stopped both temporary servers, dropped only the task's disposable database, and removed its temporary environment and synthetic authentication-state files. Verification logs, traces/screenshots and source hashes were retained.
+
+### Remaining risks and production gates
+
+These changes do not enable enrollment or encrypted creation. Definitively refused operations intentionally remain stopped after reload; this remediation adds no automatic reset, note recreation or portable export. Recover the sealed browser work through review, and resolve the indicated service/client problem before any future explicitly designed resubmission flow. If storage fails while recording a refusal, the current tab stops sending and blocks successful checkpoint/lock completion; durable recording still requires storage recovery.
+
+The automated browser configuration blocks service workers. A loaded-shell offline/reconnect check therefore does not establish installed-PWA behavior or cold offline launch. Working-checkpoint lookup reads all headers for that note while retaining one candidate; physical-device latency for very large retained histories remains part of the existing performance gate. New optional encrypted recovery fields are readable by this candidate, including old records without them; older strict-schema clients must not be used as a rollback path for newer checkpoints.
+
+Independent protocol/security review, named physical phone/browser/credential-provider tests and fresh-device recovery, PBKDF2/mobile and storage-performance measurements, representative EN/VI usability and screen-reader evidence, service-worker/PWA coverage, production boundary/sentinel audit, migration rehearsal, the pre-encryption baseline comparison and the other first-beta acceptance gates in the encryption plan remain release work. This remediation's automated results do not authorize accepting real user notes or enabling either rollout flag.

@@ -184,6 +184,31 @@ export async function listEncryptedNoteRecovery(
     .limit(50)
     .toArray()
 }
+export async function findEncryptedWorkingRecovery(
+  ownerId: string,
+  noteId: string,
+) {
+  // Walk headers only, retaining one candidate. List-page limits do not apply
+  // to locating the working checkpoint, and no historical payload is read.
+  let latest: RecoveryHeader | undefined
+  await db.headers
+    .where('[ownerId+stableNoteId]')
+    .equals([ownerId, noteId])
+    .each((header) => {
+      if (
+        header.status !== 'retained' &&
+        (!latest || header.updatedAt > latest.updatedAt)
+      )
+        latest = header
+    })
+  return latest
+}
+export async function getEncryptedRecoveryHeader(ownerId: string, id: string) {
+  const header = await db.headers.get(id)
+  if (!header || header.ownerId !== ownerId || header.id !== header.recordId)
+    throw new Error('Recovery unavailable')
+  return header
+}
 export async function openEncryptedRecovery(
   root: CryptoKey,
   ownerId: string,
@@ -196,7 +221,12 @@ export async function openEncryptedRecovery(
     db.modes,
     async () => {
       const header = await db.headers.get(id)
-      if (!header || header.ownerId !== ownerId)
+      if (
+        !header ||
+        header.ownerId !== ownerId ||
+        header.id !== id ||
+        header.recordId !== id
+      )
         throw new Error('Recovery unavailable')
       const marker = await db.modes.get(markerId(ownerId, header.stableNoteId))
       if (

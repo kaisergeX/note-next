@@ -7,6 +7,7 @@ import {
   wrapRoot,
   importRoot,
   openRecovery,
+  openNote,
   sealRecovery,
   sealNote,
 } from '../../lib/notes/encryption/crypto'
@@ -15,7 +16,10 @@ import {
   recoveryRouteFromHeader,
   type RecoveryHeader,
 } from '../../lib/notes/encryption/storage'
-import {validateRecoveryPayload} from '../../lib/notes/encryption/recovery'
+import {
+  validateRecoveryPayload,
+  type RecoveryPayload,
+} from '../../lib/notes/encryption/recovery'
 import type {SealedEnvelope} from '../../lib/notes/encryption/protocol'
 import {PASSPHRASE_PROFILE} from '../../lib/notes/encryption/protocol'
 import messages from '../../dictionaries/en.json' with {type: 'json'}
@@ -80,6 +84,604 @@ async function enroll(page: Page, ownerId: string) {
     page.getByRole('textbox', {name: e.body, exact: true}),
   ).toBeVisible()
   return {phrase, root}
+}
+
+async function checkpointPair(page: Page) {
+  return page.evaluate(async () => {
+    const database = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open('etoN-encrypted-note-recovery')
+      request.onsuccess = () => resolve(request.result)
+      request.onerror = () => reject(request.error)
+    })
+    try {
+      const tx = database.transaction(['headers', 'payloads'])
+      const read = <T>(store: string) =>
+        new Promise<T[]>((resolve, reject) => {
+          const request = tx.objectStore(store).getAll()
+          request.onsuccess = () => resolve(request.result)
+          request.onerror = () => reject(request.error)
+        })
+      const [headers, payloads] = await Promise.all([
+        read<RecoveryHeader>('headers'),
+        read<{id: string; envelope: SealedEnvelope}>('payloads'),
+      ])
+      const header = headers
+        .filter((h) => h.status !== 'retained')
+        .sort((a, b) => b.updatedAt - a.updatedAt)[0]
+      return {
+        header,
+        envelope: payloads.find((p) => p.id === header.id)!.envelope,
+      }
+    } finally {
+      database.close()
+    }
+  })
+}
+
+async function installCheckpoints(
+  page: Page,
+  pairs: {header: RecoveryHeader; envelope: SealedEnvelope}[],
+  clear = false,
+) {
+  await page.evaluate(
+    async ({pairs, clear}) => {
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        const request = indexedDB.open('etoN-encrypted-note-recovery')
+        request.onsuccess = () => resolve(request.result)
+        request.onerror = () => reject(request.error)
+      })
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const tx = database.transaction(['headers', 'payloads'], 'readwrite')
+          if (clear) {
+            tx.objectStore('headers').clear()
+            tx.objectStore('payloads').clear()
+          }
+          for (const {header, envelope} of pairs) {
+            tx.objectStore('headers').put(header)
+            tx.objectStore('payloads').put({
+              id: header.id,
+              ownerId: header.ownerId,
+              envelope,
+            })
+          }
+          tx.oncomplete = () => resolve()
+          tx.onerror = () => reject(tx.error)
+          tx.onabort = () => reject(tx.error)
+        })
+      } finally {
+        database.close()
+      }
+    },
+    {pairs, clear},
+  )
+}
+
+async function savedFixture(page: Page, ownerId: string) {
+  const vault = await enroll(page, ownerId)
+  await page
+    .getByRole('textbox', {name: e.body, exact: true})
+    .fill('Server baseline')
+  await page.getByRole('button', {name: e.save, exact: true}).click()
+  await expect(
+    page.getByRole('status').filter({hasText: e.synced}),
+  ).toBeVisible()
+  const pair = await checkpointPair(page)
+  const record = validateRecoveryPayload(
+    await openRecovery(
+      vault.root,
+      recoveryRouteFromHeader(pair.header),
+      pair.envelope,
+    ),
+    recoveryRouteFromHeader(pair.header),
+  )
+  return {
+    ...vault,
+    pair,
+    record,
+    noteId: record.route.stableNoteId,
+    vaultId: record.route.vaultId,
+  }
+}
+
+async function unlock(page: Page, phrase: string) {
+  await page.getByLabel(v.passphrase, {exact: true}).fill(phrase)
+  await page.getByRole('button', {name: v.unlock, exact: true}).click()
+}
+
+async function remoteSave(
+  page: Page,
+  root: CryptoKey,
+  record: RecoveryPayload,
+  content: string,
+) {
+  const noteId = record.route.stableNoteId
+  const payload = await sealNote(
+    root,
+    record.route.ownerId,
+    {
+      vaultId: record.route.vaultId,
+      noteId,
+      contentId: randomUUID(),
+    },
+    {title: null, content: `<p>${content}</p>`},
+  )
+  const response = await page.request.put(`/api/note-encryption/${noteId}`, {
+    headers: {
+      Origin: new URL(page.url()).origin,
+      'x-note-encryption-protocol': '1',
+    },
+    data: prepareEncryptedWrite(payload, record.route.expectedRevision, null),
+  })
+  const result = await response.json()
+  expect(result.status).toBe('success')
+  return result.note
+}
+
+test('fresh remote edit stays local through lock and reconciles a newer server version', async ({
+  page,
+  noteApp,
+}) => {
+  const {root, phrase, noteId, record} = await savedFixture(
+    page,
+    noteApp.ownerId,
+  )
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  // An existing server note on a profile with no checkpoint exercises the alias bug.
+  await installCheckpoints(page, [], true)
+  await page.goto(`/en/eton/${noteId}`)
+  await unlock(page, phrase)
+  const body = page.getByRole('textbox', {name: e.body, exact: true})
+  await body.fill('Unsent edit from fresh profile')
+  await expect(
+    page.getByRole('status').filter({hasText: e.local}),
+  ).toBeVisible()
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  await unlock(page, phrase)
+  await expect(body).toHaveText('Unsent edit from fresh profile')
+  await expect(
+    page.getByRole('status').filter({hasText: e.local}),
+  ).toBeVisible()
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  await remoteSave(page, root, record, 'New remote version')
+  let writes = 0
+  page.on('request', (request) => {
+    if (
+      request.method() === 'PUT' &&
+      request.url().includes('/api/note-encryption/')
+    )
+      writes++
+  })
+  await unlock(page, phrase)
+  await expect(body).toHaveText('Unsent edit from fresh profile')
+  await expect(
+    page.getByRole('button', {name: e.keepMine, exact: true}),
+  ).toBeVisible()
+  await expect(
+    page.getByText('New remote version', {exact: true}),
+  ).toBeVisible()
+  await page.clock.install()
+  await page.clock.runFor(65_000)
+  expect(writes).toBe(0)
+})
+
+for (const changedRevision of [false, true]) {
+  test(`legacy equal baseline preserves unsent work (remote changed: ${changedRevision})`, async ({
+    page,
+    noteApp,
+  }) => {
+    const {root, phrase, pair, record, noteId} = await savedFixture(
+      page,
+      noteApp.ownerId,
+    )
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    // The affected release serializes an unsent draft as its own baseline.
+    delete (record as RecoveryPayload & {baselineVerified?: true})
+      .baselineVerified
+    record.draft.content = '<p>Legacy unsent content</p>'
+    record.baseline = structuredClone(record.draft)
+    record.route.generation++
+    await installCheckpoints(page, [
+      {
+        header: {...pair.header, ...record.route, status: 'synced'},
+        envelope: await sealRecovery(root, record.route, record),
+      },
+    ])
+    if (changedRevision)
+      await remoteSave(page, root, record, 'New authoritative content')
+    await page.goto(`/en/eton/${noteId}`)
+    await unlock(page, phrase)
+    await expect(
+      page.getByRole('textbox', {name: e.body, exact: true}),
+    ).toHaveText('Legacy unsent content')
+    await expect(
+      page.getByRole('button', {name: e.keepMine, exact: true}),
+    ).toBeVisible()
+    await expect(
+      page.getByText(
+        changedRevision ? 'New authoritative content' : 'Server baseline',
+        {exact: true},
+      ),
+    ).toBeVisible()
+  })
+}
+
+test('legacy checkpoint stays local offline and reconciles before reconnect can save', async ({
+  page,
+  noteApp,
+  context,
+}) => {
+  const {root, phrase, pair, record, noteId} = await savedFixture(
+    page,
+    noteApp.ownerId,
+  )
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  delete record.baselineVerified
+  record.draft.content = '<p>Uncertain legacy edit offline</p>'
+  record.baseline = structuredClone(record.draft)
+  record.route.generation++
+  await installCheckpoints(page, [
+    {
+      header: {...pair.header, ...record.route},
+      envelope: await sealRecovery(root, record.route, record),
+    },
+  ])
+  await page.goto(`/en/eton/${noteId}`)
+  await expect(page.getByLabel(v.passphrase, {exact: true})).toBeVisible()
+  let writes = 0
+  page.on('request', (request) => {
+    if (
+      request.method() === 'PUT' &&
+      request.url().includes('/api/note-encryption/')
+    )
+      writes++
+  })
+  await page.clock.install()
+  await context.setOffline(true)
+  await unlock(page, phrase)
+  await expect(
+    page.getByRole('textbox', {name: e.body, exact: true}),
+  ).toHaveText('Uncertain legacy edit offline')
+  await expect(
+    page.getByRole('status').filter({hasText: e.review_required}),
+  ).toBeVisible()
+  await page.clock.runFor(65_000)
+  expect(writes).toBe(0)
+  await context.setOffline(false)
+  await expect(
+    page.getByRole('button', {name: e.keepMine, exact: true}),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('textbox', {name: e.body, exact: true}),
+  ).toHaveText('Uncertain legacy edit offline')
+  await page.clock.runFor(65_000)
+  expect(writes).toBe(0)
+})
+
+test('recovery selection and working reopen reach beyond fifty headers', async ({
+  page,
+  noteApp,
+}) => {
+  const {root, phrase, pair, record, noteId} = await savedFixture(
+    page,
+    noteApp.ownerId,
+  )
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  const ids = Array.from({length: 53}, () => randomUUID()).sort()
+  const pairs = []
+  for (let i = 0; i < ids.length; i++) {
+    const copy = structuredClone(record)
+    copy.route.recordId = ids[i]
+    copy.draft.content = `<p>${i === 51 ? 'Selected retained version' : i === 52 ? 'Current working checkpoint' : `Retained ${i}`}</p>`
+    pairs.push({
+      header: {
+        ...pair.header,
+        ...copy.route,
+        id: ids[i],
+        versionId: ids[i],
+        status: i === 52 ? ('local' as const) : ('retained' as const),
+        updatedAt: Date.now() + i,
+      },
+      envelope: await sealRecovery(root, copy.route, copy),
+    })
+  }
+  await installCheckpoints(page, pairs, true)
+  await page.addInitScript(() => {
+    let reads = 0
+    const get = IDBObjectStore.prototype.get
+    IDBObjectStore.prototype.get = function (
+      ...args: Parameters<IDBObjectStore['get']>
+    ) {
+      if (this.name === 'payloads') reads++
+      return get.apply(this, args)
+    }
+    ;(window as unknown as {payloadReads: () => number}).payloadReads = () =>
+      reads
+  })
+  await page.goto('/en/collection/encrypted')
+  await unlock(page, phrase)
+  await expect(page.getByRole('button', {name: /Browser version/})).toHaveCount(
+    50,
+  )
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as {payloadReads: () => number}).payloadReads(),
+    ),
+  ).toBe(0)
+  // Retained record 51 is on the list's first page, outside the old note lookup.
+  await page
+    .getByRole('button', {name: new RegExp('Browser version')})
+    .nth(1)
+    .click()
+  await expect(
+    page.getByRole('textbox', {name: e.body, exact: true}),
+  ).toHaveText('Selected retained version')
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as {payloadReads: () => number}).payloadReads(),
+    ),
+  ).toBe(1)
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  const retained = await page.evaluate(async (id) => {
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      const r = indexedDB.open('etoN-encrypted-note-recovery')
+      r.onsuccess = () => resolve(r.result)
+    })
+    const row = await new Promise<unknown>((resolve) => {
+      const r = db.transaction('payloads').objectStore('payloads').get(id)
+      r.onsuccess = () => resolve(r.result)
+    })
+    db.close()
+    return row
+  }, ids[51])
+  expect(retained).toMatchObject({envelope: pairs[51].envelope})
+  // Remove only the newly reviewed copy so ordinary reopen has a distinct target.
+  await installCheckpoints(page, pairs, true)
+  await page.goto(`/en/eton/${noteId}`)
+  await unlock(page, phrase)
+  await expect(
+    page.getByRole('textbox', {name: e.body, exact: true}),
+  ).toHaveText('Current working checkpoint')
+})
+
+for (const corruption of [
+  'missing',
+  'owner',
+  'vault',
+  'note',
+  'record',
+  'authenticated route',
+] as const) {
+  test(`selected recovery fails safely for ${corruption}`, async ({
+    page,
+    noteApp,
+  }) => {
+    const {pair, phrase} = await savedFixture(page, noteApp.ownerId)
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    await page.goto('/en/collection/encrypted')
+    await unlock(page, phrase)
+    const choice = page.getByRole('button', {name: /Browser version/}).first()
+    await expect(choice).toBeVisible()
+    // Change storage after the list render, then exercise its actual selection.
+    const header = {...pair.header}
+    if (corruption === 'owner') header.ownerId = randomUUID()
+    if (corruption === 'vault') header.vaultId = randomUUID()
+    if (corruption === 'note') header.stableNoteId = randomUUID()
+    if (corruption === 'record') header.recordId = randomUUID()
+    if (corruption === 'authenticated route') header.generation++
+    await installCheckpoints(
+      page,
+      corruption === 'missing' ? [] : [{...pair, header}],
+      true,
+    )
+    let writes = 0
+    page.on('request', (request) => {
+      if (
+        request.method() === 'PUT' &&
+        request.url().includes('/api/note-encryption/')
+      )
+        writes++
+    })
+    await choice.click()
+    await expect(
+      page.getByRole('alert').filter({hasText: e.recoveryFailure}),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('textbox', {name: e.body, exact: true}),
+    ).not.toBeVisible()
+    await expect(
+      page.getByRole('button', {name: e.save, exact: true}),
+    ).toBeDisabled()
+    expect(writes).toBe(0)
+    // Restoring the selected identity and retrying must open that record.
+    await installCheckpoints(page, [pair], true)
+    await page.getByRole('button', {name: e.retryOpen, exact: true}).click()
+    await expect(
+      page.getByRole('textbox', {name: e.body, exact: true}),
+    ).toHaveText('Server baseline')
+  })
+}
+
+for (const offline of [false, true]) {
+  test(`dirty checkpoint without flight resumes autosave (offline reopen: ${offline})`, async ({
+    page,
+    noteApp,
+    context,
+  }) => {
+    const {phrase, root, noteId} = await savedFixture(page, noteApp.ownerId)
+    const body = page.getByRole('textbox', {name: e.body, exact: true})
+    await body.fill('Checkpoint before first upload')
+    await expect(
+      page.getByRole('status').filter({hasText: e.local}),
+    ).toBeVisible()
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    const before = await checkpointPair(page)
+    const opened = validateRecoveryPayload(
+      await openRecovery(
+        root,
+        recoveryRouteFromHeader(before.header),
+        before.envelope,
+      ),
+      recoveryRouteFromHeader(before.header),
+    )
+    expect(opened.flight).toBeNull()
+    let writes = 0
+    let acknowledge!: () => void
+    const gate = new Promise<void>((resolve) => {
+      acknowledge = resolve
+    })
+    await page.route('**/api/note-encryption/*', async (route) => {
+      if (route.request().method() !== 'PUT') return route.continue()
+      writes++
+      const response = await route.fetch()
+      await gate
+      await route.fulfill({response})
+    })
+    await page.clock.install()
+    if (offline) await context.setOffline(true)
+    await unlock(page, phrase)
+    await expect(body).toHaveText('Checkpoint before first upload')
+    await expect(
+      page.getByRole('status').filter({hasText: e.local}),
+    ).toBeVisible()
+    if (offline) {
+      await page.clock.runFor(35_000)
+      expect(writes).toBe(0)
+      await context.setOffline(false)
+    } else await page.clock.runFor(4000)
+    await expect.poll(() => writes).toBe(1)
+    await expect(
+      page.getByRole('status').filter({hasText: e.syncing}),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('status').filter({hasText: e.synced}),
+    ).not.toBeVisible()
+    acknowledge()
+    await expect(
+      page.getByRole('status').filter({hasText: e.synced}),
+    ).toBeVisible()
+    const response = await page.request.get(`/api/note-encryption/${noteId}`)
+    const remote = await response.json()
+    expect(
+      (
+        await openNote(root, noteApp.ownerId, remote.note.encryptedPayload, {
+          vaultId: opened.route.vaultId,
+          noteId,
+        })
+      ).content,
+    ).toBe('<p>Checkpoint before first upload</p>')
+  })
+}
+
+test('clean reopen and read-only preview perform zero automatic writes', async ({
+  page,
+  noteApp,
+}) => {
+  const {phrase} = await savedFixture(page, noteApp.ownerId)
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  let writes = 0
+  page.on('request', (request) => {
+    if (
+      request.method() === 'PUT' &&
+      request.url().includes('/api/note-encryption/')
+    )
+      writes++
+  })
+  await page.clock.install()
+  await unlock(page, phrase)
+  await expect(
+    page.getByRole('status').filter({hasText: e.synced}),
+  ).toBeVisible()
+  await page.clock.runFor(65_000)
+  expect(writes).toBe(0)
+  await page.goto('/en/eton')
+  await page
+    .getByRole('button', {
+      name: messages.note.accessibility.moreActions,
+      exact: true,
+    })
+    .click()
+  await page
+    .getByRole('button', {name: messages.note.trash.move, exact: true})
+    .click()
+  await expect(page.locator('[data-note-id]')).toHaveCount(0)
+  await page.goto('/en/collection/trash')
+  await page
+    .getByRole('button', {
+      name: messages.note.trash.previewNamed.replace(
+        '{title}',
+        messages.note.encryption.lockedNote,
+      ),
+      exact: true,
+    })
+    .click()
+  await unlock(page, phrase)
+  await expect(
+    page.getByRole('textbox', {name: e.body, exact: true}),
+  ).toHaveAttribute('contenteditable', 'false')
+  await page.clock.runFor(65_000)
+  expect(writes).toBe(0)
+})
+
+for (const refusal of [
+  'unavailable',
+  'disabled',
+  'invalid_input',
+  'reload_required',
+] as const) {
+  test(`definitive ${refusal} stops retries across timers reconnect edits and reload`, async ({
+    page,
+    noteApp,
+  }) => {
+    const {root, phrase} = await enroll(page, noteApp.ownerId)
+    const body = page.getByRole('textbox', {name: e.body, exact: true})
+    await body.fill('Recoverable refused creation')
+    let writes = 0
+    await page.route('**/api/note-encryption/*', (route) => {
+      if (route.request().method() !== 'PUT') return route.continue()
+      writes++
+      return route.fulfill({json: {status: refusal}})
+    })
+    await page.clock.install()
+    await page.getByRole('button', {name: e.save, exact: true}).click()
+    await expect(
+      page.getByRole('status').filter({hasText: e[refusal]}),
+    ).toBeVisible()
+    const pair = await checkpointPair(page)
+    const opened = validateRecoveryPayload(
+      await openRecovery(
+        root,
+        recoveryRouteFromHeader(pair.header),
+        pair.envelope,
+      ),
+      recoveryRouteFromHeader(pair.header),
+    )
+    expect(opened.draft.content).toBe('<p>Recoverable refused creation</p>')
+    expect(opened.refusal).toBe(refusal)
+    expect(opened.flight).not.toBeNull()
+    await page.clock.runFor(65_000)
+    await page.evaluate(() => window.dispatchEvent(new Event('online')))
+    await body.fill('More local work after refusal')
+    await page.clock.runFor(65_000)
+    expect(writes).toBe(1)
+    await expect(
+      page.getByRole('status').filter({hasText: e[refusal]}),
+    ).toBeVisible()
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    await page.reload()
+    await unlock(page, phrase)
+    await page
+      .getByRole('button', {name: /Browser version/})
+      .first()
+      .click()
+    await expect(body).toHaveText('More local work after refusal')
+    await expect(
+      page.getByRole('status').filter({hasText: e[refusal]}),
+    ).toBeVisible()
+    await page.clock.runFor(65_000)
+    await page.evaluate(() => window.dispatchEvent(new Event('online')))
+    expect(writes).toBe(1)
+  })
 }
 
 test('a different tab checkpoint cannot be overwritten by a larger local edit counter', async ({
@@ -268,10 +870,11 @@ test('lost acknowledgement preserves exact flight while later edits sync after r
   noteApp,
 }) => {
   test.setTimeout(90_000)
-  await enroll(page, noteApp.ownerId)
+  const {phrase, root} = await enroll(page, noteApp.ownerId)
   const body = page.getByRole('textbox', {name: e.body, exact: true})
   await body.fill('First acknowledged only on server')
-  let lost = false
+  let lost = false,
+    dropped = false
   const requests: string[] = []
   await page.route('**/api/note-encryption/*', async (route) => {
     if (route.request().method() !== 'PUT') return route.continue()
@@ -280,15 +883,35 @@ test('lost acknowledgement preserves exact flight while later edits sync after r
       lost = true
       await route.fetch()
       await route.abort('failed')
+      dropped = true
     } else await route.continue()
   })
   await page.getByRole('button', {name: e.save, exact: true}).click()
-  await expect.poll(() => lost).toBe(true)
+  await expect.poll(() => dropped).toBe(true)
   await expect(
     page.getByRole('status').filter({hasText: e.local}),
   ).toBeVisible()
   await body.fill('Later edits must survive the old exact retry')
-  await page.getByRole('button', {name: e.save, exact: true}).click()
+  await expect
+    .poll(async () => {
+      const pair = await checkpointPair(page)
+      return validateRecoveryPayload(
+        await openRecovery(
+          root,
+          recoveryRouteFromHeader(pair.header),
+          pair.envelope,
+        ),
+        recoveryRouteFromHeader(pair.header),
+      ).draft.content
+    })
+    .toBe('<p>Later edits must survive the old exact retry</p>')
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  await page.reload()
+  await unlock(page, phrase)
+  await page
+    .getByRole('button', {name: /Browser version/})
+    .first()
+    .click()
   await expect.poll(() => requests.length).toBeGreaterThanOrEqual(2)
   expect(requests[1]).toBe(requests[0])
   await expect(

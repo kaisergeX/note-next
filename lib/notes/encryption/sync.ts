@@ -105,7 +105,8 @@ export async function fetchEncryptedNote(
     {cache: 'no-store', credentials: 'same-origin'},
   )
   const result = await response.json()
-  return result.status === 'success'
-    ? encryptedRemoteSchema.parse(result.note)
-    : null
+  if (result.status === 'success')
+    return encryptedRemoteSchema.parse(result.note)
+  if (result.status === 'unavailable') return null
+  throw new Error('Encrypted note read could not be confirmed')
 }

@@ -8,6 +8,7 @@ import {
 } from '../lib/notes/encryption/crypto'
 import {
   RecoverySealQueue,
+  hasPendingEncryptedEdits,
   validateRecoveryPayload,
   type RecoveryPayload,
 } from '../lib/notes/encryption/recovery'
@@ -19,6 +20,7 @@ import {
 import {
   prepareEncryptedWrite,
   sendEncryptedFlight,
+  fetchEncryptedNote,
 } from '../lib/notes/encryption/sync'
 
 const ownerId = randomUUID(),
@@ -47,6 +49,32 @@ const fixture = (): RecoveryPayload => ({
   conflict: null,
   flight: null,
   resolution: null,
+})
+test('pending edits include theme changes; legacy records carry no clean proof', () => {
+  const record = fixture()
+  record.baseline = structuredClone(record.draft)
+  assert.equal(hasPendingEncryptedEdits(record), false)
+  assert.equal(
+    validateRecoveryPayload(record, record.route).baselineVerified,
+    undefined,
+  )
+  record.draft.content = '<p>unsent</p>'
+  assert.equal(hasPendingEncryptedEdits(record), true)
+  record.draft = structuredClone(record.baseline)
+  record.draft.theme = 'rose'
+  assert.equal(hasPendingEncryptedEdits(record), true)
+})
+test('a failed authoritative read cannot be mistaken for a deleted note', async ({
+  mock,
+}) => {
+  const fetcher = mock.method(globalThis, 'fetch', async () =>
+    Response.json({status: 'retryable_error'}),
+  )
+  await assert.rejects(fetchEncryptedNote(noteId))
+  fetcher.mock.mockImplementation(async () =>
+    Response.json({status: 'unavailable'}),
+  )
+  assert.equal(await fetchEncryptedNote(noteId), null)
 })
 test('full storage headers project every authenticated route field before strict parsing', () => {
   const record = fixture()

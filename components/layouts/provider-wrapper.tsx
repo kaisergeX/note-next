@@ -11,6 +11,7 @@ export default function ProviderWrapper({children}: {children: ReactNode}) {
     <SerwistProvider
       swUrl="/sw.js"
       disable={process.env.NODE_ENV === 'development'}
+      reloadOnOnline={false}
     >
       <SessionProvider>
         <AppearanceSync />

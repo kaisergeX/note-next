@@ -35,6 +35,8 @@ export const recoveryPayloadSchema = z
     version: z.literal(1),
     route: recoveryRouteSchema,
     baseline: trashDraftSchema.nullable(),
+    // Absent in checkpoints from the editor that aliased baseline and draft.
+    baselineVerified: z.literal(true).optional(),
     draft: trashDraftSchema,
     conflict: trashDraftSchema.nullable(),
     conflictRevision: z.uuid().nullable().optional(),
@@ -48,6 +50,9 @@ export const recoveryPayloadSchema = z
       })
       .nullable(),
     resolution: z.literal('mine').nullable(),
+    refusal: z
+      .enum(['unavailable', 'disabled', 'invalid_input', 'reload_required'])
+      .optional(),
   })
   .superRefine((record, ctx) => {
     const flight = record.flight
@@ -72,6 +77,16 @@ export const recoveryPayloadSchema = z
       })
   })
 export type RecoveryPayload = z.infer<typeof recoveryPayloadSchema>
+
+export function hasPendingEncryptedEdits(record: RecoveryPayload) {
+  return Boolean(
+    record.flight ||
+    !record.baseline ||
+    record.draft.title !== record.baseline.title ||
+    record.draft.content !== record.baseline.content ||
+    record.draft.theme !== record.baseline.theme,
+  )
+}
 
 export function sameRecoveryRoute(a: RecoveryRoute, b: RecoveryRoute) {
   return (
