@@ -50,6 +50,7 @@ export const recoveryPayloadSchema = z
       })
       .nullable(),
     resolution: z.literal('mine').nullable(),
+    authenticationRequired: z.literal(true).optional(),
     refusal: z
       .enum(['unavailable', 'disabled', 'invalid_input', 'reload_required'])
       .optional(),
@@ -94,7 +95,7 @@ export function sameRecoveryRoute(a: RecoveryRoute, b: RecoveryRoute) {
   ).every((key) => a[key] === b[key])
 }
 
-export function validateRecoveryPayload(value: unknown, outer: RecoveryRoute) {
+export function prepareRecoveryPayload(value: unknown, outer: RecoveryRoute) {
   const record = recoveryPayloadSchema.parse(value)
   if (!sameRecoveryRoute(record.route, recoveryRouteSchema.parse(outer)))
     throw new Error('Recovery routing mismatch')
@@ -110,12 +111,14 @@ export function validateRecoveryPayload(value: unknown, outer: RecoveryRoute) {
     )
       throw new Error('Recovery flight payload mismatch')
   }
-  if (
-    new TextEncoder().encode(JSON.stringify(record)).byteLength >
-    RECOVERY_DECODED_LIMIT
-  )
+  const serialized = new TextEncoder().encode(JSON.stringify(record))
+  if (serialized.byteLength > RECOVERY_DECODED_LIMIT)
     throw new Error('Recovery record exceeds storage limit')
-  return record
+  return {record, serialized}
+}
+
+export function validateRecoveryPayload(value: unknown, outer: RecoveryRoute) {
+  return prepareRecoveryPayload(value, outer).record
 }
 
 /** A single tab-wide loop: one active seal and one newest pending per note. */

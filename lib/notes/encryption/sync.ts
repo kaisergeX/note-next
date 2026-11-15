@@ -35,6 +35,7 @@ export type EncryptedSyncResult =
         | 'reload_required'
         | 'invalid_input'
         | 'disabled'
+        | 'unauthenticated'
     }
 
 export function prepareEncryptedWrite(
@@ -80,6 +81,7 @@ export async function sendEncryptedFlight(
         credentials: 'same-origin',
       },
     )
+    if (response.status === 401) return {status: 'unauthenticated'}
     const result = await response.json()
     if (result.status === 'success' || result.status === 'conflict')
       return {

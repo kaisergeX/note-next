@@ -256,7 +256,7 @@ export function VaultControls({
   }
   const unlock = () =>
     run(async (version) => {
-      if (!vault) return
+      if (!vault || active) return
       const epoch = currentVaultEpoch(),
         raw = await rawUnlock()
       try {
@@ -421,6 +421,7 @@ export function VaultControls({
               loading={busy}
               onClick={() => void unlock()}
               disabled={
+                active ||
                 (!entry &&
                   (recovery || vault.primaryWrapper.purpose !== 'passkey')) ||
                 Boolean(replacement)

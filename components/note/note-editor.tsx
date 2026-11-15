@@ -11,6 +11,7 @@ import {
   useEditorState,
   type Editor,
   type FocusPosition,
+  resolveFocusPosition,
 } from '@tiptap/react'
 import type {Node} from '@tiptap/pm/model'
 import StarterKit from '@tiptap/starter-kit'
@@ -67,6 +68,8 @@ export function useNoteEditor({
   editorVersion,
 }: NoteEditorOptions) {
   const enter = useRef(onPressEnter)
+  const initialFocus = useRef(readOnly ? false : autofocus)
+  const focusedEditor = useRef<Editor | null>(null)
   useLayoutEffect(() => {
     enter.current = onPressEnter
   }, [onPressEnter])
@@ -112,10 +115,38 @@ export function useNoteEditor({
     onUpdate: ({editor}) => onChange(editor.isEmpty ? '' : editor.getHTML()),
     onFocus,
     editable: !pending && !readOnly,
-    autofocus: readOnly ? false : autofocus,
+    autofocus: false,
     immediatelyRender: false,
     shouldRerenderOnTransaction: false,
   })
+
+  useEffect(() => {
+    const position = initialFocus.current
+    if (
+      !editor ||
+      pending ||
+      readOnly ||
+      position === false ||
+      position === null ||
+      focusedEditor.current === editor
+    )
+      return
+    const frame = requestAnimationFrame(() => {
+      if (editor.isDestroyed || !editor.isEditable) return
+      focusedEditor.current = editor
+      const active = document.activeElement
+      // Decide and focus in the same callback. Tiptap's focus command queues
+      // another frame, which can take focus back after the user chooses a field.
+      if (active && active !== document.body) return
+      const selection = resolveFocusPosition(editor.state.doc, position)
+      if (selection)
+        editor.view.dispatch(
+          editor.state.tr.setSelection(selection).scrollIntoView(),
+        )
+      editor.view.focus()
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [editor, pending, readOnly])
 
   useEffect(() => {
     if (

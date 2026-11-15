@@ -1,6 +1,14 @@
 'use client'
 
-import {useEffect, useId, useRef, useState, useSyncExternalStore} from 'react'
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
+import {flushSync} from 'react-dom'
 import {useTranslations} from 'next-intl'
 import {IconSearch, IconX} from '@tabler/icons-react'
 import Button from '~/components/ui/button'
@@ -61,6 +69,22 @@ export default function NoteSearchControls({
     setExpanded(false)
     restoreTriggerFocus.current = true
   }
+  useLayoutEffect(() => {
+    const element = input.current
+    if (!element) return
+    const finishPreparingTransition = () => {
+      // React pauses delegated events while a native view transition prepares.
+      // Finish that commit before the browser changes the controlled value.
+      if (document.activeViewTransition)
+        flushSync(() => onChange(element.value))
+    }
+    element.addEventListener('beforeinput', finishPreparingTransition)
+    element.addEventListener('compositionstart', finishPreparingTransition)
+    return () => {
+      element.removeEventListener('beforeinput', finishPreparingTransition)
+      element.removeEventListener('compositionstart', finishPreparingTransition)
+    }
+  }, [onChange])
   useEffect(() => {
     if (expanded) input.current?.focus()
     else if (restoreTriggerFocus.current) {

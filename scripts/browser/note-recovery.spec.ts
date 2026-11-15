@@ -9,6 +9,105 @@ import {
   review,
 } from './fixtures'
 import type {SyncRequest} from '../../lib/notes/sync'
+import type {Page} from '@playwright/test'
+
+async function delayInitialFocus(page: Page) {
+  await page.addInitScript(() => {
+    const queued: FrameRequestCallback[] = []
+    const raf = window.requestAnimationFrame.bind(window)
+    window.requestAnimationFrame = (callback) => {
+      const source = callback.toString()
+      if (source.includes('isDestroyed') && /\bfocus\(/.test(source)) {
+        queued.push(callback)
+        return raf(() => {})
+      }
+      return raf(callback)
+    }
+    Object.assign(window, {
+      pendingEditorFocus: () => queued.length,
+      releaseEditorFocus: () =>
+        queued.splice(0).forEach((callback) => callback(performance.now())),
+    })
+  })
+}
+
+test('initial desktop autofocus still places the caret at the title end when no field was chosen', async ({
+  page,
+  noteApp,
+}) => {
+  const note = await noteApp.create()
+  await page.goto(fullPath(note))
+  await expect(title(page)).toBeFocused()
+  await page.keyboard.type(' Continued title')
+  await expect(title(page)).toHaveText(
+    'Browser regression note Continued title',
+  )
+  await expect(body(page)).toHaveText('Original body')
+})
+
+test('initial title autofocus never takes focus back after the user chooses the body', async ({
+  page,
+  noteApp,
+}) => {
+  const note = await noteApp.create()
+  await delayInitialFocus(page)
+  await page.goto(fullPath(note))
+  await expect(body(page)).toBeEditable()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as unknown as {pendingEditorFocus: () => number}
+        ).pendingEditorFocus(),
+      ),
+    )
+    .toBeGreaterThan(0)
+  await body(page).click()
+  await page.keyboard.press('End')
+  await expect(body(page)).toBeFocused()
+  // An already scheduled startup callback can run after a real user click.
+  await page.evaluate(() =>
+    (
+      window as unknown as {releaseEditorFocus: () => void}
+    ).releaseEditorFocus(),
+  )
+  await page.keyboard.type(' Early body input')
+  await expect(body(page)).toHaveText('Original body Early body input')
+  await expect(title(page)).toHaveText('Browser regression note')
+  await expect
+    .poll(async () => (await noteApp.read(note.id)).content)
+    .toBe('<p>Original body Early body input</p>')
+})
+
+test('initial title autofocus preserves the title caret the user already chose', async ({
+  page,
+  noteApp,
+}) => {
+  const note = await noteApp.create()
+  await delayInitialFocus(page)
+  await page.goto(fullPath(note))
+  await expect(title(page)).toBeEditable()
+  await expect
+    .poll(() =>
+      page.evaluate(() =>
+        (
+          window as unknown as {pendingEditorFocus: () => number}
+        ).pendingEditorFocus(),
+      ),
+    )
+    .toBeGreaterThan(0)
+  await title(page).click()
+  await page.keyboard.press('Home')
+  await page.keyboard.press('ArrowRight')
+  await page.evaluate(() =>
+    (
+      window as unknown as {releaseEditorFocus: () => void}
+    ).releaseEditorFocus(),
+  )
+  await page.keyboard.type('X')
+  await expect(title(page)).toHaveText('BXrowser regression note')
+  await expect(body(page)).toHaveText('Original body')
+})
 
 test('failed sync survives close, Notes reopening, modal/full handoff and reload', async ({
   page,

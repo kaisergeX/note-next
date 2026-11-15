@@ -186,6 +186,8 @@ Final candidate regression closeout (2026-11-13): all 83 configured Chromium bro
 
 ## 11. Sources
 
+Local release follow-up (2026-11-15): see the [candidate release ledger](note-encryption-release-readiness.md) and [exact source manifest](note-encryption-release-source.json) for the additional authentication/unlock fixes, measured codec/storage improvements, worker-enabled and migration/upgrade checks, backup recovery, and final verification status. Earlier evidence remains historical. The ledger does not waive independent security, physical-device/provider, usability/accessibility or production/operator gates, and both rollout flags remain disabled by default.
+
 - [W3C WebAuthn PRF extension](https://www.w3.org/TR/webauthn-3/#prf-extension) and [MDN WebAuthn extensions](https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API/WebAuthn_extensions#prf) describe credential-specific PRF support and outputs. [FIDO Alliance passkeys](https://fidoalliance.org/passkeys/) covers synced and device-bound credentials.
 - [MDN Web Crypto deriveKey](https://developer.mozilla.org/en-US/docs/Web/API/SubtleCrypto/deriveKey), [HKDF parameters](https://developer.mozilla.org/en-US/docs/Web/API/HkdfParams), and [AES-GCM parameters](https://developer.mozilla.org/en-US/docs/Web/API/AesGcmParams): API behavior, derivation, IV/AAD/key handling. Example iteration counts are not security defaults.
 - [OWASP Cryptographic Storage](https://cheatsheetseries.owasp.org/cheatsheets/Cryptographic_Storage_Cheat_Sheet.html): authenticated encryption and key management.

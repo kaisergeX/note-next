@@ -510,6 +510,9 @@ test('an older acknowledged search card cannot survive a later authoritative edi
   await page.goto('/en/eton')
   const input = await openSearch(page)
   await input.fill('older-acknowledgement-needle')
+  await expect(input).toHaveValue('older-acknowledgement-needle')
+  await expect(input).toHaveAttribute('aria-busy', 'false')
+  await expect(page.locator('a[data-note-id]')).toHaveCount(1)
   const target = page.locator(`a[data-note-id="${targetNote.id}"]`)
   await target.click()
   await body(page).fill('Edited older-acknowledgement-needle')
@@ -535,6 +538,124 @@ test('an older acknowledged search card cannot survive a later authoritative edi
   ).toBeVisible()
   await expect(target).toHaveCount(0)
 })
+
+for (const composing of [false, true]) {
+  test(`native search ${composing ? 'composition' : 'input'} survives a preparing list transition and subsequent input`, async ({
+    page,
+    noteApp,
+  }) => {
+    await page.addInitScript(() => {
+      const native = document.startViewTransition.bind(document)
+      const state = {hold: false, preparing: false, release: () => {}}
+      Object.assign(window, {searchTransition: state})
+      document.startViewTransition = ((options: StartViewTransitionOptions) => {
+        if (!state.hold) return native(options)
+        state.hold = false
+        state.preparing = true
+        const gate = new Promise<void>((resolve) => {
+          state.release = resolve
+        })
+        return native({
+          ...options,
+          update: async () => {
+            await gate
+            await options.update?.()
+          },
+        })
+      }) as typeof document.startViewTransition
+    })
+    await noteApp.create()
+    const requests: string[] = []
+    page.on('request', (request) => {
+      if (new URL(request.url()).pathname === '/api/note/search')
+        requests.push(request.postDataJSON().query)
+    })
+    await page.goto('/en/eton')
+    const input = await openSearch(page)
+    await page.waitForFunction(() => !document.activeViewTransition)
+    const first = composing ? 'á' : 'a'
+    const changed = await noteApp.save(await noteApp.create(), {
+      content: `<p>${first}b</p>`,
+    })
+    await page.evaluate((note) => {
+      const state = (window as unknown as {searchTransition: {hold: boolean}})
+        .searchTransition
+      state.hold = true
+      window.dispatchEvent(new CustomEvent('note-saved', {detail: note}))
+    }, changed)
+    await page.waitForFunction(
+      () =>
+        (window as unknown as {searchTransition: {preparing: boolean}})
+          .searchTransition.preparing,
+    )
+    try {
+      if (composing) await input.dispatchEvent('compositionstart', {data: ''})
+      await page.keyboard.insertText(first)
+    } finally {
+      await page.evaluate(() =>
+        (
+          window as unknown as {searchTransition: {release: () => void}}
+        ).searchTransition.release(),
+      )
+    }
+    await expect(input).toHaveValue(first)
+    if (composing) {
+      // The composition must suppress the 300 ms search debounce until it ends.
+      await page.waitForTimeout(350)
+      expect(requests).toEqual([])
+      await input.dispatchEvent('compositionend', {data: first})
+    }
+    await page.keyboard.insertText('b')
+    await expect(input).toHaveValue(`${first}b`)
+    await expect(input).toHaveAttribute('aria-busy', 'false')
+    await expect(page.locator('a[data-note-id]')).toHaveCount(1)
+  })
+}
+
+for (const entry of ['typing', 'fill', 'insertText'] as const) {
+  test(`immediate search ${entry} and opening a visible card work while results are pending`, async ({
+    page,
+    noteApp,
+  }) => {
+    for (let i = 0; i < 26; i++) await noteApp.create()
+    const note = await noteApp.save(await noteApp.create(), {
+      content: '<p>pending-navigation-needle</p>',
+    })
+    let release!: () => void
+    const gate = new Promise<void>((resolve) => {
+      release = resolve
+    })
+    await page.route('**/api/note/search', async (route) => {
+      await gate
+      await route.continue().catch(() => {}) // A full-page opening may cancel the list request.
+    })
+    try {
+      await page.goto('/en/eton')
+      const requested = page.waitForRequest(
+        (request) => new URL(request.url()).pathname === '/api/note/search',
+      )
+      const input = await openSearch(page)
+      if (entry === 'typing')
+        await page.keyboard.type('pending-navigation-needle')
+      else if (entry === 'fill') await input.fill('pending-navigation-needle')
+      else await page.keyboard.insertText('pending-navigation-needle')
+      await expect(input).toHaveValue('pending-navigation-needle')
+      await requested
+      await expect(input).toHaveAttribute('aria-busy', 'true')
+      await page.locator(`a[data-note-id="${note.id}"]`).click()
+      await expect(body(page)).toHaveText('pending-navigation-needle')
+      release()
+      await page
+        .getByRole('button', {name: 'Save and go back', exact: true})
+        .click()
+      await expect(input).toHaveValue('pending-navigation-needle')
+      await expect(input).toHaveAttribute('aria-busy', 'false')
+      await expect(page.locator('a[data-note-id]')).toHaveCount(1)
+    } finally {
+      release()
+    }
+  })
+}
 
 test('long search results keep card bodies bounded and restore their mounted return target', async ({
   page,

@@ -4,7 +4,8 @@ import {useEffect, useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import NoteEditor, {useNoteEditor} from '../note-editor'
 import {NOTE_TITLE_MAX_LENGTH} from '~/db/schema/notes'
-import Button from '~/components/ui/button'
+import Button, {buttonClass} from '~/components/ui/button'
+import {Link} from '~/i18n/navigation'
 import {sanitizeNoteHtml} from '~/lib/notes/html'
 import {openNote, sealNote} from '~/lib/notes/encryption/crypto'
 import {
@@ -46,10 +47,12 @@ type PersistenceStatus =
   | 'reload_required'
   | 'review_required'
   | 'recovery_error'
+  | 'unauthenticated'
 type Actions = {
   edit: (field: 'title' | 'content', value: string) => void
   flush: () => Promise<void>
   save: () => Promise<void>
+  resume: () => Promise<void>
   resolve: (mine: boolean) => Promise<void>
 }
 
@@ -132,6 +135,7 @@ export default function EncryptedEditor({
     }
     const localStatus = (): PersistenceStatus =>
       record?.refusal ??
+      (record?.authenticationRequired ? 'unauthenticated' : null) ??
       (record?.conflict
         ? 'conflict'
         : needsReconciliation
@@ -207,6 +211,7 @@ export default function EncryptedEditor({
         readOnly ||
         record.conflict ||
         record.refusal ||
+        record.authenticationRequired ||
         needsReconciliation ||
         !navigator.onLine ||
         !hasPendingEncryptedEdits(record)
@@ -282,7 +287,12 @@ export default function EncryptedEditor({
           report(localStatus())
           window.dispatchEvent(new Event('encrypted-notes-changed'))
         } else if (result.status === 'retryable_error') report('local')
-        else {
+        else if (result.status === 'unauthenticated') {
+          record.authenticationRequired = true
+          record.route.generation++
+          await flush()
+          report('unauthenticated')
+        } else {
           // Keep the exact flight for recovery, but persist a terminal stop so
           // timers, reconnects and reopening cannot resend a refused operation.
           record.refusal = result.status
@@ -299,6 +309,7 @@ export default function EncryptedEditor({
           record &&
           !record.conflict &&
           !record.refusal &&
+          !record.authenticationRequired &&
           !needsReconciliation &&
           hasPendingEncryptedEdits(record)
         )
@@ -311,6 +322,7 @@ export default function EncryptedEditor({
         !record ||
         record.conflict ||
         record.refusal ||
+        record.authenticationRequired ||
         needsReconciliation ||
         !navigator.onLine
       )
@@ -327,6 +339,29 @@ export default function EncryptedEditor({
     actions.current = {
       flush,
       save,
+      async resume() {
+        if (!record?.authenticationRequired || !valid() || saving) return
+        try {
+          const response = await fetch('/api/auth/session', {
+            cache: 'no-store',
+            credentials: 'same-origin',
+          })
+          const session = await response.json()
+          if (
+            !valid() ||
+            !response.ok ||
+            session.error ||
+            session.user?.id !== ownerId
+          )
+            return
+          delete record.authenticationRequired
+          record.route.generation++
+          await flush()
+          await save()
+        } catch {
+          report('unauthenticated')
+        }
+      },
       edit(field, value) {
         if (!record || !valid() || readOnly || record.conflict) return
         record.draft[field] = value || null
@@ -565,7 +600,7 @@ export default function EncryptedEditor({
         <p role="status" className="text-ink-muted text-sm">
           {t(status)}
         </p>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           {!readOnly && (
             <Button
               variant="secondary"
@@ -578,6 +613,7 @@ export default function EncryptedEditor({
                   'invalid_input',
                   'reload_required',
                   'review_required',
+                  'unauthenticated',
                 ].includes(status)
               }
               onClick={() => {
@@ -586,6 +622,22 @@ export default function EncryptedEditor({
             >
               {t('save')}
             </Button>
+          )}
+          {!readOnly && status === 'unauthenticated' && (
+            <>
+              <Link
+                href="/login"
+                className={buttonClass({variant: 'secondary'})}
+              >
+                {t('signIn')}
+              </Link>
+              <Button
+                variant="secondary"
+                onClick={() => void actions.current?.resume()}
+              >
+                {t('resumeAfterSignIn')}
+              </Button>
+            </>
           )}
           {onClose && (
             <Button

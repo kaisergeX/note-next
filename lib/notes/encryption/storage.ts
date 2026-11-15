@@ -1,7 +1,7 @@
 import {Dexie, type EntityTable} from 'dexie'
 import type {ConfirmedVault} from './runtime'
 import {z} from 'zod'
-import {openRecovery, sealRecovery} from './crypto'
+import {openRecovery, sealRecoveryBytes} from './crypto'
 import {
   canonicalIdSchema,
   vaultWrapperSchema,
@@ -11,6 +11,7 @@ import {
   RECOVERY_STORED_LIMIT,
   recoveryRouteSchema,
   validateRecoveryPayload,
+  prepareRecoveryPayload,
   type RecoveryPayload,
   type RecoveryRoute,
 } from './recovery'
@@ -113,11 +114,12 @@ export async function putEncryptedRecovery(
   expectedFlight = payload.route.mutationId,
   expectedGeneration?: number,
 ) {
-  const checked = validateRecoveryPayload(payload, payload.route)
-  const envelope = await sealRecovery(root, checked.route, checked)
-  const encodedBytes = new TextEncoder().encode(
-    JSON.stringify(envelope),
-  ).byteLength
+  const {record: checked, serialized} = prepareRecoveryPayload(
+    payload,
+    payload.route,
+  )
+  const envelope = await sealRecoveryBytes(root, checked.route, serialized)
+  const encodedBytes = recoveryEnvelopeBytes(envelope)
   if (encodedBytes > RECOVERY_STORED_LIMIT)
     throw new Error('Recovery record exceeds storage limit')
   const header: RecoveryHeader = {
@@ -158,6 +160,17 @@ export async function putEncryptedRecovery(
   )
   if (committed) changed()
   return committed
+}
+export function recoveryEnvelopeBytes(envelope: SealedEnvelope) {
+  // Locally sealed fields contain only base64url ASCII. Count the exact JSON
+  // representation without serializing and allocating another large string.
+  const overhead = JSON.stringify({salt: '', iv: '', ciphertext: ''}).length
+  return (
+    overhead +
+    envelope.salt.length +
+    envelope.iv.length +
+    envelope.ciphertext.length
+  )
 }
 export async function listEncryptedRecovery(
   ownerId: string,

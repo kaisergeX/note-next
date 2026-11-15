@@ -5,16 +5,20 @@ import {
   generateRoot,
   importRoot,
   sealNote,
+  sealRecoveryBytes,
+  openRecovery,
 } from '../lib/notes/encryption/crypto'
 import {
   RecoverySealQueue,
   hasPendingEncryptedEdits,
   validateRecoveryPayload,
+  prepareRecoveryPayload,
   type RecoveryPayload,
 } from '../lib/notes/encryption/recovery'
 import {
   canCommitCheckpoint,
   recoveryRouteFromHeader,
+  recoveryEnvelopeBytes,
   type RecoveryHeader,
 } from '../lib/notes/encryption/storage'
 import {
@@ -49,6 +53,48 @@ const fixture = (): RecoveryPayload => ({
   conflict: null,
   flight: null,
   resolution: null,
+})
+
+test('validated recovery serialization is reused and exact ASCII envelope size preserves every byte', async () => {
+  const root = await importRoot(generateRoot())
+  for (const size of [0, 1, 2, 3, 32768, 262144]) {
+    const input = fixture()
+    input.draft.content = '\u0000'.repeat(size)
+    const {record, serialized} = prepareRecoveryPayload(input, input.route)
+    assert.equal(
+      serialized.byteLength,
+      new TextEncoder().encode(JSON.stringify(record)).byteLength,
+    )
+    const envelope = await sealRecoveryBytes(root, record.route, serialized)
+    assert.equal(
+      recoveryEnvelopeBytes(envelope),
+      new TextEncoder().encode(JSON.stringify(envelope)).byteLength,
+    )
+    assert.deepEqual(await openRecovery(root, record.route, envelope), record)
+  }
+})
+
+test('expired authentication is a distinct pause outcome rather than a transport retry', async () => {
+  const root = await importRoot(generateRoot())
+  const payload = await sealNote(
+    root,
+    ownerId,
+    {vaultId, noteId, contentId: randomUUID()},
+    fixture().draft,
+  )
+  const request = prepareEncryptedWrite(payload, null, null)
+  const result = await sendEncryptedFlight(
+    noteId,
+    request,
+    async () => new Response('Not signed in', {status: 401}),
+  )
+  assert.deepEqual(result, {status: 'unauthenticated'})
+  const record = fixture()
+  record.authenticationRequired = true
+  assert.equal(
+    validateRecoveryPayload(record, record.route).authenticationRequired,
+    true,
+  )
 })
 test('pending edits include theme changes; legacy records carry no clean proof', () => {
   const record = fixture()

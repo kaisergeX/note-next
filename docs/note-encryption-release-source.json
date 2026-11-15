@@ -1,0 +1,373 @@
+{
+  "recordedAt": "2026-11-15T09:34:36.911Z",
+  "comparisonBaseline": "609afe5a9c24af2d0850e0b35c7c9a0e05fc5c1e",
+  "localRemediationCommit": "66bdd86969dc8040adc0bc108a130012dd778cdf",
+  "productionBuildId": "CF33JZKWO4ocg_hSxnWXw",
+  "productionBuildArtifactTime": "2026-11-15T09:34:15.370Z",
+  "sourceDigest": "db652e2f6eaf5bec8b73b17c63f1d9d9c7f502109a8ad87d449c024cb2c1b7ca",
+  "hashMeaning": "sha256 is the exact tested working-file bytes; lfSha256 normalizes CRLF for checkout comparison. Unchanged source is anchored by comparisonBaseline.",
+  "flags": {
+    "repositoryDefaults": {
+      "enrollment": false,
+      "creation": false
+    },
+    "syntheticBrowserPreview": {
+      "enrollment": true,
+      "creation": true
+    },
+    "upgradeAndRestoredPreviews": {
+      "enrollment": false,
+      "creation": false
+    }
+  },
+  "files": {
+    ".env.example": {
+      "sha256": "47f98904bb1bd57010dc88fddcf9f6a443213372bb96dacd71fed5ba0cdc430f",
+      "lfSha256": "95def79a0937e02cd149ef1fec9251e5005008efc3d5ab49fc9693989e31e572"
+    },
+    "app/[locale]/(note)/collection/browser-work/page.tsx": {
+      "sha256": "ff9283915df7bb8f455187fb34c31c1d8727c157f1ab2b4c50f659b64e790810",
+      "lfSha256": "cd8479df1d7c3b532e11ab9df03a35e78006abb194cdca3602d601d7dbcdbfdc"
+    },
+    "app/[locale]/(note)/collection/encrypted/page.tsx": {
+      "sha256": "27c986eff8a7404d149306d3bf9c753747ae227c9cbfdadbe80b0ca12cad6e77",
+      "lfSha256": "4390395a02e609f7dfb8274b325b234cbd8ab476e09fe2e0345343510c7e77df"
+    },
+    "app/[locale]/(note)/collection/trash/page.tsx": {
+      "sha256": "fc01955ac4d550465aa7ccd4dbb010228a58915a45d39bd848e456d5df473b0b",
+      "lfSha256": "5cdad122b44cf92e5024acd938c59fcf0ad6c520ab154fb743569f409d6f2fc4"
+    },
+    "app/[locale]/(note)/eton/@modal/(.)[id]/page.tsx": {
+      "sha256": "31fde226048c74e24c7e6fe7c648578427b18ee98af6b850eac2fc406ec5ef3c",
+      "lfSha256": "3a4615ae21c978fdb61123bc531cb146e84c38116d92bd07a5bbdc0c747efa28"
+    },
+    "app/[locale]/(note)/eton/[id]/page.tsx": {
+      "sha256": "3fabdfe5015eb176be1c1137b0a815ece6735709146b79c0eacb6271d088717c",
+      "lfSha256": "9a726403807ae307c6df15a3d2e7077572b89f090711de444f9d7257828b7d22"
+    },
+    "app/[locale]/(note)/eton/page.tsx": {
+      "sha256": "83c780baf72ecaa98f7a60030b8e0b824f6a75395802e987024907e2db4ed48a",
+      "lfSha256": "b985404622485d1f532b37fe41efa4e70f0a9a4604f2d660daa62e194a0e1594"
+    },
+    "app/[locale]/(note)/full/eton/[id]/page.tsx": {
+      "sha256": "ddddd3eafbc7fd9594f3a4a20ae38de8ea6ef8082b27eee39ee30c85a35dc123",
+      "lfSha256": "d6133a0602882ab7b07b0a6f67b575dcc43f330a9b1522014bcc041be6c1d3c0"
+    },
+    "app/[locale]/page.tsx": {
+      "sha256": "09501cc68d1d21b7b14bb0ff562dcbf871c2b1e11f89b203f938cdf9f7b5cbb5",
+      "lfSha256": "2fe2c6374ef9ab0366a07012050b87430829b39a040e6e04b0312ed8be20382d"
+    },
+    "app/[locale]/settings/account/page.tsx": {
+      "sha256": "cb2cea04a1eec01b4b37628a05141f6dcd784f2499220d92a4d90a700455f896",
+      "lfSha256": "e14d48aade0c0fff06b6b85b60854176da72ff814d22b1fd54c58b79c1127305"
+    },
+    "app/[locale]/trust/privacy/page.tsx": {
+      "sha256": "6086501c6cefb61c7d08bf860b1d571235873b7be77d98156cd7619b06d01d1e",
+      "lfSha256": "2a775ddabf64f68e702bd965cfd1562746a30dcef553f56fbb5e1b3c5e55c566"
+    },
+    "app/api/note-encryption/[id]/route.ts": {
+      "sha256": "df46c547833937c5af8ec8180beb7b68cb6496629dd3560c74f13cb4b1edb3f1",
+      "lfSha256": "0ffb2035d2ac8b8224c2981f1d9c4b452e01a9e141412ebb15f2c59ce1c95115"
+    },
+    "app/api/note-encryption/route.ts": {
+      "sha256": "f2894cc91220151c445bf3b2f3fdcc41cdeebf27bdfd870c22f462712ea0240b",
+      "lfSha256": "ccb783a7fa91c50b51026ebc3ae7440f86ec9424cdd31a7451fa8f8af00d89ac"
+    },
+    "app/api/note-vault/passkey/route.ts": {
+      "sha256": "c33f36fc5fa080e76c95a972b0d8d1615b5067921c699b7cfdc0e6c6a95b0f89",
+      "lfSha256": "03f1891e758a4d52dc99d6c736673f27b744de14c9d710a8bd59f02f8c7407e5"
+    },
+    "app/api/note-vault/route.ts": {
+      "sha256": "a372e79b987f3e0d58179d710838cef6364a95292005cbbf8aadabf0eae31c75",
+      "lfSha256": "6b3cb7373c86136d95df55fc0ea25eb172a004f608763fab80b23aecdec0b05d"
+    },
+    "app/api/note/sync/route.ts": {
+      "sha256": "e71b01d25f4b8bdbad2047963ce6fd8c5497f3e656d45256da812faa8ce01289",
+      "lfSha256": "f705dd6167d9ee65a169de22df9203cd9e7365add1ac2da97e6f7c747683a089"
+    },
+    "app/sw.ts": {
+      "sha256": "ac526012901e272d01afa83178002dcdc7e7bff1a90679c903ad9aec032ff5b9",
+      "lfSha256": "43fe1223fb6e831f971ef46008cfcafd3894a7bbabad511c0057b6045eaee5f0"
+    },
+    "components/layouts/account-data-sync.tsx": {
+      "sha256": "6dc1b5ba2563b94d22fba9450da920a40c69aea3e0c6617ce4b0dc9f467b648b",
+      "lfSha256": "8b0d5297ee4f65b7cc9f2f0ff6d43f46636eee5eed311ece553d939ef5fc534d"
+    },
+    "components/layouts/provider-wrapper.tsx": {
+      "sha256": "d1027883b703b3582a67503514b04787e2faa839fa827bc881dda4154d819657",
+      "lfSha256": "d1027883b703b3582a67503514b04787e2faa839fa827bc881dda4154d819657"
+    },
+    "components/note/encryption/encrypted-detail.tsx": {
+      "sha256": "7816e5413f9626b2e051c7385357165e0e4e54382b5a72f56af1a9a50b79c421",
+      "lfSha256": "d42d798df7622da65fc92342ebf07d94116eb4eba8c1c471ea7d912e03abb486"
+    },
+    "components/note/encryption/encrypted-editor.tsx": {
+      "sha256": "73b3a0669d1bfdf019ec5e9cb8ae8b9796cf8d81447005dfe46538ad4d15414d",
+      "lfSha256": "73b3a0669d1bfdf019ec5e9cb8ae8b9796cf8d81447005dfe46538ad4d15414d"
+    },
+    "components/note/encryption/encrypted-workspace.tsx": {
+      "sha256": "cd091dcf54a71d7d6cefd7c2a5263ac22ea32a51a5d13f87510c2b0530e5bb4e",
+      "lfSha256": "05ffe2e75c998bf2851b84a1ef6a8d565d12ad92bb86f0acf9193e1eeaa32847"
+    },
+    "components/note/encryption/vault-controls.tsx": {
+      "sha256": "54188b3a54408aa1b7aafbcbd91cc17ea6dbd2861af17b07709c22b9eeb85d1a",
+      "lfSha256": "7e747653a5348dc449f29b37db0b2b39c923f228de6b5b5a58e20a5944b069b2"
+    },
+    "components/note/note-editor.tsx": {
+      "sha256": "0b1ad65886105b42ffb8cf33f8805e8f7de5448c7d1c1cead399e876df471f6d",
+      "lfSha256": "0b1ad65886105b42ffb8cf33f8805e8f7de5448c7d1c1cead399e876df471f6d"
+    },
+    "components/note/note-search-controls.tsx": {
+      "sha256": "e46d29cca5a3eab78d88fa848b9fbd8bc0a457638a1ae2fa2a534fe01717d320",
+      "lfSha256": "e5aea01e86266f605bb2b167d5f83dbc4574981fc629007369df33072a11e7f9"
+    },
+    "components/note/note-tiny.tsx": {
+      "sha256": "b4f6c038bbfc0a8a85435084679014002978f28c3d32615c9e21799440de2f46",
+      "lfSha256": "6d691769bfb041b219f5a8c13bff72d2f8e7daaa985adf1edc42df78946075c2"
+    },
+    "components/note/notes-collection.tsx": {
+      "sha256": "56a7262c65d98ac048f504c87077d95c327bdcb53f202604c8f6b86ba457421a",
+      "lfSha256": "afcbdda0761f479ea4a8ae8c2c5eb10b15b8d2200b941a460d300449fdb88e7c"
+    },
+    "components/note/trash/trash-list.tsx": {
+      "sha256": "9e365fcf9eb74d011e7f4acac6a4b21bc6d91b7c440d43328cc170cc5f297d3a",
+      "lfSha256": "332b9e3f3b06ef917362ddf252413b0feb9e7edab1a1d3904a98c011fbfa3b15"
+    },
+    "db/repositories/note-encryption.ts": {
+      "sha256": "7246538e02a562ec0c2a52b365796e4cb065557e0779fc93359ef7653bd6467c",
+      "lfSha256": "1fad3b37f4ff90f919d74fac0448f379f44dad2a006104084c308d25d89376e7"
+    },
+    "db/repositories/note-search.ts": {
+      "sha256": "4cb4dc441efcd18dccc6654606d2c73b4c78118dce8c355a4fe5fc2969bfa178",
+      "lfSha256": "93fa669c255b11d17e49989a79554c2cd691c28ac23c146ae199caff100b905e"
+    },
+    "db/repositories/notes.ts": {
+      "sha256": "be95638a98938c471b14424f5fa8be343f83b2b593a4be0362216883a7d023de",
+      "lfSha256": "fd26029542d53b54f7ed194d374d362f22ec9733a3b8d444b54f60a7ec8fc87a"
+    },
+    "db/schema/note-passkeys.ts": {
+      "sha256": "f4ce9e1a753f7e948596c242ac29931abef09e8a720a228d030f9253219d1ae3",
+      "lfSha256": "55d880d998ddb038a263c4b68b69a184e4efd6a2b1d1db4767614780338b463c"
+    },
+    "db/schema/note-vaults.ts": {
+      "sha256": "499fc896a737c333c2c04c66d260e080fb24acf887dd4441d42dbecd7fb3b1ba",
+      "lfSha256": "b5cdadb0fc14ac97483f52c703d90458e37b3bca0e0ae30d78694ba327592460"
+    },
+    "db/schema/notes.ts": {
+      "sha256": "18c507cba13312617d650bb329bc283a91c220401bb721eedecfe16576d85bf8",
+      "lfSha256": "976a3f4b598555703ea5e1377e392e270bb1ff5c54e6fc71bb7de79320048efa"
+    },
+    "dictionaries/en.json": {
+      "sha256": "a6960f13e923428586f10a61bc35d442e128f3954b29e08313222c811dac6fb5",
+      "lfSha256": "4fac529b785b16a394e125592492562df4c0a8f84381e7f1a905b9ba2128086a"
+    },
+    "dictionaries/vi.json": {
+      "sha256": "7b2e8e920d7c5eb05549b67c927aa59ba5f30dcfc916cccee265f8f49ba8dcd7",
+      "lfSha256": "9132942fb987ff85887c1540f11ad44c359e7a8c34c54494810b8e82f6b52e4e"
+    },
+    "drizzle/20261110154137_note_encryption/migration.sql": {
+      "sha256": "4786f8036d8cde74dac746ef8dbf3aa9aa9a4f09b2e9a713a191686aeefbf7c2",
+      "lfSha256": "64df7fc8f9cef83b95ae53cf287b21bd36f6cccdc2c44980df2399c7c93522f0"
+    },
+    "drizzle/20261110154137_note_encryption/snapshot.json": {
+      "sha256": "aa4e2dcbe590e381f917f1b0d7967d91070e07aa2de6169684e86e289717fd0d",
+      "lfSha256": "aa4e2dcbe590e381f917f1b0d7967d91070e07aa2de6169684e86e289717fd0d"
+    },
+    "drizzle/20261110154525_note_passkeys/migration.sql": {
+      "sha256": "84da5d92199b07253adc546f2740dbde5173f047ac55f0c646ae7d597594ac43",
+      "lfSha256": "84da5d92199b07253adc546f2740dbde5173f047ac55f0c646ae7d597594ac43"
+    },
+    "drizzle/20261110154525_note_passkeys/snapshot.json": {
+      "sha256": "76a872090fc6fa65582ef98f0d9ef3300a6399876be5514583a5cc2ae48273ed",
+      "lfSha256": "76a872090fc6fa65582ef98f0d9ef3300a6399876be5514583a5cc2ae48273ed"
+    },
+    "drizzle/20261110154818_note_payload_structure/migration.sql": {
+      "sha256": "b384be2d2aa808ad0c9bed4b519e1199085adead101e090a57cf985377f9d809",
+      "lfSha256": "b384be2d2aa808ad0c9bed4b519e1199085adead101e090a57cf985377f9d809"
+    },
+    "drizzle/20261110154818_note_payload_structure/snapshot.json": {
+      "sha256": "afc9e11f5e304e3ce39479714a2ae97e213d963ebf61c36a45bf9eacd0d71e9b",
+      "lfSha256": "afc9e11f5e304e3ce39479714a2ae97e213d963ebf61c36a45bf9eacd0d71e9b"
+    },
+    "drizzle/20261110154846_note_payload_envelopes/migration.sql": {
+      "sha256": "bd45c39e9b79f10c86b81b28745c4dff898309d206c9ac9792ac7395b919e804",
+      "lfSha256": "bd45c39e9b79f10c86b81b28745c4dff898309d206c9ac9792ac7395b919e804"
+    },
+    "drizzle/20261110154846_note_payload_envelopes/snapshot.json": {
+      "sha256": "426388112c972a2c528c0231f0a6a25c86a0caa307441aac8ac8cc52baa18e51",
+      "lfSha256": "a07865532a97628d3813e203edb90bb739d251ff1554d72d93750eaa09ea8ee3"
+    },
+    "lib/notes/drafts.ts": {
+      "sha256": "0692e2bc51e44500268a94ea7f7230beb2d5a944f81f0ddd9c0b01cdd9dfbca4",
+      "lfSha256": "0692e2bc51e44500268a94ea7f7230beb2d5a944f81f0ddd9c0b01cdd9dfbca4"
+    },
+    "lib/notes/encryption/candidate.ts": {
+      "sha256": "8537000617e994cc03e826070c18eb924f4ba094a9279c4113026049979a3f4c",
+      "lfSha256": "8537000617e994cc03e826070c18eb924f4ba094a9279c4113026049979a3f4c"
+    },
+    "lib/notes/encryption/crypto.ts": {
+      "sha256": "86e2e14ea2809a4ceddc62641f19b44241e3e3be4990c341bd384eb3fc771b2b",
+      "lfSha256": "86e2e14ea2809a4ceddc62641f19b44241e3e3be4990c341bd384eb3fc771b2b"
+    },
+    "lib/notes/encryption/passkey.ts": {
+      "sha256": "91aeb0284adf8a5b84e331e73a8eb25982a7ca19f3b7191671b15be305703b76",
+      "lfSha256": "91aeb0284adf8a5b84e331e73a8eb25982a7ca19f3b7191671b15be305703b76"
+    },
+    "lib/notes/encryption/protocol.ts": {
+      "sha256": "29de6660c25c6abe16f861b798a80d1df46bc7b5ecf10280332768b7d4e613fd",
+      "lfSha256": "29de6660c25c6abe16f861b798a80d1df46bc7b5ecf10280332768b7d4e613fd"
+    },
+    "lib/notes/encryption/read-body.ts": {
+      "sha256": "04cdd499dbd3e721d33b890bb8e031529a5d7f6be0a4c3943b47ab91577bd9c3",
+      "lfSha256": "2c53f128881f02c58e87a86f07646d6812cfc283c4a08740fcbedf73d4f66965"
+    },
+    "lib/notes/encryption/recovery.ts": {
+      "sha256": "2fa0f97f4e73fd43bbc5c28d17b1114e869495014d62eed6b41326978b0da2e7",
+      "lfSha256": "2fa0f97f4e73fd43bbc5c28d17b1114e869495014d62eed6b41326978b0da2e7"
+    },
+    "lib/notes/encryption/runtime.ts": {
+      "sha256": "0079607c25f096013bd632111eee078358174107fd0c401324529a319f6c754e",
+      "lfSha256": "c45f9ee5fb537770add154a5627ef3dc87b1e56b5357f752677dbd64adb3697a"
+    },
+    "lib/notes/encryption/server-http.ts": {
+      "sha256": "973b5297e51358e7bad6cbef53bd3b8aa2bc97fbc292d7a96182ef50ed5ac5b4",
+      "lfSha256": "89d404e5a93694dd375f1fca1923f388847310501fef9c68805f9dcbd943d427"
+    },
+    "lib/notes/encryption/server-passkeys.ts": {
+      "sha256": "5091eff78bdcbc9fcccabdceaceede55ab2a2e6b7efd81c7e709c50b77e634b9",
+      "lfSha256": "ccd9178e935827a4d4198e3b548b5a8c8034664c150a36de2c34af785281aa41"
+    },
+    "lib/notes/encryption/storage.ts": {
+      "sha256": "3fda58301a74669b24768b3a7eda0cc6999eb635df64c2005be8d765f22fefa9",
+      "lfSha256": "3fda58301a74669b24768b3a7eda0cc6999eb635df64c2005be8d765f22fefa9"
+    },
+    "lib/notes/encryption/sync.ts": {
+      "sha256": "8433f6154290208e27121d77736f592f02b14194f107c895eabc45d350cf257f",
+      "lfSha256": "8433f6154290208e27121d77736f592f02b14194f107c895eabc45d350cf257f"
+    },
+    "lib/notes/network-policy.ts": {
+      "sha256": "f5b29daba9f0f50ebf0807ef464aa4782dac74d58d8ad2205e78857eea13ab2b",
+      "lfSha256": "7e91cc7b01936e40da1cddc57070370c8c126401a40f906139910a1b45025f2d"
+    },
+    "lib/notes/search-client.ts": {
+      "sha256": "e9d9231ac54f61d0256ba43f930fbcb8ae42f33b1cfe0a4d8f96437901b7c39a",
+      "lfSha256": "d47500c764a61691e1808b933b006094c6828e570a898f11361d0d4609ade93b"
+    },
+    "lib/notes/search-reconciliation.ts": {
+      "sha256": "4d5aa3bc190e2aa736728af7e764f72bc58bb4c7fbb4f99c56267d813f4eb5ef",
+      "lfSha256": "99723b8a49719a1f9c49824d533fab375a40cbab6debb1688c4b333154c9fa63"
+    },
+    "lib/notes/search.ts": {
+      "sha256": "958291f86a3b2901036dfdd87ce42625ef04e80a4bc01d82887daaf2fcb3bf43",
+      "lfSha256": "b3587ea4d60740f97f8dbcde9e185c8dce91c823533240f3b4031e3f8aa5fa11"
+    },
+    "lib/notes/session-sync.ts": {
+      "sha256": "87987136355bf3bcef85cf7ca98bc69fb64cf3a75db16b17f7af59df3dc7431b",
+      "lfSha256": "87987136355bf3bcef85cf7ca98bc69fb64cf3a75db16b17f7af59df3dc7431b"
+    },
+    "lib/notes/text.ts": {
+      "sha256": "ce9a2b96b95b3ff1261713ee5f77af0384df2a79cb146268ca5660c8320864e9",
+      "lfSha256": "1a0859983adc4dd4587c8bc907aec70d7a9861d7ff88c680e541cef264482e55"
+    },
+    "package.json": {
+      "sha256": "2137e6136c0a1467ec9fa66bbaef68bd4e4f7e4bae552fdcac492bca6e593535",
+      "lfSha256": "de8029ae1a822bdf1322a09a723b17e3d9da217ea0383cbb439abef8209e344e"
+    },
+    "pnpm-lock.yaml": {
+      "sha256": "aa5b077e615a7e49e2c40e37840b0354293c25b377c35c1b0d7fbea6d51ccebf",
+      "lfSha256": "aa5b077e615a7e49e2c40e37840b0354293c25b377c35c1b0d7fbea6d51ccebf"
+    },
+    "scripts/account-deletion.test.ts": {
+      "sha256": "759f1d9b0576aef60e896825b7df6594d6586c3a4f79ef6c141615db3c1c6e0c",
+      "lfSha256": "4e2d8047ae8780d3e08f13162d5eea8a45bee5235ce0bb299fe7e305b22101cc"
+    },
+    "scripts/browser/note-encryption-release.spec.ts": {
+      "sha256": "2b2aac96b5c80c52a07f4ca262b0ff5af31d312505079e3ab6ed72b95738627a",
+      "lfSha256": "2b2aac96b5c80c52a07f4ca262b0ff5af31d312505079e3ab6ed72b95738627a"
+    },
+    "scripts/browser/note-encryption-stress.spec.ts": {
+      "sha256": "7253472ea0804d72a5c2ce7d689041f16c9ca80c16fd077eee1440cfd1c4309c",
+      "lfSha256": "7253472ea0804d72a5c2ce7d689041f16c9ca80c16fd077eee1440cfd1c4309c"
+    },
+    "scripts/browser/note-encryption.spec.ts": {
+      "sha256": "b4a1e46df0fd4fb7b772b345b121b88272fc43c9b44d5951ad3c2e06f431c14c",
+      "lfSha256": "2d49ce903ef41c4b3a6a2a189ac093e6ee3c2283aaf8fc2c32ecf7beabe1f3dd"
+    },
+    "scripts/browser/note-html-safety.spec.ts": {
+      "sha256": "f3cf4fbe6821fac9532492c9f4d0b082ae79f206af8edd6bbd06f16ca83ac9e2",
+      "lfSha256": "f3cf4fbe6821fac9532492c9f4d0b082ae79f206af8edd6bbd06f16ca83ac9e2"
+    },
+    "scripts/browser/note-passkey.spec.ts": {
+      "sha256": "09ceb831f9b4d9891c84af4d890460495bde14daabb5f5d9fd099f0d767489b2",
+      "lfSha256": "9cfb65377a906941c41a85a4d1f334042d3313819ffb1a2405226ce89afc65c3"
+    },
+    "scripts/browser/note-recovery.spec.ts": {
+      "sha256": "20e4a5223f47d3babf1f820a99e582855284e753b43c28adb5184ff3af981a68",
+      "lfSha256": "20e4a5223f47d3babf1f820a99e582855284e753b43c28adb5184ff3af981a68"
+    },
+    "scripts/browser/note-search.spec.ts": {
+      "sha256": "338be68263890b8cb4b62640e01169c6d2baf244de3609e08a070c071cc29ff0",
+      "lfSha256": "751b52824453d02f62246fa0d312847d607c82733b74fa4ca271730075c09e5d"
+    },
+    "scripts/note-encryption-backup-rehearsal.mjs": {
+      "sha256": "0753fd9fa14686f507e589f99b67fe3f1b4dfa7e913d5e4fc86aa03910cd93e9",
+      "lfSha256": "0753fd9fa14686f507e589f99b67fe3f1b4dfa7e913d5e4fc86aa03910cd93e9"
+    },
+    "scripts/note-encryption-benchmark.mjs": {
+      "sha256": "1b9a9744cf6b8f25a5a583cb318df75b63e72550ce88915283260d62be2a954a",
+      "lfSha256": "1b9a9744cf6b8f25a5a583cb318df75b63e72550ce88915283260d62be2a954a"
+    },
+    "scripts/note-encryption-body.test.ts": {
+      "sha256": "26ad0c6fb1056c053740615982da1932727aa827fec8121381cb20386798f4fa",
+      "lfSha256": "c3d591fe42e86e4e18e189812b652f2a03901dbb5a43ccf55f60cf407c49cdb0"
+    },
+    "scripts/note-encryption-crypto.test.ts": {
+      "sha256": "99d1ae2972c8041fbba284068bce15e56b7596163d6ffa73090eadd42faca51b",
+      "lfSha256": "723bad4523750814666d3e8621588f14e4cb25c3f025e7544283c1971d9531c1"
+    },
+    "scripts/note-encryption-migration-rehearsal.mjs": {
+      "sha256": "3ecd1144235e0f45cf70e520d0dff024d235eb17e41a4ae19b1dca66cf9f5cf7",
+      "lfSha256": "3ecd1144235e0f45cf70e520d0dff024d235eb17e41a4ae19b1dca66cf9f5cf7"
+    },
+    "scripts/note-encryption-runtime.test.ts": {
+      "sha256": "94c5d53fa36bce1d6627025f469e528ee9f891f2b45448dcc54f41a3bc8bee1e",
+      "lfSha256": "10e2a77583e269a16ac904dcce0f898ebf4c542a93a5a58f496a3100b3fc3334"
+    },
+    "scripts/note-encryption-server.test.ts": {
+      "sha256": "9092523b355016da30a3005f846846c0dbfc805cc05fd63b61b25ea410be10dc",
+      "lfSha256": "d16cd0b434a039b14cd88b8596bab98f88eac2f08fec65df33c0882d791d32e0"
+    },
+    "scripts/note-encryption-storage.test.ts": {
+      "sha256": "52750ac320478344b384f749a38b9035dd3882199492c3b2c6b8acda9fb3def2",
+      "lfSha256": "52750ac320478344b384f749a38b9035dd3882199492c3b2c6b8acda9fb3def2"
+    },
+    "scripts/note-encryption-upgrade.mjs": {
+      "sha256": "1c84ed71b5782cd27d2f1c1e6af3914e586260f28a99a9213e51514a78aae89d",
+      "lfSha256": "1c84ed71b5782cd27d2f1c1e6af3914e586260f28a99a9213e51514a78aae89d"
+    },
+    "scripts/note-recovery-http.test.ts": {
+      "sha256": "3d704e2a173d14d6d751f20a92f797398da8433c08b75772b18a8b7877f8671e",
+      "lfSha256": "7d4a29a3b79faaffe30add624ff5827700eda7b055da4ab3524aa5596c98528e"
+    },
+    "scripts/note-recovery.test.ts": {
+      "sha256": "4b0e6ccb785504b3f0ab4c55b01b403e9858bb6f620f5ee7d4a328ee588be13b",
+      "lfSha256": "3b6d2fa7b74f38e1a4b7030e07e8410775a9ed161a08e8a0a2daec083fe159df"
+    },
+    "scripts/note-save-queue.test.ts": {
+      "sha256": "36771b0b72b9eada9b699971bec44b952f7644eae45292cb7193ad2121960844",
+      "lfSha256": "b86283ba27aaa4667eb1dbe142022a6c7d29b85d66d35cd1c683cceadabe1857"
+    },
+    "scripts/note-search-client.test.ts": {
+      "sha256": "3a20e951d9749a7eaa02e128f097bed45a41fad698a55dfb50f5d16afe281dd6",
+      "lfSha256": "50ee52183134c3c3d39f25fcf2b49c8bb605a88b0801509a9803aa329f0c6dd7"
+    },
+    "scripts/note-search.test.ts": {
+      "sha256": "235d9a813263c3cb8ace76ee77cab559a077b94a663d1ebf28e9cbbaafa69263",
+      "lfSha256": "20cfd17a06b99945548e6a7d38126c30665b01abe9284f82345f9d730e39a074"
+    },
+    "scripts/run-note-encryption-server-tests.mjs": {
+      "sha256": "f034fde51843e054e818c5801bf816a9c6f0b6886633d9cacb509aba68019f06",
+      "lfSha256": "345f453eba330e3ff2664d4d48ec4f7b44ae2dd677de0ee904acba14c4c6fc4b"
+    }
+  }
+}

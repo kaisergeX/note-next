@@ -23,6 +23,7 @@ import {
 } from '../lib/notes/encryption/crypto'
 import {
   decodeBase64url,
+  encodeBase64url,
   encryptedNotePayloadSchema,
   noteAad,
   PASSPHRASE_PROFILE,
@@ -32,6 +33,62 @@ const ownerId = '00000000-0000-0000-0000-000000000001'
 const vaultId = '00000000-0000-0000-0000-000000000002'
 const noteId = '00000000-0000-0000-0000-000000000003'
 const contentId = '00000000-0000-0000-0000-000000000004'
+test('base64url requires canonical unused bits and preserves bytes with both codecs', (t) => {
+  function checkCodec() {
+    for (const size of [0, 1, 2, 3, 16, 31, 32, 33, 8193, 1_048_577]) {
+      const bytes = Uint8Array.from({length: size}, (_, i) => i & 255)
+      const expected = Buffer.from(bytes).toString('base64url')
+      assert.equal(encodeBase64url(bytes), expected)
+      assert.deepEqual(decodeBase64url(expected), bytes)
+    }
+    // Exercise every byte in each position of a full group, including views
+    // into a larger buffer and both unpadded tail lengths.
+    const backing = Uint8Array.from({length: 1024}, (_, i) => i & 255)
+    for (const offset of [1, 2, 3]) {
+      const view = backing.subarray(offset, 1001)
+      assert.equal(
+        encodeBase64url(view),
+        Buffer.from(view).toString('base64url'),
+      )
+    }
+    const alphabet =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+    for (const prefix of ['A', 'AA']) {
+      for (const tail of alphabet) {
+        const encoded = prefix + tail
+        const ref = Buffer.from(encoded, 'base64url')
+        if (ref.toString('base64url') === encoded)
+          assert.deepEqual(decodeBase64url(encoded), new Uint8Array(ref))
+        else assert.throws(() => decodeBase64url(encoded))
+      }
+    }
+    for (const invalid of [
+      'A',
+      'AA=',
+      'AA==',
+      'AA\n',
+      ' AA',
+      'AA+',
+      'AA/',
+      '👾',
+    ])
+      assert.throws(() => decodeBase64url(invalid))
+  }
+  checkCodec()
+  const encoder = Object.getOwnPropertyDescriptor(
+    Uint8Array.prototype,
+    'toBase64',
+  )
+  const decoder = Object.getOwnPropertyDescriptor(Uint8Array, 'fromBase64')
+  t.after(() => {
+    if (encoder)
+      Object.defineProperty(Uint8Array.prototype, 'toBase64', encoder)
+    if (decoder) Object.defineProperty(Uint8Array, 'fromBase64', decoder)
+  })
+  if (encoder) Reflect.deleteProperty(Uint8Array.prototype, 'toBase64')
+  if (decoder) Reflect.deleteProperty(Uint8Array, 'fromBase64')
+  checkCodec()
+})
 test('frozen v1 OpenSSL title fixture and generated phrase entropy shape', async () => {
   const root = await importRoot(new Uint8Array(32).fill(1))
   const title = {

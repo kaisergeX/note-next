@@ -192,7 +192,12 @@ export const sealRecovery = (
   root: CryptoKey,
   context: RecoveryIdentity,
   payload: unknown,
-) => seal(root, recoveryAad(context), utf8(payload), MAX_RECOVERY_BYTES)
+) => sealRecoveryBytes(root, context, utf8(payload))
+export const sealRecoveryBytes = (
+  root: CryptoKey,
+  context: RecoveryIdentity,
+  serialized: Uint8Array,
+) => seal(root, recoveryAad(context), serialized, MAX_RECOVERY_BYTES)
 export async function openRecovery(
   root: CryptoKey,
   context: RecoveryIdentity,

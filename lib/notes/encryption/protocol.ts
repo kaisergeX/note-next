@@ -7,33 +7,60 @@ export const MAX_RECOVERY_BYTES = 8388608
 export const canonicalIdSchema = z
   .string()
   .regex(/^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/)
+const base64urlAlphabet =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
+const base64urlCodes = new TextEncoder().encode(base64urlAlphabet)
 export function encodeBase64url(bytes: Uint8Array): string {
-  let binary = ''
-  for (const byte of bytes) binary += String.fromCharCode(byte)
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  if (typeof bytes.toBase64 === 'function')
+    return bytes.toBase64({alphabet: 'base64url', omitPadding: true})
+  // Encode directly to ASCII. Building a binary string byte by byte stalls
+  // the editor for hundreds of milliseconds on large recovery checkpoints.
+  const encoded = new Uint8Array(Math.ceil((bytes.length * 4) / 3))
+  let input = 0
+  let output = 0
+  for (; input + 2 < bytes.length; input += 3) {
+    const group =
+      (bytes[input] << 16) | (bytes[input + 1] << 8) | bytes[input + 2]
+    encoded[output++] = base64urlCodes[group >>> 18]
+    encoded[output++] = base64urlCodes[(group >>> 12) & 63]
+    encoded[output++] = base64urlCodes[(group >>> 6) & 63]
+    encoded[output++] = base64urlCodes[group & 63]
+  }
+  if (input < bytes.length) {
+    const first = bytes[input]
+    const second = bytes[input + 1] ?? 0
+    encoded[output++] = base64urlCodes[first >>> 2]
+    encoded[output++] = base64urlCodes[((first & 3) << 4) | (second >>> 4)]
+    if (input + 1 < bytes.length)
+      encoded[output] = base64urlCodes[(second & 15) << 2]
+  }
+  return new TextDecoder().decode(encoded)
 }
+function isCanonicalBase64url(value: string) {
+  const remainder = value.length % 4
+  if (remainder === 1 || /[^A-Za-z0-9_-]/.test(value)) return false
+  if (remainder === 0) return true
+  // A final sextet for one or two trailing bytes has four or two unused
+  // low bits respectively. A canonical unpadded encoding sets these to zero.
+  const lastSextet = base64urlAlphabet.indexOf(value[value.length - 1])
+  return (lastSextet & (remainder === 2 ? 15 : 3)) === 0
+}
+const decodedLength = (value: string) => Math.floor((value.length * 3) / 4)
 export function decodeBase64url(value: string): Uint8Array<ArrayBuffer> {
-  if (!/^[A-Za-z0-9_-]*$/.test(value) || value.length % 4 === 1)
-    throw new Error('Invalid encoding')
-  const bytes = Uint8Array.from(
-    atob(value.replace(/-/g, '+').replace(/_/g, '/')),
-    (c) => c.charCodeAt(0),
-  )
-  if (encodeBase64url(bytes) !== value) throw new Error('Noncanonical encoding')
+  if (!isCanonicalBase64url(value)) throw new Error('Invalid encoding')
+  if (typeof Uint8Array.fromBase64 === 'function')
+    return Uint8Array.fromBase64(value, {alphabet: 'base64url'})
+  const binary = atob(value.replace(/-/g, '+').replace(/_/g, '/'))
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
   return bytes
 }
 const bytes = (min: number, max = min) =>
   z
     .string()
+    .min(Math.ceil((min * 4) / 3))
     .max(Math.ceil((max * 4) / 3))
-    .refine((value) => {
-      try {
-        const length = decodeBase64url(value).length
-        return length >= min && length <= max
-      } catch {
-        return false
-      }
-    })
+    .refine(isCanonicalBase64url)
 export const sealedEnvelopeSchema = z.strictObject({
   salt: bytes(32),
   iv: bytes(12),
@@ -52,8 +79,8 @@ export const encryptedNotePayloadSchema = z
   })
   .refine(
     (value) =>
-      decodeBase64url(value.title.ciphertext).length +
-        decodeBase64url(value.body.ciphertext).length <=
+      decodedLength(value.title.ciphertext) +
+        decodedLength(value.body.ciphertext) <=
       MAX_NOTE_BYTES + 32,
   )
 export type EncryptedNotePayload = z.infer<typeof encryptedNotePayloadSchema>

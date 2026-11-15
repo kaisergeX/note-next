@@ -45,9 +45,12 @@ export function activateVault(
     document.hidden ||
     pending ||
     state === 'blocked' ||
-    (session && session.ownerId !== ownerId)
+    (session && (session.ownerId !== ownerId || session.vaultId !== vaultId))
   )
     throw new Error('Unlock expired')
+  // Re-verifying credentials for this already active vault must not invalidate
+  // the editor's captured epoch or replace its non-extractable root reference.
+  if (state === 'unlocked' && session) return
   epoch++
   session = {ownerId, vaultId, root}
   publish('unlocked')

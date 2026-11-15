@@ -26,6 +26,109 @@ import messages from '../../dictionaries/en.json' with {type: 'json'}
 
 const v = messages.note.vault,
   e = messages.note.encryptedEditor
+
+test('repeated unlock cannot invalidate an active editor or lose subsequent work', async ({
+  page,
+  context,
+  noteApp,
+}) => {
+  const {phrase} = await enroll(page, noteApp.ownerId)
+  const body = page.getByRole('textbox', {name: e.body, exact: true})
+  await context.setOffline(true)
+  try {
+    await body.fill('Before repeated unlock')
+    await expect(
+      page.getByRole('status').filter({hasText: e.local}),
+    ).toBeVisible()
+    await page.getByLabel(v.passphrase, {exact: true}).fill(phrase)
+    const button = page.getByRole('button', {name: v.unlock, exact: true})
+    if (await button.isEnabled()) {
+      await button.click()
+      await expect(page.getByLabel(v.passphrase, {exact: true})).toHaveValue('')
+    }
+    await body.fill('After repeated unlock must remain durable')
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    await unlock(page, phrase)
+    await expect(body).toContainText(
+      'After repeated unlock must remain durable',
+    )
+  } finally {
+    await context.setOffline(false)
+  }
+})
+
+test('expired authentication pauses the exact sealed flight until the same owner explicitly resumes', async ({
+  page,
+  context,
+  noteApp,
+}) => {
+  test.setTimeout(90_000)
+  const {phrase, root} = await enroll(page, noteApp.ownerId)
+  const body = page.getByRole('textbox', {name: e.body, exact: true})
+  await body.fill('Work sealed before expired-session upload')
+  await noteApp.signIn('primary', -60)
+  const requests: string[] = []
+  context.on('request', (request) => {
+    if (
+      request.method() === 'PUT' &&
+      request.url().includes('/api/note-encryption/')
+    )
+      requests.push(request.postData()!)
+  })
+  await page.clock.install()
+  const expired = page.waitForResponse(
+    (response) =>
+      response.request().method() === 'PUT' &&
+      response.url().includes('/api/note-encryption/'),
+  )
+  await page.getByRole('button', {name: e.save, exact: true}).click()
+  expect((await expired).status()).toBe(401)
+  await page.waitForTimeout(100)
+  for (let attempt = 0; attempt < 6; attempt++) {
+    await page.clock.runFor(11_000)
+    await page.waitForTimeout(100)
+  }
+  expect(requests).toHaveLength(1)
+  await expect(
+    page.getByRole('status').filter({hasText: e.unauthenticated}),
+  ).toBeVisible()
+  const pair = await checkpointPair(page)
+  const record = validateRecoveryPayload(
+    await openRecovery(
+      root,
+      recoveryRouteFromHeader(pair.header),
+      pair.envelope,
+    ),
+    recoveryRouteFromHeader(pair.header),
+  )
+  expect(record.authenticationRequired).toBe(true)
+  expect(record.flight?.request).toBe(requests[0])
+  await body.fill('Later edit while sign-in is required')
+  await page.clock.runFor(3000)
+  await page.getByRole('button', {name: v.lock, exact: true}).click()
+  await unlock(page, phrase)
+  await expect(body).toContainText('Later edit while sign-in is required')
+  await expect(
+    page.getByRole('status').filter({hasText: e.unauthenticated}),
+  ).toBeVisible()
+  await noteApp.signIn('secondary')
+  await page
+    .getByRole('button', {name: e.resumeAfterSignIn, exact: true})
+    .click()
+  await page.clock.runFor(65_000)
+  expect(requests).toHaveLength(1)
+  await noteApp.signIn('primary')
+  await page
+    .getByRole('button', {name: e.resumeAfterSignIn, exact: true})
+    .click()
+  await expect.poll(() => requests.length).toBeGreaterThanOrEqual(2)
+  expect(requests[1]).toBe(requests[0])
+  await page.clock.runFor(11_000)
+  await expect(
+    page.getByRole('status').filter({hasText: e.synced}),
+  ).toBeVisible()
+  await expect(body).toContainText('Later edit while sign-in is required')
+})
 async function enroll(page: Page, ownerId: string) {
   const raw = generateRoot(),
     vaultId = randomUUID(),

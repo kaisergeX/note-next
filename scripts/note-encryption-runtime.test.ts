@@ -24,6 +24,20 @@ test('lock releases successful and explicitly discarded checkpoint callbacks', a
   const root = await importRoot(generateRoot())
   try {
     activateVault(ownerId, vaultId, root, currentVaultEpoch())
+    const activeEpoch = currentVaultEpoch()
+    const duplicateRoot = await importRoot(generateRoot())
+    activateVault(ownerId, vaultId, duplicateRoot, activeEpoch)
+    assert.equal(currentVaultEpoch(), activeEpoch)
+    assert.equal(getVaultRoot(ownerId, vaultId), root)
+    assert.throws(() =>
+      activateVault(ownerId, vaultId, duplicateRoot, activeEpoch - 1),
+    )
+    assert.throws(() =>
+      activateVault(crypto.randomUUID(), vaultId, duplicateRoot, activeEpoch),
+    )
+    assert.throws(() =>
+      activateVault(ownerId, crypto.randomUUID(), duplicateRoot, activeEpoch),
+    )
     let successful = 0
     registerVaultCheckpoint(ownerId, async () => {
       successful++
