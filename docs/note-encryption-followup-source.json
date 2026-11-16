@@ -1,0 +1,100 @@
+{
+  "recordedAt": "2026-11-16T17:50:31.483Z",
+  "baseCommit": "209ae968c720f63bcc5075ee43782bcb6ff0557a",
+  "productionBuildId": "TW1Axqn5MoWv9bjgLTFW7",
+  "verdict": "NO-GO",
+  "applicationSourceChanged": false,
+  "referenceManifest": {
+    "path": "docs/note-encryption-release-source.json",
+    "sha256": "1d991f9c8b844f92d517700da22a5707637b17cc0f115d8aa0274b99fca9e476",
+    "sourceDigest": "13f804b6564b9b2029c5c4d081ce546a1c290f69d165beeb735c81b0165c4269",
+    "entries": 89,
+    "overriddenTestEntries": [
+      "scripts/browser/note-encryption-release.spec.ts",
+      "scripts/note-encryption-server.test.ts"
+    ]
+  },
+  "hashMeaning": "Supplemental exact working-file bytes and LF-normalized hashes. The original manifest remains the historical application/test snapshot. This record excludes its own bytes.",
+  "sourceDigest": "fb5c0d89847f59e2b48fe104194c83be3f69a476853e3949564bbe2bcbe897f5",
+  "files": {
+    "docs/note-encryption-operator-handoff.md": {
+      "sha256": "dfb6832bb11d14dd7dd08a0b6f13fc8e1cb8f4a1ac567c99e3a389957241cd43",
+      "lfSha256": "dfb6832bb11d14dd7dd08a0b6f13fc8e1cb8f4a1ac567c99e3a389957241cd43"
+    },
+    "docs/note-encryption-performance-followup.md": {
+      "sha256": "31f46865dba090b8bf4f4898813d61bed490f32cce528bd310674d6b4736398b",
+      "lfSha256": "31f46865dba090b8bf4f4898813d61bed490f32cce528bd310674d6b4736398b"
+    },
+    "docs/note-encryption-release-readiness.md": {
+      "sha256": "182df02d4ae3f303e24cad72d358e027b4890cbd38571d48121a2f74fee62a76",
+      "lfSha256": "182df02d4ae3f303e24cad72d358e027b4890cbd38571d48121a2f74fee62a76"
+    },
+    "docs/note-encryption-wrapper-assessment.md": {
+      "sha256": "1716d664a3563c1f433ca34ca603d646889bf15b0c41bab805da109f4578aba6",
+      "lfSha256": "1716d664a3563c1f433ca34ca603d646889bf15b0c41bab805da109f4578aba6"
+    },
+    "scripts/browser/note-encryption-keyboard.spec.ts": {
+      "sha256": "2700d86f34d10986ec85f55ec19eab0f0cef52bdfb6938a8fa74a6246beb3784",
+      "lfSha256": "2700d86f34d10986ec85f55ec19eab0f0cef52bdfb6938a8fa74a6246beb3784"
+    },
+    "scripts/browser/note-encryption-release.spec.ts": {
+      "sha256": "46f07f43e3094655c6bcff867b0af36947b8327b4a0cb990638a20c6a77f0fcd",
+      "lfSha256": "46f07f43e3094655c6bcff867b0af36947b8327b4a0cb990638a20c6a77f0fcd"
+    },
+    "scripts/note-encryption-profile-report.mjs": {
+      "sha256": "57a0398cb495d4c47f4a041a630ba3362254d806467cd3e93cd2d96f3c9c82dc",
+      "lfSha256": "57a0398cb495d4c47f4a041a630ba3362254d806467cd3e93cd2d96f3c9c82dc"
+    },
+    "scripts/note-encryption-server.test.ts": {
+      "sha256": "33058e6130f69165792011b28ec5401a9f9274559a21ec3cfad8a6c7b5cffa78",
+      "lfSha256": "46380292ccb5a6c31463a248ef5c3a8e5e9200f37a058598487a9334b1a883a2"
+    }
+  },
+  "verification": {
+    "server": {
+      "passed": 5,
+      "scope": "Disposable database; includes new real-crypto authorization/recovery characterization"
+    },
+    "crypto": {
+      "passed": 6,
+      "scope": "Existing crypto suite, as reported by authorization agent"
+    },
+    "keyboard": {
+      "passed": 2,
+      "scope": "EN/VI production browser tests with synthetic login and context-local PUT-401 mock"
+    },
+    "profiling": {
+      "completedPairs": 2,
+      "replacements": 120,
+      "traceLoss": false,
+      "artifactHashes": {
+        "path": ".playwright-mcp/performance-followup/artifact-hashes.json",
+        "sha256": "88581134cc05f2eb98e9475e2e7dc7e51a45e36292d47264f4cb49f598775b57"
+      },
+      "measuredRunnerSnapshot": ".playwright-mcp/performance-followup/run-5-ordinary-first/measured-runner.spec.ts",
+      "caveat": "Final runner has a post-measurement optional-stream type/guard and Prettier wraps; exact measured source/hash retained. Original 66ms event remains unattributed."
+    },
+    "typescript": "passed using compiler targeted by installed tsc shim",
+    "eslint": "passed repository-wide",
+    "prettier": "passed four changed scripts",
+    "diffCheck": "passed",
+    "fullMatrixBuildAndRestore": "Not rerun; original 117-case, build and three restore checks remain historical for unchanged application source"
+  },
+  "cleanup": {
+    "previewStopped": true,
+    "disposableDatabaseAbsenceVerified": true,
+    "temporaryEnvironmentRemoved": true,
+    "sharedDevelopmentDatabasePreserved": true
+  },
+  "remainingGates": [
+    "Independent security/protocol review and legacy authorization bootstrap",
+    "Physical devices/providers and mobile performance",
+    "Real assistive technology and EN/VI participant study",
+    "Deployment/operator-specific checks",
+    "Release-owner acceptance"
+  ],
+  "operatorHandoffReview": {
+    "date": "2026-11-17",
+    "scope": "Added schema-checked V1 vault inventory and rollout conditions. Only documentation hashes changed. No production inventory performed."
+  }
+}

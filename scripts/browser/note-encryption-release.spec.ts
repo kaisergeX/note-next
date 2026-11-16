@@ -1,5 +1,8 @@
-import {randomUUID} from 'node:crypto'
-import {writeFile} from 'node:fs/promises'
+import {createHash, randomUUID} from 'node:crypto'
+import {cpus, totalmem} from 'node:os'
+import {mkdir, readFile, writeFile} from 'node:fs/promises'
+import {execFileSync} from 'node:child_process'
+import {join} from 'node:path'
 import postgres from 'postgres'
 import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures'
@@ -63,22 +66,41 @@ test('loaded editor replacements measure input and checkpoint commits after fixt
       return result
     }
   })
+  // Opt-in renderer profiling retains the actual measured trace, rather than
+  // assigning a later reproduction's cause to an earlier untraced long task.
+  const profileDir = process.env.NOTE_ENCRYPTION_PROFILE_DIR
+  const cdp = profileDir ? await context.newCDPSession(page) : null
+  if (cdp)
+    await cdp.send('Tracing.start', {
+      categories:
+        '-*,toplevel,blink.user_timing,devtools.timeline,disabled-by-default-devtools.timeline,disabled-by-default-devtools.timeline.stack,v8.execute,disabled-by-default-v8.cpu_profiler',
+      transferMode: 'ReturnAsStream',
+    })
   const report: Record<string, unknown> = {}
   const measure = async (name: string, label: string, database: string) => {
-    const start = await page.evaluate(() => performance.now())
+    const start = await page.evaluate(
+      ({name, profile}) =>
+        profile
+          ? performance.mark(`profile-start-${name}`).startTime
+          : performance.now(),
+      {name, profile: Boolean(profileDir)},
+    )
     const samples: number[] = []
+    const replacements: Record<string, unknown>[] = []
     await context.setOffline(true)
     try {
       for (let i = 0; i < 30; i++) {
         const before = await page.evaluate(
-          (database) => ({
-            time: performance.now(),
+          ({database, profile}) => ({
+            time: profile
+              ? performance.mark(`profile-edit-${database}`).startTime
+              : performance.now(),
             generation:
               (window as unknown as TimingWindow).releaseTiming.commits[
                 database
               ]?.generation ?? -1,
           }),
-          database,
+          {database, profile: Boolean(profileDir)},
         )
         await page
           .getByRole('textbox', {name: label, exact: true})
@@ -103,6 +125,7 @@ test('loaded editor replacements measure input and checkpoint commits after fixt
           database,
         )
         samples.push(commit.time - before.time)
+        replacements.push({index: i, start: before.time, commit: commit.time})
       }
     } finally {
       await context.setOffline(false)
@@ -119,6 +142,7 @@ test('loaded editor replacements measure input and checkpoint commits after fixt
     samples.sort((a, b) => a - b)
     report[name] = {
       inputKind: 'whole-body replacement using fill, not incremental key input',
+      ...(profileDir ? {start, end, tasks, replacements} : {}),
       runs: samples.length,
       p50CommitMs: samples[14],
       p95CommitMs: samples[28],
@@ -129,21 +153,94 @@ test('loaded editor replacements measure input and checkpoint commits after fixt
     }
     expect(samples[28]).toBeLessThanOrEqual(2500)
   }
+  const ordinaryFirst =
+    profileDir && process.env.NOTE_ENCRYPTION_PROFILE_ORDER === 'ordinary-first'
+  const measureOrdinary = async () => {
+    // Client-side navigation retains the observer and instrumentation.
+    await page.getByRole('link', {name: 'Notes', exact: true}).click()
+    await page
+      .getByRole('link')
+      .filter({hasText: 'Browser regression note'})
+      .click()
+    await expect(
+      page.getByRole('textbox', {name: 'Note content', exact: true}),
+    ).toBeVisible()
+    expect(page.url()).toContain(ordinary.id)
+    await measure('ordinary32KiB', 'Note content', 'etoN-note-recovery')
+  }
+  if (ordinaryFirst) {
+    await measureOrdinary()
+    await page
+      .getByRole('button', {name: 'Save and go back', exact: true})
+      .click()
+    await expect(page).toHaveURL(/\/en\/eton$/)
+    await expect(page.getByRole('dialog')).not.toBeVisible()
+    await page.getByRole('link', {name: 'Encrypted notes', exact: true}).click()
+    await page.getByRole('button', {name: n.create, exact: true}).click()
+    await expect(
+      page.getByRole('textbox', {name: e.body, exact: true}),
+    ).toBeVisible()
+  }
   await measure('encrypted32KiB', e.body, 'etoN-encrypted-note-recovery')
   await page.getByRole('button', {name: v.lock, exact: true}).click()
-  // Client-side navigation retains the observer and instrumentation.
-  await page.getByRole('link', {name: 'Notes', exact: true}).click()
-  await page
-    .getByRole('link')
-    .filter({hasText: 'Browser regression note'})
-    .click()
-  await expect(
-    page.getByRole('textbox', {name: 'Note content', exact: true}),
-  ).toBeVisible()
-  expect(page.url()).toContain(ordinary.id)
-  await measure('ordinary32KiB', 'Note content', 'etoN-note-recovery')
+  if (!ordinaryFirst) await measureOrdinary()
+  if (cdp && profileDir) {
+    await mkdir(profileDir, {recursive: true})
+    const completion = new Promise<{
+      stream?: string
+      dataLossOccurred?: boolean
+    }>((resolve) => cdp.once('Tracing.tracingComplete', resolve))
+    await cdp.send('Tracing.end')
+    const {stream, dataLossOccurred} = await completion
+    if (!stream) throw new Error('Renderer trace did not return a stream')
+    const chunks: Buffer[] = []
+    try {
+      while (true) {
+        const part = await cdp.send('IO.read', {handle: stream})
+        chunks.push(
+          Buffer.from(part.data, part.base64Encoded ? 'base64' : 'utf8'),
+        )
+        if (part.eof) break
+      }
+    } finally {
+      await cdp.send('IO.close', {handle: stream})
+      await cdp.detach()
+    }
+    await writeFile(
+      join(profileDir, 'renderer-trace.json'),
+      Buffer.concat(chunks),
+    )
+    report.provenance = {
+      measuredAt: new Date().toISOString(),
+      revision: execFileSync('git', ['rev-parse', 'HEAD'], {
+        encoding: 'utf8',
+      }).trim(),
+      buildId: (await readFile('.next/BUILD_ID', 'utf8')).trim(),
+      browser: context.browser()?.version(),
+      node: process.version,
+      platform: process.platform,
+      cpu: cpus()[0]?.model,
+      logicalCpus: cpus().length,
+      memoryGiB: totalmem() / 1024 ** 3,
+      releaseSourceManifestSha256: createHash('sha256')
+        .update(await readFile('docs/note-encryption-release-source.json'))
+        .digest('hex'),
+      runnerSha256: createHash('sha256')
+        .update(
+          await readFile('scripts/browser/note-encryption-release.spec.ts'),
+        )
+        .digest('hex'),
+      dataLossOccurred: dataLossOccurred ?? false,
+      traceCategoriesIncludeCpuSampling: true,
+      order: ordinaryFirst ? 'ordinary-first' : 'encrypted-first',
+      instrumentationOverhead:
+        'CDP trace and CPU sampling enabled for both editors',
+    }
+  }
   await writeFile(
-    '.playwright-mcp/release-typing.json',
+    profileDir
+      ? join(profileDir, 'result.json')
+      : '.playwright-mcp/release-typing.json',
     JSON.stringify(report, null, 2) + '\n',
   )
 })
