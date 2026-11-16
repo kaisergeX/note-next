@@ -24,6 +24,7 @@ export const encryptedRemoteSchema = z.object({
   encryptedPayload: encryptedNotePayloadSchema,
   theme: trashDraftSchema.shape.theme,
   deletedAt: z.string().nullable().optional(),
+  pendingDeleteAt: z.string().nullable().optional(),
 })
 export type EncryptedRemote = z.infer<typeof encryptedRemoteSchema>
 export type EncryptedSyncResult =

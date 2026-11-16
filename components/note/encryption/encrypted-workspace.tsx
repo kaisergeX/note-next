@@ -362,6 +362,8 @@ export default function EncryptedWorkspace({
                   ownerId={ownerId}
                   vaultId={vault.id}
                   {...selected}
+                  creationEnabled={creationEnabled}
+                  onRecover={select}
                   onClose={close}
                 />
               ) : (

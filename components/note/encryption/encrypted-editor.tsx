@@ -8,6 +8,9 @@ import Button, {buttonClass} from '~/components/ui/button'
 import {Link} from '~/i18n/navigation'
 import {sanitizeNoteHtml} from '~/lib/notes/html'
 import {openNote, sealNote} from '~/lib/notes/encryption/crypto'
+import RefusedRecovery from './refused-recovery'
+import {stageEncryptedRecovery} from '~/lib/notes/encryption/stage-recovery'
+import type {EncryptedRemote} from '~/lib/notes/encryption/sync'
 import {
   currentVaultEpoch,
   getVaultRoot,
@@ -54,6 +57,7 @@ type Actions = {
   save: () => Promise<void>
   resume: () => Promise<void>
   resolve: (mine: boolean) => Promise<void>
+  recover: (target: EncryptedRemote | null) => Promise<void>
 }
 
 export default function EncryptedEditor({
@@ -64,6 +68,8 @@ export default function EncryptedEditor({
   readOnly = false,
   recordId,
   onClose,
+  creationEnabled = false,
+  onRecover,
 }: {
   ownerId: string
   vaultId: string
@@ -72,6 +78,12 @@ export default function EncryptedEditor({
   readOnly?: boolean
   recordId?: string
   onClose?: () => void
+  creationEnabled?: boolean
+  onRecover?: (value: {
+    noteId: string
+    recordId: string
+    creating: boolean
+  }) => void
 }) {
   const t = useTranslations('note.encryptedEditor')
   const [content, setContent] = useState({
@@ -82,6 +94,8 @@ export default function EncryptedEditor({
   const [ready, setReady] = useState(false)
   const [attempt, setAttempt] = useState(0)
   const [status, setStatus] = useState<PersistenceStatus>('loading')
+  const [refused, setRefused] = useState(false)
+  const [recoveryPending, setRecoveryPending] = useState(false)
   const [conflict, setConflict] = useState<{
     title: string | null
     content: string | null
@@ -96,7 +110,7 @@ export default function EncryptedEditor({
     ariaLabel: t('title'),
     editorVersion: version,
     pending: !ready,
-    readOnly: readOnly || Boolean(conflict),
+    readOnly: readOnly || Boolean(conflict) || recoveryPending,
   })
   const body = useNoteEditor({
     initialValue: content.content,
@@ -106,7 +120,7 @@ export default function EncryptedEditor({
     ariaLabel: t('body'),
     editorVersion: version,
     pending: !ready,
-    readOnly: readOnly || Boolean(conflict),
+    readOnly: readOnly || Boolean(conflict) || recoveryPending,
   })
 
   useEffect(() => {
@@ -115,6 +129,7 @@ export default function EncryptedEditor({
     const epoch = currentVaultEpoch()
     let mounted = true,
       saving = false,
+      recovering = false,
       durable = -1,
       preserved = -1,
       lastAttempt = 0
@@ -131,7 +146,10 @@ export default function EncryptedEditor({
       currentVaultEpoch() === epoch &&
       getVaultRoot(ownerId, vaultId) === root
     const report = (next: PersistenceStatus) => {
-      if (valid()) setStatus(next)
+      if (valid()) {
+        setStatus(next)
+        setRefused(Boolean(record?.refusal))
+      }
     }
     const localStatus = (): PersistenceStatus =>
       record?.refusal ??
@@ -339,6 +357,37 @@ export default function EncryptedEditor({
     actions.current = {
       flush,
       save,
+      async recover(target) {
+        if (
+          !record?.refusal ||
+          !valid() ||
+          saving ||
+          recovering ||
+          readOnly ||
+          !onRecover ||
+          (!target && !creationEnabled)
+        )
+          throw new Error('Recovery unavailable')
+        recovering = true
+        setRecoveryPending(true)
+        try {
+          await flush()
+          if (!valid()) throw new Error('Vault locked')
+          const source = structuredClone(record)
+          const selected = await stageEncryptedRecovery(
+            root,
+            source,
+            target,
+            valid,
+          )
+          // Preserve any input already queued before the editor became read-only.
+          await flush()
+          if (valid()) onRecover(selected)
+        } finally {
+          recovering = false
+          if (valid()) setRecoveryPending(false)
+        }
+      },
       async resume() {
         if (!record?.authenticationRequired || !valid() || saving) return
         try {
@@ -592,7 +641,17 @@ export default function EncryptedEditor({
       clearTimeout(saveMaximum)
       window.removeEventListener('online', online)
     }
-  }, [ownerId, vaultId, noteId, creating, readOnly, recordId, attempt])
+  }, [
+    ownerId,
+    vaultId,
+    noteId,
+    creating,
+    readOnly,
+    recordId,
+    attempt,
+    creationEnabled,
+    onRecover,
+  ])
 
   return (
     <section className="text-ink mx-auto flex w-full max-w-3xl flex-col gap-5 p-5">
@@ -606,6 +665,7 @@ export default function EncryptedEditor({
               variant="secondary"
               disabled={
                 !ready ||
+                refused ||
                 Boolean(conflict) ||
                 [
                   'unavailable',
@@ -642,6 +702,7 @@ export default function EncryptedEditor({
           {onClose && (
             <Button
               variant="ghost"
+              disabled={recoveryPending}
               onClick={() => {
                 void actions.current
                   ?.flush()
@@ -655,6 +716,17 @@ export default function EncryptedEditor({
         </div>
       </div>
       <p className="text-ink-muted text-xs">{t('disclosure')}</p>
+      {ready && refused && !readOnly && onRecover && (
+        <RefusedRecovery
+          ownerId={ownerId}
+          vaultId={vaultId}
+          creationEnabled={creationEnabled}
+          recover={async (target) => {
+            if (!actions.current) throw new Error('Recovery unavailable')
+            await actions.current.recover(target)
+          }}
+        />
+      )}
       {ready && (
         <>
           <NoteEditor
@@ -673,7 +745,7 @@ export default function EncryptedEditor({
         <div className="border-control-border rounded-lg border p-4">
           <h2 className="mb-3 font-semibold">{t('review')}</h2>
           <div
-            className="prose prose-appearance mb-4 max-w-none"
+            className="prose prose-appearance mb-4 max-w-none wrap-anywhere"
             dangerouslySetInnerHTML={{
               __html: sanitizeNoteHtml(
                 (conflict.title ?? '') + (conflict.content ?? ''),

@@ -113,6 +113,10 @@ export async function putEncryptedRecovery(
   metadata: Pick<RecoveryHeader, 'updatedAt' | 'status' | 'versionId'>,
   expectedFlight = payload.route.mutationId,
   expectedGeneration?: number,
+  destinationGuard?: {
+    sourceRecordId: string
+    versions: {id: string; generation: number}[]
+  },
 ) {
   const {record: checked, serialized} = prepareRecoveryPayload(
     payload,
@@ -144,6 +148,25 @@ export async function putEncryptedRecovery(
           (!source || source.epoch !== header.sourceEpoch))
       )
         return false
+      if (destinationGuard) {
+        const expected = new Map(
+          destinationGuard.versions.map((row) => [row.id, row.generation]),
+        )
+        let changed = false
+        await db.headers
+          .where('[ownerId+stableNoteId]')
+          .equals([header.ownerId, header.stableNoteId])
+          .each((row) => {
+            if (
+              row.status === 'retained' ||
+              row.id === destinationGuard.sourceRecordId
+            )
+              return
+            if (expected.get(row.id) !== row.generation) changed = true
+            expected.delete(row.id)
+          })
+        if (changed || expected.size) return false
+      }
       if (
         !canCommitCheckpoint(
           await db.headers.get(header.id),

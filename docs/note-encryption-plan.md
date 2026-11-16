@@ -87,6 +87,8 @@ When replacing the primary method with a passphrase, freshly unwrap with the cur
 
 ## 6. Conversion and local recovery state machine
 
+A permanently refused encrypted save keeps its exact request and latest draft sealed in this browser. After unlocking, the owner can review an existing encrypted note in the same vault and stage a comparison. Recheck the destination revision before staging, preserve pending local work, and wait for an explicit choice before sending a fresh save. When encrypted creation is enabled the owner may also create a separate encrypted note. With creation closed and no eligible destination, explain that the only copy of the refused draft remains in this browser.
+
 Remote transition and local IndexedDB cannot be one transaction. Treat conversion as a recoverable journal, not a boolean toggle.
 
 1. Online only: unlock, fetch current mode/revision, block new edits for this note, and settle outstanding flights. If acknowledgement is uncertain or a conflict exists, resolve first. If the note changes remotely, abort and retry against the latest state.

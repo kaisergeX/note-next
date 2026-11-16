@@ -1,10 +1,11 @@
 {
-  "recordedAt": "2026-11-15T09:34:36.911Z",
+  "recordedAt": "2026-11-16T12:21:15.856Z",
   "comparisonBaseline": "609afe5a9c24af2d0850e0b35c7c9a0e05fc5c1e",
   "localRemediationCommit": "66bdd86969dc8040adc0bc108a130012dd778cdf",
-  "productionBuildId": "CF33JZKWO4ocg_hSxnWXw",
-  "productionBuildArtifactTime": "2026-11-15T09:34:15.370Z",
-  "sourceDigest": "db652e2f6eaf5bec8b73b17c63f1d9d9c7f502109a8ad87d449c024cb2c1b7ca",
+  "recoveryFollowupBaseCommit": "2ddcb53c5fe34f6a4b2040f4444b32d55522bc18",
+  "productionBuildId": "TW1Axqn5MoWv9bjgLTFW7",
+  "productionBuildArtifactTime": "2026-11-16T12:19:35.996Z",
+  "sourceDigest": "13f804b6564b9b2029c5c4d081ce546a1c290f69d165beeb735c81b0165c4269",
   "hashMeaning": "sha256 is the exact tested working-file bytes; lfSha256 normalizes CRLF for checkout comparison. Unchanged source is anchored by comparisonBaseline.",
   "flags": {
     "repositoryDefaults": {
@@ -14,6 +15,10 @@
     "syntheticBrowserPreview": {
       "enrollment": true,
       "creation": true
+    },
+    "refusedCreationPreview": {
+      "enrollment": true,
+      "creation": false
     },
     "upgradeAndRestoredPreviews": {
       "enrollment": false,
@@ -102,12 +107,16 @@
       "lfSha256": "d42d798df7622da65fc92342ebf07d94116eb4eba8c1c471ea7d912e03abb486"
     },
     "components/note/encryption/encrypted-editor.tsx": {
-      "sha256": "73b3a0669d1bfdf019ec5e9cb8ae8b9796cf8d81447005dfe46538ad4d15414d",
-      "lfSha256": "73b3a0669d1bfdf019ec5e9cb8ae8b9796cf8d81447005dfe46538ad4d15414d"
+      "sha256": "162bc1fba8a9f83289ad324c370bd2070942f2873217749feda91d98c99876d7",
+      "lfSha256": "162bc1fba8a9f83289ad324c370bd2070942f2873217749feda91d98c99876d7"
     },
     "components/note/encryption/encrypted-workspace.tsx": {
-      "sha256": "cd091dcf54a71d7d6cefd7c2a5263ac22ea32a51a5d13f87510c2b0530e5bb4e",
-      "lfSha256": "05ffe2e75c998bf2851b84a1ef6a8d565d12ad92bb86f0acf9193e1eeaa32847"
+      "sha256": "86c369a10b0cdafbebcd7b0545d6897c67053076c1f51044cdd34b5fb002529a",
+      "lfSha256": "6e8950021bc2e3b00d5ee42c4ed938e49f3d96f4efc1251b65743bc3b0351c26"
+    },
+    "components/note/encryption/refused-recovery.tsx": {
+      "sha256": "c596dde832d5a012ef13b6a97628fac7c9119d52120ba5fa071f607a460ae036",
+      "lfSha256": "c596dde832d5a012ef13b6a97628fac7c9119d52120ba5fa071f607a460ae036"
     },
     "components/note/encryption/vault-controls.tsx": {
       "sha256": "54188b3a54408aa1b7aafbcbd91cc17ea6dbd2861af17b07709c22b9eeb85d1a",
@@ -158,12 +167,12 @@
       "lfSha256": "976a3f4b598555703ea5e1377e392e270bb1ff5c54e6fc71bb7de79320048efa"
     },
     "dictionaries/en.json": {
-      "sha256": "a6960f13e923428586f10a61bc35d442e128f3954b29e08313222c811dac6fb5",
-      "lfSha256": "4fac529b785b16a394e125592492562df4c0a8f84381e7f1a905b9ba2128086a"
+      "sha256": "cb67c1905bb246c5c33eca8b71bcb86fb9eacd36252fe44dd5125d983c7dd056",
+      "lfSha256": "1e7b2a7035f83e39103ab090809447afd802b519cc2fab9c78f94d7f6e834ae4"
     },
     "dictionaries/vi.json": {
-      "sha256": "7b2e8e920d7c5eb05549b67c927aa59ba5f30dcfc916cccee265f8f49ba8dcd7",
-      "lfSha256": "9132942fb987ff85887c1540f11ad44c359e7a8c34c54494810b8e82f6b52e4e"
+      "sha256": "a6fab51f84b56d020b90a2b8b98800d95fc35557b2f0e67d36bed2a145745d10",
+      "lfSha256": "e2f5bb1c588deb9e092291003f8b5ec250b1e6cad6af4547c24962a4a97d3e53"
     },
     "drizzle/20261110154137_note_encryption/migration.sql": {
       "sha256": "4786f8036d8cde74dac746ef8dbf3aa9aa9a4f09b2e9a713a191686aeefbf7c2",
@@ -237,13 +246,17 @@
       "sha256": "5091eff78bdcbc9fcccabdceaceede55ab2a2e6b7efd81c7e709c50b77e634b9",
       "lfSha256": "ccd9178e935827a4d4198e3b548b5a8c8034664c150a36de2c34af785281aa41"
     },
+    "lib/notes/encryption/stage-recovery.ts": {
+      "sha256": "af70222b0f1ae86a691a731c0b5f955a1cb8449ad8def9e714cd9792e1663750",
+      "lfSha256": "af70222b0f1ae86a691a731c0b5f955a1cb8449ad8def9e714cd9792e1663750"
+    },
     "lib/notes/encryption/storage.ts": {
-      "sha256": "3fda58301a74669b24768b3a7eda0cc6999eb635df64c2005be8d765f22fefa9",
-      "lfSha256": "3fda58301a74669b24768b3a7eda0cc6999eb635df64c2005be8d765f22fefa9"
+      "sha256": "6e4bab4dfe14b97c15bc3a1a46cb4e89feda461774da45d1716d333e6812e740",
+      "lfSha256": "6e4bab4dfe14b97c15bc3a1a46cb4e89feda461774da45d1716d333e6812e740"
     },
     "lib/notes/encryption/sync.ts": {
-      "sha256": "8433f6154290208e27121d77736f592f02b14194f107c895eabc45d350cf257f",
-      "lfSha256": "8433f6154290208e27121d77736f592f02b14194f107c895eabc45d350cf257f"
+      "sha256": "81acef3dad5cfc44d8317bfea0237289434438f8ae7649ab5ee840fad4c94a3d",
+      "lfSha256": "81acef3dad5cfc44d8317bfea0237289434438f8ae7649ab5ee840fad4c94a3d"
     },
     "lib/notes/network-policy.ts": {
       "sha256": "f5b29daba9f0f50ebf0807ef464aa4782dac74d58d8ad2205e78857eea13ab2b",
@@ -286,8 +299,8 @@
       "lfSha256": "2b2aac96b5c80c52a07f4ca262b0ff5af31d312505079e3ab6ed72b95738627a"
     },
     "scripts/browser/note-encryption-stress.spec.ts": {
-      "sha256": "7253472ea0804d72a5c2ce7d689041f16c9ca80c16fd077eee1440cfd1c4309c",
-      "lfSha256": "7253472ea0804d72a5c2ce7d689041f16c9ca80c16fd077eee1440cfd1c4309c"
+      "sha256": "272f22a14810e65376a1c8192e07173b93c12c2b258b55ef2669fe9e654d1ad0",
+      "lfSha256": "272f22a14810e65376a1c8192e07173b93c12c2b258b55ef2669fe9e654d1ad0"
     },
     "scripts/browser/note-encryption.spec.ts": {
       "sha256": "b4a1e46df0fd4fb7b772b345b121b88272fc43c9b44d5951ad3c2e06f431c14c",
