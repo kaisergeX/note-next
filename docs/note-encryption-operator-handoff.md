@@ -1,10 +1,10 @@
 # Encryption operator handoff
 
-Updated 2026-11-17. The tested application baseline is local commit `209ae968c720f63bcc5075ee43782bcb6ff0557a`. Merge and production release remain blocked. Enrollment and creation stay disabled by default. Start the next chat with the authorization decision and acceptance cases in the [release handoff](note-encryption-release-readiness.md#handoff-for-the-next-chat).
+Updated 2026-11-17. The current candidate closes primary unlock replacement; see its exact source, verification and remaining gates in the [current PR scope](note-encryption-release-readiness.md#current-pr-scope). Production and real-note beta release remain blocked. Enrollment and creation stay disabled by default. The earlier application baseline recorded below is local commit `209ae968c720f63bcc5075ee43782bcb6ff0557a`.
 
 ## Evidence already available locally
 
-The [release ledger](note-encryption-release-readiness.md) and [tested source manifest](note-encryption-release-source.json) are authoritative. At the start of this follow-up, all 89 exact-byte source hashes and the retained production build `TW1Axqn5MoWv9bjgLTFW7` matched. The following successful rehearsals are existing evidence, not newly repeated runs:
+The [release ledger](note-encryption-release-readiness.md) records the current candidate. The [tested source manifest](note-encryption-release-source.json) records the historical November 16 snapshot. At the start of the earlier follow-up, all 89 exact-byte source hashes and retained production build `TW1Axqn5MoWv9bjgLTFW7` matched. The following successful rehearsals are existing evidence; the current candidate's repeated checks are listed separately in the ledger:
 
 | Rehearsal | Existing local evidence | What still needs the actual operator |
 | --- | --- | --- |

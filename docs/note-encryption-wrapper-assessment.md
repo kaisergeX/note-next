@@ -1,5 +1,7 @@
 # Primary-wrapper authorization assessment
 
+**Current implementation.** Primary unlock replacement is closed in the PR candidate. The assessment below describes the earlier implementation and the proposed protocol for restoring replacement. [Current PR scope](note-encryption-release-readiness.md#current-pr-scope)
+
 Assessment date: 2026-11-16. Reviewed local baseline `209ae968c720f63bcc5075ee43782bcb6ff0557a` on `feature/note-e2ee`. This is an engineering assessment and proposed remedy, not independent protocol approval or permission to enable either feature flag. No protocol, schema, UI, flag or production data was changed for this assessment.
 
 The current November 16 release manifest records build `TW1Axqn5MoWv9bjgLTFW7`, source digest `13f804b6564b9b2029c5c4d081ce546a1c290f69d165beeb735c81b0165c4269`, and 89 source entries. Its historical comparison baseline differs from this assessment's starting commit. The release ledger already calls out account-session authorization for wrapper replacement as an open independent-review question.

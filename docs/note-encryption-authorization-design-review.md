@@ -1,5 +1,7 @@
 # Vault authorization design peer review
 
+**Current implementation.** Primary unlock replacement is closed in the PR candidate. The assessment below describes the earlier implementation and the proposed protocol for restoring replacement. [Current PR scope](note-encryption-release-readiness.md#current-pr-scope)
+
 Date: 2026-11-17. Scope: local, design-only defensive review of the [wrapper assessment](note-encryption-wrapper-assessment.md), November 17 [release ledger](note-encryption-release-readiness.md), `db/repositories/note-encryption.ts`, `db/schema/note-vaults.ts`, `lib/notes/encryption/{protocol,candidate,runtime,server-http}.ts`, `app/api/note-vault/route.ts` and replacement preparation/confirmation in `components/note/encryption/vault-controls.tsx`.
 
 **The production and real-note beta verdict remains NO-GO.** This engineering peer review recommends advancing the root-protected signing key to independent protocol review. The behavior tests in the release ledger cover the current application. The standalone probe below checks primitive interoperability. Security approval and rollout are still pending.

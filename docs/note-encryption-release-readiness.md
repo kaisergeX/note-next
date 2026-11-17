@@ -2,15 +2,37 @@
 
 Updated 2026-11-17. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
 
-## Handoff for the next chat
+## Current PR scope
 
-**The candidate is ready for a draft design/code review. Merge and production release remain blocked.** Work continues locally on `feature/note-e2ee`. The owner will start the next chat and has authorized neither publication nor rollout. Account-wide export remains a separate feature.
+The owner approved closing primary unlock replacement pending independent protocol review. Source and regression tests are committed locally as `20c8512262edc774f25840334ddecc8075e318ea` on `feature/note-e2ee`, tested with production build `JnGqynJXQfOc6kGSA7QTN`. This local PR candidate includes that restriction, an encrypted-editor conflict recovery fix, and their regression tests. Enrollment and encrypted note creation remain off by default. The owner authorized local commits and reserved publication and rollout.
 
-1. Start with primary unlock replacement. Today an authenticated account session can replace the primary wrapper and disrupt the owner's primary unlock. The original recovery kit still opens existing notes. Obtain independent review of the proposed vault signing key and decide how existing V1 vaults can establish their first trusted verifier. The owner chose design-only work pending review. [Protocol review and acceptance cases](note-encryption-authorization-design-review.md)
-2. After review and owner approval, implement the agreed policy and exercise it through the real replacement endpoint. Cover rejection of a session-only change, successful primary and recovery authorization, interruption, exact retries, and legacy/restore behavior. The committed signature probe exercises the candidate message format only.
-3. Complete the phone/passkey-provider and performance checks, real screen-reader and EN/VI participant sessions, and operator checks on the intended hosting stack. Record the authoritative V1 vault count, proxy limits, logging boundaries and backup/restore evidence. As of November 17, the owner has neither a test phone nor an independent reviewer available. [Operator and participant handoff](note-encryption-operator-handoff.md)
+- An authenticated, protocol-aware `PATCH /api/note-vault` receives HTTP 403 and `{"status":"disabled"}`. There is no repository operation or feature switch that replaces an enrolled vault’s primary wrapper. A new passkey can be registered only during open enrollment for an account without a vault. Existing passkey assertions, passphrase unlock, recovery-key unlock and saves to existing notes remain available.
+- If the primary credential is lost, the owner can unlock with their saved recovery key on each device. They cannot install another primary credential in this release. A tab that already submitted a change on an older build can still unlock and check the current server state. That check reads the vault and compares its last operation ID and current wrapper with the saved intent. An unavailable server leaves the intent in the tab for another check.
+- Conflict choices now serialize while saving the retained copy. A failed local checkpoint can be retried from the editor with the chosen version intact. Encryption formats, database schema, and KDF parameters are unchanged by this follow-up.
 
-The baseline for application behavior is local commit `209ae96`, build `TW1Axqn5MoWv9bjgLTFW7`, with 117 passing browser cases and successful archive recovery in three desktop engines. Subsequent commits add tests, profiling and review evidence. The November 17 entries below identify the focused checks actually run.
+### Verification for the replacement hold
+
+`pnpm lint` and `pnpm build` passed, producing production build `JnGqynJXQfOc6kGSA7QTN` and its Serwist worker. All 21 focused encryption unit checks and all five final repository checks passed. The server runner created and dropped its own loopback database. An earlier delegated characterization ran the old successful-replacement test against a disposable database despite an attempted filter; that historical result is separate from the final five checks of the closed write path. The successful-replacement characterization was removed when the write path was removed.
+
+The full production browser suite passed 122 cases in 9.8 minutes (`.playwright-mcp/pr-containment-full.log`). This includes ordinary-note regressions, encrypted recovery and the conflict double-choice/checkpoint-retry cases. The passkey test source was extended while that matrix was running, so its 122 passes do not establish the final passkey assertions. A separate run of the final passkey suite passed all three cases (`.playwright-mcp/pr-containment-passkeys-final.log`).
+
+The final passkey suite exercised the real replacement endpoint, compared the entire vault before and after refusal, and checked both stages of registration. It also exercised an existing passkey against the closed-enrollment preview. Synthetic pending requests from an older tab covered matching and differing operation IDs and wrappers, an interrupted status check, and recovery without resubmitting the change. The first focused run timed out because the fixture expected the recovery toggle to persist after relocking. The corrected case explicitly reloads and passed with passphrase fallback and cancellation coverage.
+
+Three separate PostgreSQL archive rehearsals on this build passed. In each, Chromium created the encrypted note, the test restored a real archive to another database, and a fresh Chromium 158, Firefox 159 or desktop Windows WebKit 27.2 profile unlocked with the saved recovery kit. Each recovered the exact title and body, synced an edit with both flags closed and relocked.
+
+The focused visual review passed in Paper & Ink light at EN 1440×1000 and VI 390×844. It checked primary unlock, the earlier-request status announcement in both languages, recovery-field tab order, wrapping, mobile targets, text contrast and visible keyboard focus. No console errors appeared; one CSS preload warning was recorded. Actual recovery submission and retained conflict choices are covered by the automated checks above. Physical phones, other providers and real screen readers remain separate release gates.
+
+Cleanup was verified after the runs: owned preview/development listeners stopped, the exact disposable database was absent from `pg_database`, and the disposable environment file was removed. Shared development data was preserved. The commits remain local; no push, PR publication, deployment or production flag change was performed.
+
+To repeat the browser checks, build once and start two loopback previews of that build with the same disposable migrated database and auth secret. Give each its own matching auth origin. Set both encryption flags to true on the setup preview and false on the second preview. Point `NOTES_TEST_ORIGIN` at the setup preview and both `NOTES_CLOSED_CREATION_ORIGIN` and `NOTES_CLOSED_ENROLLMENT_ORIGIN` at the second preview. Run `pnpm test:notes:browser` with that disposable database selected for the runner. The existing [backup rehearsal](../scripts/note-encryption-backup-rehearsal.mjs) accepts `chromium`, `firefox` or `webkit`.
+
+### Before rollout
+
+1. Obtain an independent protocol/security review of the exact candidate. Before restoring replacement, approve a design for verifier enrollment, V1 trust establishment, recovery and retries. The signing fixtures exercise a proposed encoding only. [Protocol review and acceptance cases](note-encryption-authorization-design-review.md)
+2. Complete the named phone/provider, performance, screen-reader and EN/VI participant checks. Confirm V1 inventory, proxy limits, logging and backup/restore on the intended hosting stack. [Operator and participant handoff](note-encryption-operator-handoff.md)
+3. Obtain separate release-owner approval. Keep all serving instances on the fixed server when relying on the replacement hold. Returning traffic to an older server restores its session-authorized write path.
+
+The evidence below records earlier revisions as tested. Descriptions of successful replacement and session-only replacement refer to those earlier servers. The November 16 source manifest and 117-case browser run describe build `TW1Axqn5MoWv9bjgLTFW7`.
 
 ## Candidate and scope
 
