@@ -1,6 +1,6 @@
 # Encryption operator handoff
 
-Prepared 2026-11-16 for local candidate `209ae968c720f63bcc5075ee43782bcb6ff0557a`. This is a rehearsal checklist, not deployment authorization. The release verdict remains **NO-GO**; enrollment and creation stay disabled by default.
+Updated 2026-11-17. The tested application baseline is local commit `209ae968c720f63bcc5075ee43782bcb6ff0557a`. Merge and production release remain blocked. Enrollment and creation stay disabled by default. Start the next chat with the authorization decision and acceptance cases in the [release handoff](note-encryption-release-readiness.md#handoff-for-the-next-chat).
 
 ## Evidence already available locally
 
@@ -32,9 +32,29 @@ Do not repeat the full passing matrix merely to fill out this document. Rerun re
 The legacy-note count in step 2 cannot establish whether users already have vaults. A user can complete enrollment and never save an encrypted note. On an installation with the checked-in vault schema, the operator can use the following read-only aggregate without retrieving user identities or wrapped keys.
 
 ```sql
-SELECT count(*) AS v1_vaults FROM note_vaults WHERE format_version = 1;
+BEGIN READ ONLY;
+SET LOCAL row_security = off;
+SELECT count(*) AS v1_vaults FROM public.note_vaults WHERE format_version = 1;
+COMMIT;
 ```
+
+Run the transaction on the authoritative database with the application's installed schema (`public` in the local fixture). PostgreSQL will fail the query if a row-security policy would hide vaults from the operator. A permission error, missing table, replica count or interrupted transaction cannot establish that there are zero vaults. Record a count only after the transaction completes successfully. An operator can use `psql -v ON_ERROR_STOP=1` to make a failed statement stop a scripted rehearsal.
+
+On November 17, a disposable PostgreSQL database returned `42P01` before migration, zero after migration, and one after inserting a synthetic V1 vault whose owner had zero encrypted notes. A role without table read access received `42501`. A read role subject to row-level security returned a misleading zero with the default setting, then received `42501` from the transaction above. The authorized role continued to count one. The fixture database was removed and its absence verified. These results apply to the local rehearsal only.
 
 Record the environment, schema revision, time and count. If the vault table is absent, record the installed migration state separately. A positive count requires a reviewed path for binding those existing vaults to their first verifier while preserving recovery. A zero count can support new-vault-only enrollment on that installation if operators also verify that V1 enrollment cannot create a vault between the inventory and rollout. Check the treatment of supported older deployments and restored backups separately. The independent review of the new enrollment protocol applies in either case.
 
 The operator's report must name environment, source/build, date, responsible person, flags, actual commands/checks, outcomes and artifact locations. A skipped step remains open. Deployment, real Google authentication, physical credential providers, independent protocol review, real assistive technology and the EN/VI participant study require their own evidence; this handoff does not pass any of them.
+
+### Physical-device and participant session
+
+Use a disposable account and synthetic notes on the authorized test environment. Record the candidate build, phone model, OS, browser, locale, and passkey provider. For an assistive-technology session, include the screen reader and its version. Let the participant handle test credentials privately. Record outcomes and spoken status labels, and leave secret values out of observations, recordings and transcripts.
+
+| Give the participant this task | Vietnamese prompt | Observe before giving help |
+| --- | --- | --- |
+| Set up private notes. Make a note you can recognize later. | Hãy thiết lập ghi chú mã hóa rồi tạo một ghi chú mà bạn có thể nhận ra sau này. | Did they complete setup, save recovery material and identify when the note synced? |
+| Lock your notes, then open the same note again. | Hãy khóa các ghi chú rồi mở lại ghi chú vừa tạo. | Did they reach the same title and body? Could they identify the current lock and sync states? |
+| Your original unlock method is unavailable. Open the same note on this fresh test device or browser profile. | Giả sử bạn không còn dùng được cách mở khóa ban đầu. Hãy mở lại ghi chú đó trên thiết bị thử nghiệm hoặc hồ sơ trình duyệt mới này. | Provision account access in advance. Supply only the test material the participant chose to keep. Record whether they recovered the synced note without the original credential. |
+| With this editor already open and offline, change the note. Where is that change available now? What if you lose all your ways to unlock the vault? | Khi trình soạn thảo đang mở và thiết bị đã ngắt mạng, hãy sửa ghi chú. Lúc này bạn có thể xem phần vừa sửa ở đâu? Điều gì sẽ xảy ra nếu bạn mất tất cả các cách mở khóa kho ghi chú? | Record the initial answers. Reconnect and observe whether they recognize sync. If clarification is needed, record it and retest comprehension. |
+
+Score task completion per person as unassisted, assisted or incomplete. Apply the [plan's usability threshold](note-encryption-plan.md): at least five participants across mobile and EN/VI, at least four completing setup, encrypted-note creation/unlock and recovery unassisted, and all understanding local-only work and secret loss after clarification/retest. With an actual screen reader, also exercise a sign-in pause and explicit resume. Record focus order, control names and the status spoken after each transition. Record a device/provider case or participant session as completed only after observing it.

@@ -1,0 +1,72 @@
+{
+  "description": "Synthetic design-only known-answer vectors; no account data or usable encrypted root. Candidate format, not an approved protocol.",
+  "provenance": "Generated once outside the WebCrypto runner with Node classic crypto (OpenSSL): prime256v1, SHA-256, ieee-p1363. Ephemeral private key was never exported or saved. Fixed signatures are not deterministically reproducible. Before signing, named wrapper inputs were parsed with the repository V1 vaultWrapperSchema and owner/vault/operation/revision IDs with canonicalIdSchema.",
+  "encoding": "UTF-8 of compact JSON array; ECDSA P-256 SHA-256; raw 65-byte uncompressed SEC1 verifier; signatures are 64-byte r||s; binary strings unpadded base64url.",
+  "verifierIdConvention": "For these fixtures verifierId equals base64url(SHA-256(raw verifier)); this is a fixture convention pending protocol approval. RP ID is literal lowercase ASCII notes.example.",
+  "publicKeyRaw": "BBEqHOMWHayiEd7UrEYXtWDaeBFv6JLAZd3wyI3XTYwaaWvQvEvIOJd4gq5lYzRJDJZJY484u7HhPlYcWjRAdEM",
+  "publicKeySha256": "DMGJWKid2Fgl2SzorMvOhS9ulYjxJUxwejZCeVmwi7M",
+  "vectors": [
+    {
+      "name": "passphrase",
+      "input": {
+        "domain": "eton",
+        "version": 1,
+        "operation": "authorize-primary-replacement",
+        "ownerId": "11111111-1111-1111-1111-111111111111",
+        "vaultId": "22222222-2222-2222-2222-222222222222",
+        "verifierId": "DMGJWKid2Fgl2SzorMvOhS9ulYjxJUxwejZCeVmwi7M",
+        "expectedRevision": "77777777-7777-4777-8777-777777777777",
+        "operationId": "55555555-5555-5555-5555-555555555555",
+        "wrapper": {
+          "version": 1,
+          "algorithm": "AES-256-GCM",
+          "ownerId": "11111111-1111-1111-1111-111111111111",
+          "vaultId": "22222222-2222-2222-2222-222222222222",
+          "wrapperId": "33333333-3333-3333-3333-333333333333",
+          "purpose": "passphrase",
+          "profileId": "pbkdf2-sha256-600000",
+          "passkeyBinding": null,
+          "salt": "AAECAwQFBgcICQoLDA0ODw",
+          "iv": "EBESExQVFhcYGRob",
+          "ciphertext": "ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5P"
+        }
+      },
+      "messageUtf8": "[\"eton\",1,\"authorize-primary-replacement\",\"11111111-1111-1111-1111-111111111111\",\"22222222-2222-2222-2222-222222222222\",\"DMGJWKid2Fgl2SzorMvOhS9ulYjxJUxwejZCeVmwi7M\",\"77777777-7777-4777-8777-777777777777\",\"55555555-5555-5555-5555-555555555555\",[1,\"AES-256-GCM\",\"11111111-1111-1111-1111-111111111111\",\"22222222-2222-2222-2222-222222222222\",\"33333333-3333-3333-3333-333333333333\",\"passphrase\",\"pbkdf2-sha256-600000\",null,\"AAECAwQFBgcICQoLDA0ODw\",\"EBESExQVFhcYGRob\",\"ICEiIyQlJicoKSorLC0uLzAxMjM0NTY3ODk6Ozw9Pj9AQUJDREVGR0hJSktMTU5P\"]]",
+      "messageSha256": "735c8f3261d72e9a41f09e17c05182c8dd0d2c8596123db26bcefd2b5b9d756b",
+      "signatureP1363": "EkjyetzwJLSOSZQ311XFyHQ8b9NQqbQWRDoJPpjI2cPUnRg9pQ5CrvdywykgLdPBirnTZmQeVDdTa1PkJW2xGw"
+    },
+    {
+      "name": "passkey",
+      "input": {
+        "domain": "eton",
+        "version": 1,
+        "operation": "authorize-primary-replacement",
+        "ownerId": "11111111-1111-1111-1111-111111111111",
+        "vaultId": "22222222-2222-2222-2222-222222222222",
+        "verifierId": "DMGJWKid2Fgl2SzorMvOhS9ulYjxJUxwejZCeVmwi7M",
+        "expectedRevision": "87777777-7777-4777-8777-777777777777",
+        "operationId": "66666666-6666-6666-6666-666666666666",
+        "wrapper": {
+          "version": 1,
+          "algorithm": "AES-256-GCM",
+          "ownerId": "11111111-1111-1111-1111-111111111111",
+          "vaultId": "22222222-2222-2222-2222-222222222222",
+          "wrapperId": "44444444-4444-4444-4444-444444444444",
+          "purpose": "passkey",
+          "profileId": "webauthn-prf-hkdf-sha256",
+          "passkeyBinding": [
+            "notes.example",
+            "QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8",
+            "YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8"
+          ],
+          "salt": null,
+          "iv": "ERITFBUWFxgZGhsc",
+          "ciphertext": "ISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9Q"
+        }
+      },
+      "messageUtf8": "[\"eton\",1,\"authorize-primary-replacement\",\"11111111-1111-1111-1111-111111111111\",\"22222222-2222-2222-2222-222222222222\",\"DMGJWKid2Fgl2SzorMvOhS9ulYjxJUxwejZCeVmwi7M\",\"87777777-7777-4777-8777-777777777777\",\"66666666-6666-6666-6666-666666666666\",[1,\"AES-256-GCM\",\"11111111-1111-1111-1111-111111111111\",\"22222222-2222-2222-2222-222222222222\",\"44444444-4444-4444-4444-444444444444\",\"passkey\",\"webauthn-prf-hkdf-sha256\",[\"notes.example\",\"QEFCQ0RFRkdISUpLTE1OT1BRUlNUVVZXWFlaW1xdXl8\",\"YGFiY2RlZmdoaWprbG1ub3BxcnN0dXZ3eHl6e3x9fn8\"],null,\"ERITFBUWFxgZGhsc\",\"ISIjJCUmJygpKissLS4vMDEyMzQ1Njc4OTo7PD0-P0BBQkNERUZHSElKS0xNTk9Q\"]]",
+      "messageSha256": "fe7c3f11b787f6a6534f1c55e8d20fbee502dd19869a801d05cdce96e04bbae0",
+      "signatureP1363": "LlXWy-iX9QzzkObS_AcKgfsac0olH6ggzVsfpejUYB5PmPXpFHVmmCpqIxFzw4DJBnh8xzXazSOX-bDOpdvjTA"
+    }
+  ]
+}

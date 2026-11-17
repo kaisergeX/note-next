@@ -2,6 +2,16 @@
 
 Updated 2026-11-17. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
 
+## Handoff for the next chat
+
+**The candidate is ready for a draft design/code review. Merge and production release remain blocked.** Work continues locally on `feature/note-e2ee`. The owner will start the next chat and has authorized neither publication nor rollout. Account-wide export remains a separate feature.
+
+1. Start with primary unlock replacement. Today an authenticated account session can replace the primary wrapper and disrupt the owner's primary unlock. The original recovery kit still opens existing notes. Obtain independent review of the proposed vault signing key and decide how existing V1 vaults can establish their first trusted verifier. The owner chose design-only work pending review. [Protocol review and acceptance cases](note-encryption-authorization-design-review.md)
+2. After review and owner approval, implement the agreed policy and exercise it through the real replacement endpoint. Cover rejection of a session-only change, successful primary and recovery authorization, interruption, exact retries, and legacy/restore behavior. The committed signature probe exercises the candidate message format only.
+3. Complete the phone/passkey-provider and performance checks, real screen-reader and EN/VI participant sessions, and operator checks on the intended hosting stack. Record the authoritative V1 vault count, proxy limits, logging boundaries and backup/restore evidence. As of November 17, the owner has neither a test phone nor an independent reviewer available. [Operator and participant handoff](note-encryption-operator-handoff.md)
+
+The baseline for application behavior is local commit `209ae96`, build `TW1Axqn5MoWv9bjgLTFW7`, with 117 passing browser cases and successful archive recovery in three desktop engines. Subsequent commits add tests, profiling and review evidence. The November 17 entries below identify the focused checks actually run.
+
 ## Candidate and scope
 
 The local remediation commit is `66bdd86969dc8040adc0bc108a130012dd778cdf`, based on audit revision `3e2333c0b0a2f39fc63d2d4a9bd43c66cd37fc10`. The release follow-up adds authentication-expiry recovery, repeated-unlock protection, canonical codec/storage performance fixes and the executable checks below. The pre-encryption comparison is `609afe5a9c24af2d0850e0b35c7c9a0e05fc5c1e`.
@@ -122,3 +132,20 @@ Final TypeScript, repository ESLint, changed-script Prettier and `git diff --che
 The owned preview was stopped, browser tests exited, and the exact generated `eton_test_perf_2b5db1b692ce48019b3877fcfa6f38d6` database was dropped with its absence verified. The disposable environment and setup script were removed. The server-test runner separately dropped its generated database in `finally`. Shared development data and prior artifacts were preserved. Only tests, profiling tools and documentation changed; no commit, remote Git action, PR, merge, deployment, real-user flag enablement or export work occurred.
 
 **Verdict remains NO-GO.** Independent protocol/security review (including authorization design/legacy bootstrap), named physical hardware/provider/phone performance checks, real assistive technology and EN/VI participant evidence, deployment/operator checks and release-owner acceptance still require their designated people or environments. The selected authorization design is awaiting review, not implemented protection.
+
+## November 17 follow-up on authorization, input timing and migration inventory
+
+This follow-up uses local commit `7d934a282358d4de4977634cfd87cbdf774b4eb4` and the retained production build `TW1Axqn5MoWv9bjgLTFW7`. The application, schema, flag defaults and replacement endpoint are unchanged. The earlier source manifests describe their original snapshots. This follow-up changes review documents and adds a standalone compatibility probe.
+
+- The [authorization design review](note-encryption-authorization-design-review.md) proposes the exact signing algorithm, public key representation and signed fields for external review. A new-vault enrollment trust decision, existing V1 trust bootstrap, lost-acknowledgment handling and recovery after signer loss still need approval. The local Web Crypto probe passed in both directions between Node and three desktop browser engines. The current shipped code still accepts primary replacement using account authorization alone.
+- The [input measurements](note-encryption-input-evidence.md) distinguish the first 32 KiB replacement from the first keyboard input in an empty editor. In separate Chromium contexts, the longest renderer tasks in the first-key and short-burst measurements were 7.5 ms encrypted and 15.1 ms ordinary. Both first edits reached a durable browser checkpoint. These are individual desktop samples. The previously observed bulk-edit delays and physical-device performance gate remain open.
+- The [operator rehearsal](note-encryption-operator-handoff.md) demonstrated a false zero under PostgreSQL row-level security. The documented aggregate now fails visibly for filtered or unauthorized reads. A synthetic V1 vault with zero encrypted notes was counted correctly. The actual deployment count remains unknown.
+- The targeted source review found labeled controls and status announcements for setup, unlock and recovery. The prior EN/VI keyboard checks remain the available accessibility evidence. A real screen-reader session and the participant study still require testers.
+
+**Release verdict remains NO-GO.** Independent protocol review, environment-specific vault inventory and operator checks, and physical-device and user testing remain open. No production system or account was accessed.
+
+### Signed replacement fixtures and release hold
+
+The [two fixed signing examples](../scripts/fixtures/note-encryption-signed-intents.json) cover the passphrase and passkey wrapper shapes. The initial design fixture used numeric revisions. It was corrected to use the UUID strings required by `replacePrimarySchema` before the final verification. Node 26.12.1, Chromium 158.0.8127.18, Firefox 159.0 and desktop Windows WebKit 27.2 each verified both fixed signatures, rejected a different public key and rejected all 40 individual field substitutions. Reordering named input properties preserved the same canonical bytes. A separate .NET reconstruction reproduced both UTF-8 messages and SHA-256 digests from their named fields and verified both signatures. The focused probe passed ESLint and Prettier. This checks the proposed encoding. Authorization of a live replacement, recovery and retry behavior remain review and implementation obligations.
+
+The V1 schema review found no stored verifier linking a new signing key to the historical root. A current passkey assertion and a valid recovery-kit checksum do not establish that link for the server. The [operator handoff](note-encryption-operator-handoff.md) includes neutral EN/VI tasks for the eventual phone and assistive-technology sessions. On November 17 the owner confirmed that a test phone and independent reviewer were unavailable and chose to keep release blocked. The existing endpoint, rollout defaults and production systems were untouched.
