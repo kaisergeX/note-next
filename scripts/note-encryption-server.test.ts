@@ -84,7 +84,7 @@ function write(vaultId: string, noteId: string) {
     },
   }
 }
-test('disabled enrollment, concurrent setup, exact lost acknowledgement and replacement CAS', async () => {
+test('disabled enrollment, concurrent setup, exact lost acknowledgement with replacement unavailable', async () => {
   const f = await fixture()
   delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
   assert.equal((await repo.setup(f.owner.id, f.setup)).status, 'disabled')
@@ -100,93 +100,42 @@ test('disabled enrollment, concurrent setup, exact lost acknowledgement and repl
   delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
   const winner = vault.setupId === f.setup.setupId ? f.setup : losing
   assert.equal((await repo.setup(f.owner.id, winner)).status, 'success')
-  const replacement = {
-    operationId: randomUUID(),
-    expectedRevision: vault.revision,
-    primaryWrapper: {...f.setup.primaryWrapper, wrapperId: randomUUID()},
-  }
-  assert.equal(
-    (await repo.replacePrimary(f.owner.id, replacement)).status,
-    'success',
-  )
-  assert.equal(
-    (await repo.replacePrimary(f.owner.id, replacement)).status,
-    'success',
-  )
-  assert.equal(
-    (
-      await repo.replacePrimary(f.owner.id, {
-        ...replacement,
-        operationId: randomUUID(),
-      })
-    ).status,
-    'conflict',
-  )
+  assert.equal('replacePrimary' in repo, false)
+  assert.deepEqual(await repo.getVault(f.owner.id), vault)
 })
-test('characterizes current session-authorized different-root replacement and recovery-authorized primary repair', async () => {
+test('closed enrollment preserves primary and recovery access to saved notes', async () => {
   const f = await fixture(),
-    originalRaw = generateRoot(),
-    attackerRaw = generateRoot(),
+    raw = generateRoot(),
     recoverySecret = generateRoot(),
-    originalPhrase = 'original synthetic test passphrase',
-    attackerPhrase = 'attacker synthetic test passphrase',
-    repairedPhrase = 'repaired synthetic test passphrase'
+    phrase = 'synthetic test passphrase'
   const enrollment = process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED,
     creation = process.env.NOTE_ENCRYPTION_CREATION_ENABLED
-  const primary = (raw: Uint8Array, phrase: string) =>
-    wrapRoot(
+  let primaryOpened: Uint8Array | undefined, recovered: Uint8Array | undefined
+  try {
+    process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED = 'true'
+    process.env.NOTE_ENCRYPTION_CREATION_ENABLED = 'true'
+    const primaryWrapper = await wrapRoot(
       raw,
       {
-        ownerId: f.owner.id,
-        vaultId: f.setup.vaultId,
-        wrapperId: randomUUID(),
-        purpose: 'passphrase',
-        profileId: 'pbkdf2-sha256-600000',
-        passkeyBinding: null,
+        ...vaultWrapperSchema.parse(f.setup.primaryWrapper),
         salt: generatePassphraseSalt(),
       },
       phrase,
     )
-  let recovered: Uint8Array | undefined,
-    attackerOpened: Uint8Array | undefined,
-    repairedOpened: Uint8Array | undefined
-  try {
-    process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED = 'true'
-    process.env.NOTE_ENCRYPTION_CREATION_ENABLED = 'true'
     const recoveryWrapper = await wrapRoot(
-      originalRaw,
-      {
-        ownerId: f.owner.id,
-        vaultId: f.setup.vaultId,
-        wrapperId: randomUUID(),
-        purpose: 'recovery',
-        profileId: null,
-        passkeyBinding: null,
-        salt: null,
-      },
+      raw,
+      vaultWrapperSchema.parse(f.setup.recoveryWrapper),
       recoverySecret,
     )
-    assert.equal(
-      (
-        await repo.setup(f.owner.id, {
-          ...f.setup,
-          primaryWrapper: await primary(originalRaw, originalPhrase),
-          recoveryWrapper,
-        })
-      ).status,
-      'success',
-    )
+    const setup = {...f.setup, primaryWrapper, recoveryWrapper}
+    assert.equal((await repo.setup(f.owner.id, setup)).status, 'success')
     const before = await repo.getVault(f.owner.id)
     assert.ok(before)
-    const recoveryBytes = JSON.stringify(before.recoveryWrapper),
-      noteId = randomUUID(),
+    const noteId = randomUUID(),
       identity = {vaultId: f.setup.vaultId, noteId},
-      content = {
-        title: 'Original encrypted title',
-        content: '<p>Original body</p>',
-      },
+      content = {title: 'Saved encrypted title', content: '<p>Saved body</p>'},
       payload = await sealNote(
-        await importRoot(originalRaw),
+        await importRoot(raw),
         f.owner.id,
         {...identity, contentId: randomUUID()},
         content,
@@ -202,96 +151,53 @@ test('characterizes current session-authorized different-root replacement and re
     )
     delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
     delete process.env.NOTE_ENCRYPTION_CREATION_ENABLED
-    // Characterization: the repository receives account identity and a new
-    // wrapper, with no old-root proof. This success is the finding, not policy.
+    assert.equal('replacePrimary' in repo, false)
+    assert.equal((await repo.setup(f.owner.id, setup)).status, 'success')
     assert.equal(
       (
-        await repo.replacePrimary(f.owner.id, {
-          operationId: randomUUID(),
-          expectedRevision: before.revision,
-          primaryWrapper: await primary(attackerRaw, attackerPhrase),
-        })
-      ).status,
-      'success',
-    )
-    const replaced = await repo.getVault(f.owner.id),
-      note = await repo.getNote(f.owner.id, noteId)
-    assert.ok(replaced)
-    assert.ok(note)
-    assert.notEqual(replaced.revision, before.revision)
-    assert.equal(JSON.stringify(replaced.recoveryWrapper), recoveryBytes)
-    const replacedWrapper = vaultWrapperSchema.parse(replaced.primaryWrapper),
-      savedPayload = encryptedNotePayloadSchema.parse(note.encryptedPayload)
-    await assert.rejects(unwrapRoot(replacedWrapper, originalPhrase))
-    attackerOpened = await unwrapRoot(replacedWrapper, attackerPhrase)
-    assert.deepEqual(attackerOpened, attackerRaw)
-    await assert.rejects(
-      openNote(
-        await importRoot(attackerOpened),
-        f.owner.id,
-        savedPayload,
-        identity,
-      ),
-    )
-    recovered = await unwrapRoot(
-      vaultWrapperSchema.parse(replaced.recoveryWrapper),
-      recoverySecret,
-    )
-    assert.deepEqual(recovered, originalRaw)
-    assert.deepEqual(
-      await openNote(
-        await importRoot(recovered),
-        f.owner.id,
-        savedPayload,
-        identity,
-      ),
-      content,
-    )
-    const repair = {
-      operationId: randomUUID(),
-      expectedRevision: replaced.revision,
-      primaryWrapper: await primary(recovered, repairedPhrase),
-    }
-    assert.equal(
-      (
-        await repo.replacePrimary(f.owner.id, {
-          ...repair,
-          expectedRevision: before.revision,
+        await repo.setup(f.owner.id, {
+          ...setup,
+          setupId: randomUUID(),
         })
       ).status,
       'conflict',
     )
+    assert.deepEqual(await repo.getVault(f.owner.id), before)
+    primaryOpened = await unwrapRoot(primaryWrapper, phrase)
+    recovered = await unwrapRoot(recoveryWrapper, recoverySecret)
+    const note = await repo.getNote(f.owner.id, noteId)
+    assert.ok(note)
+    const savedPayload = encryptedNotePayloadSchema.parse(note.encryptedPayload)
+    for (const opened of [primaryOpened, recovered]) {
+      assert.deepEqual(
+        await openNote(
+          await importRoot(opened),
+          f.owner.id,
+          savedPayload,
+          identity,
+        ),
+        content,
+      )
+    }
     assert.equal(
-      (await repo.replacePrimary(f.owner.id, repair)).status,
+      (
+        await repo.write(f.owner.id, noteId, {
+          mode: 'encrypted',
+          operation: 'save',
+          mutationId: randomUUID(),
+          expectedRevision: note.revision,
+          payload,
+          theme: null,
+        })
+      ).status,
       'success',
     )
-    assert.equal(
-      (await repo.replacePrimary(f.owner.id, repair)).status,
-      'success',
-    )
-    const repaired = await repo.getVault(f.owner.id)
-    assert.ok(repaired)
-    assert.equal(JSON.stringify(repaired.recoveryWrapper), recoveryBytes)
-    repairedOpened = await unwrapRoot(
-      vaultWrapperSchema.parse(repaired.primaryWrapper),
-      repairedPhrase,
-    )
-    assert.deepEqual(
-      await openNote(
-        await importRoot(repairedOpened),
-        f.owner.id,
-        savedPayload,
-        identity,
-      ),
-      content,
-    )
+    assert.deepEqual(await repo.getVault(f.owner.id), before)
   } finally {
-    originalRaw.fill(0)
-    attackerRaw.fill(0)
+    raw.fill(0)
     recoverySecret.fill(0)
+    primaryOpened?.fill(0)
     recovered?.fill(0)
-    attackerOpened?.fill(0)
-    repairedOpened?.fill(0)
     if (enrollment === undefined)
       delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
     else process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED = enrollment
@@ -300,6 +206,7 @@ test('characterizes current session-authorized different-root replacement and re
     else process.env.NOTE_ENCRYPTION_CREATION_ENABLED = creation
   }
 })
+
 test('ciphertext create/save retries, owner and mode fences, tombstones, header-only list and account cleanup', async () => {
   const f = await fixture(),
     other = await fixture()

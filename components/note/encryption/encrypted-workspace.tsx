@@ -240,52 +240,60 @@ export default function EncryptedWorkspace({
   const alive = useRef(false)
   const unlocked = useVaultUnlocked(ownerId, vault?.id ?? '')
   const state = useLockState(ownerId)
-  const refresh = useCallback(async () => {
-    let res: Response
-    try {
-      res = await fetch('/api/note-vault', {cache: 'no-store'})
-    } catch (error) {
-      const cached = await getCachedVault(ownerId)
-      if (!cached) throw error
+  const refresh = useCallback(
+    async (requireOnline = false) => {
+      let res: Response
+      try {
+        res = await fetch('/api/note-vault', {cache: 'no-store'})
+      } catch (error) {
+        if (requireOnline) throw error
+        const cached = await getCachedVault(ownerId)
+        if (!cached) throw error
+        if (alive.current) {
+          setVault(cached)
+          setOffline(true)
+          setFailed(false)
+        }
+        return cached
+      }
+      if (!res.ok) throw new Error('Vault unavailable')
+      const {
+        status,
+        vault: row,
+      }: {status: string; vault: ConfirmedVault | null} = await res.json()
+      if (status !== 'success') throw new Error('Vault unavailable')
+      if (row !== null) {
+        const primary = vaultWrapperSchema.parse(row.primaryWrapper),
+          recovery = vaultWrapperSchema.parse(row.recoveryWrapper)
+        if (
+          row.ownerId !== ownerId ||
+          primary.ownerId !== ownerId ||
+          recovery.ownerId !== ownerId ||
+          primary.vaultId !== row.id ||
+          recovery.vaultId !== row.id ||
+          primary.purpose === 'recovery' ||
+          recovery.purpose !== 'recovery'
+        )
+          throw new Error('Invalid vault')
+        await cacheConfirmedVault({
+          id: row.id,
+          ownerId,
+          revision: row.revision,
+          setupId: row.setupId,
+          lastOperationId: row.lastOperationId,
+          primaryWrapper: primary,
+          recoveryWrapper: recovery,
+        })
+      }
       if (alive.current) {
-        setVault(cached)
-        setOffline(true)
+        setVault(row)
+        setOffline(false)
         setFailed(false)
       }
-      return
-    }
-    if (!res.ok) throw new Error('Vault unavailable')
-    const {status, vault: row} = await res.json()
-    if (status !== 'success') throw new Error('Vault unavailable')
-    if (row !== null) {
-      const primary = vaultWrapperSchema.parse(row.primaryWrapper),
-        recovery = vaultWrapperSchema.parse(row.recoveryWrapper)
-      if (
-        row.ownerId !== ownerId ||
-        primary.ownerId !== ownerId ||
-        recovery.ownerId !== ownerId ||
-        primary.vaultId !== row.id ||
-        recovery.vaultId !== row.id ||
-        primary.purpose === 'recovery' ||
-        recovery.purpose !== 'recovery'
-      )
-        throw new Error('Invalid vault')
-      await cacheConfirmedVault({
-        id: row.id,
-        ownerId,
-        revision: row.revision,
-        setupId: row.setupId,
-        lastOperationId: row.lastOperationId,
-        primaryWrapper: primary,
-        recoveryWrapper: recovery,
-      })
-    }
-    if (alive.current) {
-      setVault(row)
-      setOffline(false)
-      setFailed(false)
-    }
-  }, [ownerId])
+      return row
+    },
+    [ownerId],
+  )
   useEffect(() => {
     alive.current = true
     const read = () =>

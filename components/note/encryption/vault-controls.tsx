@@ -4,7 +4,7 @@ import {useEffect, useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import Button from '~/components/ui/button'
 import {Input} from '~/components/ui/input'
-import {assertPasskey, enrollPasskey} from '~/lib/notes/encryption/passkey'
+import {assertPasskey} from '~/lib/notes/encryption/passkey'
 import {
   createVaultCandidate,
   verifyCandidate,
@@ -13,11 +13,8 @@ import {
 } from '~/lib/notes/encryption/candidate'
 import {
   decodeRecoveryKey,
-  generatePassphrase,
-  generatePassphraseSalt,
   importRoot,
   unwrapRoot,
-  wrapRoot,
 } from '~/lib/notes/encryption/crypto'
 import {
   activateVault,
@@ -31,6 +28,7 @@ import {
   vaultWrapperSchema,
 } from '~/lib/notes/encryption/protocol'
 import {z} from 'zod'
+// An earlier client may have submitted a replacement before writes closed.
 const replacementSchema = z.strictObject({
   operationId: canonicalIdSchema,
   expectedRevision: canonicalIdSchema,
@@ -47,7 +45,7 @@ export function VaultControls({
   ownerId: string
   vault: ConfirmedVault | null
   enrollmentEnabled: boolean
-  onRefresh: () => Promise<void>
+  onRefresh: (requireOnline?: boolean) => Promise<ConfirmedVault | null>
 }) {
   const t = useTranslations('note.vault')
   const [candidate, setCandidate] = useState<VaultCandidate | null>(null)
@@ -59,12 +57,9 @@ export function VaultControls({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('')
-  const [replacement, setReplacement] = useState<{
-    operationId: string
-    expectedRevision: string
-    primaryWrapper: ConfirmedVault['primaryWrapper']
-    submitted: boolean
-  } | null>(null)
+  const [replacement, setReplacement] = useState<z.infer<
+    typeof replacementSchema
+  > | null>(null)
   const active = useVaultUnlocked(ownerId, vault?.id ?? '')
   const generation = useRef(0),
     inFlight = useRef(false)
@@ -95,7 +90,10 @@ export function VaultControls({
         )
         if (savedReplacement) {
           const value = replacementSchema.parse(JSON.parse(savedReplacement))
-          if (value.primaryWrapper.ownerId === ownerId) setReplacement(value)
+          if (value.primaryWrapper.ownerId === ownerId) {
+            if (value.submitted) setReplacement(value)
+            else sessionStorage.removeItem(storageKey + ':replacement')
+          }
         }
       } catch {
         setError(t('storageError'))
@@ -144,9 +142,9 @@ export function VaultControls({
     if (generation.current !== version || document.hidden)
       throw new Error('Interrupted')
   }
-  async function request(method: 'POST' | 'PATCH', body: unknown) {
+  async function submitSetup(body: unknown) {
     const response = await fetch('/api/note-vault', {
-      method,
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-note-encryption-protocol': '1',
@@ -195,7 +193,7 @@ export function VaultControls({
       if (!candidate?.primaryChecked || !candidate.recoveryChecked) return
       const pending = {...candidate, submitted: true}
       save(pending)
-      const result = await request('POST', {
+      const result = await submitSetup({
         setupId: pending.setupId,
         vaultId: pending.vaultId,
         primaryWrapper: pending.primaryWrapper,
@@ -213,30 +211,32 @@ export function VaultControls({
     })
   const reconcile = () =>
     run(async (version) => {
-      const response = await fetch('/api/note-vault', {cache: 'no-store'}),
-        result = (await response.json()) as {
-          status: string
-          vault?: ConfirmedVault | null
-        }
+      const current = await onRefresh(true)
       check(version)
-      if (result.status !== 'success') throw new Error('Unconfirmed')
-      if (result.vault) {
-        if (
-          replacement &&
-          replacement.submitted &&
-          result.vault.lastOperationId !== replacement.operationId &&
-          result.vault.revision === replacement.expectedRevision
-        ) {
-          setMessage(t('replacementPending'))
-          return
-        }
-        sessionStorage.removeItem(storageKey)
-        sessionStorage.removeItem(`${storageKey}:replacement`)
-        setCandidate(null)
+      if (!current) {
+        if (replacement) throw new Error('Unconfirmed replacement')
+        setMessage(t('retrySameSetup'))
+        return
+      }
+      if (replacement) {
+        const isCurrent =
+          current.id === replacement.primaryWrapper.vaultId &&
+          current.lastOperationId === replacement.operationId &&
+          JSON.stringify(vaultWrapperSchema.parse(current.primaryWrapper)) ===
+            JSON.stringify(replacement.primaryWrapper)
+        sessionStorage.removeItem(storageKey + ':replacement')
         setReplacement(null)
-        await onRefresh()
-        setMessage(t('reconciled'))
-      } else setMessage(t('retrySameSetup'))
+        setMessage(t(isCurrent ? 'replacementActive' : 'replacementInactive'))
+      } else if (candidate) {
+        const sameSetup =
+          current.id === candidate.vaultId &&
+          current.setupId === candidate.setupId &&
+          JSON.stringify(vaultWrapperSchema.parse(current.recoveryWrapper)) ===
+            JSON.stringify(candidate.recoveryWrapper)
+        sessionStorage.removeItem(storageKey)
+        setCandidate(null)
+        setMessage(t(sameSetup ? 'reconciled' : 'lostSetup'))
+      }
     })
   async function rawUnlock() {
     if (!vault) throw new Error('Missing vault')
@@ -266,96 +266,6 @@ export function VaultControls({
       } finally {
         raw.fill(0)
       }
-    })
-  const prepareChange = (method: 'passphrase' | 'passkey' = 'passphrase') =>
-    run(async (version) => {
-      if (!vault || replacement) return
-      const passkey =
-        method === 'passkey' ? await enrollPasskey(vault.id) : null
-      if (passkey) {
-        try {
-          check(version)
-        } catch (error) {
-          passkey.output.fill(0)
-          throw error
-        }
-      }
-      let raw: Uint8Array | null = null
-      const fresh = generatePassphrase()
-      try {
-        raw = await rawUnlock()
-        const primaryWrapper = await wrapRoot(
-          raw,
-          {
-            ownerId,
-            vaultId: vault.id,
-            wrapperId: crypto.randomUUID(),
-            purpose: method,
-            profileId: passkey
-              ? 'webauthn-prf-hkdf-sha256'
-              : 'pbkdf2-sha256-600000',
-            salt: passkey ? null : generatePassphraseSalt(),
-            passkeyBinding: passkey?.binding ?? null,
-          },
-          passkey?.output ?? fresh,
-        )
-        check(version)
-        const next = {
-          operationId: crypto.randomUUID(),
-          expectedRevision: vault.revision,
-          primaryWrapper,
-          submitted: false,
-        }
-        sessionStorage.setItem(
-          `${storageKey}:replacement`,
-          JSON.stringify(next),
-        )
-        setReplacement(next)
-        setPhrase(passkey ? '' : fresh)
-      } finally {
-        raw?.fill(0)
-        passkey?.output.fill(0)
-      }
-    })
-  const change = () =>
-    run(async (version) => {
-      if (!replacement) return
-      if (!replacement.submitted) {
-        const secret =
-          replacement.primaryWrapper.purpose === 'passkey'
-            ? await assertPasskey(
-                replacement.primaryWrapper.vaultId,
-                replacement.primaryWrapper.passkeyBinding!,
-              )
-            : entry
-        try {
-          const raw = await unwrapRoot(replacement.primaryWrapper, secret)
-          raw.fill(0)
-        } finally {
-          if (secret instanceof Uint8Array) secret.fill(0)
-        }
-      }
-      check(version)
-      // The exact sealed intent is retained before an uncertain request.
-      sessionStorage.setItem(
-        `${storageKey}:replacement`,
-        JSON.stringify({...replacement, submitted: true}),
-      )
-      setReplacement({...replacement, submitted: true})
-      const requestBody = {
-        operationId: replacement.operationId,
-        expectedRevision: replacement.expectedRevision,
-        primaryWrapper: replacement.primaryWrapper,
-      }
-      const result = await request('PATCH', requestBody)
-      check(version)
-      if (result.status === 'success' || result.status === 'conflict') {
-        sessionStorage.removeItem(`${storageKey}:replacement`)
-        setReplacement(null)
-        setPhrase('')
-        await onRefresh()
-        setMessage(t(result.status === 'success' ? 'changed' : 'reconciled'))
-      } else throw new Error('Unconfirmed replacement')
     })
   return (
     <section
@@ -390,20 +300,10 @@ export function VaultControls({
               )}
             </Button>
           </div>
-          {(replacement
-            ? replacement.primaryWrapper.purpose !== 'passkey'
-            : recovery || vault.primaryWrapper.purpose !== 'passkey') && (
+          {(recovery || vault.primaryWrapper.purpose !== 'passkey') && (
             <>
               <label className="block space-y-2">
-                <span>
-                  {t(
-                    replacement
-                      ? 'confirmNew'
-                      : recovery
-                        ? 'recoveryKey'
-                        : 'passphrase',
-                  )}
-                </span>
+                <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
                 <Input
                   autoComplete="off"
                   type={reveal ? 'text' : 'password'}
@@ -416,67 +316,21 @@ export function VaultControls({
               </Button>
             </>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              loading={busy}
-              onClick={() => void unlock()}
-              disabled={
-                active ||
-                (!entry &&
-                  (recovery || vault.primaryWrapper.purpose !== 'passkey')) ||
-                Boolean(replacement)
-              }
-            >
-              {t('unlock')}
-            </Button>
-            <Button
-              variant="secondary"
-              loading={busy}
-              disabled={
-                (!entry &&
-                  (recovery || vault.primaryWrapper.purpose !== 'passkey')) ||
-                Boolean(replacement)
-              }
-              onClick={() => void prepareChange()}
-            >
-              {t('change')}
-            </Button>
-            <Button
-              variant="secondary"
-              loading={busy}
-              disabled={
-                (!entry &&
-                  (recovery || vault.primaryWrapper.purpose !== 'passkey')) ||
-                Boolean(replacement)
-              }
-              onClick={() => void prepareChange('passkey')}
-            >
-              {t('changePasskey')}
-            </Button>
-          </div>
-          {replacement ? (
+          <Button
+            loading={busy}
+            onClick={() => void unlock()}
+            disabled={
+              active ||
+              (!entry &&
+                (recovery || vault.primaryWrapper.purpose !== 'passkey'))
+            }
+          >
+            {t('unlock')}
+          </Button>
+          <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>
+          {(replacement || candidate?.submitted) && (
             <>
-              <p className="text-sm">
-                {t(
-                  replacement.primaryWrapper.purpose === 'passkey'
-                    ? 'verifyNewPasskey'
-                    : 'saveNew',
-                )}
-              </p>
-              {phrase ? (
-                <p className="font-mono break-words">{phrase}</p>
-              ) : null}
-              <Button
-                loading={busy}
-                disabled={
-                  !entry &&
-                  !replacement.submitted &&
-                  replacement.primaryWrapper.purpose !== 'passkey'
-                }
-                onClick={() => void change()}
-              >
-                {t(replacement.submitted ? 'retryChange' : 'confirmChange')}
-              </Button>
+              {replacement && <p>{t('replacementCheck')}</p>}
               <Button
                 variant="secondary"
                 loading={busy}
@@ -485,7 +339,7 @@ export function VaultControls({
                 {t('reconcile')}
               </Button>
             </>
-          ) : null}
+          )}
         </>
       ) : candidate ? (
         <>

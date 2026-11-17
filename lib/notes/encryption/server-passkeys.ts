@@ -12,6 +12,7 @@ import {and, eq, gt, sql} from 'drizzle-orm'
 import {z} from 'zod'
 import {db} from '~/db'
 import {usersTable} from '~/db/schema/users'
+import {noteVaultsTable} from '~/db/schema/note-vaults'
 import {
   notePasskeysTable as credentials,
   notePasskeyChallengesTable as challenges,
@@ -86,6 +87,19 @@ export async function passkeyCeremony(
       .where(eq(usersTable.id, ownerId))
       .for('update')
     if (!user) return {status: 'unavailable'}
+    if (
+      v.operation === 'register-options' ||
+      v.operation === 'register-verify'
+    ) {
+      if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
+        return {status: 'disabled'}
+      const [vault] = await tx
+        .select({id: noteVaultsTable.id})
+        .from(noteVaultsTable)
+        .where(eq(noteVaultsTable.ownerId, ownerId))
+        .limit(1)
+      if (vault) return {status: 'disabled'}
+    }
     // Delete only expired, content-free ceremony material.
     await tx
       .delete(challenges)
@@ -99,11 +113,6 @@ export async function passkeyCeremony(
       v.operation === 'register-options' ||
       v.operation === 'assertion-options'
     ) {
-      if (
-        v.operation === 'register-options' &&
-        process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true'
-      )
-        return {status: 'disabled'}
       if (v.operation === 'assertion-options') {
         const [credential] = await tx
           .select()

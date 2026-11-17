@@ -23,9 +23,8 @@ export const POST = (request: NextRequest) =>
     (owner, input) => encryptionRepository.setup(owner, input),
     16384,
   )
-export const PATCH = (request: NextRequest) =>
-  encryptedMutation(
-    request,
-    (owner, input) => encryptionRepository.replacePrimary(owner, input),
-    16384,
-  )
+// Replacement stays closed until vault-possession authorization is reviewed.
+export const PATCH = async (request: NextRequest) => {
+  const access = await encryptionAuth(request, true)
+  return access.error ?? encryptionReply({status: 'disabled'}, 403)
+}

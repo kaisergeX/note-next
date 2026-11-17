@@ -1,7 +1,66 @@
 import {test, expect} from './fixtures'
 import messages from '../../dictionaries/en.json' with {type: 'json'}
+import type {ConfirmedVault} from '../../lib/notes/encryption/runtime'
 const v = messages.note.vault
-test('virtual authenticator PRF enrollment, relock, recovery replacement and cancellation fail closed', async ({
+function closedEnrollmentOrigin() {
+  const origin = new URL(process.env.NOTES_CLOSED_ENROLLMENT_ORIGIN!)
+  expect(origin.protocol).toBe('http:')
+  expect(origin.hostname).toBe(new URL(process.env.NOTES_TEST_ORIGIN!).hostname)
+  return origin.origin
+}
+const registrationRequests = (vaultId: string) => [
+  {operation: 'register-options', vaultId},
+  {
+    operation: 'register-verify',
+    ceremonyId: crypto.randomUUID(),
+    response: {
+      id: 'AA',
+      rawId: 'AA',
+      type: 'public-key',
+      clientExtensionResults: {},
+      response: {clientDataJSON: 'AA', attestationObject: 'AA'},
+    },
+  },
+]
+// Use a local preview sharing the fixture DB/auth secret with BOTH enrollment
+// and creation flags disabled. The stress suite's creation-only origin is separate.
+test('closed enrollment and creation refuse new-account registration and replacement', async ({
+  page,
+  noteApp,
+}) => {
+  test.skip(
+    !process.env.NOTES_CLOSED_ENROLLMENT_ORIGIN,
+    'Set NOTES_CLOSED_ENROLLMENT_ORIGIN to a preview with both NOTE_ENCRYPTION_ENROLLMENT_ENABLED and NOTE_ENCRYPTION_CREATION_ENABLED false.',
+  )
+  const origin = closedEnrollmentOrigin()
+  const headers = {origin, 'x-note-encryption-protocol': '1'}
+  const before = await page.request.get(`${origin}/api/note-vault`)
+  expect(before.ok()).toBe(true)
+  expect((await before.json()).vault).toBeNull()
+  for (const data of registrationRequests(crypto.randomUUID())) {
+    const response = await page.request.post(
+      `${origin}/api/note-vault/passkey`,
+      {
+        headers,
+        data,
+      },
+    )
+    expect(response.ok()).toBe(true)
+    expect(await response.json()).toEqual({status: 'disabled'})
+  }
+  const replacement = await page.request.patch(`${origin}/api/note-vault`, {
+    headers,
+    data: {},
+  })
+  expect(replacement.status()).toBe(403)
+  expect(await replacement.json()).toEqual({status: 'disabled'})
+  const after = await page.request.get(`${origin}/api/note-vault`)
+  expect(after.ok()).toBe(true)
+  expect((await after.json()).vault).toBeNull()
+  expect(noteApp.ownerId).toBeTruthy()
+})
+
+test('virtual authenticator PRF enrollment, refused replacement, reconciliation and cancellation fail closed', async ({
   page,
   context,
   noteApp,
@@ -68,37 +127,129 @@ test('virtual authenticator PRF enrollment, relock, recovery replacement and can
       page.getByRole('button', {name: v.usePasskey, exact: true}),
     ).toBeVisible()
     await page.getByLabel(v.recoveryKey, {exact: true}).fill(kit)
-    await page.getByRole('button', {name: v.changePasskey, exact: true}).click()
+    await page.getByRole('button', {name: v.unlock, exact: true}).click()
     await expect(
-      page.getByRole('button', {name: v.confirmChange, exact: true}),
+      page.getByRole('button', {name: v.lock, exact: true}),
     ).toBeVisible()
-    await expect(
-      page.getByText(v.verifyNewPasskey, {exact: true}),
-    ).toBeVisible()
-    await expect(page.getByLabel(v.confirmNew, {exact: true})).not.toBeVisible()
-    // Commit the replacement, then lose its acknowledgement. Only the exact
-    // sealed operation is retained, and a reload must reconcile server state.
-    await page.route('**/api/note-vault', async (route) => {
-      if (route.request().method() !== 'PATCH') return route.continue()
-      expect((await route.fetch()).ok()).toBe(true)
-      await route.abort('failed')
-    })
-    const committed = page.waitForRequest(
-      (request) =>
-        request.method() === 'PATCH' &&
-        new URL(request.url()).pathname === '/api/note-vault',
-    )
-    await page.getByRole('button', {name: v.confirmChange, exact: true}).click()
-    await committed
-    await expect(
-      page.getByRole('alert').filter({hasText: v.failed}),
-    ).toBeVisible()
-    await page.unroute('**/api/note-vault')
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
     await page.reload()
-    await page.getByRole('button', {name: v.reconcile, exact: true}).click()
-    await expect(
-      page.getByRole('status').filter({hasText: v.reconciled}),
-    ).toBeVisible()
+    const before = await page.request.get('/api/note-vault')
+    expect(before.ok()).toBe(true)
+    const {vault} = (await before.json()) as {vault: ConfirmedVault}
+    // Send the unchanged sealed wrapper through the real guarded route.
+    const refused = await page.request.patch('/api/note-vault', {
+      headers: {
+        origin: new URL(page.url()).origin,
+        'x-note-encryption-protocol': '1',
+      },
+      data: {
+        operationId: crypto.randomUUID(),
+        expectedRevision: vault.revision,
+        primaryWrapper: vault.primaryWrapper,
+      },
+    })
+    expect(refused.status()).toBe(403)
+    expect(await refused.json()).toEqual({status: 'disabled'})
+    const unchanged = await page.request.get('/api/note-vault')
+    expect(unchanged.ok()).toBe(true)
+    expect((await unchanged.json()).vault).toEqual(vault)
+    for (const data of registrationRequests(vault.id)) {
+      const registration = await page.request.post('/api/note-vault/passkey', {
+        headers: {
+          origin: new URL(page.url()).origin,
+          'x-note-encryption-protocol': '1',
+        },
+        data,
+      })
+      expect(registration.ok()).toBe(true)
+      expect(await registration.json()).toEqual({status: 'disabled'})
+    }
+
+    let browserPatches = 0
+    page.on('request', (request) => {
+      if (
+        request.method() === 'PATCH' &&
+        new URL(request.url()).pathname === '/api/note-vault'
+      )
+        browserPatches++
+    })
+    const historicalCases = [
+      {
+        operationId: crypto.randomUUID(),
+        primaryWrapper: vault.primaryWrapper,
+        active: false,
+      },
+      {
+        operationId: vault.lastOperationId,
+        primaryWrapper: {
+          ...vault.primaryWrapper,
+          wrapperId: crypto.randomUUID(),
+        },
+        active: false,
+      },
+      {
+        operationId: vault.lastOperationId,
+        primaryWrapper: vault.primaryWrapper,
+        active: true,
+      },
+    ]
+    for (const historical of historicalCases) {
+      // Synthetic preupgrade local state uses existing ciphertext only.
+      await page.evaluate(
+        ({ownerId, vault, historical}) => {
+          sessionStorage.setItem(
+            `eton-provisional-vault:${ownerId}:replacement`,
+            JSON.stringify({
+              operationId: historical.operationId,
+              expectedRevision: vault.revision,
+              primaryWrapper: historical.primaryWrapper,
+              submitted: true,
+            }),
+          )
+        },
+        {ownerId: noteApp.ownerId, vault, historical},
+      )
+      await page.reload()
+      // Old pending state cannot block the authoritative passkey.
+      await page.getByRole('button', {name: v.unlock, exact: true}).click()
+      await expect(
+        page.getByRole('button', {name: v.lock, exact: true}),
+      ).toBeVisible()
+      await page.getByRole('button', {name: v.lock, exact: true}).click()
+      if (historical.active) {
+        await page.route('**/api/note-vault', (route) => route.abort('failed'))
+        await page.getByRole('button', {name: v.reconcile, exact: true}).click()
+        await expect(
+          page.getByRole('alert').filter({hasText: v.failed}),
+        ).toBeVisible()
+        await expect(
+          page.getByText(v.replacementCheck, {exact: true}),
+        ).toBeVisible()
+        await page.unroute('**/api/note-vault')
+      }
+      await page.getByRole('button', {name: v.reconcile, exact: true}).click()
+      await expect(
+        page.getByRole('status').filter({
+          hasText: historical.active
+            ? v.replacementActive
+            : v.replacementInactive,
+        }),
+      ).toBeVisible()
+      expect(
+        await page.evaluate(
+          (ownerId) =>
+            sessionStorage.getItem(
+              `eton-provisional-vault:${ownerId}:replacement`,
+            ),
+          noteApp.ownerId,
+        ),
+      ).toBeNull()
+      expect(browserPatches).toBe(0)
+    }
+    if (process.env.NOTES_CLOSED_ENROLLMENT_ORIGIN) {
+      // The same authenticator must still open the vault after enrollment closes.
+      await page.goto(closedEnrollmentOrigin() + '/en/collection/encrypted')
+    }
     await page.getByRole('button', {name: v.unlock, exact: true}).click()
     await expect(
       page.getByRole('button', {name: v.lock, exact: true}),

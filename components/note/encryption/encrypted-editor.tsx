@@ -56,6 +56,7 @@ type Actions = {
   flush: () => Promise<void>
   save: () => Promise<void>
   resume: () => Promise<void>
+  retry: () => Promise<void>
   resolve: (mine: boolean) => Promise<void>
   recover: (target: EncryptedRemote | null) => Promise<void>
 }
@@ -96,6 +97,7 @@ export default function EncryptedEditor({
   const [status, setStatus] = useState<PersistenceStatus>('loading')
   const [refused, setRefused] = useState(false)
   const [recoveryPending, setRecoveryPending] = useState(false)
+  const [resolutionPending, setResolutionPending] = useState(false)
   const [conflict, setConflict] = useState<{
     title: string | null
     content: string | null
@@ -129,6 +131,7 @@ export default function EncryptedEditor({
     const epoch = currentVaultEpoch()
     let mounted = true,
       saving = false,
+      resolving = false,
       recovering = false,
       durable = -1,
       preserved = -1,
@@ -226,6 +229,7 @@ export default function EncryptedEditor({
         !record ||
         !valid() ||
         saving ||
+        resolving ||
         readOnly ||
         record.conflict ||
         record.refusal ||
@@ -357,6 +361,13 @@ export default function EncryptedEditor({
     actions.current = {
       flush,
       save,
+      async retry() {
+        await flush()
+        if (!valid()) return
+        display()
+        report(localStatus())
+        if (record && hasPendingEncryptedEdits(record)) scheduleSave()
+      },
       async recover(target) {
         if (
           !record?.refusal ||
@@ -412,7 +423,8 @@ export default function EncryptedEditor({
         }
       },
       edit(field, value) {
-        if (!record || !valid() || readOnly || record.conflict) return
+        if (!record || !valid() || readOnly || record.conflict || resolving)
+          return
         record.draft[field] = value || null
         record.route.generation++
         report('unsaved')
@@ -427,7 +439,11 @@ export default function EncryptedEditor({
         scheduleSave()
       },
       async resolve(mine) {
-        if (!record?.conflict || !valid()) return
+        if (!record?.conflict || !valid() || readOnly || resolving || saving)
+          return
+        resolving = true
+        setResolutionPending(true)
+        const remote = structuredClone(record.conflict)
         try {
           // Preserve the original local/base/remote/flight before resolving.
           const retained = structuredClone(record)
@@ -441,8 +457,8 @@ export default function EncryptedEditor({
           )
             throw new Error('Preservation failed')
           if (!valid()) return
-          if (!mine) record.draft = structuredClone(record.conflict)
-          record.baseline = structuredClone(record.conflict)
+          if (!mine) record.draft = structuredClone(remote)
+          record.baseline = remote
           record.baselineVerified = true
           record.conflict = null
           record.conflictRevision = null
@@ -458,7 +474,11 @@ export default function EncryptedEditor({
           report(localStatus())
           if (hasPendingEncryptedEdits(record)) scheduleSave()
         } catch {
+          display()
           report('error')
+        } finally {
+          resolving = false
+          if (valid()) setResolutionPending(false)
         }
       },
     }
@@ -702,7 +722,7 @@ export default function EncryptedEditor({
           {onClose && (
             <Button
               variant="ghost"
-              disabled={recoveryPending}
+              disabled={recoveryPending || resolutionPending}
               onClick={() => {
                 void actions.current
                   ?.flush()
@@ -754,6 +774,7 @@ export default function EncryptedEditor({
           />
           <div className="flex flex-wrap gap-2">
             <Button
+              disabled={resolutionPending}
               onClick={() => {
                 void actions.current?.resolve(true)
               }}
@@ -762,6 +783,7 @@ export default function EncryptedEditor({
             </Button>
             <Button
               variant="secondary"
+              disabled={resolutionPending}
               onClick={() => {
                 void actions.current?.resolve(false)
               }}
@@ -782,10 +804,7 @@ export default function EncryptedEditor({
                 setAttempt((value) => value + 1)
                 return
               }
-              void actions.current
-                ?.flush()
-                .then(() => setStatus('local'))
-                .catch(() => setStatus('error'))
+              void actions.current?.retry().catch(() => setStatus('error'))
             }}
           >
             {t(status === 'recovery_error' ? 'retryOpen' : 'retry')}

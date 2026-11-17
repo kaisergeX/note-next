@@ -24,11 +24,6 @@ export const setupVaultSchema = z.strictObject({
   primaryWrapper: vaultWrapperSchema,
   recoveryWrapper: vaultWrapperSchema,
 })
-export const replacePrimarySchema = z.strictObject({
-  operationId: id,
-  expectedRevision: id,
-  primaryWrapper: vaultWrapperSchema,
-})
 export const encryptedWriteSchema = z
   .strictObject({
     mode: z.literal('encrypted'),
@@ -146,49 +141,6 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
             primaryWrapper: v.primaryWrapper,
             recoveryWrapper: v.recoveryWrapper,
           })
-          .returning()
-        return {status: 'success', vault}
-      })
-    },
-    async replacePrimary(ownerId: string, input: unknown) {
-      const parsed = replacePrimarySchema.safeParse(input)
-      if (!parsed.success) return {status: 'invalid_input'}
-      const v = parsed.data
-      if (
-        v.primaryWrapper.ownerId !== ownerId ||
-        v.primaryWrapper.purpose === 'recovery'
-      )
-        return {status: 'invalid_input'}
-      return owned(ownerId, async (tx) => {
-        const current = await getVault(ownerId, tx)
-        if (!current) return {status: 'unavailable'}
-        if (v.primaryWrapper.vaultId !== current.id)
-          return {status: 'invalid_input'}
-        if (
-          current.lastOperationId === v.operationId &&
-          same(current.primaryWrapper, v.primaryWrapper)
-        )
-          return {status: 'success', vault: current}
-        if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
-          return {status: 'invalid_input'}
-        if (
-          current.revision !== v.expectedRevision ||
-          current.lastOperationId === v.operationId
-        )
-          return {status: 'conflict', vault: current}
-        const [vault] = await tx
-          .update(vaults)
-          .set({
-            primaryWrapper: v.primaryWrapper,
-            revision: randomUUID(),
-            lastOperationId: v.operationId,
-          })
-          .where(
-            and(
-              eq(vaults.ownerId, ownerId),
-              eq(vaults.revision, v.expectedRevision),
-            ),
-          )
           .returning()
         return {status: 'success', vault}
       })

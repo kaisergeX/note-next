@@ -1186,89 +1186,180 @@ test('a different tab checkpoint cannot be overwritten by a larger local edit co
   ).toBe(true)
 })
 
-test('reopen refreshes clean work and preserves conflict revision across reload', async ({
-  page,
-  noteApp,
-}) => {
-  test.setTimeout(90_000)
-  const {root, phrase} = await enroll(page, noteApp.ownerId)
-  const body = page.getByRole('textbox', {name: e.body, exact: true})
-  await body.fill('Initial baseline')
-  const firstSaved = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'PUT' &&
-      response.url().includes('/api/note-encryption/'),
-  )
-  await page.getByRole('button', {name: e.save, exact: true}).click()
-  const first = await (await firstSaved).json()
-  await expect(
-    page.getByRole('status').filter({hasText: e.synced}),
-  ).toBeVisible()
-  const {
-    id: noteId,
-    encryptedPayload: {vaultId},
-  } = first.note
-  const remoteWrite = async (revision: string, content: string) => {
-    const payload = await sealNote(
-      root,
-      noteApp.ownerId,
-      {vaultId, noteId, contentId: randomUUID()},
-      {title: null, content: `<p>${content}</p>`},
+for (const resolution of ['mine', 'double remote', 'retry mine'] as const) {
+  test(`reopen preserves conflict revision and resolves ${resolution}`, async ({
+    page,
+    noteApp,
+  }) => {
+    test.setTimeout(90_000)
+    const {root, phrase} = await enroll(page, noteApp.ownerId)
+    const body = page.getByRole('textbox', {name: e.body, exact: true})
+    await body.fill('Initial baseline')
+    const firstSaved = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'PUT' &&
+        response.url().includes('/api/note-encryption/'),
     )
-    const response = await page.request.put(`/api/note-encryption/${noteId}`, {
-      headers: {
-        Origin: new URL(page.url()).origin,
-        'Content-Type': 'application/json',
-        'x-note-encryption-protocol': '1',
-      },
-      data: prepareEncryptedWrite(payload, revision, null),
-    })
-    const result = await response.json()
-    expect(result.status).toBe('success')
-    return result.note.revision as string
-  }
-  const secondRevision = await remoteWrite(
-    first.note.revision,
-    'New version from another device',
-  )
-  await page.goto(`/en/eton/${noteId}`)
-  const unlock = async () => {
-    await page.getByLabel(v.passphrase, {exact: true}).fill(phrase)
-    await page.getByRole('button', {name: v.unlock, exact: true}).click()
-    await expect(body).toBeVisible()
-  }
-  await unlock()
-  await expect(body).toContainText('New version from another device')
-  await body.fill('Local work must survive conflict review reload')
-  await expect(
-    page.getByRole('status').filter({hasText: e.local}),
-  ).toBeVisible()
-  const thirdRevision = await remoteWrite(
-    secondRevision,
-    'Concurrent remote edit',
-  )
-  await page.reload()
-  await unlock()
-  await expect(
-    page.getByRole('button', {name: e.keepMine, exact: true}),
-  ).toBeVisible()
-  await page.reload()
-  await unlock()
-  await expect(
-    page.getByRole('button', {name: e.keepMine, exact: true}),
-  ).toBeVisible()
-  const resolved = page.waitForRequest(
-    (request) =>
-      request.method() === 'PUT' &&
-      request.url().includes('/api/note-encryption/'),
-  )
-  await page.getByRole('button', {name: e.keepMine, exact: true}).click()
-  expect((await resolved).postDataJSON().expectedRevision).toBe(thirdRevision)
-  await expect(
-    page.getByRole('status').filter({hasText: e.synced}),
-  ).toBeVisible({timeout: 25_000})
-  await expect(body).toContainText('Local work must survive')
-})
+    await page.getByRole('button', {name: e.save, exact: true}).click()
+    const first = await (await firstSaved).json()
+    await expect(
+      page.getByRole('status').filter({hasText: e.synced}),
+    ).toBeVisible()
+    const {
+      id: noteId,
+      encryptedPayload: {vaultId},
+    } = first.note
+    const remoteWrite = async (revision: string, content: string) => {
+      const payload = await sealNote(
+        root,
+        noteApp.ownerId,
+        {vaultId, noteId, contentId: randomUUID()},
+        {title: null, content: `<p>${content}</p>`},
+      )
+      const response = await page.request.put(
+        `/api/note-encryption/${noteId}`,
+        {
+          headers: {
+            Origin: new URL(page.url()).origin,
+            'Content-Type': 'application/json',
+            'x-note-encryption-protocol': '1',
+          },
+          data: prepareEncryptedWrite(payload, revision, null),
+        },
+      )
+      const result = await response.json()
+      expect(result.status).toBe('success')
+      return result.note.revision as string
+    }
+    const secondRevision = await remoteWrite(
+      first.note.revision,
+      'New version from another device',
+    )
+    await page.goto(`/en/eton/${noteId}`)
+    const unlock = async () => {
+      await page.getByLabel(v.passphrase, {exact: true}).fill(phrase)
+      await page.getByRole('button', {name: v.unlock, exact: true}).click()
+      await expect(body).toBeVisible()
+    }
+    await unlock()
+    await expect(body).toContainText('New version from another device')
+    await body.fill('Local work must survive conflict review reload')
+    await expect(
+      page.getByRole('status').filter({hasText: e.local}),
+    ).toBeVisible()
+    const thirdRevision = await remoteWrite(
+      secondRevision,
+      'Concurrent remote edit',
+    )
+    await page.reload()
+    await unlock()
+    await expect(
+      page.getByRole('button', {name: e.keepMine, exact: true}),
+    ).toBeVisible()
+    await page.reload()
+    await unlock()
+    await expect(
+      page.getByRole('button', {name: e.keepMine, exact: true}),
+    ).toBeVisible()
+    if (resolution === 'retry mine') {
+      await page.evaluate(() => {
+        const original = IDBObjectStore.prototype.put
+        IDBObjectStore.prototype.put = function (
+          ...args: Parameters<IDBObjectStore['put']>
+        ) {
+          if (this.name === 'headers' && args[0].status !== 'retained') {
+            IDBObjectStore.prototype.put = original
+            throw new DOMException('Synthetic quota', 'QuotaExceededError')
+          }
+          return original.apply(this, args)
+        }
+      })
+    }
+    if (resolution === 'double remote') {
+      const before = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve) => {
+          const request = indexedDB.open('etoN-encrypted-note-recovery')
+          request.onsuccess = () => resolve(request.result)
+        })
+        const count = await new Promise<number>((resolve) => {
+          const request = db
+            .transaction('headers')
+            .objectStore('headers')
+            .count()
+          request.onsuccess = () => resolve(request.result)
+        })
+        db.close()
+        return count
+      })
+      await page
+        .getByRole('button', {name: e.useRemote, exact: true})
+        .evaluate((button) => {
+          ;(button as HTMLButtonElement).click()
+          ;(button as HTMLButtonElement).click()
+        })
+      await expect(
+        page.getByRole('button', {name: e.useRemote, exact: true}),
+      ).not.toBeVisible()
+      await expect(body).toContainText('Concurrent remote edit')
+      await expect(
+        page.getByRole('status').filter({hasText: e.synced}),
+      ).toBeVisible()
+      const pair = await checkpointPair(page)
+      const opened = await openRecovery(
+        root,
+        recoveryRouteFromHeader(pair.header),
+        pair.envelope,
+      )
+      const record = validateRecoveryPayload(
+        opened,
+        recoveryRouteFromHeader(pair.header),
+      )
+      expect(record.draft.content).toContain('Concurrent remote edit')
+      expect(record.baseline?.content).toContain('Concurrent remote edit')
+      // One retained original is added even when both events precede a React render.
+      const after = await page.evaluate(async () => {
+        const db = await new Promise<IDBDatabase>((resolve) => {
+          const request = indexedDB.open('etoN-encrypted-note-recovery')
+          request.onsuccess = () => resolve(request.result)
+        })
+        const count = await new Promise<number>((resolve) => {
+          const request = db
+            .transaction('headers')
+            .objectStore('headers')
+            .count()
+          request.onsuccess = () => resolve(request.result)
+        })
+        db.close()
+        return count
+      })
+      expect(after).toBe(before + 1)
+      await page.getByRole('button', {name: v.lock, exact: true}).click()
+      await expect(page.getByText(v.locked, {exact: true})).toBeVisible()
+      return
+    }
+    const resolved = page.waitForRequest(
+      (request) =>
+        request.method() === 'PUT' &&
+        request.url().includes('/api/note-encryption/'),
+    )
+    await page.getByRole('button', {name: e.keepMine, exact: true}).click()
+    if (resolution === 'retry mine') {
+      await expect(
+        page.getByRole('alert').filter({hasText: e.failure}),
+      ).toBeVisible()
+      await expect(
+        page.getByRole('button', {name: e.keepMine, exact: true}),
+      ).not.toBeVisible()
+      await expect(body).toContainText('Local work must survive')
+      await page.getByRole('button', {name: e.retry, exact: true}).click()
+    }
+    expect((await resolved).postDataJSON().expectedRevision).toBe(thirdRevision)
+    await expect(
+      page.getByRole('status').filter({hasText: e.synced}),
+    ).toBeVisible({timeout: 25_000})
+    await expect(body).toContainText('Local work must survive')
+  })
+}
 
 test('lost acknowledgement preserves exact flight while later edits sync after retry', async ({
   page,
