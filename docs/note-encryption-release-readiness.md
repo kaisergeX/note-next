@@ -1,8 +1,39 @@
 # Encryption candidate release evidence
 
-Updated 2026-11-17. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
+Updated 2026-11-18. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
 
 ## Current PR scope
+
+### November 18 signed-authorization candidate
+
+Local source commit `b8a6e54e90821433c9f26023b37a147aead22b6b` on `feature/note-e2ee` implements the owner-authorized root proof for primary replacement. It supersedes the historical replacement hold below. Publication, deployment and rollout remain reserved to the owner. Enrollment and creation stay disabled by default. Earlier source manifests still describe their original snapshots.
+
+- New enrollment atomically pins authorization version 1, an ECDSA P-256/SHA-256 public verifier and an independently generated private signer sealed under a domain-separated root-derived key. Setup confirmation binds both wrappers and the complete authorization artifact. Reconciliation verifies setup identity, recovery wrapper and authorization before claiming the saved kit belongs to the installed vault.
+- Replacement signs the complete versioned intent, authenticated owner, vault, pinned verifier, expected revision, operation ID and full proposed wrapper. Account-session-only PATCH is refused. The client reopens the proposed wrapper and pinned signer before signing; recovery can authorize this without the lost primary. The root, recovery bytes and note/local recovery envelopes remain unchanged.
+- Accepted-operation receipts persist for the vault lifetime; no pruning is implemented. Identity uses the canonical intent digest, excluding signature bytes. Retry A after later B reports A as historical and B as current without restoring A. New stale operations and changed-intent operation-ID reuse fail. Exact committed retries precede new-passkey freshness checks.
+- Existing vaults are authorization version 0. Ordinary unlock, recovery and note access remain available while replacement is disabled. Missing or corrupt signer state never bootstraps or repairs a verifier. The owner confirmed that the old local vaults are disposable. Preserve real legacy vaults pending a separately reviewed policy.
+
+The exact two Node commands behind `test:notes:encryption` passed November 18: 24 crypto/authorization/body/storage tests and one runtime test (25 total). The four authorization tests cover strict encodings, malformed public points, an independently OpenSSL-sealed wrong private key, altered contexts and intent fields, nonextractable opened keys, fixed independently signed bytes/digests, equivalent signatures sharing an intent digest, and setup commitment binding. The `pnpm` launcher could not fetch its pinned version because registry DNS was unavailable; direct Node invocations used installed dependencies.
+
+All seven repository tests passed against disposable PostgreSQL. They cover signed receipts, historical retries, pinned setup and recovery state, legacy access without bootstrap, closed enrollment and creation behavior, owner isolation, strict schemas and independent database constraints.
+
+Production build `DhGhpmuHQ0aBHFSIJCqCd` passed the full 126-case Chromium matrix in 9.6 minutes with no skips. It includes the epoch check inside the browser write-lock transaction. The three-case passkey suite was subsequently extended to exercise real virtual-authenticator PRF replacement and passed separately in 8.9 seconds.
+
+Final production build `zms2A9gHY8YG4scBhnTSQ` includes the visual review fixes. Repository ESLint, TypeScript, focused Prettier, `git diff --check`, the Next build and the Serwist build passed. All 10 targeted Chromium cases passed in 40.8 seconds, including EN/VI keyboard confirmation, cancellation and success focus, virtual PRF replacement and new-passkey unlock with both flags closed, tab locking, recovery and durable signed intent and receipt behavior. The full 126-case matrix applies to the preceding build. The final changes affect replacement focus and status copy, which the targeted run rechecked directly.
+
+On the final build, three PostgreSQL `pg_dump -Fc` and `pg_restore` rehearsals passed with fresh Chromium 158.0.8127.18, Firefox 159.0 and desktop Windows WebKit 27.2 recovery profiles. Each compared restored vault and receipt values with the originals, reconciled an exact signed retry, authorized a new primary from the saved recovery kit with both flags closed, unlocked with the new primary, recovered the exact note title and body, synced an edit and relocked.
+
+The focused visual re-review passed on the development preview in Paper & Ink light at EN 1440×1000 and VI 390×844. Passphrase confirmation focused its input, cancellation restored a usable credential field, and success focused the new unlock field and displayed the localized result. The reviewer observed a visible 2 px focus indicator and no horizontal overflow. Desktop emulation and virtual authentication leave physical devices, providers and assistive technology to their release gates.
+
+The updated migration rehearsal passed both clean and legacy-note-refusal paths with 20 migrations. It upgrades a pre-authorization V1 vault without changing its original columns, verifies version 0/null authorization, inserts new version-1 state, and checks six rejected pinned-state mutations per path also roll back an earlier note update in the same transaction. Idempotent rerun, preserved active/Trash and quarantined bytes, and previous-client ordinary writes passed. The two generated databases were dropped and their absence verified. Final upgrade samples were 161.55 ms and 147.8 ms; these are local timings, not deployment performance evidence.
+
+Initial attempts exposed obsolete enrollment fixtures, route-announcer locator ambiguity and incorrect closed-origin request construction. The archive runner also stalled while reading a browser response during refresh and later expected the recovery toggle to survive relock. The corrected fixtures capture the accepted request and verify the visible receipt, then relock and reload before checking the new primary. The migration runner required elevated loopback access and corrected fixture JSON serialization and SQL identifier quoting. The final build used the installed Next CLI directly after a Node `--env-file` option propagated to workers and failed.
+
+Cleanup verified all task preview listeners stopped, both authorization/re-review databases absent and their disposable environment files removed. Final archive runs independently verified their generated databases were absent. The first interrupted Chromium run's exact archive pair was also removed and verified. Five older archive database pairs were preserved because the retained evidence did not establish their ownership. Shared development data was preserved. Commits remain local.
+
+The independent specialist protocol/security gate remains open. AI engineering and visual reviews do not satisfy it. All release-owner, physical-device, participant, accessibility and deployment/operator gates below remain open.
+
+### Historical replacement hold
 
 The owner approved closing primary unlock replacement pending independent protocol review. Source and regression tests are committed locally as `20c8512262edc774f25840334ddecc8075e318ea` on `feature/note-e2ee`, tested with production build `JnGqynJXQfOc6kGSA7QTN`. This local PR candidate includes that restriction, an encrypted-editor conflict recovery fix, and their regression tests. Enrollment and encrypted note creation remain off by default. The owner authorized local commits and reserved publication and rollout.
 
@@ -26,11 +57,11 @@ Cleanup was verified after the runs: owned preview/development listeners stopped
 
 To repeat the browser checks, build once and start two loopback previews of that build with the same disposable migrated database and auth secret. Give each its own matching auth origin. Set both encryption flags to true on the setup preview and false on the second preview. Point `NOTES_TEST_ORIGIN` at the setup preview and both `NOTES_CLOSED_CREATION_ORIGIN` and `NOTES_CLOSED_ENROLLMENT_ORIGIN` at the second preview. Run `pnpm test:notes:browser` with that disposable database selected for the runner. The existing [backup rehearsal](../scripts/note-encryption-backup-rehearsal.mjs) accepts `chromium`, `firefox` or `webkit`.
 
-### Before rollout
+### Before rollout of the signed candidate
 
-1. Obtain an independent protocol/security review of the exact candidate. Before restoring replacement, approve a design for verifier enrollment, V1 trust establishment, recovery and retries. The signing fixtures exercise a proposed encoding only. [Protocol review and acceptance cases](note-encryption-authorization-design-review.md)
+1. Obtain independent protocol/security review of the exact source commit and final build, including verifier pinning, version-0 behavior, recovery and durable retries. Review legacy vault inventory and any proposed migration policy separately. [Protocol review and acceptance cases](note-encryption-authorization-design-review.md)
 2. Complete the named phone/provider, performance, screen-reader and EN/VI participant checks. Confirm V1 inventory, proxy limits, logging and backup/restore on the intended hosting stack. [Operator and participant handoff](note-encryption-operator-handoff.md)
-3. Obtain separate release-owner approval. Keep all serving instances on the fixed server when relying on the replacement hold. Returning traffic to an older server restores its session-authorized write path.
+3. Obtain separate release-owner approval. Apply the additive schema before serving the candidate. Keep serving instances on reviewed code that enforces the selected replacement policy. The earliest server accepted session-only replacement.
 
 The evidence below records earlier revisions as tested. Descriptions of successful replacement and session-only replacement refer to those earlier servers. The November 16 source manifest and 117-case browser run describe build `TW1Axqn5MoWv9bjgLTFW7`.
 
@@ -91,7 +122,7 @@ The real-editor test separately measures 30 valid approximately 32 KiB UTF-8 who
 
 ## Operational limits and remaining release gates
 
-The independent protocol review should explicitly assess who may replace the primary unlock method. The supported client first unlocks the current root and verifies the replacement wrapper. The server authenticates the account and checks the vault revision and replacement wrapper, but does not independently verify possession of the current vault root. A compromised account session therefore presents an availability risk for primary unlock. The recovery wrapper remains unchanged. Replacing a primary credential also leaves the vault root unchanged, so it cannot contain exposure of a copied root. These are separate decisions from recovery of a refused note save. [Client credential replacement](../components/note/encryption/vault-controls.tsx) and [server authorization](../db/repositories/note-encryption.ts).
+The independent protocol review should assess whether atomically pinning the signing verifier at enrollment, sealing the signer under the root, and checking the signed intent at replacement establish the intended authorization boundary. Version-0 vaults retain existing unlock and recovery without replacement. Replacement leaves the root and recovery wrapper unchanged, so copies of the root or an older wrapper and its credential remain usable. Account access still has separate availability implications for stored ciphertext. [Client credential replacement](../components/note/encryption/vault-controls.tsx) · [Server authorization](../db/repositories/note-encryption.ts)
 
 | Status / owner | Smallest next action before accepting real notes |
 | --- | --- |

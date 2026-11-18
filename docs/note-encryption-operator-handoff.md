@@ -1,6 +1,6 @@
 # Encryption operator handoff
 
-Updated 2026-11-17. The current candidate closes primary unlock replacement; see its exact source, verification and remaining gates in the [current PR scope](note-encryption-release-readiness.md#current-pr-scope). Production and real-note beta release remain blocked. Enrollment and creation stay disabled by default. The earlier application baseline recorded below is local commit `209ae968c720f63bcc5075ee43782bcb6ff0557a`.
+Updated 2026-11-18. Local source commit `b8a6e54e90821433c9f26023b37a147aead22b6b` requires pinned root-authorized signatures for primary unlock replacement. Production and real-note beta release remain blocked. Enrollment and creation stay disabled by default. The earlier baseline below is local commit `209ae968c720f63bcc5075ee43782bcb6ff0557a`. [Current verification and release gates](note-encryption-release-readiness.md#current-pr-scope)
 
 ## Evidence already available locally
 
@@ -27,7 +27,15 @@ Do not repeat the full passing matrix merely to fill out this document. Rerun re
 7. Disable new enrollment and creation after a synthetic encrypted note exists. Verify ordinary create/edit/search and existing encrypted unlock/read/edit/sync/recovery/delete. Record environment propagation and results. Keep existing encrypted access available.
 8. Record the roll-forward procedure and responsible operator. Once ciphertext or newer strict recovery records exist, a plaintext-only server or an older incompatible recovery client is not a safe rollback. Do not use destructive schema rollback or automatic decryption.
 
-### Inventory for the proposed signing-key migration
+### Authorization-aware backup and upgrade
+
+The additive authorization migration preserves existing wrappers and marks existing vaults version 0. New enrollment requires version 1; old setup clients cannot enroll a new vault. Version-0 vaults retain unlock/recovery but cannot replace their primary. There is no session-only verifier bootstrap, signer repair or reset endpoint. Preserve real legacy vaults pending a reviewed policy; the owner's disposable-local-vault statement is not an operator deletion policy.
+
+A consistent backup must include authorization version, pinned verifier, encrypted signer artifact, immutable setup/recovery state and all accepted-operation receipts together with encrypted notes. Keep receipts for the vault lifetime under this implementation. Restore them together into an isolated target, recover in a fresh profile, and exercise signed replacement and historical receipt reconciliation. Missing/corrupt signer state blocks replacement while ordinary recovery must still open retained notes. Do not generate a verifier to make restoration pass. A database writer, copied root and whole-state rollback remain outside this protection. Older servers must not serve authorization-required replacement.
+
+The November 18 disposable migration rehearsal passed clean and legacy-refusal/quarantine paths with all 20 migrations. It preserved a pre-authorization vault's original columns and assigned version 0/null authorization, checked new version-1 state, and verified six pinned-state rejections per path roll back an earlier note write atomically. Idempotent rerun and previous-client ordinary writes passed; both generated databases were dropped and absence verified. These synthetic fixtures establish local migration behavior, not the actual deployment's vault inventory or privileges.
+
+### Inventory for the signing-key migration
 
 The legacy-note count in step 2 cannot establish whether users already have vaults. A user can complete enrollment and never save an encrypted note. On an installation with the checked-in vault schema, the operator can use the following read-only aggregate without retrieving user identities or wrapped keys.
 

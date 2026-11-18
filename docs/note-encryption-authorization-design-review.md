@@ -1,6 +1,6 @@
 # Vault authorization design peer review
 
-**Current implementation.** Primary unlock replacement is closed in the PR candidate. The assessment below describes the earlier implementation and the proposed protocol for restoring replacement. [Current PR scope](note-encryption-release-readiness.md#current-pr-scope)
+**Current implementation (November 18).** Local source commit `b8a6e54e90821433c9f26023b37a147aead22b6b` implements root-protected signed replacement for atomically enrolled authorization-version-1 vaults. Legacy version-0 vaults retain unlock and recovery without replacement. The assessment below records the historical engineering design. Independent specialist review remains open. [Current scope and evidence](note-encryption-release-readiness.md#current-pr-scope)
 
 Date: 2026-11-17. Scope: local, design-only defensive review of the [wrapper assessment](note-encryption-wrapper-assessment.md), November 17 [release ledger](note-encryption-release-readiness.md), `db/repositories/note-encryption.ts`, `db/schema/note-vaults.ts`, `lib/notes/encryption/{protocol,candidate,runtime,server-http}.ts`, `app/api/note-vault/route.ts` and replacement preparation/confirmation in `components/note/encryption/vault-controls.tsx`.
 
@@ -56,4 +56,4 @@ The server's trust anchor protects against the stated account-session attacker o
 4. Exercise interrupted new setup and selected legacy bootstrap, absent/corrupt/substituted signer state, old-client PATCH, backup restoration and protocol downgrade fences. Preserve recoverable work and require explicit recovery for indeterminate migration state.
 5. Freeze reviewed protocol fixtures and exact source manifest; obtain independent protocol/security review and resolve all existing physical-device, accessibility/usability, production/operator and release-owner gates in the ledger.
 
-The release owner selected design work pending independent review. The replacement endpoint and the application’s rollout defaults remain at their existing behavior.
+The owner subsequently authorized implementation for new vaults while retaining the independent specialist gate. The current release scope records that implementation; this design record and primitive probes do not close that gate. Rollout flags remain disabled by default.

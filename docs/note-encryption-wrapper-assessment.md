@@ -1,6 +1,6 @@
 # Primary-wrapper authorization assessment
 
-**Current implementation.** Primary unlock replacement is closed in the PR candidate. The assessment below describes the earlier implementation and the proposed protocol for restoring replacement. [Current PR scope](note-encryption-release-readiness.md#current-pr-scope)
+**Current implementation (November 18).** Local source commit `b8a6e54e90821433c9f26023b37a147aead22b6b` implements root-protected signed replacement for atomically enrolled authorization-version-1 vaults. Legacy version-0 vaults retain unlock and recovery without replacement. The assessment below describes the earlier vulnerability and proposed remedy. Independent specialist review remains open. [Current scope and evidence](note-encryption-release-readiness.md#current-pr-scope)
 
 Assessment date: 2026-11-16. Reviewed local baseline `209ae968c720f63bcc5075ee43782bcb6ff0557a` on `feature/note-e2ee`. This is an engineering assessment and proposed remedy, not independent protocol approval or permission to enable either feature flag. No protocol, schema, UI, flag or production data was changed for this assessment.
 
