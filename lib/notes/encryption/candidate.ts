@@ -8,6 +8,13 @@ import {
   unwrapRoot,
   wrapRoot,
 } from './crypto'
+import {
+  authorizationSchema,
+  createAuthorization,
+  openAuthorizationSigner,
+  signReplacement,
+  type VaultAuthorization,
+} from './authorization'
 import type {VaultWrapper} from './protocol'
 import {enrollPasskey} from './passkey'
 import {z} from 'zod'
@@ -18,6 +25,7 @@ export const vaultCandidateSchema = z.strictObject({
   setupId: canonicalIdSchema,
   primaryWrapper: vaultWrapperSchema,
   recoveryWrapper: vaultWrapperSchema,
+  authorization: authorizationSchema.optional(),
   commitment: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
   primaryChecked: z.boolean(),
   recoveryChecked: z.boolean(),
@@ -29,6 +37,7 @@ export type VaultCandidate = {
   setupId: string
   primaryWrapper: VaultWrapper
   recoveryWrapper: VaultWrapper
+  authorization?: VaultAuthorization
   commitment: string
   primaryChecked: boolean
   recoveryChecked: boolean
@@ -73,12 +82,19 @@ export async function createVaultCandidate(
       },
       recovery,
     )
+    const authorization = await createAuthorization(
+      root,
+      ownerId,
+      vaultId,
+      setupId,
+    )
     const commitment = await setupRootCommitment(root, {
       ownerId,
       vaultId,
       setupId,
       primary: primaryWrapper,
       recovery: recoveryWrapper,
+      authorization,
     })
     return {
       candidate: {
@@ -87,6 +103,7 @@ export async function createVaultCandidate(
         setupId,
         primaryWrapper,
         recoveryWrapper,
+        authorization,
         commitment,
         primaryChecked: false,
         recoveryChecked: false,
@@ -124,6 +141,9 @@ export async function verifyCandidate(
       setupId: candidate.setupId,
       primary: candidate.primaryWrapper,
       recovery: candidate.recoveryWrapper,
+      ...(candidate.authorization
+        ? {authorization: candidate.authorization}
+        : {}),
     })
     if (actual !== candidate.commitment) throw new Error('Candidate mismatch')
     return {
@@ -135,5 +155,94 @@ export async function verifyCandidate(
   } finally {
     root?.fill(0)
     recovery?.fill(0)
+  }
+}
+
+export type ReplacementCandidate = {
+  ownerId: string
+  vaultId: string
+  setupId: string
+  expectedRevision: string
+  operationId: string
+  authorization: VaultAuthorization
+  primaryWrapper: VaultWrapper
+}
+export async function createReplacementCandidate(
+  raw: Uint8Array,
+  vault: {
+    ownerId: string
+    id: string
+    setupId: string
+    revision: string
+    authorization: VaultAuthorization
+  },
+  method: 'passphrase' | 'passkey',
+  assertCurrent: () => void = () => {},
+) {
+  await openAuthorizationSigner(
+    raw,
+    vault.ownerId,
+    vault.id,
+    vault.setupId,
+    vault.authorization,
+  )
+  assertCurrent()
+  const passkey = method === 'passkey' ? await enrollPasskey(vault.id) : null
+  const phrase = passkey ? '' : generatePassphrase()
+  try {
+    const primaryWrapper = await wrapRoot(
+      raw,
+      {
+        ownerId: vault.ownerId,
+        vaultId: vault.id,
+        wrapperId: crypto.randomUUID(),
+        purpose: method,
+        profileId: passkey
+          ? 'webauthn-prf-hkdf-sha256'
+          : 'pbkdf2-sha256-600000',
+        salt: passkey ? null : generatePassphraseSalt(),
+        passkeyBinding: passkey?.binding ?? null,
+      },
+      passkey?.output ?? phrase,
+    )
+    return {
+      candidate: {
+        ownerId: vault.ownerId,
+        vaultId: vault.id,
+        setupId: vault.setupId,
+        expectedRevision: vault.revision,
+        operationId: crypto.randomUUID(),
+        authorization: vault.authorization,
+        primaryWrapper,
+      } satisfies ReplacementCandidate,
+      passphrase: phrase,
+    }
+  } finally {
+    passkey?.output.fill(0)
+  }
+}
+export async function confirmReplacement(
+  candidate: ReplacementCandidate,
+  secret: string | Uint8Array,
+) {
+  const raw = await unwrapRoot(candidate.primaryWrapper, secret)
+  try {
+    const signer = await openAuthorizationSigner(
+      raw,
+      candidate.ownerId,
+      candidate.vaultId,
+      candidate.setupId,
+      candidate.authorization,
+    )
+    return await signReplacement(signer, {
+      ownerId: candidate.ownerId,
+      vaultId: candidate.vaultId,
+      verifierId: candidate.authorization.verifierId,
+      expectedRevision: candidate.expectedRevision,
+      operationId: candidate.operationId,
+      primaryWrapper: candidate.primaryWrapper,
+    })
+  } finally {
+    raw.fill(0)
   }
 }

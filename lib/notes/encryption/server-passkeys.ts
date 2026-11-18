@@ -91,14 +91,20 @@ export async function passkeyCeremony(
       v.operation === 'register-options' ||
       v.operation === 'register-verify'
     ) {
-      if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
-        return {status: 'disabled'}
       const [vault] = await tx
-        .select({id: noteVaultsTable.id})
+        .select({
+          id: noteVaultsTable.id,
+          authorizationVersion: noteVaultsTable.authorizationVersion,
+        })
         .from(noteVaultsTable)
         .where(eq(noteVaultsTable.ownerId, ownerId))
         .limit(1)
-      if (vault) return {status: 'disabled'}
+      if (vault) {
+        if (vault.authorizationVersion !== 1) return {status: 'disabled'}
+        if (v.operation === 'register-options' && v.vaultId !== vault.id)
+          return {status: 'invalid_input'}
+      } else if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
+        return {status: 'disabled'}
     }
     // Delete only expired, content-free ceremony material.
     await tx
@@ -175,6 +181,15 @@ export async function passkeyCeremony(
       .returning()
     if (!challenge || challenge.origin !== origin || challenge.rpId !== rpID)
       return {status: 'invalid_input'}
+    if (v.operation === 'register-verify') {
+      const [vault] = await tx
+        .select({id: noteVaultsTable.id})
+        .from(noteVaultsTable)
+        .where(eq(noteVaultsTable.ownerId, ownerId))
+        .limit(1)
+      if (vault && vault.id !== challenge.vaultId)
+        return {status: 'invalid_input'}
+    }
     try {
       if (v.operation === 'register-verify') {
         if (challenge.kind !== 'register-options')

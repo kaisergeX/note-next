@@ -10,6 +10,12 @@ import {createNoteEncryptionRepository} from '../db/repositories/note-encryption
 import {createAccountRepository} from '../db/repositories/account'
 import {createNoteRepository} from '../db/repositories/notes'
 import {
+  createAuthorization,
+  openAuthorizationSigner,
+  signReplacement,
+} from '../lib/notes/encryption/authorization'
+import {noteVaultOperationReceiptsTable} from '../db/schema/note-vault-operation-receipts'
+import {
   encodeBase64url,
   encryptedNotePayloadSchema,
   vaultWrapperSchema,
@@ -59,7 +65,25 @@ async function fixture() {
     passkeyBinding: null,
     salt: null,
   }
-  return {owner, setup: {vaultId, setupId, primaryWrapper, recoveryWrapper}}
+  const raw = generateRoot()
+  const authorization = await createAuthorization(
+    raw,
+    owner.id,
+    vaultId,
+    setupId,
+  )
+  return {
+    owner,
+    raw,
+    setup: {
+      vaultId,
+      setupId,
+      primaryWrapper,
+      recoveryWrapper,
+      authorizationVersion: 1 as const,
+      authorization,
+    },
+  }
 }
 function write(vaultId: string, noteId: string) {
   const envelope = () => ({
@@ -84,6 +108,179 @@ function write(vaultId: string, noteId: string) {
     },
   }
 }
+
+test('signed replacement receipts preserve historical results, immutable state, and closed-rollout recovery', async () => {
+  const f = await fixture()
+  process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED = 'true'
+  assert.equal((await repo.setup(f.owner.id, f.setup)).status, 'success')
+  const initial = await repo.getVault(f.owner.id)
+  assert.ok(initial)
+  const signer = await openAuthorizationSigner(
+    f.raw,
+    f.owner.id,
+    f.setup.vaultId,
+    f.setup.setupId,
+    f.setup.authorization,
+  )
+  const sign = (revision: string, operationId: string = randomUUID()) =>
+    signReplacement(signer, {
+      ownerId: f.owner.id,
+      vaultId: f.setup.vaultId,
+      verifierId: f.setup.authorization.verifierId,
+      expectedRevision: revision,
+      operationId,
+      primaryWrapper: vaultWrapperSchema.parse({
+        ...f.setup.primaryWrapper,
+        wrapperId: randomUUID(),
+      }),
+    })
+  delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
+  delete process.env.NOTE_ENCRYPTION_CREATION_ENABLED
+  const a = await sign(initial.revision)
+  assert.equal(
+    (await repo.replacePrimary(f.owner.id, {...a, signature: bytes(64)}))
+      .status,
+    'invalid_input',
+  )
+  assert.equal(
+    (await repo.replacePrimary(randomUUID(), a)).status,
+    'invalid_input',
+  )
+  assert.equal(
+    (await repo.replacePrimary(f.owner.id, {...a, extra: true})).status,
+    'invalid_input',
+  )
+  assert.deepEqual(await repo.getVault(f.owner.id), initial)
+  const acceptedA = await repo.replacePrimary(f.owner.id, a)
+  assert.equal(acceptedA.status, 'success')
+  const afterA = await repo.getVault(f.owner.id)
+  assert.ok(afterA)
+  assert.notEqual(afterA.revision, initial.revision)
+  assert.equal(
+    (await repo.replacePrimary(f.owner.id, await sign(initial.revision)))
+      .status,
+    'conflict',
+  )
+  const b = await sign(afterA.revision)
+  assert.equal((await repo.replacePrimary(f.owner.id, b)).status, 'success')
+  const afterB = await repo.getVault(f.owner.id)
+  assert.ok(afterB)
+  const retry = await repo.replacePrimary(f.owner.id, a)
+  assert.equal(retry.status, 'success')
+  if (!('receipt' in retry) || !retry.receipt || !('vault' in retry))
+    throw Error('missing receipt')
+  assert.equal(retry.receipt.appliedRevision, afterA.revision)
+  assert.equal(retry.vault.revision, afterB.revision)
+  assert.equal('alreadyApplied' in retry && retry.alreadyApplied, true)
+  assert.equal(
+    (
+      await repo.replacePrimary(
+        f.owner.id,
+        await sign(afterB.revision, a.operationId),
+      )
+    ).status,
+    'conflict',
+  )
+  assert.deepEqual(await repo.getVault(f.owner.id), afterB)
+  for (const field of [
+    'recoveryWrapper',
+    'authorization',
+    'authorizationVersion',
+    'setupId',
+  ] as const)
+    assert.deepEqual(afterB[field], initial[field])
+  const lookup = await repo.getOperation(f.owner.id, a.operationId)
+  assert.ok('receipt' in lookup && lookup.receipt)
+  assert.equal(
+    (
+      await repo.setup(f.owner.id, {
+        ...f.setup,
+        authorization: {...f.setup.authorization, signerId: randomUUID()},
+      })
+    ).status,
+    'conflict',
+  )
+  const {
+    authorization: _auth,
+    authorizationVersion: _version,
+    ...oldSetup
+  } = f.setup
+  assert.equal((await repo.setup(f.owner.id, oldSetup)).status, 'conflict')
+  for (const patch of [
+    {authorizationVersion: 0, authorization: null},
+    {authorization: {...f.setup.authorization, signerId: randomUUID()}},
+    {recoveryWrapper: {...f.setup.recoveryWrapper, wrapperId: randomUUID()}},
+    {setupId: randomUUID()},
+  ])
+    await assert.rejects(
+      db
+        .update(noteVaultsTable)
+        .set(patch)
+        .where(eq(noteVaultsTable.id, f.setup.vaultId)),
+    )
+  await createAccountRepository(db).deleteAccount(f.owner.id)
+  assert.deepEqual(
+    await db
+      .select()
+      .from(noteVaultOperationReceiptsTable)
+      .where(eq(noteVaultOperationReceiptsTable.vaultId, f.setup.vaultId)),
+    [],
+  )
+})
+
+test('legacy setup cannot enroll or bootstrap authorization; exact old retries and notes remain available', async () => {
+  const f = await fixture()
+  const {
+    authorization: _auth,
+    authorizationVersion: _version,
+    ...oldSetup
+  } = f.setup
+  process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED = 'true'
+  assert.equal(
+    (await repo.setup(f.owner.id, oldSetup)).status,
+    'reload_required',
+  )
+  await db.insert(noteVaultsTable).values({
+    id: f.setup.vaultId,
+    ownerId: f.owner.id,
+    setupId: f.setup.setupId,
+    lastOperationId: f.setup.setupId,
+    primaryWrapper: f.setup.primaryWrapper,
+    recoveryWrapper: f.setup.recoveryWrapper,
+  })
+  const legacy = await repo.getVault(f.owner.id)
+  assert.ok(legacy)
+  assert.equal((await repo.setup(f.owner.id, oldSetup)).status, 'success')
+  assert.equal((await repo.setup(f.owner.id, f.setup)).status, 'conflict')
+  const signer = await openAuthorizationSigner(
+    f.raw,
+    f.owner.id,
+    f.setup.vaultId,
+    f.setup.setupId,
+    f.setup.authorization,
+  )
+  const request = await signReplacement(signer, {
+    ownerId: f.owner.id,
+    vaultId: f.setup.vaultId,
+    verifierId: f.setup.authorization.verifierId,
+    expectedRevision: legacy.revision,
+    operationId: randomUUID(),
+    primaryWrapper: vaultWrapperSchema.parse(f.setup.primaryWrapper),
+  })
+  assert.equal(
+    (await repo.replacePrimary(f.owner.id, request)).status,
+    'disabled',
+  )
+  const noteId = randomUUID()
+  process.env.NOTE_ENCRYPTION_CREATION_ENABLED = 'true'
+  assert.equal(
+    (await repo.write(f.owner.id, noteId, write(f.setup.vaultId, noteId)))
+      .status,
+    'success',
+  )
+  assert.ok(await repo.getNote(f.owner.id, noteId))
+  assert.deepEqual(await repo.getVault(f.owner.id), legacy)
+})
 test('disabled enrollment, concurrent setup, exact lost acknowledgement with replacement unavailable', async () => {
   const f = await fixture()
   delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
@@ -100,7 +297,7 @@ test('disabled enrollment, concurrent setup, exact lost acknowledgement with rep
   delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
   const winner = vault.setupId === f.setup.setupId ? f.setup : losing
   assert.equal((await repo.setup(f.owner.id, winner)).status, 'success')
-  assert.equal('replacePrimary' in repo, false)
+  assert.equal('replacePrimary' in repo, true)
   assert.deepEqual(await repo.getVault(f.owner.id), vault)
 })
 test('closed enrollment preserves primary and recovery access to saved notes', async () => {
@@ -127,7 +324,13 @@ test('closed enrollment preserves primary and recovery access to saved notes', a
       vaultWrapperSchema.parse(f.setup.recoveryWrapper),
       recoverySecret,
     )
-    const setup = {...f.setup, primaryWrapper, recoveryWrapper}
+    const authorization = await createAuthorization(
+      raw,
+      f.owner.id,
+      f.setup.vaultId,
+      f.setup.setupId,
+    )
+    const setup = {...f.setup, primaryWrapper, recoveryWrapper, authorization}
     assert.equal((await repo.setup(f.owner.id, setup)).status, 'success')
     const before = await repo.getVault(f.owner.id)
     assert.ok(before)
@@ -151,7 +354,7 @@ test('closed enrollment preserves primary and recovery access to saved notes', a
     )
     delete process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED
     delete process.env.NOTE_ENCRYPTION_CREATION_ENABLED
-    assert.equal('replacePrimary' in repo, false)
+    assert.equal('replacePrimary' in repo, true)
     assert.equal((await repo.setup(f.owner.id, setup)).status, 'success')
     assert.equal(
       (
@@ -193,6 +396,56 @@ test('closed enrollment preserves primary and recovery access to saved notes', a
       'success',
     )
     assert.deepEqual(await repo.getVault(f.owner.id), before)
+    const recoveredSigner = await openAuthorizationSigner(
+      recovered,
+      f.owner.id,
+      setup.vaultId,
+      setup.setupId,
+      authorization,
+    )
+    const replacementPhrase = 'synthetic replacement phrase'
+    const replacement = await wrapRoot(
+      recovered,
+      {
+        ...primaryWrapper,
+        wrapperId: randomUUID(),
+        salt: generatePassphraseSalt(),
+      },
+      replacementPhrase,
+    )
+    const intent = await signReplacement(recoveredSigner, {
+      ownerId: f.owner.id,
+      vaultId: setup.vaultId,
+      verifierId: authorization.verifierId,
+      expectedRevision: before.revision,
+      operationId: randomUUID(),
+      primaryWrapper: replacement,
+    })
+    assert.equal(
+      (await repo.replacePrimary(f.owner.id, intent)).status,
+      'success',
+    )
+    const after = await repo.getVault(f.owner.id)
+    assert.ok(after)
+    assert.deepEqual(after.recoveryWrapper, before.recoveryWrapper)
+    assert.deepEqual(after.authorization, before.authorization)
+    const newlyOpened = await unwrapRoot(
+      vaultWrapperSchema.parse(after.primaryWrapper),
+      replacementPhrase,
+    )
+    try {
+      assert.deepEqual(
+        await openNote(
+          await importRoot(newlyOpened),
+          f.owner.id,
+          savedPayload,
+          identity,
+        ),
+        content,
+      )
+    } finally {
+      newlyOpened.fill(0)
+    }
   } finally {
     raw.fill(0)
     recoverySecret.fill(0)

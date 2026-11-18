@@ -17,6 +17,7 @@ import {
   type SealedEnvelope,
   type VaultWrapper,
 } from './protocol'
+import type {VaultAuthorization} from './authorization'
 
 const random = (size: number) => crypto.getRandomValues(new Uint8Array(size))
 const aes = {name: 'AES-GCM', length: 256}
@@ -345,6 +346,7 @@ export async function setupRootCommitment(
     setupId: string
     primary: VaultWrapper
     recovery: VaultWrapper
+    authorization?: VaultAuthorization
   },
 ) {
   if (root.length !== 32) throw new Error('Invalid root')
@@ -354,7 +356,7 @@ export async function setupRootCommitment(
         await crypto.subtle.digest('SHA-256', canonicalWrapper(w)),
       ),
     )
-  const aad = utf8([
+  const fields: unknown[] = [
     'eton',
     1,
     'setup-root-check',
@@ -363,7 +365,19 @@ export async function setupRootCommitment(
     context.setupId,
     await hash(context.primary),
     await hash(context.recovery),
-  ])
+  ]
+  if (context.authorization) {
+    const a = context.authorization
+    fields.push([
+      a.version,
+      a.algorithm,
+      a.verifierId,
+      a.publicKey,
+      a.signerId,
+      [a.signerEnvelope.salt, a.signerEnvelope.iv, a.signerEnvelope.ciphertext],
+    ])
+  }
+  const aad = utf8(fields)
   const input = new Uint8Array(aad.length + 32)
   input.set(aad)
   input.set(root, aad.length)

@@ -7,6 +7,9 @@ import {Input} from '~/components/ui/input'
 import {assertPasskey} from '~/lib/notes/encryption/passkey'
 import {
   createVaultCandidate,
+  createReplacementCandidate,
+  confirmReplacement,
+  type ReplacementCandidate,
   verifyCandidate,
   vaultCandidateSchema,
   type VaultCandidate,
@@ -28,6 +31,16 @@ import {
   vaultWrapperSchema,
 } from '~/lib/notes/encryption/protocol'
 import {z} from 'zod'
+import {
+  authorizationSchema,
+  replacementIntentDigest,
+  type SignedReplacement,
+} from '~/lib/notes/encryption/authorization'
+import {
+  saveReplacementIntent,
+  getReplacementIntent,
+  clearReplacementIntent,
+} from '~/lib/notes/encryption/storage'
 // An earlier client may have submitted a replacement before writes closed.
 const replacementSchema = z.strictObject({
   operationId: canonicalIdSchema,
@@ -60,9 +73,23 @@ export function VaultControls({
   const [replacement, setReplacement] = useState<z.infer<
     typeof replacementSchema
   > | null>(null)
+  const [replacementDraft, setReplacementDraft] =
+    useState<ReplacementCandidate | null>(null)
+  const [signedReplacement, setSignedReplacement] =
+    useState<SignedReplacement | null>(null)
   const active = useVaultUnlocked(ownerId, vault?.id ?? '')
   const generation = useRef(0),
     inFlight = useRef(false)
+  const replacementFocus = useRef<
+    'confirm' | 'passphrase' | 'passkey' | 'unlock' | null
+  >(null)
+  const credentialEntry = useRef<HTMLInputElement>(null)
+  const confirmationEntry = useRef<HTMLInputElement>(null)
+  const confirmButton = useRef<HTMLButtonElement>(null)
+  const replacePassphraseButton = useRef<HTMLButtonElement>(null)
+  const replacePasskeyButton = useRef<HTMLButtonElement>(null)
+  const unlockButton = useRef<HTMLButtonElement>(null)
+  const methodButton = useRef<HTMLButtonElement>(null)
   const storageKey = `eton-provisional-vault:${ownerId}`
   function save(next: VaultCandidate) {
     sessionStorage.setItem(storageKey, JSON.stringify(next))
@@ -75,6 +102,8 @@ export function VaultControls({
       if (disposed) return
       setCandidate(null)
       setReplacement(null)
+      setReplacementDraft(null)
+      setSignedReplacement(null)
       setEntry('')
       setPhrase('')
       setKit('')
@@ -99,6 +128,13 @@ export function VaultControls({
         setError(t('storageError'))
       }
     })
+    void getReplacementIntent(ownerId)
+      .then((saved) => {
+        if (!disposed) setSignedReplacement(saved)
+      })
+      .catch(() => {
+        if (!disposed) setError(t('storageError'))
+      })
     function clear() {
       if (!document.hidden) return
       clearSecrets()
@@ -108,6 +144,8 @@ export function VaultControls({
     }
     function clearSecrets() {
       generation.current++
+      replacementFocus.current = null
+      setReplacementDraft(null)
       setPhrase('')
       setKit('')
       setEntry('')
@@ -118,10 +156,30 @@ export function VaultControls({
     return () => {
       disposed = true
       versionCounter.current++
+      replacementFocus.current = null
       document.removeEventListener('visibilitychange', clear)
       window.removeEventListener('eton-vault-invalidated', invalidate)
     }
   }, [ownerId, storageKey, t])
+  useEffect(() => {
+    const target = replacementFocus.current
+    if (!target || busy || document.hidden) return
+    replacementFocus.current = null
+    if (target === 'confirm') {
+      const confirmation = confirmationEntry.current ?? confirmButton.current
+      confirmation?.focus()
+      return
+    }
+    const button =
+      target === 'passphrase'
+        ? replacePassphraseButton.current
+        : target === 'passkey'
+          ? replacePasskeyButton.current
+          : unlockButton.current
+    const fallback = credentialEntry.current ?? methodButton.current
+    const control = button && !button.disabled ? button : fallback
+    control?.focus()
+  }, [busy, replacementDraft, signedReplacement])
   async function run(work: (version: number) => Promise<void>) {
     if (inFlight.current) return
     inFlight.current = true
@@ -198,6 +256,9 @@ export function VaultControls({
         vaultId: pending.vaultId,
         primaryWrapper: pending.primaryWrapper,
         recoveryWrapper: pending.recoveryWrapper,
+        ...(pending.authorization
+          ? {authorizationVersion: 1, authorization: pending.authorization}
+          : {}),
       })
       check(version)
       if (result.status === 'success' || result.status === 'conflict') {
@@ -209,8 +270,158 @@ export function VaultControls({
         setMessage(t(result.status === 'success' ? 'created' : 'lostSetup'))
       } else throw new Error('Unconfirmed setup')
     })
+  async function reconcileSigned(
+    request: SignedReplacement,
+    version: number,
+    fresh = false,
+  ) {
+    const response = await fetch(
+      '/api/note-vault?operationId=' + encodeURIComponent(request.operationId),
+      {cache: 'no-store'},
+    )
+    if (!response.ok) throw new Error('Replacement status unavailable')
+    const result = (await response.json()) as {
+      status: string
+      vault: ConfirmedVault | null
+      receipt: null | {
+        operationId: string
+        intentDigest: string
+        appliedRevision: string
+      }
+    }
+    check(version)
+    if (
+      result.status !== 'success' ||
+      !result.vault ||
+      result.vault.ownerId !== ownerId ||
+      result.vault.id !== request.vaultId
+    )
+      throw new Error('Replacement status unavailable')
+    if (!result.receipt) {
+      await onRefresh(true)
+      check(version)
+      setMessage(
+        t(
+          result.vault.revision === request.expectedRevision
+            ? 'replacementUnconfirmed'
+            : 'replacementStale',
+        ),
+      )
+      return
+    }
+    const receipt = z
+      .strictObject({
+        operationId: z.uuid(),
+        intentDigest: z.string(),
+        appliedRevision: z.uuid(),
+      })
+      .parse(result.receipt)
+    const {signature: _signature, ...intent} = request
+    if (
+      receipt.operationId !== request.operationId ||
+      receipt.intentDigest !== (await replacementIntentDigest(intent))
+    )
+      throw new Error('Receipt mismatch')
+    const current = await onRefresh(true)
+    check(version)
+    if (
+      !current ||
+      current.ownerId !== ownerId ||
+      current.id !== request.vaultId
+    )
+      throw new Error('Vault unavailable')
+    const isCurrent =
+      current.revision === receipt.appliedRevision &&
+      JSON.stringify(vaultWrapperSchema.parse(current.primaryWrapper)) ===
+        JSON.stringify(request.primaryWrapper)
+    await clearReplacementIntent(ownerId, request)
+    check(version)
+    setSignedReplacement(null)
+    if (isCurrent && fresh) {
+      setRecovery(false)
+      setReveal(false)
+      replacementFocus.current = 'unlock'
+      setMessage(t('replacementChanged'))
+    } else {
+      setMessage(t(isCurrent ? 'replacementActive' : 'replacementHistorical'))
+    }
+  }
+  async function sendReplacement(
+    request: SignedReplacement,
+    version: number,
+    fresh = false,
+  ) {
+    check(version)
+    await fetch('/api/note-vault', {
+      method: 'PATCH',
+      cache: 'no-store',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-note-encryption-protocol': '1',
+      },
+      body: JSON.stringify(request),
+    })
+    check(version)
+    await reconcileSigned(request, version, fresh)
+  }
+  const beginReplacement = (method: 'passphrase' | 'passkey') =>
+    run(async (version) => {
+      if (
+        !vault ||
+        vault.authorizationVersion !== 1 ||
+        signedReplacement ||
+        replacementDraft
+      )
+        return
+      const authorization = authorizationSchema.parse(vault.authorization)
+      const raw = await rawUnlock()
+      try {
+        check(version)
+        const created = await createReplacementCandidate(
+          raw,
+          {...vault, authorization},
+          method,
+          () => check(version),
+        )
+        check(version)
+        replacementFocus.current = 'confirm'
+        setReplacementDraft(created.candidate)
+        setPhrase(created.passphrase)
+        setEntry('')
+      } finally {
+        raw.fill(0)
+      }
+    })
+  const submitReplacement = () =>
+    run(async (version) => {
+      if (!replacementDraft || signedReplacement) return
+      const secret =
+        replacementDraft.primaryWrapper.purpose === 'passkey'
+          ? await assertPasskey(
+              replacementDraft.vaultId,
+              replacementDraft.primaryWrapper.passkeyBinding!,
+            )
+          : entry
+      try {
+        const request = await confirmReplacement(replacementDraft, secret)
+        check(version)
+        await saveReplacementIntent(request, () => check(version))
+        check(version)
+        setSignedReplacement(request)
+        setReplacementDraft(null)
+        setPhrase('')
+        check(version)
+        await sendReplacement(request, version, true)
+      } finally {
+        if (secret instanceof Uint8Array) secret.fill(0)
+      }
+    })
   const reconcile = () =>
     run(async (version) => {
+      if (signedReplacement) {
+        await reconcileSigned(signedReplacement, version)
+        return
+      }
       const current = await onRefresh(true)
       check(version)
       if (!current) {
@@ -232,7 +443,9 @@ export function VaultControls({
           current.id === candidate.vaultId &&
           current.setupId === candidate.setupId &&
           JSON.stringify(vaultWrapperSchema.parse(current.recoveryWrapper)) ===
-            JSON.stringify(candidate.recoveryWrapper)
+            JSON.stringify(candidate.recoveryWrapper) &&
+          JSON.stringify(current.authorization ?? null) ===
+            JSON.stringify(candidate.authorization ?? null)
         sessionStorage.removeItem(storageKey)
         setCandidate(null)
         setMessage(t(sameSetup ? 'reconciled' : 'lostSetup'))
@@ -285,7 +498,9 @@ export function VaultControls({
           ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
+              ref={methodButton}
               variant="secondary"
+              disabled={busy || !!replacementDraft}
               onClick={() => {
                 setRecovery(!recovery)
                 setEntry('')
@@ -300,34 +515,162 @@ export function VaultControls({
               )}
             </Button>
           </div>
-          {(recovery || vault.primaryWrapper.purpose !== 'passkey') && (
-            <>
-              <label className="block space-y-2">
-                <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
-                <Input
-                  autoComplete="off"
-                  type={reveal ? 'text' : 'password'}
-                  value={entry}
-                  onChange={(e) => setEntry(e.target.value)}
-                />
-              </label>
-              <Button variant="ghost" onClick={() => setReveal(!reveal)}>
-                {t(reveal ? 'hide' : 'reveal')}
-              </Button>
-            </>
-          )}
+          {!replacementDraft &&
+            (recovery || vault.primaryWrapper.purpose !== 'passkey') && (
+              <>
+                <label className="block space-y-2">
+                  <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
+                  <Input
+                    ref={credentialEntry}
+                    autoComplete="off"
+                    type={reveal ? 'text' : 'password'}
+                    value={entry}
+                    onChange={(e) => setEntry(e.target.value)}
+                  />
+                </label>
+                <Button variant="ghost" onClick={() => setReveal(!reveal)}>
+                  {t(reveal ? 'hide' : 'reveal')}
+                </Button>
+              </>
+            )}
           <Button
+            ref={unlockButton}
             loading={busy}
             onClick={() => void unlock()}
             disabled={
               active ||
+              !!replacementDraft ||
               (!entry &&
                 (recovery || vault.primaryWrapper.purpose !== 'passkey'))
             }
           >
             {t('unlock')}
           </Button>
-          <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>
+          {vault.authorizationVersion === 1 &&
+          authorizationSchema.safeParse(vault.authorization).success ? (
+            <div className="space-y-2">
+              <p className="text-ink-muted text-sm">
+                {t(
+                  replacementDraft
+                    ? 'replacementConfirmHelp'
+                    : 'replacementHelp',
+                )}
+              </p>
+              {phrase && replacementDraft ? (
+                <p className="font-mono break-words">{phrase}</p>
+              ) : null}
+              {replacementDraft ? (
+                <>
+                  {replacementDraft.primaryWrapper.purpose !== 'passkey' && (
+                    <label className="block space-y-2">
+                      <span>{t('replacementConfirmation')}</span>
+                      <Input
+                        ref={confirmationEntry}
+                        autoComplete="off"
+                        type={reveal ? 'text' : 'password'}
+                        value={entry}
+                        onChange={(event) => setEntry(event.target.value)}
+                      />
+                    </label>
+                  )}
+                  <Button
+                    ref={confirmButton}
+                    loading={busy}
+                    disabled={
+                      !entry &&
+                      replacementDraft.primaryWrapper.purpose !== 'passkey'
+                    }
+                    onClick={() => void submitReplacement()}
+                  >
+                    {t('confirmReplacement')}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => {
+                      replacementFocus.current =
+                        replacementDraft.primaryWrapper.purpose === 'passkey'
+                          ? 'passkey'
+                          : 'passphrase'
+                      setReplacementDraft(null)
+                      setPhrase('')
+                      setEntry('')
+                    }}
+                  >
+                    {t('cancelReplacement')}
+                  </Button>
+                </>
+              ) : !signedReplacement ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    ref={replacePassphraseButton}
+                    variant="secondary"
+                    loading={busy}
+                    disabled={
+                      !entry &&
+                      (recovery || vault.primaryWrapper.purpose !== 'passkey')
+                    }
+                    onClick={() => void beginReplacement('passphrase')}
+                  >
+                    {t('replacePassphrase')}
+                  </Button>
+                  <Button
+                    ref={replacePasskeyButton}
+                    variant="secondary"
+                    loading={busy}
+                    disabled={
+                      !entry &&
+                      (recovery || vault.primaryWrapper.purpose !== 'passkey')
+                    }
+                    onClick={() => void beginReplacement('passkey')}
+                  >
+                    {t('replacePasskey')}
+                  </Button>
+                </div>
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>
+          )}
+          {signedReplacement && (
+            <div className="space-y-2">
+              <p>{t('replacementPending')}</p>
+              <Button
+                variant="secondary"
+                loading={busy}
+                onClick={() =>
+                  void run((version) =>
+                    sendReplacement(signedReplacement, version),
+                  )
+                }
+              >
+                {t('retryReplacement')}
+              </Button>
+              <Button
+                variant="secondary"
+                loading={busy}
+                onClick={() => void reconcile()}
+              >
+                {t('reconcile')}
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={busy}
+                onClick={() =>
+                  void run(async (version) => {
+                    await onRefresh(true)
+                    check(version)
+                    await clearReplacementIntent(ownerId, signedReplacement)
+                    check(version)
+                    setSignedReplacement(null)
+                    setMessage(t('replacementForgotten'))
+                  })
+                }
+              >
+                {t('forgetReplacement')}
+              </Button>
+            </div>
+          )}
           {(replacement || candidate?.submitted) && (
             <>
               {replacement && <p>{t('replacementCheck')}</p>}

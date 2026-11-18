@@ -1,6 +1,7 @@
 import {randomUUID} from 'node:crypto'
 import type {Page} from '@playwright/test'
 import {test, expect} from './fixtures'
+import {createAuthorization} from '../../lib/notes/encryption/authorization'
 import {
   generateRoot,
   generatePassphraseSalt,
@@ -131,6 +132,7 @@ test('expired authentication pauses the exact sealed flight until the same owner
 })
 async function enroll(page: Page, ownerId: string, origin?: string) {
   const raw = generateRoot(),
+    setupId = randomUUID(),
     vaultId = randomUUID(),
     phrase = `Synthetic browser stress ${randomUUID()}`
   const common = {ownerId, vaultId, passkeyBinding: null}
@@ -157,6 +159,12 @@ async function enroll(page: Page, ownerId: string, origin?: string) {
     generateRoot(),
   )
   const root = await importRoot(raw)
+  const authorization = await createAuthorization(
+    raw,
+    ownerId,
+    vaultId,
+    setupId,
+  )
   raw.fill(0)
   await page.goto(`${origin ?? ''}/en/collection/encrypted`)
   await expect(
@@ -174,7 +182,14 @@ async function enroll(page: Page, ownerId: string, origin?: string) {
       })
       return response.json()
     },
-    {setupId: randomUUID(), vaultId, primaryWrapper, recoveryWrapper},
+    {
+      setupId,
+      vaultId,
+      primaryWrapper,
+      recoveryWrapper,
+      authorizationVersion: 1,
+      authorization,
+    },
   )
   expect(result.status).toBe('success')
   await page.reload()

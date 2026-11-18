@@ -281,6 +281,8 @@ export default function EncryptedWorkspace({
           revision: row.revision,
           setupId: row.setupId,
           lastOperationId: row.lastOperationId,
+          authorizationVersion: row.authorizationVersion ?? 0,
+          authorization: row.authorization ?? null,
           primaryWrapper: primary,
           recoveryWrapper: recovery,
         })

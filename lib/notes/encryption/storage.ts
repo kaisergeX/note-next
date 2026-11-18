@@ -1,6 +1,11 @@
 import {Dexie, type EntityTable} from 'dexie'
 import type {ConfirmedVault} from './runtime'
 import {z} from 'zod'
+import {
+  authorizationSchema,
+  signedReplacementSchema,
+  type SignedReplacement,
+} from './authorization'
 import {openRecovery, sealRecoveryBytes} from './crypto'
 import {
   canonicalIdSchema,
@@ -43,6 +48,7 @@ type ModeMarker = {
   mode: 'encrypted'
 }
 const db = new Dexie('etoN-encrypted-note-recovery') as Dexie & {
+  intents: EntityTable<{ownerId: string; request: SignedReplacement}, 'ownerId'>
   headers: EntityTable<RecoveryHeader, 'id'>
   payloads: EntityTable<SealedRecord, 'id'>
   modes: EntityTable<ModeMarker, 'id'>
@@ -58,6 +64,7 @@ db.version(1).stores({
   modes: 'id, ownerId',
   vaults: 'ownerId',
 })
+db.version(2).stores({intents: 'ownerId'})
 const markerId = (owner: string, note: string) => `${owner}:${note}`
 function changed() {
   if (typeof window !== 'undefined')
@@ -336,11 +343,13 @@ export async function clearEncryptedAccountStorage(ownerId: string) {
       db.payloads,
       db.modes,
       db.vaults,
+      db.intents,
       async () => {
         await db.headers.where('ownerId').equals(ownerId).delete()
         await db.payloads.where('ownerId').equals(ownerId).delete()
         await db.modes.where('ownerId').equals(ownerId).delete()
         await db.vaults.delete(ownerId)
+        await db.intents.delete(ownerId)
       },
     )
   if (typeof navigator !== 'undefined' && navigator.locks)
@@ -355,6 +364,14 @@ const cachedVaultSchema = z
     revision: z.uuid(),
     setupId: z.uuid(),
     lastOperationId: z.uuid(),
+    authorizationVersion: z.union([z.literal(0), z.literal(1)]).default(0),
+    authorization: z
+      .unknown()
+      .optional()
+      .transform((value) => {
+        const parsed = authorizationSchema.safeParse(value)
+        return parsed.success ? parsed.data : null
+      }),
     primaryWrapper: vaultWrapperSchema,
     recoveryWrapper: vaultWrapperSchema,
   })
@@ -381,4 +398,44 @@ export async function getCachedVault(
 ): Promise<ConfirmedVault | null> {
   const entry = await db.vaults.get(ownerId)
   return entry ? cachedVaultSchema.parse(entry.publicVault) : null
+}
+
+export async function saveReplacementIntent(
+  input: SignedReplacement,
+  assertCurrent: () => void,
+) {
+  const request = signedReplacementSchema.parse(input)
+  await locked(request.ownerId, () =>
+    db.transaction('rw', db.intents, async () => {
+      const previous = await db.intents.get(request.ownerId)
+      assertCurrent()
+      if (
+        previous &&
+        JSON.stringify(previous.request) !== JSON.stringify(request)
+      )
+        throw new Error('An earlier replacement needs reconciliation')
+      await db.intents.put({ownerId: request.ownerId, request})
+    }),
+  )
+}
+export async function getReplacementIntent(ownerId: string) {
+  const row = await db.intents.get(ownerId)
+  if (!row) return null
+  const request = signedReplacementSchema.parse(row.request)
+  if (request.ownerId !== ownerId) throw new Error('Invalid replacement owner')
+  return request
+}
+export async function clearReplacementIntent(
+  ownerId: string,
+  request: SignedReplacement,
+) {
+  await locked(ownerId, () =>
+    db.transaction('rw', db.intents, async () => {
+      if (
+        JSON.stringify((await db.intents.get(ownerId))?.request) ===
+        JSON.stringify(signedReplacementSchema.parse(request))
+      )
+        await db.intents.delete(ownerId)
+    }),
+  )
 }

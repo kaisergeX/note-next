@@ -75,6 +75,27 @@ for (const [locale, messages] of [
       controls.getByRole('status').filter({hasText: v.locked}),
     ).toBeVisible()
 
+    const replacement = controls.getByLabel(v.replacementConfirmation, {
+      exact: true,
+    })
+    await enter(passphrase, phrase)
+    await activate(button(v.replacePassphrase))
+    await expect(replacement).toBeFocused()
+    await activate(button(v.cancelReplacement))
+    await expect(passphrase).toBeFocused()
+    await expect(passphrase).toBeEmpty()
+    await enter(passphrase, phrase)
+    await activate(button(v.replacePassphrase))
+    await expect(replacement).toBeFocused()
+    const newPhrase = await controls.locator('p.font-mono').first().innerText()
+    await enter(replacement, newPhrase)
+    await activate(button(v.confirmReplacement))
+    await expect(
+      controls.getByRole('status').filter({hasText: v.replacementChanged}),
+    ).toBeVisible()
+    await expect(passphrase).toBeFocused()
+    await expect(passphrase).toBeEmpty()
+
     // A reload removes in-memory keys; recovery must work without the phrase.
     await page.reload()
     await activate(button(v.useRecovery))

@@ -52,15 +52,15 @@ test('closed enrollment and creation refuse new-account registration and replace
     headers,
     data: {},
   })
-  expect(replacement.status()).toBe(403)
-  expect(await replacement.json()).toEqual({status: 'disabled'})
+  expect(replacement.status()).toBe(200)
+  expect(await replacement.json()).toEqual({status: 'invalid_input'})
   const after = await page.request.get(`${origin}/api/note-vault`)
   expect(after.ok()).toBe(true)
   expect((await after.json()).vault).toBeNull()
   expect(noteApp.ownerId).toBeTruthy()
 })
 
-test('virtual authenticator PRF enrollment, refused replacement, reconciliation and cancellation fail closed', async ({
+test('virtual authenticator PRF enrollment, signed replacement, reconciliation and cancellation', async ({
   page,
   context,
   noteApp,
@@ -148,12 +148,14 @@ test('virtual authenticator PRF enrollment, refused replacement, reconciliation 
         primaryWrapper: vault.primaryWrapper,
       },
     })
-    expect(refused.status()).toBe(403)
-    expect(await refused.json()).toEqual({status: 'disabled'})
+    expect(refused.status()).toBe(200)
+    expect(await refused.json()).toEqual({status: 'invalid_input'})
     const unchanged = await page.request.get('/api/note-vault')
     expect(unchanged.ok()).toBe(true)
     expect((await unchanged.json()).vault).toEqual(vault)
-    for (const data of registrationRequests(vault.id)) {
+    // Existing authorization-v1 vaults may enroll replacement credentials;
+    // a ceremony for a different vault and an invented ceremony remain invalid.
+    for (const data of registrationRequests(crypto.randomUUID())) {
       const registration = await page.request.post('/api/note-vault/passkey', {
         headers: {
           origin: new URL(page.url()).origin,
@@ -162,7 +164,7 @@ test('virtual authenticator PRF enrollment, refused replacement, reconciliation 
         data,
       })
       expect(registration.ok()).toBe(true)
-      expect(await registration.json()).toEqual({status: 'disabled'})
+      expect(await registration.json()).toEqual({status: 'invalid_input'})
     }
 
     let browserPatches = 0
@@ -250,10 +252,90 @@ test('virtual authenticator PRF enrollment, refused replacement, reconciliation 
       // The same authenticator must still open the vault after enrollment closes.
       await page.goto(closedEnrollmentOrigin() + '/en/collection/encrypted')
     }
+    const replacementOptions = await page.request.post(
+      new URL('/api/note-vault/passkey', page.url()).href,
+      {
+        headers: {
+          origin: new URL(page.url()).origin,
+          'x-note-encryption-protocol': '1',
+        },
+        data: {operation: 'register-options', vaultId: vault.id},
+      },
+    )
+    expect(replacementOptions.ok()).toBe(true)
+    expect(await replacementOptions.json()).toMatchObject({status: 'success'})
     await page.getByRole('button', {name: v.unlock, exact: true}).click()
     await expect(
       page.getByRole('button', {name: v.lock, exact: true}),
     ).toBeVisible()
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
+    await page.getByLabel(v.recoveryKey, {exact: true}).fill(kit)
+    await page
+      .getByRole('button', {name: v.replacePasskey, exact: true})
+      .click()
+    const confirm = page.getByRole('button', {
+      name: v.confirmReplacement,
+      exact: true,
+    })
+    await expect(confirm).toBeFocused()
+    const [patch] = await Promise.all([
+      page.waitForRequest(
+        (request) =>
+          request.method() === 'PATCH' &&
+          new URL(request.url()).pathname === '/api/note-vault',
+      ),
+      page.keyboard.press('Enter'),
+    ])
+    await expect(
+      page.getByRole('status').filter({hasText: v.replacementChanged}),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', {name: v.unlock, exact: true}),
+    ).toBeFocused()
+    const signed = patch.postDataJSON()
+    expect(signed).toMatchObject({
+      expectedRevision: vault.revision,
+      signature: expect.any(String),
+      primaryWrapper: {purpose: 'passkey'},
+    })
+    const operation = await page.request.get(
+      new URL(`/api/note-vault?operationId=${signed.operationId}`, page.url())
+        .href,
+    )
+    const {vault: replaced, receipt} = await operation.json()
+    expect(receipt).toMatchObject({
+      operationId: signed.operationId,
+      appliedRevision: replaced.revision,
+    })
+    expect(replaced.revision).not.toBe(vault.revision)
+    expect(replaced.primaryWrapper).toEqual(signed.primaryWrapper)
+    expect(replaced.primaryWrapper.passkeyBinding[1]).not.toBe(
+      vault.primaryWrapper.passkeyBinding![1],
+    )
+    expect(replaced.recoveryWrapper).toEqual(vault.recoveryWrapper)
+    expect(replaced.authorization).toEqual(vault.authorization)
+    const oldCredential = await page.request.post(
+      new URL('/api/note-vault/passkey', page.url()).href,
+      {
+        headers: {
+          origin: new URL(page.url()).origin,
+          'x-note-encryption-protocol': '1',
+        },
+        data: {
+          operation: 'assertion-options',
+          vaultId: vault.id,
+          credentialId: vault.primaryWrapper.passkeyBinding![1],
+        },
+      },
+    )
+    expect(await oldCredential.json()).toMatchObject({status: 'success'})
+    await page.reload()
+    await page.getByRole('button', {name: v.unlock, exact: true}).click()
+    await expect(
+      page.getByRole('button', {name: v.lock, exact: true}),
+    ).toBeVisible()
+    expect(browserPatches).toBe(1)
     const all = requests.join('\n')
     expect(all).not.toContain(kit)
     expect(all).not.toContain('"prf"')

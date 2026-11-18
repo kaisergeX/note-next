@@ -15,8 +15,16 @@ const admin = postgres(instance.toString(), {max: 1, onnotice: () => {}})
 const root = resolve('.playwright-mcp')
 await mkdir(root, {recursive: true})
 const oldMigrations = await mkdtemp(join(root, 'release-migrations-'))
+const preAuthorization = await mkdtemp(join(root, 'authorization-migrations-'))
 try {
   for (const name of await readdir('drizzle')) {
+    if (/^\d{14}_/.test(name) && name < '20261117165118') {
+      await mkdir(join(preAuthorization, name))
+      await copyFile(
+        join('drizzle', name, 'migration.sql'),
+        join(preAuthorization, name, 'migration.sql'),
+      )
+    }
     if (!/^\d{14}_/.test(name) || name >= '20261110154137') continue
     await mkdir(join(oldMigrations, name))
     await copyFile(
@@ -86,7 +94,66 @@ try {
         await client`SELECT * FROM notes ORDER BY id`,
       )
       const start = performance.now()
+      await migrate(db, {migrationsFolder: preAuthorization})
+      const vaultId = randomUUID()
+      const setupId = randomUUID()
+      const [originalVault] = await client`INSERT INTO note_vaults
+        (id, owner_id, setup_id, last_operation_id, primary_wrapper, recovery_wrapper)
+        VALUES (${vaultId}, ${owner.id}, ${setupId}, ${setupId},
+          ${JSON.stringify({sentinel: 'original primary bytes'})},
+          ${JSON.stringify({sentinel: 'original recovery bytes'})}) RETURNING *`
       await migrate(db, {migrationsFolder: './drizzle'})
+      const [upgradedVault] =
+        await client`SELECT * FROM note_vaults WHERE id = ${vaultId}`
+      const {authorization_version, authorization, ...preservedVault} =
+        upgradedVault
+      assert.equal(authorization_version, 0)
+      assert.equal(authorization, null)
+      assert.deepEqual(preservedVault, originalVault)
+      const [newOwner] = await client`INSERT INTO users (name, email)
+        VALUES ('Synthetic authorization owner', ${`${randomUUID()}@test.invalid`}) RETURNING id`
+      const newVaultId = randomUUID()
+      const [authorizedVault] = await client`INSERT INTO note_vaults
+        (id, owner_id, setup_id, last_operation_id, primary_wrapper, recovery_wrapper, authorization_version, "authorization")
+        VALUES (${newVaultId}, ${newOwner.id}, ${randomUUID()}, ${randomUUID()},
+          ${JSON.stringify({sentinel: 'new primary'})}, ${JSON.stringify({sentinel: 'new recovery'})},
+          1, ${JSON.stringify({version: 1, sentinel: 'pinned authorization'})}) RETURNING *`
+      // Database fixtures test additive migration/constraints, not crypto validity.
+      for (const current of [upgradedVault, authorizedVault]) {
+        for (const patch of [
+          {setup_id: randomUUID()},
+          {recovery_wrapper: {sentinel: 'substituted recovery'}},
+          {
+            authorization_version: 1,
+            authorization: {version: 1, sentinel: 'substituted verifier'},
+          },
+        ]) {
+          await assert.rejects(
+            client.begin(async (tx) => {
+              await tx`UPDATE notes SET title = 'Must roll back' WHERE id = ${rows[0].id}`
+              await tx`UPDATE note_vaults SET ${tx(Object.fromEntries(Object.entries(patch).map(([key, value]) => [key, typeof value === 'object' ? JSON.stringify(value) : value])))} WHERE id = ${current.id}`
+            }),
+            /Pinned vault authorization and recovery state is immutable/,
+          )
+          assert.deepEqual(
+            (
+              await client`SELECT * FROM note_vaults WHERE id = ${current.id}`
+            )[0],
+            current,
+          )
+          assert.equal(
+            (await client`SELECT title FROM notes WHERE id = ${rows[0].id}`)[0]
+              .title,
+            rows[0].title,
+          )
+        }
+      }
+      await assert.rejects(
+        client`INSERT INTO note_vaults
+        (id, owner_id, setup_id, last_operation_id, primary_wrapper, recovery_wrapper, authorization_version)
+        VALUES (${randomUUID()}, ${randomUUID()}, ${randomUUID()}, ${randomUUID()}, '{}', '{}', 1)`,
+        /note_vaults_authorization_check/,
+      )
       const upgradeMs = performance.now() - start
       const after = await client`SELECT * FROM notes ORDER BY id`
       assert.equal(
@@ -101,7 +168,7 @@ try {
       )
       const count = (await client`SELECT * FROM drizzle.__drizzle_migrations`)
         .length
-      assert.equal(count, migrationsBefore.length + 4)
+      assert.equal(count, migrationsBefore.length + 5)
       await migrate(db, {migrationsFolder: './drizzle'})
       assert.equal(
         (await client`SELECT * FROM drizzle.__drizzle_migrations`).length,
@@ -129,11 +196,18 @@ try {
           quarantineRowsPreserved: legacy ? 1 : 0,
           idempotentRerun: true,
           oldColumnWrite: true,
+          legacyVaultBytesPreserved: true,
+          legacyAuthorizationVersion: 0,
+          pinnedStateRollbackChecks: 6,
         }),
       )
     } finally {
       await client.end()
       await admin`DROP DATABASE ${admin(name)}`
+      assert.equal(
+        (await admin`SELECT 1 FROM pg_database WHERE datname = ${name}`).length,
+        0,
+      )
     }
   }
 } finally {
@@ -143,4 +217,9 @@ try {
       oldMigrations.startsWith(`${root}/`),
   )
   await rm(oldMigrations, {recursive: true, force: true})
+  assert.ok(
+    preAuthorization.startsWith(`${root}\\`) ||
+      preAuthorization.startsWith(`${root}/`),
+  )
+  await rm(preAuthorization, {recursive: true, force: true})
 }

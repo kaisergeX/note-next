@@ -1,6 +1,7 @@
 'use client'
 
 import {useSyncExternalStore} from 'react'
+import type {VaultAuthorization} from './authorization'
 import type {VaultWrapper} from './protocol'
 
 export type ConfirmedVault = {
@@ -9,6 +10,8 @@ export type ConfirmedVault = {
   revision: string
   setupId: string
   lastOperationId: string
+  authorizationVersion?: 0 | 1
+  authorization?: VaultAuthorization | null
   primaryWrapper: VaultWrapper
   recoveryWrapper: VaultWrapper
 }

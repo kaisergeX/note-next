@@ -11,6 +11,14 @@ import {
 } from '../schema/notes'
 import {usersTable} from '../schema/users'
 import {notePasskeysTable} from '../schema/note-passkeys'
+import {noteVaultOperationReceiptsTable as receipts} from '../schema/note-vault-operation-receipts'
+import {
+  authorizationSchema,
+  signedReplacementSchema,
+  validateAuthorization,
+  verifyReplacement,
+  replacementIntentDigest,
+} from '../../lib/notes/encryption/authorization'
 import type {VaultWrapper} from '../../lib/notes/encryption/protocol'
 import {
   canonicalIdSchema as id,
@@ -23,6 +31,8 @@ export const setupVaultSchema = z.strictObject({
   vaultId: id,
   primaryWrapper: vaultWrapperSchema,
   recoveryWrapper: vaultWrapperSchema,
+  authorizationVersion: z.literal(1).optional(),
+  authorization: authorizationSchema.optional(),
 })
 export const encryptedWriteSchema = z
   .strictObject({
@@ -101,6 +111,28 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
   }
   return {
     getVault,
+    async getOperation(ownerId: string, operationId: string) {
+      return owned(ownerId, async (tx) => {
+        const vault = await getVault(ownerId, tx)
+        const [receipt] = vault
+          ? await tx
+              .select({
+                operationId: receipts.operationId,
+                intentDigest: receipts.intentDigest,
+                appliedRevision: receipts.appliedRevision,
+              })
+              .from(receipts)
+              .where(
+                and(
+                  eq(receipts.vaultId, vault.id),
+                  eq(receipts.operationId, operationId),
+                ),
+              )
+              .limit(1)
+          : []
+        return {status: 'success', vault, receipt: receipt ?? null}
+      })
+    },
     async setup(ownerId: string, input: unknown) {
       const parsed = setupVaultSchema.safeParse(input)
       if (!parsed.success) return {status: 'invalid_input'}
@@ -122,11 +154,20 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
               current.setupId === v.setupId &&
               current.id === v.vaultId &&
               same(current.primaryWrapper, v.primaryWrapper) &&
-              same(current.recoveryWrapper, v.recoveryWrapper)
+              same(current.recoveryWrapper, v.recoveryWrapper) &&
+              current.authorizationVersion === (v.authorizationVersion ?? 0) &&
+              same(current.authorization, v.authorization ?? null)
                 ? 'success'
                 : 'conflict',
             vault: current,
           }
+        if (v.authorizationVersion !== 1 || !v.authorization)
+          return {status: 'reload_required'}
+        try {
+          await validateAuthorization(v.authorization)
+        } catch {
+          return {status: 'invalid_input'}
+        }
         if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
           return {status: 'invalid_input'}
         if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
@@ -140,9 +181,97 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
             lastOperationId: v.setupId,
             primaryWrapper: v.primaryWrapper,
             recoveryWrapper: v.recoveryWrapper,
+            authorizationVersion: 1,
+            authorization: v.authorization,
           })
           .returning()
         return {status: 'success', vault}
+      })
+    },
+    async replacePrimary(ownerId: string, input: unknown) {
+      const parsed = signedReplacementSchema.safeParse(input)
+      if (!parsed.success || parsed.data.ownerId !== ownerId)
+        return {status: 'invalid_input'}
+      const v = parsed.data
+      return owned(ownerId, async (tx) => {
+        const vault = await getVault(ownerId, tx)
+        if (!vault || vault.id !== v.vaultId) return {status: 'unavailable'}
+        if (vault.authorizationVersion !== 1 || !vault.authorization)
+          return {status: 'disabled'}
+        let authorization
+        try {
+          authorization = await validateAuthorization(vault.authorization)
+          if (
+            authorization.verifierId !== v.verifierId ||
+            !(await verifyReplacement(authorization, v))
+          )
+            return {status: 'invalid_input'}
+        } catch {
+          return {status: 'invalid_input'}
+        }
+        const {signature: _signature, ...intent} = v
+        const intentDigest = await replacementIntentDigest(intent)
+        const [accepted] = await tx
+          .select({
+            operationId: receipts.operationId,
+            intentDigest: receipts.intentDigest,
+            appliedRevision: receipts.appliedRevision,
+          })
+          .from(receipts)
+          .where(
+            and(
+              eq(receipts.vaultId, vault.id),
+              eq(receipts.operationId, v.operationId),
+            ),
+          )
+          .limit(1)
+        if (accepted)
+          return accepted.intentDigest === intentDigest
+            ? {
+                status: 'success',
+                vault,
+                receipt: accepted,
+                alreadyApplied: true,
+              }
+            : {status: 'conflict', vault}
+        if (
+          vault.revision !== v.expectedRevision ||
+          vault.lastOperationId === v.operationId
+        )
+          return {status: 'conflict', vault}
+        if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
+          return {status: 'invalid_input'}
+        const appliedRevision = randomUUID()
+        const [updated] = await tx
+          .update(vaults)
+          .set({
+            primaryWrapper: v.primaryWrapper,
+            revision: appliedRevision,
+            lastOperationId: v.operationId,
+          })
+          .where(
+            and(
+              eq(vaults.id, vault.id),
+              eq(vaults.ownerId, ownerId),
+              eq(vaults.revision, v.expectedRevision),
+            ),
+          )
+          .returning()
+        if (!updated) return {status: 'conflict', vault}
+        const receipt = {
+          operationId: v.operationId,
+          intentDigest,
+          appliedRevision,
+        }
+        await tx
+          .insert(receipts)
+          .values({...receipt, vaultId: vault.id, ownerId})
+        return {
+          status: 'success',
+          vault: updated,
+          receipt,
+          alreadyApplied: false,
+        }
       })
     },
     async getNote(ownerId: string, noteId: string) {
