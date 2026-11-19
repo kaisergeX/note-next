@@ -76,3 +76,54 @@ test('lock releases successful and explicitly discarded checkpoint callbacks', a
     else Reflect.deleteProperty(globalThis, 'document')
   }
 })
+
+test('a failed checkpoint stays with its owner when another account unlocks', async () => {
+  const previousDocument = Object.getOwnPropertyDescriptor(
+    globalThis,
+    'document',
+  )
+  Object.defineProperty(globalThis, 'document', {
+    value: {hidden: false},
+    configurable: true,
+  })
+  const firstOwner = crypto.randomUUID(),
+    firstVault = crypto.randomUUID(),
+    nextOwner = crypto.randomUUID(),
+    nextVault = crypto.randomUUID()
+  const firstRoot = await importRoot(generateRoot())
+  const nextRoot = await importRoot(generateRoot())
+  try {
+    activateVault(firstOwner, firstVault, firstRoot, currentVaultEpoch())
+    let attempts = 0
+    const unregister = registerVaultCheckpoint(firstOwner, async () => {
+      if (++attempts === 1) throw new Error('Quota')
+    })
+    assert.equal(await lockVault(firstOwner, false), false)
+    unregister()
+    assert.equal(getVaultRoot(firstOwner, firstVault), null)
+    assert.throws(() =>
+      activateVault(firstOwner, firstVault, firstRoot, currentVaultEpoch()),
+    )
+
+    activateVault(nextOwner, nextVault, nextRoot, currentVaultEpoch())
+    const nextEpoch = currentVaultEpoch()
+    const retry = lockVault(firstOwner, false)
+    assert.equal(lockVault(firstOwner, false), retry)
+    assert.equal(await retry, true)
+    assert.equal(attempts, 2)
+    assert.equal(currentVaultEpoch(), nextEpoch)
+    assert.equal(getVaultRoot(nextOwner, nextVault), nextRoot)
+
+    assert.equal(await lockVault(nextOwner, false), true)
+    activateVault(firstOwner, firstVault, firstRoot, currentVaultEpoch())
+    assert.equal(await lockVault(firstOwner, false), true)
+    assert.equal(attempts, 2)
+  } finally {
+    discardBlockedEdits(firstOwner)
+    await lockVault(nextOwner, false)
+    await lockVault(firstOwner, false)
+    if (previousDocument)
+      Object.defineProperty(globalThis, 'document', previousDocument)
+    else Reflect.deleteProperty(globalThis, 'document')
+  }
+})

@@ -17,12 +17,10 @@ export type ConfirmedVault = {
 }
 
 type State = 'locked' | 'unlocked' | 'locking' | 'blocked'
-let state: State = 'locked'
 let epoch = 0
 let session: {ownerId: string; vaultId: string; root: CryptoKey} | null = null
-let pending: Promise<boolean> | null = null
-let lockingOwner: string | null = null
-let blocked: (() => Promise<void>)[] = []
+const pendingLocks = new Map<string, Promise<boolean>>()
+const blockedCheckpoints = new Map<string, (() => Promise<void>)[]>()
 const listeners = new Set<() => void>()
 const checkpoints = new Map<() => Promise<void>, string>()
 const subscribe = (listener: () => void) => {
@@ -31,8 +29,7 @@ const subscribe = (listener: () => void) => {
     listeners.delete(listener)
   }
 }
-function publish(next: State) {
-  state = next
+function publish() {
   for (const listener of listeners) listener()
 }
 
@@ -46,22 +43,20 @@ export function activateVault(
   if (
     expectedEpoch !== epoch ||
     document.hidden ||
-    pending ||
-    state === 'blocked' ||
+    pendingLocks.has(ownerId) ||
+    blockedCheckpoints.has(ownerId) ||
     (session && (session.ownerId !== ownerId || session.vaultId !== vaultId))
   )
     throw new Error('Unlock expired')
   // Re-verifying credentials for this already active vault must not invalidate
   // the editor's captured epoch or replace its non-extractable root reference.
-  if (state === 'unlocked' && session) return
+  if (session) return
   epoch++
   session = {ownerId, vaultId, root}
-  publish('unlocked')
+  publish()
 }
 export function getVaultRoot(ownerId: string, vaultId: string) {
-  return state === 'unlocked' &&
-    session?.ownerId === ownerId &&
-    session.vaultId === vaultId
+  return session?.ownerId === ownerId && session.vaultId === vaultId
     ? session.root
     : null
 }
@@ -75,7 +70,11 @@ export function useVaultUnlocked(ownerId: string, vaultId: string) {
 export function useLockState(ownerId: string) {
   return useSyncExternalStore(
     subscribe,
-    () => (lockingOwner === ownerId ? state : 'locked'),
+    (): State => {
+      if (pendingLocks.has(ownerId)) return 'locking'
+      if (blockedCheckpoints.has(ownerId)) return 'blocked'
+      return session?.ownerId === ownerId ? 'unlocked' : 'locked'
+    },
     () => 'locked' as State,
   )
 }
@@ -99,51 +98,48 @@ export function lockVault(ownerId: string, broadcast = true): Promise<boolean> {
       /* Storage may be unavailable. */
     }
   }
-  if (session && session.ownerId !== ownerId) return Promise.resolve(true)
+  const pending = pendingLocks.get(ownerId)
   if (pending) return pending
-  epoch++
+  if (!session || session.ownerId === ownerId) {
+    epoch++
+    session = null
+  }
+  // Capture callbacks before subscribers unmount the editing surface. Each
+  // callback retains the key needed to seal its own draft after locking.
+  const tasks =
+    blockedCheckpoints.get(ownerId) ??
+    [...checkpoints]
+      .filter(([, owner]) => owner === ownerId)
+      .map(([flush]) => flush)
+  const lock = Promise.allSettled(
+    tasks.map((flush) => Promise.resolve().then(flush)),
+  ).then((results) => {
+    const failed = tasks.filter((task, index) => {
+      if (results[index].status === 'rejected') return true
+      checkpoints.delete(task)
+      return false
+    })
+    if (failed.length) blockedCheckpoints.set(ownerId, failed)
+    else blockedCheckpoints.delete(ownerId)
+    pendingLocks.delete(ownerId)
+    publish()
+    return failed.length === 0
+  })
+  pendingLocks.set(ownerId, lock)
   if (typeof window !== 'undefined')
     window.dispatchEvent(
       new CustomEvent('eton-vault-invalidated', {detail: ownerId}),
     )
-  lockingOwner = ownerId
-  const tasks =
-    state === 'blocked'
-      ? blocked
-      : [...checkpoints]
-          .filter(([, owner]) => owner === ownerId)
-          .map(([flush]) => flush)
-  // Capture callbacks before subscribers unmount the editing surface.
-  publish('locking')
-  pending = Promise.allSettled(
-    tasks.map((flush) => Promise.resolve().then(flush)),
-  )
-    .then((results) => {
-      blocked = tasks.filter((task, index) => {
-        if (results[index].status === 'rejected') return true
-        checkpoints.delete(task)
-        return false
-      })
-      if (blocked.length) {
-        publish('blocked')
-        return false
-      }
-      session = null
-      publish('locked')
-      return true
-    })
-    .finally(() => {
-      pending = null
-    })
-  return pending
+  publish()
+  return lock
 }
 export function discardBlockedEdits(ownerId: string) {
-  if (lockingOwner !== ownerId || state !== 'blocked') return
-  epoch++
-  session = null
+  const blocked = blockedCheckpoints.get(ownerId)
+  if (!blocked || pendingLocks.has(ownerId)) return
+  if (!session) epoch++
   for (const task of blocked) checkpoints.delete(task)
-  blocked = []
-  publish('locked')
+  blockedCheckpoints.delete(ownerId)
+  publish()
 }
 export function installVaultLifecycle(ownerId: string) {
   let idle: ReturnType<typeof setTimeout>
