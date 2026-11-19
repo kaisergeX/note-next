@@ -3,6 +3,7 @@ import type {Page} from '@playwright/test'
 import messages from '../../dictionaries/en.json' with {type: 'json'}
 import {
   createReplacementCandidate,
+  createVaultCandidate,
   confirmReplacement,
 } from '../../lib/notes/encryption/candidate'
 import {decodeRecoveryKey, unwrapRoot} from '../../lib/notes/encryption/crypto'
@@ -11,7 +12,7 @@ const v = messages.note.vault
 test.beforeEach(async ({noteApp}) => {
   expect(noteApp.ownerId).toBeTruthy()
 })
-async function setup(page: Page) {
+async function prepareSetup(page: Page) {
   await page.goto('/en/collection/encrypted')
   await page.getByRole('button', {name: v.setup, exact: true}).click()
   const phrase = await page.locator('p.font-mono').first().innerText()
@@ -27,11 +28,20 @@ async function setup(page: Page) {
   await expect(
     page.getByRole('button', {name: v.recoveryVerified, exact: true}),
   ).toBeVisible()
+  return {phrase, recovery}
+}
+
+async function setup(page: Page) {
+  const credentials = await prepareSetup(page)
   await page.getByRole('button', {name: v.activate, exact: true}).click()
+  await expect(page.getByLabel(v.passphrase, {exact: true})).toHaveAttribute(
+    'type',
+    'password',
+  )
   await expect(
     page.getByRole('button', {name: v.replacePassphrase, exact: true}),
   ).toBeVisible()
-  return {phrase, recovery}
+  return credentials
 }
 async function prepare(page: Page, recovery: string) {
   await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
@@ -61,6 +71,135 @@ async function intentRows(page: Page) {
       }),
   )
 }
+async function rotateFromRecovery(page: Page, recovery: string) {
+  const current = (await (await page.request.get('/api/note-vault')).json())
+    .vault as ConfirmedVault
+  const recoveryBytes = await decodeRecoveryKey(recovery)
+  const raw = await unwrapRoot(current.recoveryWrapper, recoveryBytes)
+  recoveryBytes.fill(0)
+  try {
+    const replacement = await createReplacementCandidate(
+      raw,
+      {...current, authorization: current.authorization!},
+      'passphrase',
+    )
+    const signed = await confirmReplacement(
+      replacement.candidate,
+      replacement.passphrase,
+    )
+    const result = await page.request.patch('/api/note-vault', {
+      headers: {
+        origin: new URL(page.url()).origin,
+        'x-note-encryption-protocol': '1',
+      },
+      data: signed,
+    })
+    expect((await result.json()).status).toBe('success')
+  } finally {
+    raw.fill(0)
+  }
+}
+
+test('setup retry recognizes its saved recovery kit after a signed primary rotation', async ({
+  page,
+}) => {
+  const {recovery} = await prepareSetup(page)
+  await page.route('**/api/note-vault', async (route) => {
+    if (route.request().method() !== 'POST') return route.continue()
+    const response = await route.fetch()
+    expect((await response.json()).status).toBe('success')
+    await route.abort('failed')
+  })
+  await page.getByRole('button', {name: v.activate, exact: true}).click()
+  await expect(
+    page.getByRole('alert').filter({hasText: v.failed}),
+  ).toBeVisible()
+  await page.unroute('**/api/note-vault')
+
+  await rotateFromRecovery(page, recovery)
+  const [retry] = await Promise.all([
+    page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/note-vault',
+    ),
+    page.getByRole('button', {name: v.retrySetup, exact: true}).click(),
+  ])
+  expect((await retry.json()).status).toBe('conflict')
+  await expect(page.getByText(v.reconciled, {exact: true})).toBeVisible()
+  await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
+  await page.getByLabel(v.recoveryKey, {exact: true}).fill(recovery)
+  await page.getByRole('button', {name: v.unlock, exact: true}).click()
+  await expect(
+    page.getByRole('button', {name: v.lock, exact: true}),
+  ).toBeVisible()
+})
+
+for (const competingSetup of [false, true]) {
+  test(`a lost setup acknowledgement distinguishes ${competingSetup ? 'a competing setup' : 'the saved recovery kit'}`, async ({
+    page,
+    noteApp,
+  }) => {
+    const {recovery} = await prepareSetup(page)
+    const competing = competingSetup
+      ? await createVaultCandidate(noteApp.ownerId, 'passphrase')
+      : null
+    await page.route('**/api/note-vault', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue()
+      const candidate = competing?.candidate
+      const response = await route.fetch(
+        candidate
+          ? {
+              postData: {
+                setupId: candidate.setupId,
+                vaultId: candidate.vaultId,
+                primaryWrapper: candidate.primaryWrapper,
+                recoveryWrapper: candidate.recoveryWrapper,
+                authorizationVersion: 1,
+                authorization: candidate.authorization,
+              },
+            }
+          : {},
+      )
+      expect((await response.json()).status).toBe('success')
+      await route.abort('failed')
+    })
+    await page.getByRole('button', {name: v.activate, exact: true}).click()
+    await expect(
+      page.getByRole('alert').filter({hasText: v.failed}),
+    ).toBeVisible()
+    await page.unroute('**/api/note-vault')
+    if (!competingSetup) {
+      await page.route('**/api/note-vault', async (route) => {
+        const response = await route.fetch()
+        const result = await response.json()
+        result.vault.authorization = {}
+        await route.fulfill({response, json: result})
+      })
+      await page.getByRole('button', {name: v.reconcile, exact: true}).click()
+      await expect(
+        page.getByRole('alert').filter({hasText: v.failed}),
+      ).toBeVisible()
+      await expect(page.getByText(v.lostSetup, {exact: true})).not.toBeVisible()
+      await page.unroute('**/api/note-vault')
+    }
+    await page.getByRole('button', {name: v.reconcile, exact: true}).click()
+    await expect(
+      page.getByText(competingSetup ? v.lostSetup : v.reconciled, {
+        exact: true,
+      }),
+    ).toBeVisible()
+    await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
+    const field = page.getByLabel(v.recoveryKey, {exact: true})
+    await expect(field).toHaveAttribute('type', 'password')
+    await field.fill(competing?.recoveryKit ?? recovery)
+    await page.getByRole('button', {name: v.unlock, exact: true}).click()
+    await expect(
+      page.getByRole('button', {name: v.lock, exact: true}),
+    ).toBeVisible()
+  })
+}
+
 test('recovery replacement survives lost acknowledgement and reports historical receipt after another change', async ({
   page,
 }) => {
@@ -126,32 +265,7 @@ test('recovery replacement survives lost acknowledgement and reports historical 
   ).toContainText(v.failed)
   await page.unroute('**/api/note-vault')
   // A different client applies a subsequent independently signed change.
-  const current = (await (await page.request.get('/api/note-vault')).json())
-    .vault as ConfirmedVault
-  const recoveryBytes = await decodeRecoveryKey(recovery)
-  const raw = await unwrapRoot(current.recoveryWrapper, recoveryBytes)
-  recoveryBytes.fill(0)
-  try {
-    const replacement = await createReplacementCandidate(
-      raw,
-      {...current, authorization: current.authorization!},
-      'passphrase',
-    )
-    const signed = await confirmReplacement(
-      replacement.candidate,
-      replacement.passphrase,
-    )
-    const result = await page.request.patch('/api/note-vault', {
-      headers: {
-        origin: new URL(page.url()).origin,
-        'x-note-encryption-protocol': '1',
-      },
-      data: signed,
-    })
-    expect((await result.json()).status).toBe('success')
-  } finally {
-    raw.fill(0)
-  }
+  await rotateFromRecovery(page, recovery)
   await page.getByRole('button', {name: v.reconcile, exact: true}).click()
   await expect(
     page.getByRole('status').filter({hasText: v.replacementHistorical}),

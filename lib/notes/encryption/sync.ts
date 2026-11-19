@@ -66,6 +66,7 @@ export async function sendEncryptedFlight(
   noteId: string,
   request: string,
   fetcher: typeof fetch = fetch,
+  signal?: AbortSignal,
 ): Promise<EncryptedSyncResult> {
   validateEncryptedFlight(request, noteId)
   try {
@@ -73,6 +74,7 @@ export async function sendEncryptedFlight(
       `/api/note-encryption/${encodeURIComponent(noteId)}`,
       {
         method: 'PUT',
+        signal,
         headers: {
           'Content-Type': 'application/json',
           'x-note-encryption-protocol': '1',

@@ -4,6 +4,22 @@ Updated 2026-11-19. **Production/real-note beta verdict: NO-GO.** Both enrollmen
 
 ## Current PR scope
 
+### November 19 remediation on the audit branch
+
+**Real-note beta remains NO-GO.** The changes below address the local audit findings. The independent protocol review, physical passkey providers, phone performance, screen-reader and EN/VI participant sessions, hosting checks and release-owner decision remain open. [Operator and participant handoff](note-encryption-operator-handoff.md)
+
+| Audit finding | Candidate behavior |
+| --- | --- |
+| Lost setup acknowledgement | Check setup and Retry setup compare the installed vault, setup ID, recovery wrapper and authorization fields. A rotated primary still permits recognition of the saved recovery kit. A different setup is identified explicitly. A malformed response leaves the provisional setup available for another check. |
+| Canceling a replacement passkey | Each new resident credential gets its own user handle. After cancellation the original passkey still unlocks on the same Chromium virtual authenticator. A provider may retain the unused credential it created during preparation. Physical-provider behavior remains a release gate. |
+| Signed replacement retry after expiry | An existing receipt settles the original request. For an uncommitted request that needs a fresh assertion, Retry verifies the proposed passkey and resends the same signed intent. |
+| Superseded editor and oversized title | The stale editor keeps subsequent edits in one encrypted browser copy and can close or lock. Inspecting a retained version preserves the current working copy. A title with more than 765 serialized characters can be checkpointed locally, reopened and shortened before syncing. |
+| Immediate online Close | Close waits for a bounded sync attempt and covers newer edits made during an earlier upload. A transport failure identifies the durable browser copy and offers retry or close. A newly discovered sign-in pause, conflict or refusal stays visible. |
+| Recovery destinations and navigation | Collection, direct, full-page and intercepted modal routes use the same server-side creation flag. Synced titles wrap at narrow widths, keyboard activation focuses the editor, and the selected note keeps Lock visible with secondary credential controls collapsed. Browser-copy timestamps follow the app locale. |
+| Setup and unlock presentation | Both languages name the passphrase enrollment choice. Revealing the setup recovery kit leaves the subsequent unlock input masked. |
+
+The local development environment uses the existing loopback sign-in origin for `AUTH_URL`. Enrollment and creation default to false. Verification uses separate open- and closed-flag loopback previews with disposable PostgreSQL data.
+
 ### November 19 branch audit and fix handoff
 
 **Review verdict: request changes.** Reviewed `feature/note-e2ee` at `d7bfdfe8a7ad60889f2ed23fd50add855b73b7cd` against `origin/main` at `b2122d0bf9a61c9319d21aeb6ca3bbf21962c362`. Fix the two P1 credential-recovery defects first. All findings below were open at the reviewed commit.

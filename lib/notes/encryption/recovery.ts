@@ -37,7 +37,8 @@ export const recoveryPayloadSchema = z
     baseline: trashDraftSchema.nullable(),
     // Absent in checkpoints from the editor that aliased baseline and draft.
     baselineVerified: z.literal(true).optional(),
-    draft: trashDraftSchema,
+    // Rich-text markup can exceed the sync title limit before the user edits it.
+    draft: trashDraftSchema.extend({title: trashDraftSchema.shape.content}),
     conflict: trashDraftSchema.nullable(),
     conflictRevision: z.uuid().nullable().optional(),
     flight: z

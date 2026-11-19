@@ -1,7 +1,7 @@
 'use client'
 
 import {useCallback, useEffect, useRef, useState} from 'react'
-import {useTranslations} from 'next-intl'
+import {useLocale, useTranslations} from 'next-intl'
 import Button, {buttonClass} from '~/components/ui/button'
 import LoadingIndicator from '~/components/ui/loading-indicator'
 import {Link} from '~/i18n/navigation'
@@ -41,6 +41,7 @@ type Selected = {
   creating?: boolean
   readOnly?: boolean
   recordId?: string
+  focusOnOpen?: boolean
 }
 
 function EncryptedList({
@@ -57,6 +58,11 @@ function EncryptedList({
   unlocked: boolean
 }) {
   const t = useTranslations('note.encryption')
+  const locale = useLocale()
+  const dateFormat = new Intl.DateTimeFormat(locale, {
+    dateStyle: 'short',
+    timeStyle: 'short',
+  })
   const [page, setPage] = useState<{
     rows: {id: string; label: string}[]
     next: string | null
@@ -160,10 +166,12 @@ function EncryptedList({
                 <li key={row.id}>
                   <Button
                     variant="link"
-                    className="min-h-10 max-w-full text-left whitespace-normal"
-                    onClick={() => select({noteId: row.id})}
+                    className="h-auto min-h-10 max-w-full py-2 text-left whitespace-normal"
+                    onClick={(event) =>
+                      select({noteId: row.id, focusOnOpen: event.detail === 0})
+                    }
                   >
-                    {row.label}
+                    <span className="min-w-0 wrap-anywhere">{row.label}</span>
                   </Button>
                 </li>
               ))}
@@ -196,7 +204,7 @@ function EncryptedList({
                   }
                 >
                   {t('localVersion', {
-                    date: new Date(row.updatedAt).toLocaleString(),
+                    date: dateFormat.format(row.updatedAt),
                   })}
                 </Button>
               </li>
@@ -362,6 +370,7 @@ export default function EncryptedWorkspace({
             ownerId={ownerId}
             vault={vault}
             enrollmentEnabled={enrollmentEnabled && !offline}
+            compact={Boolean(selected && unlocked)}
             onRefresh={refresh}
           />
           {vault &&

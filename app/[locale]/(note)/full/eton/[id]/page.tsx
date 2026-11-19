@@ -12,6 +12,14 @@ export default async function FullNotePage({
   const note = await getNote(userInfo.id, id)
   if (!note) notFound()
   if (note.isEncrypted)
-    return <EncryptedDetail ownerId={userInfo.id} noteId={note.id} />
+    return (
+      <EncryptedDetail
+        ownerId={userInfo.id}
+        noteId={note.id}
+        creationEnabled={
+          process.env.NOTE_ENCRYPTION_CREATION_ENABLED === 'true'
+        }
+      />
+    )
   return <NoteDetail noteData={note} />
 }

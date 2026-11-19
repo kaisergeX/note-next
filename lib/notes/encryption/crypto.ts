@@ -4,6 +4,7 @@ import {
   decodeBase64url,
   encodeBase64url,
   encryptedNotePayloadSchema,
+  MAX_ENCRYPTED_TITLE_LENGTH,
   MAX_NOTE_BYTES,
   MAX_RECOVERY_BYTES,
   noteAad,
@@ -117,7 +118,8 @@ function validateContent(value: {title: unknown; content: unknown}) {
   if (
     !(
       value.title === null ||
-      (typeof value.title === 'string' && value.title.length <= 765)
+      (typeof value.title === 'string' &&
+        value.title.length <= MAX_ENCRYPTED_TITLE_LENGTH)
     ) ||
     !(
       value.content === null ||
@@ -182,7 +184,7 @@ export async function openNoteTitle(
         root,
         noteAad(ownerId, input, 'title'),
         input.title,
-        765 * 6 + 2,
+        MAX_ENCRYPTED_TITLE_LENGTH * 6 + 2,
       ),
     ),
   )

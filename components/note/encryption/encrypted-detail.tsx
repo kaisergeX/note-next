@@ -10,12 +10,14 @@ export default function EncryptedDetail({
   noteId,
   modal = false,
   readOnly = false,
+  creationEnabled = false,
   onClose,
 }: {
   ownerId: string
   noteId: string
   modal?: boolean
   readOnly?: boolean
+  creationEnabled?: boolean
   onClose?: () => void
 }) {
   const router = useRouter()
@@ -26,6 +28,7 @@ export default function EncryptedDetail({
     <EncryptedWorkspace
       ownerId={ownerId}
       initial={{noteId, readOnly}}
+      creationEnabled={creationEnabled}
       onClose={close}
     />
   )

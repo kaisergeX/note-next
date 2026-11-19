@@ -1,4 +1,7 @@
 import {test, expect} from './fixtures'
+import type {BrowserContext, Page} from '@playwright/test'
+import postgres from 'postgres'
+import type {SignedReplacement} from '../../lib/notes/encryption/authorization'
 import messages from '../../dictionaries/en.json' with {type: 'json'}
 import type {ConfirmedVault} from '../../lib/notes/encryption/runtime'
 const v = messages.note.vault
@@ -60,12 +63,7 @@ test('closed enrollment and creation refuse new-account registration and replace
   expect(noteApp.ownerId).toBeTruthy()
 })
 
-test('virtual authenticator PRF enrollment, signed replacement, reconciliation and cancellation', async ({
-  page,
-  context,
-  noteApp,
-}) => {
-  test.setTimeout(180000)
+async function virtualAuthenticator(context: BrowserContext, page: Page) {
   const session = await context.newCDPSession(page)
   await session.send('WebAuthn.enable')
   const {authenticatorId} = await session.send(
@@ -83,31 +81,44 @@ test('virtual authenticator PRF enrollment, signed replacement, reconciliation a
       },
     },
   )
+  return {session, authenticatorId}
+}
+
+async function enroll(page: Page) {
+  await page.goto('/en/collection/encrypted')
+  await page.getByRole('button', {name: v.setupPasskey, exact: true}).click()
+  await expect(
+    page.getByRole('button', {name: v.verifyPrimary, exact: true}),
+  ).toBeVisible()
+  await page.getByRole('button', {name: v.reveal, exact: true}).click()
+  const kit = await page.locator('p.font-mono').last().innerText()
+  await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
+  await expect(
+    page.getByRole('button', {name: v.primaryVerified, exact: true}),
+  ).toBeVisible()
+  await page.getByLabel(v.confirmationEntry, {exact: true}).fill(kit)
+  await page.getByRole('button', {name: v.verifyRecovery, exact: true}).click()
+  await expect(
+    page.getByRole('button', {name: v.recoveryVerified, exact: true}),
+  ).toBeVisible()
+  await page.getByRole('button', {name: v.activate, exact: true}).click()
+  return kit
+}
+
+test('virtual authenticator PRF enrollment, signed replacement, reconciliation and cancellation', async ({
+  page,
+  context,
+  noteApp,
+}) => {
+  test.setTimeout(180000)
+  const {session, authenticatorId} = await virtualAuthenticator(context, page)
   const requests: string[] = []
   page.on('request', (request) => {
     if (request.method() === 'POST' || request.method() === 'PATCH')
       requests.push(request.postData() ?? '')
   })
   try {
-    await page.goto('/en/collection/encrypted')
-    await page.getByRole('button', {name: v.setupPasskey, exact: true}).click()
-    await expect(
-      page.getByRole('button', {name: v.verifyPrimary, exact: true}),
-    ).toBeVisible()
-    await page.getByRole('button', {name: v.reveal, exact: true}).click()
-    const kit = await page.locator('p.font-mono').last().innerText()
-    await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
-    await expect(
-      page.getByRole('button', {name: v.primaryVerified, exact: true}),
-    ).toBeVisible()
-    await page.getByLabel(v.confirmationEntry, {exact: true}).fill(kit)
-    await page
-      .getByRole('button', {name: v.verifyRecovery, exact: true})
-      .click()
-    await expect(
-      page.getByRole('button', {name: v.recoveryVerified, exact: true}),
-    ).toBeVisible()
-    await page.getByRole('button', {name: v.activate, exact: true}).click()
+    const kit = await enroll(page)
     await expect(
       page.getByRole('button', {name: v.unlock, exact: true}),
     ).toBeVisible()
@@ -268,6 +279,21 @@ test('virtual authenticator PRF enrollment, signed replacement, reconciliation a
     await expect(
       page.getByRole('button', {name: v.lock, exact: true}),
     ).toBeVisible()
+    await page
+      .getByRole('button', {name: v.replacePasskey, exact: true})
+      .click()
+    await expect(
+      page.getByRole('button', {name: v.confirmReplacement, exact: true}),
+    ).toBeFocused()
+    await page
+      .getByRole('button', {name: v.cancelReplacement, exact: true})
+      .click()
+    expect(browserPatches).toBe(0)
+    await page.getByRole('button', {name: v.lock, exact: true}).click()
+    await page.getByRole('button', {name: v.unlock, exact: true}).click()
+    await expect(
+      page.getByRole('button', {name: v.lock, exact: true}),
+    ).toBeVisible()
     await page.getByRole('button', {name: v.lock, exact: true}).click()
     await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
     await page.getByLabel(v.recoveryKey, {exact: true}).fill(kit)
@@ -360,6 +386,80 @@ test('virtual authenticator PRF enrollment, signed replacement, reconciliation a
     await session.detach()
   }
 })
+
+for (const committed of [false, true]) {
+  test(`retry with an expired passkey assertion when replacement ${committed ? 'has a receipt' : 'did not commit'}`, async ({
+    page,
+    context,
+    noteApp,
+  }) => {
+    const {session, authenticatorId} = await virtualAuthenticator(context, page)
+    const sql = postgres(process.env.DATABASE_URL!, {max: 1})
+    try {
+      const kit = await enroll(page)
+      await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
+      await page.getByLabel(v.recoveryKey, {exact: true}).fill(kit)
+      await page
+        .getByRole('button', {name: v.replacePasskey, exact: true})
+        .click()
+      let signed: SignedReplacement | undefined
+      await page.route('**/api/note-vault', async (route) => {
+        if (route.request().method() !== 'PATCH') return route.continue()
+        signed = route.request().postDataJSON()
+        if (committed) {
+          const response = await route.fetch()
+          expect((await response.json()).status).toBe('success')
+        }
+        await route.abort('failed')
+      })
+      await page
+        .getByRole('button', {name: v.confirmReplacement, exact: true})
+        .click()
+      await expect(
+        page.getByRole('alert').filter({hasText: v.failed}),
+      ).toBeVisible()
+      await page.unroute('**/api/note-vault')
+      expect(signed).toBeDefined()
+      const credentialId = signed!.primaryWrapper.passkeyBinding![1]
+      const expired = await sql`
+        update note_passkeys set verified_at = now() - interval '11 minutes'
+        where owner_id = ${noteApp.ownerId} and credential_id = ${credentialId}
+      `
+      expect(expired.count).toBe(1)
+      await page.reload()
+      const assertions: string[] = []
+      const patches: unknown[] = []
+      page.on('request', (request) => {
+        const path = new URL(request.url()).pathname
+        if (path === '/api/note-vault' && request.method() === 'PATCH')
+          patches.push(request.postDataJSON())
+        if (path === '/api/note-vault/passkey' && request.method() === 'POST') {
+          const data = request.postDataJSON()
+          if (data.operation === 'assertion-options')
+            assertions.push(data.credentialId)
+        }
+      })
+      await page
+        .getByRole('button', {name: v.retryReplacement, exact: true})
+        .click()
+      await expect(
+        page.getByText(v.replacementActive, {exact: true}),
+      ).toBeVisible()
+      expect(assertions).toEqual(committed ? [] : [credentialId])
+      expect(patches).toEqual(committed ? [signed] : [signed, signed])
+      await page.getByRole('button', {name: v.unlock, exact: true}).click()
+      await expect(
+        page.getByRole('button', {name: v.lock, exact: true}),
+      ).toBeVisible()
+    } finally {
+      await sql.end()
+      await session.send('WebAuthn.removeVirtualAuthenticator', {
+        authenticatorId,
+      })
+      await session.detach()
+    }
+  })
+}
 
 test('missing authenticator PRF cannot activate a vault and offers generated passphrase fallback', async ({
   page,

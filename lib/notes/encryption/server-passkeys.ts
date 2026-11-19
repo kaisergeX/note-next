@@ -139,7 +139,8 @@ export async function passkeyCeremony(
               rpName: 'Eton notes',
               rpID,
               userName: ownerId,
-              userID: new TextEncoder().encode(ownerId),
+              // The generated per-registration handle lets a resident passkey
+              // coexist with the current one on the same authenticator.
               authenticatorSelection: {
                 residentKey: 'required',
                 userVerification: 'required',

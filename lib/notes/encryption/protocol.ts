@@ -3,6 +3,7 @@ import {z} from 'zod'
 export const ENCRYPTION_VERSION = 1
 export const PASSPHRASE_PROFILE = 'pbkdf2-sha256-600000'
 export const MAX_NOTE_BYTES = 1048576
+export const MAX_ENCRYPTED_TITLE_LENGTH = 765
 export const MAX_RECOVERY_BYTES = 8388608
 export const canonicalIdSchema = z
   .string()

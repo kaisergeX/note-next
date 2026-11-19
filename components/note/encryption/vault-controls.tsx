@@ -54,10 +54,12 @@ export function VaultControls({
   vault,
   enrollmentEnabled,
   onRefresh,
+  compact = false,
 }: {
   ownerId: string
   vault: ConfirmedVault | null
   enrollmentEnabled: boolean
+  compact?: boolean
   onRefresh: (requireOnline?: boolean) => Promise<ConfirmedVault | null>
 }) {
   const t = useTranslations('note.vault')
@@ -66,7 +68,8 @@ export function VaultControls({
     [kit, setKit] = useState(''),
     [entry, setEntry] = useState('')
   const [recovery, setRecovery] = useState(false),
-    [reveal, setReveal] = useState(false)
+    [reveal, setReveal] = useState(false),
+    [setupReveal, setSetupReveal] = useState(false)
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('')
@@ -108,6 +111,7 @@ export function VaultControls({
       setPhrase('')
       setKit('')
       setReveal(false)
+      setSetupReveal(false)
       try {
         const stored = sessionStorage.getItem(storageKey)
         if (stored) {
@@ -150,6 +154,7 @@ export function VaultControls({
       setKit('')
       setEntry('')
       setReveal(false)
+      setSetupReveal(false)
     }
     document.addEventListener('visibilitychange', clear)
     window.addEventListener('eton-vault-invalidated', invalidate)
@@ -216,10 +221,11 @@ export function VaultControls({
     }
     return result
   }
-  const start = (method: 'passphrase' | 'passkey' = 'passphrase') =>
+  const start = (method: 'passphrase' | 'passkey') =>
     run(async (version) => {
       const created = await createVaultCandidate(ownerId, method)
       check(version)
+      setSetupReveal(false)
       save(created.candidate)
       setPhrase(created.passphrase)
       setKit(created.recoveryKit)
@@ -246,6 +252,50 @@ export function VaultControls({
       setKit('')
       setMessage(t('verified'))
     })
+  function matchesSetup(current: ConfirmedVault, candidate: VaultCandidate) {
+    const vaultId = canonicalIdSchema.parse(current.id)
+    const setupId = canonicalIdSchema.parse(current.setupId)
+    const primary = vaultWrapperSchema.parse(current.primaryWrapper)
+    const recovery = vaultWrapperSchema.parse(current.recoveryWrapper)
+    if (
+      current.ownerId !== ownerId ||
+      primary.ownerId !== ownerId ||
+      recovery.ownerId !== ownerId ||
+      primary.vaultId !== vaultId ||
+      recovery.vaultId !== vaultId ||
+      primary.purpose === 'recovery' ||
+      recovery.purpose !== 'recovery'
+    )
+      throw new Error('Invalid setup status')
+    const authorizationVersion = current.authorizationVersion ?? 0
+    if (
+      authorizationVersion !== 1 &&
+      (authorizationVersion !== 0 || current.authorization != null)
+    )
+      throw new Error('Invalid vault authorization')
+    const installedAuthorization =
+      authorizationVersion === 1
+        ? authorizationSchema.parse(current.authorization)
+        : null
+    const savedAuthorization = candidate.authorization
+      ? authorizationSchema.parse(candidate.authorization)
+      : null
+    return (
+      vaultId === candidate.vaultId &&
+      setupId === candidate.setupId &&
+      JSON.stringify(recovery) ===
+        JSON.stringify(vaultWrapperSchema.parse(candidate.recoveryWrapper)) &&
+      JSON.stringify(installedAuthorization) ===
+        JSON.stringify(savedAuthorization)
+    )
+  }
+  function finishSetup(message: 'created' | 'reconciled' | 'lostSetup') {
+    sessionStorage.removeItem(storageKey)
+    setCandidate(null)
+    setPhrase('')
+    setKit('')
+    setMessage(t(message))
+  }
   const submit = () =>
     run(async (version) => {
       if (!candidate?.primaryChecked || !candidate.recoveryChecked) return
@@ -261,14 +311,23 @@ export function VaultControls({
           : {}),
       })
       check(version)
-      if (result.status === 'success' || result.status === 'conflict') {
-        sessionStorage.removeItem(storageKey)
-        setCandidate(null)
-        setPhrase('')
-        setKit('')
-        await onRefresh()
-        setMessage(t(result.status === 'success' ? 'created' : 'lostSetup'))
-      } else throw new Error('Unconfirmed setup')
+      if (
+        (result.status !== 'success' && result.status !== 'conflict') ||
+        !result.vault
+      )
+        throw new Error('Unconfirmed setup')
+      const sameSetup = matchesSetup(result.vault, pending)
+      if (result.status === 'success' && !sameSetup)
+        throw new Error('Invalid setup acknowledgement')
+      const current = await onRefresh(true)
+      check(version)
+      if (!current || matchesSetup(current, pending) !== sameSetup)
+        throw new Error('Unconfirmed setup')
+      const confirmedMessage =
+        candidate.submitted || result.status === 'conflict'
+          ? 'reconciled'
+          : 'created'
+      finishSetup(sameSetup ? confirmedMessage : 'lostSetup')
     })
   async function reconcileSigned(
     request: SignedReplacement,
@@ -352,16 +411,31 @@ export function VaultControls({
     fresh = false,
   ) {
     check(version)
-    await fetch('/api/note-vault', {
-      method: 'PATCH',
-      cache: 'no-store',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-note-encryption-protocol': '1',
-      },
-      body: JSON.stringify(request),
-    })
+    const patch = () =>
+      fetch('/api/note-vault', {
+        method: 'PATCH',
+        cache: 'no-store',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-note-encryption-protocol': '1',
+        },
+        body: JSON.stringify(request),
+      })
+    const response = await patch()
     check(version)
+    const binding = request.primaryWrapper.passkeyBinding
+    if (
+      binding &&
+      response.ok &&
+      (await response.json()).status === 'passkey_assertion_required'
+    ) {
+      check(version)
+      const output = await assertPasskey(request.vaultId, binding)
+      output.fill(0)
+      check(version)
+      await patch()
+      check(version)
+    }
     await reconcileSigned(request, version, fresh)
   }
   const beginReplacement = (method: 'passphrase' | 'passkey') =>
@@ -385,6 +459,7 @@ export function VaultControls({
         )
         check(version)
         replacementFocus.current = 'confirm'
+        setReveal(false)
         setReplacementDraft(created.candidate)
         setPhrase(created.passphrase)
         setEntry('')
@@ -439,16 +514,9 @@ export function VaultControls({
         setReplacement(null)
         setMessage(t(isCurrent ? 'replacementActive' : 'replacementInactive'))
       } else if (candidate) {
-        const sameSetup =
-          current.id === candidate.vaultId &&
-          current.setupId === candidate.setupId &&
-          JSON.stringify(vaultWrapperSchema.parse(current.recoveryWrapper)) ===
-            JSON.stringify(candidate.recoveryWrapper) &&
-          JSON.stringify(current.authorization ?? null) ===
-            JSON.stringify(candidate.authorization ?? null)
-        sessionStorage.removeItem(storageKey)
-        setCandidate(null)
-        setMessage(t(sameSetup ? 'reconciled' : 'lostSetup'))
+        finishSetup(
+          matchesSetup(current, candidate) ? 'reconciled' : 'lostSetup',
+        )
       }
     })
   async function rawUnlock() {
@@ -480,22 +548,12 @@ export function VaultControls({
         raw.fill(0)
       }
     })
-  return (
-    <section
-      className="border-hairline bg-paper-raised space-y-4 rounded-lg border p-4"
-      aria-label={t('heading')}
-    >
-      <h2 className="font-semibold">{t('heading')}</h2>
+  const controls = (
+    <>
       <p className="text-ink-muted text-sm">{t('disclosure')}</p>
       <p className="text-ink-muted text-sm">{t('passkeyPending')}</p>
       {vault ? (
         <>
-          <p role="status">{t(active ? 'unlocked' : 'locked')}</p>
-          {active ? (
-            <Button variant="secondary" onClick={() => void lockVault(ownerId)}>
-              {t('lock')}
-            </Button>
-          ) : null}
           <div className="flex flex-wrap gap-2">
             <Button
               ref={methodButton}
@@ -503,6 +561,7 @@ export function VaultControls({
               disabled={busy || !!replacementDraft}
               onClick={() => {
                 setRecovery(!recovery)
+                setReveal(false)
                 setEntry('')
               }}
             >
@@ -593,6 +652,7 @@ export function VaultControls({
                           ? 'passkey'
                           : 'passphrase'
                       setReplacementDraft(null)
+                      setReveal(false)
                       setPhrase('')
                       setEntry('')
                     }}
@@ -690,17 +750,20 @@ export function VaultControls({
           {phrase ? <p className="font-mono break-words">{phrase}</p> : null}
           {kit ? (
             <p className="font-mono break-all">
-              {reveal ? kit : t('kitHidden')}
+              {setupReveal ? kit : t('kitHidden')}
             </p>
           ) : null}
-          <Button variant="secondary" onClick={() => setReveal(!reveal)}>
-            {t(reveal ? 'hide' : 'reveal')}
+          <Button
+            variant="secondary"
+            onClick={() => setSetupReveal(!setupReveal)}
+          >
+            {t(setupReveal ? 'hide' : 'reveal')}
           </Button>
           <label className="block space-y-2">
             <span>{t('confirmationEntry')}</span>
             <Input
               autoComplete="off"
-              type={reveal ? 'text' : 'password'}
+              type={setupReveal ? 'text' : 'password'}
               value={entry}
               onChange={(e) => setEntry(e.target.value)}
             />
@@ -777,6 +840,36 @@ export function VaultControls({
         </div>
       ) : (
         <p>{t('disabled')}</p>
+      )}
+    </>
+  )
+  return (
+    <section
+      className="border-hairline bg-paper-raised space-y-4 rounded-lg border p-4"
+      aria-label={t('heading')}
+    >
+      <div
+        className={
+          compact && active ? 'flex flex-wrap items-center gap-2' : 'space-y-4'
+        }
+      >
+        <h2 className="font-semibold">{t('heading')}</h2>
+        {vault && <p role="status">{t(active ? 'unlocked' : 'locked')}</p>}
+        {active && (
+          <Button variant="secondary" onClick={() => void lockVault(ownerId)}>
+            {t('lock')}
+          </Button>
+        )}
+      </div>
+      {compact && active ? (
+        <details className="space-y-4">
+          <summary className="min-h-10 cursor-pointer content-center text-sm">
+            {t('credentialSettings')}
+          </summary>
+          {controls}
+        </details>
+      ) : (
+        controls
       )}
       {error ? (
         <p role="alert" className="text-destructive text-sm">

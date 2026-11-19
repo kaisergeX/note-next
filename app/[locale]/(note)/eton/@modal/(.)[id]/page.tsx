@@ -17,7 +17,16 @@ export default async function NoteDetailModalPage(
   const noteData = await getNote(userInfo.id, noteId)
   if (!noteData) notFound()
   if (noteData.isEncrypted)
-    return <EncryptedDetail ownerId={userInfo.id} noteId={noteData.id} modal />
+    return (
+      <EncryptedDetail
+        ownerId={userInfo.id}
+        noteId={noteData.id}
+        modal
+        creationEnabled={
+          process.env.NOTE_ENCRYPTION_CREATION_ENABLED === 'true'
+        }
+      />
+    )
   const noteMsgs = (await getMessages({locale})).note
   return (
     <NextIntlClientProvider messages={{note: noteMsgs}}>

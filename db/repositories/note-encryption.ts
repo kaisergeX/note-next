@@ -240,7 +240,7 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
         )
           return {status: 'conflict', vault}
         if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
-          return {status: 'invalid_input'}
+          return {status: 'passkey_assertion_required'}
         const appliedRevision = randomUUID()
         const [updated] = await tx
           .update(vaults)

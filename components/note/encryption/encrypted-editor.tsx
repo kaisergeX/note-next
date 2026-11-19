@@ -8,6 +8,7 @@ import Button, {buttonClass} from '~/components/ui/button'
 import {Link} from '~/i18n/navigation'
 import {sanitizeNoteHtml} from '~/lib/notes/html'
 import {openNote, sealNote} from '~/lib/notes/encryption/crypto'
+import {MAX_ENCRYPTED_TITLE_LENGTH} from '~/lib/notes/encryption/protocol'
 import RefusedRecovery from './refused-recovery'
 import {stageEncryptedRecovery} from '~/lib/notes/encryption/stage-recovery'
 import type {EncryptedRemote} from '~/lib/notes/encryption/sync'
@@ -49,12 +50,18 @@ type PersistenceStatus =
   | 'invalid_input'
   | 'reload_required'
   | 'review_required'
+  | 'superseded'
+  | 'title_limit'
+  | 'close_pending'
   | 'recovery_error'
   | 'unauthenticated'
+type SaveProgress =
+  'saved' | 'changed' | 'retryable' | 'needsAttention' | undefined
 type Actions = {
   edit: (field: 'title' | 'content', value: string) => void
   flush: () => Promise<void>
-  save: () => Promise<void>
+  close: () => Promise<boolean>
+  save: () => Promise<SaveProgress>
   resume: () => Promise<void>
   retry: () => Promise<void>
   resolve: (mine: boolean) => Promise<void>
@@ -69,6 +76,7 @@ export default function EncryptedEditor({
   readOnly = false,
   recordId,
   onClose,
+  focusOnOpen = false,
   creationEnabled = false,
   onRecover,
 }: {
@@ -79,6 +87,7 @@ export default function EncryptedEditor({
   readOnly?: boolean
   recordId?: string
   onClose?: () => void
+  focusOnOpen?: boolean
   creationEnabled?: boolean
   onRecover?: (value: {
     noteId: string
@@ -98,6 +107,7 @@ export default function EncryptedEditor({
   const [refused, setRefused] = useState(false)
   const [recoveryPending, setRecoveryPending] = useState(false)
   const [resolutionPending, setResolutionPending] = useState(false)
+  const [closePending, setClosePending] = useState(false)
   const [conflict, setConflict] = useState<{
     title: string | null
     content: string | null
@@ -109,10 +119,11 @@ export default function EncryptedEditor({
     onFocus: () => {},
     placeholder: t('title'),
     limitCharacter: NOTE_TITLE_MAX_LENGTH,
+    autofocus: focusOnOpen ? 'start' : false,
     ariaLabel: t('title'),
     editorVersion: version,
     pending: !ready,
-    readOnly: readOnly || Boolean(conflict) || recoveryPending,
+    readOnly: readOnly || Boolean(conflict) || recoveryPending || closePending,
   })
   const body = useNoteEditor({
     initialValue: content.content,
@@ -122,7 +133,7 @@ export default function EncryptedEditor({
     ariaLabel: t('body'),
     editorVersion: version,
     pending: !ready,
-    readOnly: readOnly || Boolean(conflict) || recoveryPending,
+    readOnly: readOnly || Boolean(conflict) || recoveryPending || closePending,
   })
 
   useEffect(() => {
@@ -130,12 +141,17 @@ export default function EncryptedEditor({
     if (!root) return
     const epoch = currentVaultEpoch()
     let mounted = true,
-      saving = false,
+      closing = false,
       resolving = false,
       recovering = false,
       durable = -1,
       preserved = -1,
       lastAttempt = 0
+    let pendingSave: Promise<SaveProgress> | undefined
+    let retainedId: string | undefined
+    let retainedFlight: string | null = null
+    let inspectingRetained = false
+    let canClosePending = false
     let record: RecoveryPayload | null = null
     let persistedFlight: string | null = null
     let revision: string | null = null
@@ -151,66 +167,90 @@ export default function EncryptedEditor({
     const report = (next: PersistenceStatus) => {
       if (valid()) {
         setStatus(next)
-        setRefused(Boolean(record?.refusal))
+        setRefused(Boolean(record?.refusal) && !retainedId)
       }
     }
+    const titleTooLong = () =>
+      (record?.draft.title?.length ?? 0) > MAX_ENCRYPTED_TITLE_LENGTH
     const localStatus = (): PersistenceStatus =>
+      (retainedId ? 'superseded' : null) ??
       record?.refusal ??
       (record?.authenticationRequired ? 'unauthenticated' : null) ??
       (record?.conflict
         ? 'conflict'
         : needsReconciliation
           ? 'review_required'
-          : record && !hasPendingEncryptedEdits(record)
-            ? 'synced'
-            : 'local')
+          : titleTooLong()
+            ? 'title_limit'
+            : record && !hasPendingEncryptedEdits(record)
+              ? 'synced'
+              : 'local')
     const checkpoint = async () => {
-      if (!record || record.route.generation <= durable) return
+      if (!record || record.route.generation <= Math.max(durable, preserved))
+        return
       const snapshot = structuredClone(record)
-      const expected = persistedFlight
-      const committed = await putEncryptedRecovery(
-        root,
-        snapshot,
-        {
-          updatedAt: Date.now(),
-          status: snapshot.conflict
-            ? 'conflict'
-            : snapshot.flight
-              ? 'flight'
-              : snapshot.baselineVerified && !hasPendingEncryptedEdits(snapshot)
-                ? 'synced'
-                : 'local',
-          versionId: snapshot.route.recordId,
-        },
-        expected,
-        durable,
-      )
-      if (!committed) {
-        if (snapshot.route.generation > preserved) {
-          const retained = structuredClone(snapshot)
-          retained.route.recordId = crypto.randomUUID()
-          if (
-            await putEncryptedRecovery(root, retained, {
+      const committed =
+        !retainedId &&
+        (await putEncryptedRecovery(
+          root,
+          snapshot,
+          {
+            updatedAt: Date.now(),
+            status: snapshot.conflict
+              ? 'conflict'
+              : snapshot.flight
+                ? 'flight'
+                : snapshot.baselineVerified &&
+                    !hasPendingEncryptedEdits(snapshot)
+                  ? 'synced'
+                  : 'local',
+            versionId: snapshot.route.recordId,
+          },
+          persistedFlight,
+          durable,
+        ))
+      if (committed) {
+        durable = snapshot.route.generation
+        persistedFlight = snapshot.route.mutationId
+      } else {
+        retainedId ??= crypto.randomUUID()
+        snapshot.route.recordId = retainedId
+        // A flight first staged by the stale editor never reached the server.
+        if (snapshot.flight && snapshot.route.mutationId !== persistedFlight) {
+          snapshot.flight = null
+          snapshot.route.mutationId = null
+          snapshot.route.flightDestination = null
+        }
+        if (
+          !(await putEncryptedRecovery(
+            root,
+            snapshot,
+            {
               updatedAt: Date.now(),
               status: 'retained',
-              versionId: retained.route.recordId,
-            })
-          )
-            preserved = snapshot.route.generation
-        }
-        throw new Error('Checkpoint superseded')
+              versionId: retainedId,
+            },
+            retainedFlight,
+            preserved,
+          ))
+        )
+          throw new Error('Could not retain superseded checkpoint')
+        preserved = snapshot.route.generation
+        retainedFlight = snapshot.route.mutationId
       }
-      durable = snapshot.route.generation
-      persistedFlight = snapshot.route.mutationId
-      report(record.route.generation <= durable ? localStatus() : 'unsaved')
+      report(
+        record.route.generation <= Math.max(durable, preserved)
+          ? localStatus()
+          : 'unsaved',
+      )
     }
     const flush = async () => {
-      if (readOnly) return
+      if (readOnly || inspectingRetained) return
       clearTimeout(idle)
       clearTimeout(maximum)
       maximum = undefined!
       await seals.enqueue(noteId, checkpoint)
-      if (record && durable < record.route.generation)
+      if (record && Math.max(durable, preserved) < record.route.generation)
         throw new Error('Latest edits are not saved')
     }
     const unregister = registerVaultCheckpoint(ownerId, flush)
@@ -224,11 +264,11 @@ export default function EncryptedEditor({
       setReady(true)
       setConflict(record.conflict)
     }
-    const save = async () => {
+    const performSave = async (): Promise<SaveProgress> => {
       if (
         !record ||
         !valid() ||
-        saving ||
+        retainedId ||
         resolving ||
         readOnly ||
         record.conflict ||
@@ -236,10 +276,10 @@ export default function EncryptedEditor({
         record.authenticationRequired ||
         needsReconciliation ||
         !navigator.onLine ||
+        (!record.flight && titleTooLong()) ||
         !hasPendingEncryptedEdits(record)
       )
         return
-      saving = true
       clearTimeout(saveIdle)
       clearTimeout(saveMaximum)
       saveMaximum = undefined!
@@ -253,7 +293,8 @@ export default function EncryptedEditor({
             {vaultId, noteId, contentId: crypto.randomUUID()},
             draft,
           )
-          if (!valid() || record.route.generation !== generation) return
+          if (!valid()) return
+          if (record.route.generation !== generation) return 'changed'
           const request = prepareEncryptedWrite(envelope, revision, draft.theme)
           const write = validateEncryptedFlight(request, noteId)
           record.flight = {
@@ -270,10 +311,15 @@ export default function EncryptedEditor({
           })
         }
         await flush() // Immutable exact request must be durable before upload.
-        if (!valid()) return
+        if (!valid() || retainedId) return
         report('syncing')
         lastAttempt = Date.now()
-        const result = await sendEncryptedFlight(noteId, record.flight!.request)
+        const result = await sendEncryptedFlight(
+          noteId,
+          record.flight!.request,
+          fetch,
+          AbortSignal.timeout(15_000),
+        )
         if (!valid()) return
         if (result.status === 'success' || result.status === 'conflict') {
           if (result.note.authorId !== ownerId || result.note.id !== noteId)
@@ -293,7 +339,7 @@ export default function EncryptedEditor({
             await flush()
             display()
             report('conflict')
-            return
+            return 'needsAttention'
           }
           record.baseline = {...remote, theme: result.note.theme}
           record.baselineVerified = true
@@ -306,14 +352,19 @@ export default function EncryptedEditor({
             noteId,
           })
           await flush()
+          canClosePending = false
           report(localStatus())
           window.dispatchEvent(new Event('encrypted-notes-changed'))
-        } else if (result.status === 'retryable_error') report('local')
-        else if (result.status === 'unauthenticated') {
+          return 'saved'
+        } else if (result.status === 'retryable_error') {
+          report(localStatus())
+          return 'retryable'
+        } else if (result.status === 'unauthenticated') {
           record.authenticationRequired = true
           record.route.generation++
           await flush()
           report('unauthenticated')
+          return 'needsAttention'
         } else {
           // Keep the exact flight for recovery, but persist a terminal stop so
           // timers, reconnects and reopening cannot resend a refused operation.
@@ -321,31 +372,33 @@ export default function EncryptedEditor({
           record.route.generation++
           await flush()
           report(result.status)
+          return 'needsAttention'
         }
       } catch {
         report('error')
+        return 'retryable'
       } finally {
-        saving = false
-        if (
-          valid() &&
-          record &&
-          !record.conflict &&
-          !record.refusal &&
-          !record.authenticationRequired &&
-          !needsReconciliation &&
-          hasPendingEncryptedEdits(record)
-        )
+        if (valid() && record && hasPendingEncryptedEdits(record))
           scheduleSave()
       }
     }
+    const save = () =>
+      (pendingSave ??= performSave().finally(() => {
+        pendingSave = undefined
+      }))
     const scheduleSave = () => {
       if (
         readOnly ||
+        closing ||
+        retainedId ||
+        inspectingRetained ||
+        canClosePending ||
         !record ||
         record.conflict ||
         record.refusal ||
         record.authenticationRequired ||
         needsReconciliation ||
+        (!record.flight && titleTooLong()) ||
         !navigator.onLine
       )
         return
@@ -355,12 +408,49 @@ export default function EncryptedEditor({
         void save()
       }, wait)
       saveMaximum ??= setTimeout(() => {
+        saveMaximum = undefined!
         void save()
       }, 30_000)
     }
     actions.current = {
       flush,
-      save,
+      async close() {
+        closing = true
+        setClosePending(true)
+        try {
+          await flush()
+          if (
+            record &&
+            record.route.generation > 0 &&
+            !inspectingRetained &&
+            !canClosePending
+          ) {
+            let result = await save()
+            // A prior flight may cover older input. A seal can also yield to
+            // an edit made just before the editor became read-only.
+            if (result === 'saved' || result === 'changed')
+              result = await save()
+            await flush()
+            if (result === 'needsAttention') return false
+            if (result === 'retryable') {
+              canClosePending = true
+              report('close_pending')
+              return false
+            }
+          }
+          return valid()
+        } finally {
+          closing = false
+          if (valid()) {
+            setClosePending(false)
+            if (record && hasPendingEncryptedEdits(record)) scheduleSave()
+          }
+        }
+      },
+      save() {
+        inspectingRetained = false
+        return save()
+      },
       async retry() {
         await flush()
         if (!valid()) return
@@ -372,7 +462,8 @@ export default function EncryptedEditor({
         if (
           !record?.refusal ||
           !valid() ||
-          saving ||
+          pendingSave ||
+          retainedId ||
           recovering ||
           readOnly ||
           !onRecover ||
@@ -400,7 +491,13 @@ export default function EncryptedEditor({
         }
       },
       async resume() {
-        if (!record?.authenticationRequired || !valid() || saving) return
+        if (
+          !record?.authenticationRequired ||
+          !valid() ||
+          pendingSave ||
+          retainedId
+        )
+          return
         try {
           const response = await fetch('/api/auth/session', {
             cache: 'no-store',
@@ -414,6 +511,7 @@ export default function EncryptedEditor({
             session.user?.id !== ownerId
           )
             return
+          inspectingRetained = false
           delete record.authenticationRequired
           record.route.generation++
           await flush()
@@ -425,6 +523,8 @@ export default function EncryptedEditor({
       edit(field, value) {
         if (!record || !valid() || readOnly || record.conflict || resolving)
           return
+        inspectingRetained = false
+        canClosePending = false
         record.draft[field] = value || null
         record.route.generation++
         report('unsaved')
@@ -439,7 +539,14 @@ export default function EncryptedEditor({
         scheduleSave()
       },
       async resolve(mine) {
-        if (!record?.conflict || !valid() || readOnly || resolving || saving)
+        if (
+          !record?.conflict ||
+          !valid() ||
+          readOnly ||
+          resolving ||
+          pendingSave ||
+          retainedId
+        )
           return
         resolving = true
         setResolutionPending(true)
@@ -457,6 +564,7 @@ export default function EncryptedEditor({
           )
             throw new Error('Preservation failed')
           if (!valid()) return
+          inspectingRetained = false
           if (!mine) record.draft = structuredClone(remote)
           record.baseline = remote
           record.baselineVerified = true
@@ -518,6 +626,7 @@ export default function EncryptedEditor({
             record.route.recordId = crypto.randomUUID()
             durable = -1
             persistedFlight = null
+            inspectingRetained = true
           }
           if (
             record.route.noteId &&
@@ -638,6 +747,7 @@ export default function EncryptedEditor({
       }
     })()
     const online = () => {
+      if (inspectingRetained) return
       if (needsReconciliation)
         void flush()
           .then(() => {
@@ -685,6 +795,7 @@ export default function EncryptedEditor({
               variant="secondary"
               disabled={
                 !ready ||
+                closePending ||
                 refused ||
                 Boolean(conflict) ||
                 [
@@ -693,6 +804,8 @@ export default function EncryptedEditor({
                   'invalid_input',
                   'reload_required',
                   'review_required',
+                  'superseded',
+                  'title_limit',
                   'unauthenticated',
                 ].includes(status)
               }
@@ -722,11 +835,13 @@ export default function EncryptedEditor({
           {onClose && (
             <Button
               variant="ghost"
-              disabled={recoveryPending || resolutionPending}
+              disabled={closePending || recoveryPending || resolutionPending}
               onClick={() => {
                 void actions.current
-                  ?.flush()
-                  .then(onClose)
+                  ?.close()
+                  .then((closed) => {
+                    if (closed) onClose()
+                  })
                   .catch(() => setStatus('error'))
               }}
             >
@@ -752,7 +867,7 @@ export default function EncryptedEditor({
           <NoteEditor
             id={`encrypted-title-${noteId}`}
             editor={title}
-            className="font-serif text-2xl"
+            className="font-serif text-2xl wrap-anywhere"
           />
           <NoteEditor
             id={`encrypted-body-${noteId}`}
@@ -774,7 +889,9 @@ export default function EncryptedEditor({
           />
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={resolutionPending}
+              disabled={
+                closePending || resolutionPending || status === 'superseded'
+              }
               onClick={() => {
                 void actions.current?.resolve(true)
               }}
@@ -783,7 +900,9 @@ export default function EncryptedEditor({
             </Button>
             <Button
               variant="secondary"
-              disabled={resolutionPending}
+              disabled={
+                closePending || resolutionPending || status === 'superseded'
+              }
               onClick={() => {
                 void actions.current?.resolve(false)
               }}
