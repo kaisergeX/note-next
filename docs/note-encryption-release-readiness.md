@@ -1,8 +1,30 @@
 # Encryption candidate release evidence
 
-Updated 2026-11-18. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
+Updated 2026-11-19. **Production/real-note beta verdict: NO-GO.** Both enrollment and creation remain disabled by default. The independent and operational release gates below are open.
 
 ## Current PR scope
+
+### November 19 branch audit and fix handoff
+
+**Review verdict: request changes.** Reviewed `feature/note-e2ee` at `d7bfdfe8a7ad60889f2ed23fd50add855b73b7cd` against `origin/main` at `b2122d0bf9a61c9319d21aeb6ca3bbf21962c362`. Fix the two P1 credential-recovery defects first. All findings below were open at the reviewed commit.
+
+Seven targeted Chromium checks reproduced these behaviors on a local development preview with both flags enabled, synthetic accounts and a disposable PostgreSQL database.
+
+| Priority | Reproduction and observed result | What to verify after the fix |
+| --- | --- | --- |
+| P1 | Let enrollment commit, drop its response, then check setup status. The UI said another setup won and instructed the user to discard the kit. That same kit unlocked the vault. | Compare the authorization fields independently of PostgreSQL JSONB key order. Verify both a lost response for the winning setup and a genuinely different winner. |
+| P1 | Prepare a replacement passkey on the same Chromium virtual authenticator, then cancel before confirmation. The vault still referenced the original credential, which the authenticator had removed. | After Cancel, lock and actually unlock with the original passkey on the same authenticator. |
+| P2 | Advance the working checkpoint as a competing tab, then edit in the original tab. Its text was retained separately, but Close failed and Lock → Retry stayed blocked. | After retaining the latest text, allow close and lock. Reopen both versions and verify the superseded editor never uploads. |
+| P2 | Enter 160 ampersands in an encrypted title. They fit the visible character limit, but their serialized HTML exceeded the checkpoint limit. Lock then offered only retry or discard. | The user can correct or durably preserve the draft without discarding work. Check both local recovery and server-save limits. |
+| P2 | Type in a new online note and immediately close it. The browser retained a copy, but the database still had zero notes after advancing the clock 40 seconds. | Verify the online close either finishes syncing or clearly identifies the pending local copy and offers a way to complete the sync. |
+| P2 | With creation enabled, open a saved note at its full-page URL and simulate a refused save. Recovery reported creation closed and hid the new-note destination. | Check the flag in collection, full-page and modal recovery with creation both open and closed. |
+| P2 | Save a 120-letter unbroken title and return to the synced list at a 390 px viewport. The document expanded to 730 px. | The title stays readable and the page fits the viewport. |
+
+**Additional passkey retry finding (P2, source review only).** If a signed replacement fails before commit, Retry resends the request. After ten minutes the server requires a fresh assertion for the proposed passkey. Verify retry after expiry for both an uncommitted request and a committed request with a missing acknowledgement. The latter already has a receipt.
+
+**UI/UX observations.** The visual review covered English at 1440×900 and Vietnamese at 390×844 in Paper & Ink, including light and dark states. Revealing the recovery kit during setup left the subsequent unlock passphrase visible as it was typed (P2). Opening a synced note with Enter moved focus to the document body. On mobile, expanded credential controls put the note title 1,110 px from the top and its body 1,158 px down (P2). Verify a masked field on entering unlock and keyboard focus in the visible editor on opening a note. Two smaller follow-ups are to name the passphrase enrollment choice explicitly and format browser-copy timestamps in the active locale.
+
+**Passing checks and limits.** `pnpm lint`, `pnpm build` (Next.js and Serwist), and `git diff --check origin/main...HEAD` passed. The 108 passing automated tests comprised 33 encryption, runtime and request-body tests, seven PostgreSQL repository tests, and 68 sync, save-queue, diff and search-client tests. The seven Chromium probes above confirmed defects and were temporary. The preview was stopped and its database and probe files removed. The full browser matrix, physical passkey providers, screen-reader sessions and independent protocol review were outside this run.
 
 ### November 18 signed-authorization candidate
 
