@@ -170,18 +170,24 @@ for (const competingSetup of [false, true]) {
     ).toBeVisible()
     await page.unroute('**/api/note-vault')
     if (!competingSetup) {
-      await page.route('**/api/note-vault', async (route) => {
-        const response = await route.fetch()
-        const result = await response.json()
-        result.vault.authorization = {}
-        await route.fulfill({response, json: result})
-      })
-      await page.getByRole('button', {name: v.reconcile, exact: true}).click()
-      await expect(
-        page.getByRole('alert').filter({hasText: v.failed}),
-      ).toBeVisible()
-      await expect(page.getByText(v.lostSetup, {exact: true})).not.toBeVisible()
-      await page.unroute('**/api/note-vault')
+      for (const responseShape of ['malformed', 'pre-authorization']) {
+        await page.route('**/api/note-vault', async (route) => {
+          const response = await route.fetch()
+          const result = await response.json()
+          if (responseShape === 'malformed') result.vault.authorization = {}
+          else {
+            delete result.vault.authorization
+            delete result.vault.authorizationVersion
+          }
+          await route.fulfill({response, json: result})
+        })
+        await page.getByRole('button', {name: v.reconcile, exact: true}).click()
+        await expect(page.getByText(v.lostSetup, {exact: true})).toHaveCount(0)
+        await expect(
+          page.getByRole('alert').filter({hasText: v.failed}),
+        ).toBeVisible()
+        await page.unroute('**/api/note-vault')
+      }
     }
     await page.getByRole('button', {name: v.reconcile, exact: true}).click()
     await expect(

@@ -20,6 +20,16 @@ Updated 2026-11-19. **Production/real-note beta verdict: NO-GO.** Both enrollmen
 
 The local development environment uses the existing loopback sign-in origin for `AUTH_URL`. Enrollment and creation default to false. Verification uses separate open- and closed-flag loopback previews with disposable PostgreSQL data.
 
+#### Follow-up verification of `3e698ff`
+
+Two checks needed follow-up. The mobile navigation test measured a width difference of −16 px and failed its equality-to-zero assertion. It now flags positive overflow. The 120-letter title, keyboard focus, editor visibility and Vietnamese timestamp checks passed at 390 × 844.
+
+An additional lost-acknowledgement check reproduced a false competing-setup message when a status response for the installed vault omitted both authorization fields. The fix keeps the provisional setup available for another status check if either identifier matches but the pinned fields cannot confirm the setup. On the rebuilt candidate, the same browser retried after both a malformed and a pre-authorization response, then unlocked with its saved recovery kit. A genuinely competing setup and an already-rotated primary also passed their respective checks.
+
+TypeScript, ESLint, the production and service-worker builds, 25 encryption tests, seven PostgreSQL repository tests, and 76 ordinary sync, body, save-queue, diff and search-client tests passed. The first production browser run passed 55 of 57 cases and exposed the two failures above. On the corrected build `jzHcWV9YWdwSkgyZelWKj`, all ten focused navigation and vault-replacement cases passed, followed by **all 140 Chromium tests in 9.9 minutes with zero retries or skips**. Verification used open- and closed-flag loopback previews. Both rounds of disposable databases and their previews were cleaned up.
+
+The focused visual re-review passed on the development preview in Paper & Ink light at EN 1440 × 900 and VI 390 × 844. Both setup methods were named, unlock stayed masked after revealing the setup kit, and keyboard opening focused the title at both widths. On mobile the 120-letter title wrapped, the note body began at 762 px, Lock stayed visible and browser-copy timestamps matched the Vietnamese locale. The reviewer recorded zero console errors and three preload warnings.
+
 ### November 19 branch audit and fix handoff
 
 **Review verdict: request changes.** Reviewed `feature/note-e2ee` at `d7bfdfe8a7ad60889f2ed23fd50add855b73b7cd` against `origin/main` at `b2122d0bf9a61c9319d21aeb6ca3bbf21962c362`. Fix the two P1 credential-recovery defects first. All findings below were open at the reviewed commit.

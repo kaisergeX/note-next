@@ -145,7 +145,7 @@ test('mobile synced title wraps, keyboard open focuses the editor, and browser c
         document.documentElement.scrollWidth -
         document.documentElement.clientWidth,
     )
-  expect(await horizontalOverflow()).toBe(0)
+  expect(await horizontalOverflow()).toBeLessThanOrEqual(0)
   expect((await note.boundingBox())!.height).toBeGreaterThan(40)
   await note.press('Enter')
   const body = page.getByRole('textbox', {name: editor.body, exact: true})
@@ -160,7 +160,7 @@ test('mobile synced title wraps, keyboard open focuses the editor, and browser c
   await page.evaluate(() => window.scrollTo({top: 0, behavior: 'instant'}))
   await expect(title).toBeInViewport()
   await expect(body).toBeInViewport()
-  expect(await horizontalOverflow()).toBe(0)
+  expect(await horizontalOverflow()).toBeLessThanOrEqual(0)
 
   const timestamp = '2026-11-19T03:45:00.000Z'
   await page.clock.setFixedTime(new Date(timestamp))

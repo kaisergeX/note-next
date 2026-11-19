@@ -280,14 +280,19 @@ export function VaultControls({
     const savedAuthorization = candidate.authorization
       ? authorizationSchema.parse(candidate.authorization)
       : null
-    return (
-      vaultId === candidate.vaultId &&
-      setupId === candidate.setupId &&
-      JSON.stringify(recovery) ===
-        JSON.stringify(vaultWrapperSchema.parse(candidate.recoveryWrapper)) &&
-      JSON.stringify(installedAuthorization) ===
+    if (vaultId !== candidate.vaultId && setupId !== candidate.setupId)
+      return false
+    // A known setup with missing or inconsistent pinned fields can be retried.
+    if (
+      vaultId !== candidate.vaultId ||
+      setupId !== candidate.setupId ||
+      JSON.stringify(recovery) !==
+        JSON.stringify(vaultWrapperSchema.parse(candidate.recoveryWrapper)) ||
+      JSON.stringify(installedAuthorization) !==
         JSON.stringify(savedAuthorization)
     )
+      throw new Error('Unconfirmed setup identity')
+    return true
   }
   function finishSetup(message: 'created' | 'reconciled' | 'lostSetup') {
     sessionStorage.removeItem(storageKey)
