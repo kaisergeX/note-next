@@ -83,6 +83,9 @@ export function VaultControls({
   const active = useVaultUnlocked(ownerId, vault?.id ?? '')
   const generation = useRef(0),
     inFlight = useRef(false)
+  const focusSetupAction = useRef(false)
+  const restartButton = useRef<HTMLButtonElement>(null)
+  const setupPasskeyButton = useRef<HTMLButtonElement>(null)
   const replacementFocus = useRef<
     'confirm' | 'passphrase' | 'passkey' | 'unlock' | null
   >(null)
@@ -148,6 +151,7 @@ export function VaultControls({
     }
     function clearSecrets() {
       generation.current++
+      focusSetupAction.current = false
       replacementFocus.current = null
       setReplacementDraft(null)
       setPhrase('')
@@ -166,6 +170,12 @@ export function VaultControls({
       window.removeEventListener('eton-vault-invalidated', invalidate)
     }
   }, [ownerId, storageKey, t])
+  useEffect(() => {
+    if (!focusSetupAction.current || busy || document.hidden) return
+    focusSetupAction.current = false
+    const button = candidate ? restartButton : setupPasskeyButton
+    button.current?.focus()
+  }, [busy, candidate])
   useEffect(() => {
     const target = replacementFocus.current
     if (!target || busy || document.hidden) return
@@ -316,6 +326,12 @@ export function VaultControls({
           : {}),
       })
       check(version)
+      if (result.status === 'passkey_unavailable') {
+        save({...pending, submitted: false, primaryChecked: false})
+        focusSetupAction.current = true
+        setError(t('setupPasskeyExpired'))
+        return
+      }
       if (
         (result.status !== 'success' && result.status !== 'conflict') ||
         !result.vault
@@ -426,20 +442,25 @@ export function VaultControls({
         },
         body: JSON.stringify(request),
       })
-    const response = await patch()
-    check(version)
     const binding = request.primaryWrapper.passkeyBinding
-    if (
-      binding &&
-      response.ok &&
-      (await response.json()).status === 'passkey_assertion_required'
-    ) {
-      check(version)
+    const passkeyStatus = async (response: Response) =>
+      binding && response.ok
+        ? (await response.json().catch(() => null))?.status
+        : null
+    let response = await patch()
+    let status = await passkeyStatus(response)
+    check(version)
+    if (binding && status === 'passkey_assertion_required') {
       const output = await assertPasskey(request.vaultId, binding)
       output.fill(0)
       check(version)
-      await patch()
+      response = await patch()
+      status = await passkeyStatus(response)
       check(version)
+    }
+    if (status === 'passkey_unavailable') {
+      setError(t('replacementPasskeyExpired'))
+      return
     }
     await reconcileSigned(request, version, fresh)
   }
@@ -816,14 +837,17 @@ export function VaultControls({
             </Button>
           ) : (
             <Button
+              ref={restartButton}
               variant="ghost"
               disabled={busy}
               onClick={() => {
                 sessionStorage.removeItem(storageKey)
+                focusSetupAction.current = true
                 setCandidate(null)
                 setPhrase('')
                 setKit('')
                 setEntry('')
+                setError('')
               }}
             >
               {t('restart')}
@@ -832,7 +856,11 @@ export function VaultControls({
         </>
       ) : enrollmentEnabled ? (
         <div className="flex flex-wrap gap-2">
-          <Button loading={busy} onClick={() => void start('passkey')}>
+          <Button
+            ref={setupPasskeyButton}
+            loading={busy}
+            onClick={() => void start('passkey')}
+          >
             {t('setupPasskey')}
           </Button>
           <Button

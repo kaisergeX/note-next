@@ -1,6 +1,6 @@
 import 'server-only'
 import {randomUUID} from 'node:crypto'
-import {and, desc, eq, isNull, sql} from 'drizzle-orm'
+import {and, desc, eq, gt, isNull, or, sql} from 'drizzle-orm'
 import type {PostgresJsDatabase} from 'drizzle-orm/postgres-js'
 import {z} from 'zod'
 import {noteVaultsTable as vaults} from '../schema/note-vaults'
@@ -87,27 +87,53 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
       .limit(1)
     return vault ?? null
   }
-  async function verifiedPrimary(
+  function primaryPasskey(ownerId: string, wrapper: VaultWrapper) {
+    const binding = wrapper.passkeyBinding
+    if (!binding) throw new Error('Missing passkey binding')
+    return and(
+      eq(notePasskeysTable.ownerId, ownerId),
+      eq(notePasskeysTable.vaultId, wrapper.vaultId),
+      eq(notePasskeysTable.credentialId, binding[1]),
+      eq(notePasskeysTable.rpId, binding[0]),
+    )
+  }
+  async function retainPrimary(
     tx: PostgresJsDatabase,
     ownerId: string,
     wrapper: VaultWrapper,
   ) {
-    if (wrapper.purpose !== 'passkey') return true
-    if (!wrapper.passkeyBinding) return false
+    if (wrapper.purpose === 'passkey')
+      await tx
+        .update(notePasskeysTable)
+        .set({provisionalExpiresAt: null})
+        .where(primaryPasskey(ownerId, wrapper))
+  }
+  async function checkPrimary(
+    tx: PostgresJsDatabase,
+    ownerId: string,
+    wrapper: VaultWrapper,
+  ) {
+    if (wrapper.purpose !== 'passkey') return 'verified'
     const [credential] = await tx
-      .select()
+      .select({
+        recent: sql<boolean>`${notePasskeysTable.verifiedAt} > now() - interval '10 minutes'`,
+      })
       .from(notePasskeysTable)
       .where(
         and(
-          eq(notePasskeysTable.ownerId, ownerId),
-          eq(notePasskeysTable.vaultId, wrapper.vaultId),
-          eq(notePasskeysTable.credentialId, wrapper.passkeyBinding[1]),
-          eq(notePasskeysTable.rpId, wrapper.passkeyBinding[0]),
-          sql`${notePasskeysTable.verifiedAt} > now() - interval '10 minutes'`,
+          primaryPasskey(ownerId, wrapper),
+          or(
+            isNull(notePasskeysTable.provisionalExpiresAt),
+            gt(notePasskeysTable.provisionalExpiresAt, sql`now()`),
+          ),
         ),
       )
       .limit(1)
-    return Boolean(credential)
+    return !credential
+      ? 'passkey_unavailable'
+      : credential.recent
+        ? 'verified'
+        : 'passkey_assertion_required'
   }
   return {
     getVault,
@@ -168,8 +194,8 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
         } catch {
           return {status: 'invalid_input'}
         }
-        if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
-          return {status: 'invalid_input'}
+        const primary = await checkPrimary(tx, ownerId, v.primaryWrapper)
+        if (primary !== 'verified') return {status: primary}
         if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
           return {status: 'disabled'}
         const [vault] = await tx
@@ -185,6 +211,7 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
             authorization: v.authorization,
           })
           .returning()
+        await retainPrimary(tx, ownerId, v.primaryWrapper)
         return {status: 'success', vault}
       })
     },
@@ -239,8 +266,8 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
           vault.lastOperationId === v.operationId
         )
           return {status: 'conflict', vault}
-        if (!(await verifiedPrimary(tx, ownerId, v.primaryWrapper)))
-          return {status: 'passkey_assertion_required'}
+        const primary = await checkPrimary(tx, ownerId, v.primaryWrapper)
+        if (primary !== 'verified') return {status: primary}
         const appliedRevision = randomUUID()
         const [updated] = await tx
           .update(vaults)
@@ -258,6 +285,7 @@ export function createNoteEncryptionRepository(db: PostgresJsDatabase) {
           )
           .returning()
         if (!updated) return {status: 'conflict', vault}
+        await retainPrimary(tx, ownerId, v.primaryWrapper)
         const receipt = {
           operationId: v.operationId,
           intentDigest,

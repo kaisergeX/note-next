@@ -8,7 +8,7 @@ import {
   type RegistrationResponseJSON,
   type AuthenticationResponseJSON,
 } from '@simplewebauthn/server'
-import {and, eq, gt, sql} from 'drizzle-orm'
+import {and, count, eq, gt, isNotNull, lte, sql} from 'drizzle-orm'
 import {z} from 'zod'
 import {db} from '~/db'
 import {usersTable} from '~/db/schema/users'
@@ -22,6 +22,7 @@ import {
   encodeBase64url,
   decodeBase64url,
 } from './protocol'
+const MAX_OUTSTANDING = 8
 const registration = z.strictObject({
   id: z.string().max(2048),
   rawId: z.string().max(2048),
@@ -106,19 +107,50 @@ export async function passkeyCeremony(
       } else if (process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED !== 'true')
         return {status: 'disabled'}
     }
-    // Delete only expired, content-free ceremony material.
     await tx
       .delete(challenges)
       .where(
         and(
           eq(challenges.ownerId, ownerId),
-          sql`${challenges.expiresAt} <= now()`,
+          lte(challenges.expiresAt, sql`now()`),
+        ),
+      )
+    await tx
+      .delete(credentials)
+      .where(
+        and(
+          eq(credentials.ownerId, ownerId),
+          lte(credentials.provisionalExpiresAt, sql`now()`),
         ),
       )
     if (
       v.operation === 'register-options' ||
       v.operation === 'assertion-options'
     ) {
+      const [outstanding] = await tx
+        .select({total: count()})
+        .from(challenges)
+        .where(
+          and(
+            eq(challenges.ownerId, ownerId),
+            eq(challenges.kind, v.operation),
+          ),
+        )
+      if (outstanding.total >= MAX_OUTSTANDING) return {status: 'unavailable'}
+      if (v.operation === 'register-options') {
+        const [provisional] = await tx
+          .select({total: count()})
+          .from(credentials)
+          .where(
+            and(
+              eq(credentials.ownerId, ownerId),
+              isNotNull(credentials.provisionalExpiresAt),
+            ),
+          )
+        // A registration reserves a slot until it is consumed or expires.
+        if (outstanding.total + provisional.total >= MAX_OUTSTANDING)
+          return {status: 'unavailable'}
+      }
       if (v.operation === 'assertion-options') {
         const [credential] = await tx
           .select()
@@ -153,8 +185,6 @@ export async function passkeyCeremony(
               allowCredentials: [{id: v.credentialId}],
               userVerification: 'required',
             })
-      // One outstanding ceremony per owner prevents unbounded provisional rows.
-      await tx.delete(challenges).where(eq(challenges.ownerId, ownerId))
       const ceremonyId = randomUUID()
       await tx.insert(challenges).values({
         id: ceremonyId,
@@ -176,12 +206,19 @@ export async function passkeyCeremony(
         and(
           eq(challenges.id, v.ceremonyId),
           eq(challenges.ownerId, ownerId),
+          eq(challenges.origin, origin),
+          eq(challenges.rpId, rpID),
+          eq(
+            challenges.kind,
+            v.operation === 'register-verify'
+              ? 'register-options'
+              : 'assertion-options',
+          ),
           gt(challenges.expiresAt, sql`now()`),
         ),
       )
       .returning()
-    if (!challenge || challenge.origin !== origin || challenge.rpId !== rpID)
-      return {status: 'invalid_input'}
+    if (!challenge) return {status: 'invalid_input'}
     if (v.operation === 'register-verify') {
       const [vault] = await tx
         .select({id: noteVaultsTable.id})
@@ -193,8 +230,6 @@ export async function passkeyCeremony(
     }
     try {
       if (v.operation === 'register-verify') {
-        if (challenge.kind !== 'register-options')
-          return {status: 'invalid_input'}
         const verified = await verifyRegistrationResponse({
           response: v.response as RegistrationResponseJSON,
           expectedChallenge: challenge.challenge,
@@ -216,14 +251,12 @@ export async function passkeyCeremony(
             publicKey: encodeBase64url(c.publicKey),
             counter: c.counter,
             transports: c.transports ?? [],
+            provisionalExpiresAt: sql`now() + interval '24 hours'`,
           })
           .onConflictDoNothing()
         return {status: 'success', credentialId: c.id}
       }
-      if (
-        challenge.kind !== 'assertion-options' ||
-        challenge.credentialId !== v.response.id
-      )
+      if (challenge.credentialId !== v.response.id)
         return {status: 'invalid_input'}
       const [credential] = await tx
         .select()

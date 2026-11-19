@@ -84,7 +84,7 @@ async function virtualAuthenticator(context: BrowserContext, page: Page) {
   return {session, authenticatorId}
 }
 
-async function enroll(page: Page) {
+async function prepareEnrollment(page: Page) {
   await page.goto('/en/collection/encrypted')
   await page.getByRole('button', {name: v.setupPasskey, exact: true}).click()
   await expect(
@@ -101,9 +101,168 @@ async function enroll(page: Page) {
   await expect(
     page.getByRole('button', {name: v.recoveryVerified, exact: true}),
   ).toBeVisible()
+  return kit
+}
+
+async function enroll(page: Page) {
+  const kit = await prepareEnrollment(page)
   await page.getByRole('button', {name: v.activate, exact: true}).click()
   return kit
 }
+
+test('an expired uncommitted setup can restart in the same tab', async ({
+  page,
+  context,
+  noteApp,
+}) => {
+  const {session, authenticatorId} = await virtualAuthenticator(context, page)
+  const sql = postgres(process.env.DATABASE_URL!, {max: 1})
+  try {
+    await page.setViewportSize({width: 390, height: 844})
+    await prepareEnrollment(page)
+    await page.route('**/api/note-vault', async (route) => {
+      if (route.request().method() === 'POST') await route.abort('failed')
+      else await route.continue()
+    })
+    await page.getByRole('button', {name: v.activate, exact: true}).click()
+    await expect(
+      page.getByRole('alert').filter({hasText: v.failed}),
+    ).toBeVisible()
+    await page.unroute('**/api/note-vault')
+    const expired = await sql`
+      update note_passkeys set provisional_expires_at = now() - interval '1 minute'
+      where owner_id = ${noteApp.ownerId} and provisional_expires_at is not null
+    `
+    expect(expired.count).toBe(1)
+    await page.getByRole('button', {name: v.retrySetup, exact: true}).click()
+    const expiredAlert = page
+      .getByRole('alert')
+      .filter({hasText: v.setupPasskeyExpired})
+    const restart = page.getByRole('button', {name: v.restart, exact: true})
+    await expect(restart).toBeFocused()
+    await expect(expiredAlert).toBeInViewport()
+    await restart.press('Enter')
+    await expect(expiredAlert).toHaveCount(0)
+    await expect(
+      page.getByRole('button', {name: v.setup, exact: true}),
+    ).toBeVisible()
+    await expect(
+      page.getByRole('button', {name: v.setupPasskey, exact: true}),
+    ).toBeFocused()
+  } finally {
+    await sql.end()
+    await session.send('WebAuthn.removeVirtualAuthenticator', {authenticatorId})
+    await session.detach()
+  }
+})
+
+test('overlapping passkey assertions remain usable and abandoned registrations release capacity', async ({
+  page,
+  context,
+  noteApp,
+}) => {
+  const {session, authenticatorId} = await virtualAuthenticator(context, page)
+  const sql = postgres(process.env.DATABASE_URL!, {max: 1})
+  const endpoint = '/api/note-vault/passkey'
+  const headers = {
+    origin: new URL(process.env.NOTES_TEST_ORIGIN!).origin,
+    'x-note-encryption-protocol': '1',
+  }
+  const ceremony = async (data: Record<string, unknown>) => {
+    const response = await page.request.post(endpoint, {headers, data})
+    expect(response.ok()).toBe(true)
+    return response.json()
+  }
+  try {
+    await enroll(page)
+    const lock = page.getByRole('button', {name: v.lock, exact: true})
+    const unlock = page.getByRole('button', {name: v.unlock, exact: true})
+    await expect(unlock).toBeVisible()
+    const {vault} = (await (
+      await page.request.get('/api/note-vault')
+    ).json()) as {
+      vault: ConfirmedVault
+    }
+    const [rpId, credentialId] = vault.primaryWrapper.passkeyBinding!
+    const assertion = {
+      operation: 'assertion-options',
+      vaultId: vault.id,
+      credentialId,
+    }
+    const first = await ceremony(assertion)
+    const second = await ceremony(assertion)
+    expect(first).toMatchObject({status: 'success', options: {rpId}})
+    expect(second).toMatchObject({status: 'success', options: {rpId}})
+    expect(second.ceremonyId).not.toBe(first.ceremonyId)
+
+    for (const options of [first, second]) {
+      await page.route('**/api/note-vault/passkey', async (route) => {
+        if (route.request().postDataJSON().operation === 'assertion-options')
+          await route.fulfill({json: options})
+        else await route.continue()
+      })
+      const [verified] = await Promise.all([
+        page.waitForRequest(
+          (request) =>
+            new URL(request.url()).pathname === endpoint &&
+            request.method() === 'POST' &&
+            request.postDataJSON().operation === 'assertion-verify',
+        ),
+        unlock.click(),
+      ])
+      await expect(lock).toBeVisible()
+      const proof = verified.postDataJSON()
+      expect(proof.ceremonyId).toBe(options.ceremonyId)
+      expect(await ceremony(proof)).toEqual({status: 'invalid_input'})
+      await page.unroute('**/api/note-vault/passkey')
+      await lock.click()
+    }
+
+    await page
+      .getByRole('button', {name: v.replacePasskey, exact: true})
+      .click()
+    await page
+      .getByRole('button', {name: v.cancelReplacement, exact: true})
+      .click()
+    const [abandoned] = await sql`
+      select credential_id from note_passkeys
+      where owner_id = ${noteApp.ownerId} and provisional_expires_at > now()
+    `
+    expect(abandoned?.credential_id).toBeTruthy()
+    expect(abandoned.credential_id).not.toBe(credentialId)
+    const register = {operation: 'register-options', vaultId: vault.id}
+    for (let i = 0; i < 7; i++)
+      expect(await ceremony(register)).toMatchObject({status: 'success'})
+    expect(await ceremony(register)).toEqual({status: 'unavailable'})
+    await unlock.click()
+    await expect(lock).toBeVisible()
+    await lock.click()
+
+    await sql`
+      update note_passkeys set provisional_expires_at = now() - interval '1 minute'
+      where owner_id = ${noteApp.ownerId} and credential_id = ${abandoned.credential_id}
+    `
+    expect(
+      await ceremony({...assertion, credentialId: abandoned.credential_id}),
+    ).toEqual({
+      status: 'unavailable',
+    })
+    expect(await ceremony(register)).toMatchObject({status: 'success'})
+    const remaining = await sql`
+      select credential_id, provisional_expires_at from note_passkeys
+      where owner_id = ${noteApp.ownerId}
+    `
+    expect([...remaining]).toEqual([
+      {credential_id: credentialId, provisional_expires_at: null},
+    ])
+    await unlock.click()
+    await expect(lock).toBeVisible()
+  } finally {
+    await sql.end()
+    await session.send('WebAuthn.removeVirtualAuthenticator', {authenticatorId})
+    await session.detach()
+  }
+})
 
 test('virtual authenticator PRF enrollment, signed replacement, reconciliation and cancellation', async ({
   page,
@@ -387,14 +546,15 @@ test('virtual authenticator PRF enrollment, signed replacement, reconciliation a
   }
 })
 
-for (const committed of [false, true]) {
-  test(`retry with an expired passkey assertion when replacement ${committed ? 'has a receipt' : 'did not commit'}`, async ({
+for (const scenario of ['uncommitted', 'committed', 'expired'] as const) {
+  test(`retry a passkey replacement with expired verification (${scenario})`, async ({
     page,
     context,
     noteApp,
   }) => {
     const {session, authenticatorId} = await virtualAuthenticator(context, page)
     const sql = postgres(process.env.DATABASE_URL!, {max: 1})
+    const committed = scenario === 'committed'
     try {
       const kit = await enroll(page)
       await page.getByRole('button', {name: v.useRecovery, exact: true}).click()
@@ -426,6 +586,32 @@ for (const committed of [false, true]) {
         where owner_id = ${noteApp.ownerId} and credential_id = ${credentialId}
       `
       expect(expired.count).toBe(1)
+      if (scenario === 'expired') {
+        await sql`
+          update note_passkeys set provisional_expires_at = now() - interval '1 minute'
+          where owner_id = ${noteApp.ownerId} and credential_id = ${credentialId}
+        `
+        await page.reload()
+        await page
+          .getByRole('button', {name: v.retryReplacement, exact: true})
+          .click()
+        await expect(
+          page
+            .getByRole('alert')
+            .filter({hasText: v.replacementPasskeyExpired}),
+        ).toBeVisible()
+        await page
+          .getByRole('button', {name: v.forgetReplacement, exact: true})
+          .click()
+        await expect(
+          page.getByText(v.replacementForgotten, {exact: true}),
+        ).toBeVisible()
+        await page.getByRole('button', {name: v.unlock, exact: true}).click()
+        await expect(
+          page.getByRole('button', {name: v.lock, exact: true}),
+        ).toBeVisible()
+        return
+      }
       await page.reload()
       const assertions: string[] = []
       const patches: unknown[] = []

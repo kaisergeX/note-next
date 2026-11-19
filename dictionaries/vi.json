@@ -566,6 +566,8 @@
       "heading": "Ghi chú mã hóa",
       "disclosure": "Tiêu đề và nội dung được mã hóa trên thiết bị này. Dịch vụ vẫn thấy mã ghi chú, kích thước, ngày, màu và trạng thái thùng rác. Mất mọi cách mở khóa và khóa khôi phục đồng nghĩa với mất quyền truy cập.",
       "passkeyPending": "Thiết lập passkey cần xác minh hỗ trợ PRF trên trình duyệt và thiết bị xác thực. Passkey đồng bộ phụ thuộc nhà cung cấp; passkey gắn thiết bị chỉ ở thiết bị xác thực đó. Có thể dùng cụm mật khẩu được tạo để thay thế.",
+      "setupPasskeyExpired": "Lần đăng ký passkey này đã hết hạn. Hãy thiết lập lại bằng passkey mới hoặc cụm mật khẩu được tạo tự động.",
+      "replacementPasskeyExpired": "Lần đăng ký passkey thay thế đã hết hạn. Hãy bỏ yêu cầu đã lưu rồi bắt đầu lại.",
       "storageError": "Không truy cập được bộ nhớ trình duyệt. Giữ tab này và thử lại.",
       "failed": "Chưa xác nhận được thao tác. Kho hiện tại vẫn được giữ. Thử lại hoặc kiểm tra trạng thái máy chủ trước khi bắt đầu lại.",
       "verified": "Đã xác minh bí mật cho kho tạm này.",
