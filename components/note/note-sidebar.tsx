@@ -37,13 +37,11 @@ export default function NoteSidebar({
     },
   ]
 
+  // Animate the fixed sidebar while the spacer resizes the note grid once.
   return (
     <div className="flex min-h-0 flex-1">
       <div
-        className={cn(
-          'hidden shrink-0 transition-all motion-reduce:transition-none lg:block',
-          expanded ? 'w-60' : 'w-14',
-        )}
+        className={cn('hidden shrink-0 lg:block', expanded ? 'w-60' : 'w-14')}
       >
         <aside
           aria-label={labels.navigation}

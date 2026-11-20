@@ -1,6 +1,7 @@
 'use client'
 
 import {useCallback, useLayoutEffect, useRef, useState} from 'react'
+import {flushSync} from 'react-dom'
 import {
   defaultRangeExtractor,
   useWindowVirtualizer,
@@ -27,30 +28,38 @@ export function useMasonry(ids: string[], pinnedId?: string) {
     const root = document.documentElement
     const previousScrollBehavior = root.style.scrollBehavior
     root.style.scrollBehavior = 'auto'
-    setNative(
+    const supportsNativeMasonry =
       CSS.supports('display', 'grid-lanes') ||
-        CSS.supports('grid-template-rows', 'masonry'),
-    )
+      CSS.supports('grid-template-rows', 'masonry')
+    setNative(supportsNativeMasonry)
     const measure = () => {
       const style = getComputedStyle(element)
       const tracks = style.gridTemplateColumns.split(' ')
-      const next = {
+      return {
         lanes: tracks.length,
         width: parseFloat(tracks[0]) || element.clientWidth,
         gap: parseFloat(style.columnGap) || 0,
         top: element.getBoundingClientRect().top + window.scrollY,
       }
-      setGeometry((old) =>
-        Object.keys(next).every(
-          (key) =>
-            old[key as keyof typeof old] === next[key as keyof typeof next],
-        )
-          ? old
-          : next,
-      )
     }
-    measure()
-    const observer = new ResizeObserver(measure)
+    let previous = measure()
+    setGeometry(previous)
+    const observer = new ResizeObserver(() => {
+      const next = measure()
+      const widthChanged =
+        next.width !== previous.width || next.lanes !== previous.lanes
+      if (
+        !widthChanged &&
+        next.gap === previous.gap &&
+        next.top === previous.top
+      )
+        return
+      previous = next
+      // Keep card positions in sync with the CSS tracks before the next paint.
+      if (widthChanged && !supportsNativeMasonry)
+        flushSync(() => setGeometry(next))
+      else setGeometry(next)
+    })
     observer.observe(element)
     // Controls above the list can wrap after fonts or filters change.
     if (element.parentElement) observer.observe(element.parentElement)
@@ -98,9 +107,19 @@ export function useMasonry(ids: string[], pinnedId?: string) {
   // Width changes within the same column count also invalidate card heights.
   const previousWidth = useRef(0)
   useLayoutEffect(() => {
-    if (previousWidth.current && previousWidth.current !== geometry.width)
+    if (
+      !native &&
+      previousWidth.current &&
+      previousWidth.current !== geometry.width
+    ) {
       virtualizer.measure()
+      // Width changes invalidate offscreen sizes. Remeasure mounted cards now
+      // so their offsets don't use estimates while the observer catches up.
+      containerRef.current
+        ?.querySelectorAll<HTMLLIElement>(':scope > li')
+        .forEach(virtualizer.measureElement)
+    }
     previousWidth.current = geometry.width
-  }, [geometry.width, virtualizer])
+  }, [geometry.width, native, virtualizer])
   return {containerRef, native, geometry, virtualizer, focused, setFocused}
 }
