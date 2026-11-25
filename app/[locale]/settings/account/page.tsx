@@ -23,43 +23,43 @@ export default async function AccountPage({
   const trash = await noteRepository.getTrashSummary(userInfo.id)
   const serverNow = await noteRepository.getServerTime()
   return (
-    <section aria-labelledby="account-title" className="max-w-3xl">
-      <h2 id="account-title">{t('account')}</h2>
-      <p className="text-ink-muted mt-1 text-sm">{t('accountDescription')}</p>
-      <div className="border-hairline mt-6 flex flex-wrap items-center gap-4 border-b pb-6">
-        {userInfo.image ? (
-          <Image
-            className="border-hairline rounded-full border"
-            src={userInfo.image}
-            alt={t('avatar')}
-            width={64}
-            height={64}
-          />
-        ) : (
-          <IconUserCircle className="text-ink-muted size-16" aria-hidden />
+    <NextIntlClientProvider messages={{user: messages.user}}>
+      <section aria-labelledby="account-title" className="max-w-3xl">
+        <h2 id="account-title">{t('account')}</h2>
+        <p className="text-ink-muted mt-1 text-sm">{t('accountDescription')}</p>
+        <div className="border-hairline mt-6 flex flex-wrap items-center gap-4 border-b pb-6">
+          {userInfo.image ? (
+            <Image
+              className="border-hairline rounded-full border"
+              src={userInfo.image}
+              alt={t('avatar')}
+              width={64}
+              height={64}
+            />
+          ) : (
+            <IconUserCircle className="text-ink-muted size-16" aria-hidden />
+          )}
+          <dl className="min-w-0 space-y-3 break-words">
+            <div>
+              <dt className="text-ink-muted text-xs">{t('name')}</dt>
+              <dd className="mt-1 font-medium">{userInfo.name}</dd>
+            </div>
+            <div>
+              <dt className="text-ink-muted text-xs">{t('email')}</dt>
+              <dd className="mt-1 text-sm">{userInfo.email}</dd>
+            </div>
+          </dl>
+          <Badge className="capitalize">{t(`roles.${userInfo.role}`)}</Badge>
+        </div>
+        {(process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED === 'true' ||
+          (await encryptionRepository.getVault(userInfo.id))) && (
+          <Link
+            href="/collection/encrypted"
+            className={buttonClass({variant: 'link'})}
+          >
+            {messages.note.encryption.heading}
+          </Link>
         )}
-        <dl className="min-w-0 space-y-3 break-words">
-          <div>
-            <dt className="text-ink-muted text-xs">{t('name')}</dt>
-            <dd className="mt-1 font-medium">{userInfo.name}</dd>
-          </div>
-          <div>
-            <dt className="text-ink-muted text-xs">{t('email')}</dt>
-            <dd className="mt-1 text-sm">{userInfo.email}</dd>
-          </div>
-        </dl>
-        <Badge className="capitalize">{t(`roles.${userInfo.role}`)}</Badge>
-      </div>
-      {(process.env.NOTE_ENCRYPTION_ENROLLMENT_ENABLED === 'true' ||
-        (await encryptionRepository.getVault(userInfo.id))) && (
-        <Link
-          href="/collection/encrypted"
-          className={buttonClass({variant: 'link'})}
-        >
-          {messages.note.encryption.heading}
-        </Link>
-      )}
-      <NextIntlClientProvider messages={{user: messages.user}}>
         <AccountActions
           ownerId={userInfo.id}
           email={userInfo.email}
@@ -71,7 +71,7 @@ export default async function AccountPage({
           returning={params.confirmDelete === '1'}
           verificationFailed={params.deleteVerification === 'failed'}
         />
-      </NextIntlClientProvider>
-    </section>
+      </section>
+    </NextIntlClientProvider>
   )
 }
