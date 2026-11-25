@@ -251,17 +251,29 @@ async function activateVault(page: Page) {
   const phrase = await page.locator('p.font-mono').first().innerText()
   await page.getByRole('button', {name: v.reveal, exact: true}).click()
   const recovery = await page.locator('p.font-mono').nth(1).innerText()
-  const confirmation = page.getByLabel(v.confirmationEntry, {exact: true})
-  await confirmation.fill(phrase)
+  await page
+    .getByRole('button', {name: v.continueToVerify, exact: true})
+    .click()
+  const primaryEntry = page.getByRole('textbox', {
+    name: v.passphraseLabel,
+    exact: true,
+  })
+  const recoveryEntry = page.getByRole('textbox', {
+    name: v.recoveryKey,
+    exact: true,
+  })
+  await primaryEntry.fill(phrase)
   await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.primaryVerified, exact: true}),
-  ).toBeVisible()
-  await confirmation.fill(recovery)
+    page
+      .getByRole('group', {name: v.passphraseLabel, exact: true})
+      .getByRole('button', {name: v.verifyPrimary, exact: true}),
+  ).toBeHidden()
+  await recoveryEntry.fill(recovery)
   await page.getByRole('button', {name: v.verifyRecovery, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.recoveryVerified, exact: true}),
-  ).toBeVisible()
+    page.getByRole('button', {name: v.verifyRecovery, exact: true}),
+  ).toBeHidden()
   await page.getByRole('button', {name: v.activate, exact: true}).click()
   await unlock(page, phrase)
   await page.evaluate(async () => {

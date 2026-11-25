@@ -156,13 +156,25 @@ try {
   const phrase = await page.locator('p.font-mono').first().innerText()
   await button(page, v.reveal).click()
   const kit = await page.locator('p.font-mono').nth(1).innerText()
-  const entry = page.getByLabel(v.confirmationEntry, {exact: true})
-  await entry.fill(phrase)
+  await button(page, v.continueToVerify).click()
+  const primaryEntry = page.getByRole('textbox', {
+    name: v.passphraseLabel,
+    exact: true,
+  })
+  const recoveryEntry = page.getByRole('textbox', {
+    name: v.recoveryKey,
+    exact: true,
+  })
+  await primaryEntry.fill(phrase)
   await button(page, v.verifyPrimary).click()
-  await expect(button(page, v.primaryVerified)).toBeVisible()
-  await entry.fill(kit)
+  await expect(
+    page
+      .getByRole('group', {name: v.passphraseLabel, exact: true})
+      .getByRole('button', {name: v.verifyPrimary, exact: true}),
+  ).toBeHidden()
+  await recoveryEntry.fill(kit)
   await button(page, v.verifyRecovery).click()
-  await expect(button(page, v.recoveryVerified)).toBeVisible()
+  await expect(button(page, v.verifyRecovery)).toBeHidden()
   const [activation] = await Promise.all([
     page.waitForResponse(
       (r) =>

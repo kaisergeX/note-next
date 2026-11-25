@@ -19,20 +19,29 @@ test('encrypted setup, ciphertext persistence, tab locking and fresh-tab recover
   const recovery = await page.locator('p.font-mono').nth(1).innerText()
   expect(phrase.length).toBeGreaterThan(20)
   expect(recovery).toMatch(/^eton/)
-  await page.getByLabel(vault.confirmationEntry, {exact: true}).fill(phrase)
+  await page
+    .getByRole('button', {name: vault.continueToVerify, exact: true})
+    .click()
+  await page
+    .getByRole('textbox', {name: vault.passphraseLabel, exact: true})
+    .fill(phrase)
   await page
     .getByRole('button', {name: vault.verifyPrimary, exact: true})
     .click()
   await expect(
-    page.getByRole('button', {name: vault.primaryVerified, exact: true}),
-  ).toBeVisible()
-  await page.getByLabel(vault.confirmationEntry, {exact: true}).fill(recovery)
+    page
+      .getByRole('group', {name: vault.passphraseLabel, exact: true})
+      .getByRole('button', {name: vault.verifyPrimary, exact: true}),
+  ).toBeHidden()
+  await page
+    .getByRole('textbox', {name: vault.recoveryKey, exact: true})
+    .fill(recovery)
   await page
     .getByRole('button', {name: vault.verifyRecovery, exact: true})
     .click()
   await expect(
-    page.getByRole('button', {name: vault.recoveryVerified, exact: true}),
-  ).toBeVisible()
+    page.getByRole('button', {name: vault.verifyRecovery, exact: true}),
+  ).toBeHidden()
   await page.getByRole('button', {name: vault.activate, exact: true}).click()
   await page.getByLabel(vault.passphrase, {exact: true}).fill(phrase)
   await page.getByRole('button', {name: vault.unlock, exact: true}).click()

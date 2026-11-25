@@ -50,13 +50,29 @@ for (const [locale, messages] of [
     await activate(button(v.reveal))
     const recovery = await controls.locator('p.font-mono').nth(1).innerText()
     await activate(button(v.hide))
-    const confirmation = controls.getByLabel(v.confirmationEntry, {exact: true})
-    await enter(confirmation, phrase)
+    await activate(button(v.continueToVerify))
+    const primaryEntry = controls.getByRole('textbox', {
+      name: v.passphraseLabel,
+      exact: true,
+    })
+    const recoveryEntry = controls.getByRole('textbox', {
+      name: v.recoveryKey,
+      exact: true,
+    })
+    const primaryCard = controls.getByRole('group', {
+      name: v.passphraseLabel,
+      exact: true,
+    })
+    await enter(primaryEntry, phrase)
     await activate(button(v.verifyPrimary))
-    await expect(button(v.primaryVerified)).toBeVisible()
-    await enter(confirmation, recovery)
+    await expect(
+      primaryCard.getByRole('button', {name: v.verifyPrimary}),
+    ).toBeHidden()
+    await expect(recoveryEntry).toBeFocused()
+    await enter(recoveryEntry, recovery)
     await activate(button(v.verifyRecovery))
-    await expect(button(v.recoveryVerified)).toBeVisible()
+    await expect(button(v.verifyRecovery)).toBeHidden()
+    await expect(button(v.activate)).toBeFocused()
     await activate(button(v.activate))
 
     const passphrase = controls.getByLabel(v.passphrase, {exact: true})
@@ -99,9 +115,11 @@ for (const [locale, messages] of [
     // A reload removes in-memory keys; recovery must work without the phrase.
     await page.reload()
     await activate(button(v.useRecovery))
-    const recoveryEntry = controls.getByLabel(v.recoveryKey, {exact: true})
-    await expect(recoveryEntry).toHaveAttribute('type', 'password')
-    await enter(recoveryEntry, recovery)
+    const unlockRecoveryEntry = controls.getByLabel(v.recoveryKey, {
+      exact: true,
+    })
+    await expect(unlockRecoveryEntry).toHaveAttribute('type', 'password')
+    await enter(unlockRecoveryEntry, recovery)
     await activate(button(v.unlock))
     await expect(
       controls.getByRole('status').filter({hasText: v.unlocked}),

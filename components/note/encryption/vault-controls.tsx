@@ -1,13 +1,18 @@
 'use client'
 
-import {useEffect, useRef, useState} from 'react'
+import {useEffect, useId, useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
 import {
   IconCheck,
   IconCopy,
+  IconEye,
+  IconEyeOff,
   IconFingerprint,
   IconInfoCircle,
   IconKey,
+  IconPassword,
+  IconRefresh,
+  IconShieldCheck,
 } from '@tabler/icons-react'
 import {cn} from 'cn'
 import Button, {buttonClass} from '~/components/ui/button'
@@ -50,6 +55,14 @@ import {
   clearReplacementIntent,
 } from '~/lib/notes/encryption/storage'
 import SetupScene, {type SetupStage} from './setup-scene'
+// Check cards take their group name from the visible header text
+// (aria-labelledby), so getByLabel keeps resolving uniquely to the inputs.
+// Secret fields pair the input with an inline eye toggle. Focus visuals live
+// on the wrapper, so the focus ring wraps both instead of crossing the button.
+const secretFieldClass =
+  'relative rounded-md border border-control-border bg-paper-raised text-ink transition-colors focus-within:border-accent focus-within:ring-2 focus-within:ring-accent'
+const secretInputClass =
+  'rounded-md border-0 bg-transparent focus:outline-none focus:ring-0!'
 // An earlier client may have submitted a replacement before writes closed.
 const replacementSchema = z.strictObject({
   operationId: canonicalIdSchema,
@@ -76,18 +89,27 @@ export function VaultControls({
 }) {
   const t = useTranslations('note.vault')
   const [candidate, setCandidate] = useState<VaultCandidate | null>(null)
+  // SSR-safe: both server and first client render assume no passkey support;
+  // the probe below upgrades capable devices right after hydration.
+  const [passkeyCapable, setPasskeyCapable] = useState(false)
   const [phrase, setPhrase] = useState(''),
     [kit, setKit] = useState(''),
     [entry, setEntry] = useState('')
   const [recovery, setRecovery] = useState(false),
     [reveal, setReveal] = useState(false),
     [setupReveal, setSetupReveal] = useState(false)
+  // reveal/setupReveal are shared across secret fields; safe while only one
+  // secret field is ever visible at a time. Split per field if that changes.
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('')
   const [atVerify, setAtVerify] = useState(false)
   const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
     'idle',
+  )
+  // Which setup method is running its ceremony, so only that button spins.
+  const [starting, setStarting] = useState<'passkey' | 'passphrase' | null>(
+    null,
   )
   const [replacement, setReplacement] = useState<z.infer<
     typeof replacementSchema
@@ -97,17 +119,23 @@ export function VaultControls({
   const [signedReplacement, setSignedReplacement] =
     useState<SignedReplacement | null>(null)
   const active = useVaultUnlocked(ownerId, vault?.id ?? '')
+  const primaryHeadingId = useId()
+  const recoveryHeadingId = useId()
   const generation = useRef(0),
     inFlight = useRef(false)
+  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const focusSetupAction = useRef(false)
   const restartButton = useRef<HTMLButtonElement>(null)
-  const setupPasskeyButton = useRef<HTMLButtonElement>(null)
+  const setupPrimaryButton = useRef<HTMLButtonElement>(null)
   const replacementFocus = useRef<
     'confirm' | 'passphrase' | 'passkey' | 'unlock' | null
   >(null)
   const credentialEntry = useRef<HTMLInputElement>(null)
   const confirmationEntry = useRef<HTMLInputElement>(null)
   const confirmButton = useRef<HTMLButtonElement>(null)
+  const verifyFocus = useRef<'entry' | 'activate' | null>(null)
+  const verifyEntry = useRef<HTMLInputElement>(null)
+  const activateButton = useRef<HTMLButtonElement>(null)
   const replacePassphraseButton = useRef<HTMLButtonElement>(null)
   const replacePasskeyButton = useRef<HTMLButtonElement>(null)
   const unlockButton = useRef<HTMLButtonElement>(null)
@@ -173,6 +201,8 @@ export function VaultControls({
       generation.current++
       focusSetupAction.current = false
       replacementFocus.current = null
+      verifyFocus.current = null
+      if (copyTimer.current) clearTimeout(copyTimer.current)
       setReplacementDraft(null)
       setPhrase('')
       setKit('')
@@ -187,15 +217,62 @@ export function VaultControls({
       disposed = true
       versionCounter.current++
       replacementFocus.current = null
+      if (copyTimer.current) clearTimeout(copyTimer.current)
       document.removeEventListener('visibilitychange', clear)
       window.removeEventListener('eton-vault-invalidated', invalidate)
     }
   }, [ownerId, storageKey, t])
   useEffect(() => {
+    let disposed = false
+    const probe =
+      window.PublicKeyCredential?.isUserVerifyingPlatformAuthenticatorAvailable?.()
+    const decide = (capable: boolean) => {
+      if (!disposed) setPasskeyCapable(capable)
+    }
+    if (probe) {
+      probe
+        .then((available) => decide(Boolean(available)))
+        .catch(() => decide(false))
+    } else {
+      queueMicrotask(() => decide(false))
+    }
+    return () => {
+      disposed = true
+    }
+  }, [])
+  // The heading focus runs before the action-focus effects, so a requested
+  // control (setup, verify, unlock) wins over the heading after a discard.
+  const setupStage: SetupStage = !candidate
+    ? 'setup'
+    : candidate.submitted ||
+        atVerify ||
+        candidate.primaryChecked ||
+        candidate.recoveryChecked ||
+        (!phrase && !kit)
+      ? 'verify'
+      : 'backup'
+  useEffect(() => {
+    if (previousStage.current === undefined) {
+      previousStage.current = setupStage
+      return
+    }
+    if (previousStage.current !== setupStage)
+      setupHeading.current?.focus({preventScroll: true})
+    previousStage.current = setupStage
+  }, [setupStage])
+  useEffect(() => {
     if (!focusSetupAction.current || busy || document.hidden) return
     focusSetupAction.current = false
-    const button = candidate ? restartButton : setupPasskeyButton
+    const button = candidate ? restartButton : setupPrimaryButton
     button.current?.focus()
+  }, [busy, candidate])
+  useEffect(() => {
+    const target = verifyFocus.current
+    if (!target || busy || document.hidden) return
+    verifyFocus.current = null
+    const control =
+      target === 'entry' ? verifyEntry.current : activateButton.current
+    control?.focus()
   }, [busy, candidate])
   useEffect(() => {
     const target = replacementFocus.current
@@ -216,24 +293,6 @@ export function VaultControls({
     const control = button && !button.disabled ? button : fallback
     control?.focus()
   }, [busy, replacementDraft, signedReplacement])
-  const setupStage: SetupStage = !candidate
-    ? 'setup'
-    : candidate.submitted ||
-        atVerify ||
-        candidate.primaryChecked ||
-        candidate.recoveryChecked ||
-        (!phrase && !kit)
-      ? 'verify'
-      : 'backup'
-  useEffect(() => {
-    if (previousStage.current === undefined) {
-      previousStage.current = setupStage
-      return
-    }
-    if (previousStage.current !== setupStage)
-      setupHeading.current?.focus({preventScroll: true})
-    previousStage.current = setupStage
-  }, [setupStage])
   useEffect(() => {
     if (!focusRequest || active || document.hidden) return
     const control = credentialEntry.current ?? unlockButton.current
@@ -277,14 +336,19 @@ export function VaultControls({
   }
   const start = (method: 'passphrase' | 'passkey') =>
     run(async (version) => {
-      const created = await createVaultCandidate(ownerId, method)
-      check(version)
-      setSetupReveal(false)
-      setAtVerify(false)
-      setCopyState('idle')
-      save(created.candidate)
-      setPhrase(created.passphrase)
-      setKit(created.recoveryKit)
+      setStarting(method)
+      try {
+        const created = await createVaultCandidate(ownerId, method)
+        check(version)
+        setSetupReveal(false)
+        setAtVerify(false)
+        setCopyState('idle')
+        save(created.candidate)
+        setPhrase(created.passphrase)
+        setKit(created.recoveryKit)
+      } finally {
+        setStarting(null)
+      }
     })
   const verify = (purpose: 'primary' | 'recovery') =>
     run(async (version) => {
@@ -306,8 +370,10 @@ export function VaultControls({
       save(checked)
       setPhrase('')
       setKit('')
+      setReveal(false)
       setCopyState('idle')
-      setMessage(t('verified'))
+      // Hand focus to the next step: the recovery entry or activation.
+      verifyFocus.current = purpose === 'primary' ? 'entry' : 'activate'
     })
   function matchesSetup(current: ConfirmedVault, candidate: VaultCandidate) {
     const vaultId = canonicalIdSchema.parse(current.id)
@@ -353,6 +419,7 @@ export function VaultControls({
   }
   function finishSetup(message: 'created' | 'reconciled' | 'lostSetup') {
     sessionStorage.removeItem(storageKey)
+    if (copyTimer.current) clearTimeout(copyTimer.current)
     setCandidate(null)
     setPhrase('')
     setKit('')
@@ -363,11 +430,13 @@ export function VaultControls({
   }
   function discardCandidate() {
     sessionStorage.removeItem(storageKey)
+    if (copyTimer.current) clearTimeout(copyTimer.current)
     focusSetupAction.current = true
     setCandidate(null)
     setPhrase('')
     setKit('')
     setEntry('')
+    setReveal(false)
     setAtVerify(false)
     setCopyState('idle')
     setError('')
@@ -638,30 +707,37 @@ export function VaultControls({
     })
   async function copyKit() {
     if (!kit) return
+    // Stop any pending flip-to-idle so it cannot hide a fresh failure state.
+    if (copyTimer.current) clearTimeout(copyTimer.current)
     try {
       await navigator.clipboard.writeText(kit)
       setCopyState('copied')
     } catch {
       setCopyState('failed')
+      return
     }
+    // Return the control to its copy affordance after a brief confirmation.
+    copyTimer.current = setTimeout(() => setCopyState('idle'), 2000)
   }
   const setupMethod =
     candidate?.primaryWrapper.purpose === 'passkey' ? 'passkey' : 'passphrase'
   const primaryLabel = t(
     setupMethod === 'passkey' ? 'passkeyLabel' : 'passphraseLabel',
   )
-  const PrimaryIcon = setupMethod === 'passkey' ? IconFingerprint : IconKey
+  const PrimaryIcon = setupMethod === 'passkey' ? IconFingerprint : IconPassword
   const setupViews: Record<SetupStage, {title: string; hint: string}> = {
     setup: {title: t('heading'), hint: t('setupHint')},
     backup: {title: t('backupTitle'), hint: t('backupHint')},
     verify: {title: t('verifyTitle'), hint: t('verifyHint')},
   }
   const setupView = setupViews[setupStage]
-  const canReturnToKit =
-    setupStage === 'verify' &&
-    !candidate?.primaryChecked &&
-    !candidate?.recoveryChecked &&
-    Boolean(phrase || kit)
+  // The checks are sequential: the primary method is confirmed first, then the
+  // recovery key re-entry, so one input serves the current check at a time.
+  const pending = !candidate?.primaryChecked
+    ? 'primary'
+    : !candidate?.recoveryChecked
+      ? 'recovery'
+      : null
   const messages = (
     <>
       {error ? (
@@ -710,26 +786,61 @@ export function VaultControls({
             <p className="text-ink-muted text-sm">{t('disabled')}</p>
           ) : setupStage === 'setup' ? (
             <>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <Button
-                  ref={setupPasskeyButton}
-                  size="lg"
-                  loading={busy}
-                  onClick={() => void start('passkey')}
-                >
-                  <IconFingerprint size={20} aria-hidden /> {t('setupPasskey')}
-                </Button>
-                <Button
-                  variant="link"
-                  disabled={busy}
-                  onClick={() => void start('passphrase')}
-                >
-                  {t('setup')}
-                </Button>
-              </div>
-              <p className="text-ink-muted mt-3 text-xs">
-                {t('passkeyPending')}
-              </p>
+              {passkeyCapable ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <Button
+                      ref={setupPrimaryButton}
+                      size="lg"
+                      loading={starting === 'passkey'}
+                      disabled={busy}
+                      onClick={() => void start('passkey')}
+                    >
+                      {starting === 'passkey' ? null : (
+                        <IconFingerprint size={20} aria-hidden />
+                      )}
+                      {t('setupPasskey')}
+                    </Button>
+                    <Button
+                      variant="link"
+                      disabled={busy}
+                      onClick={() => void start('passphrase')}
+                    >
+                      {t('setup')}
+                    </Button>
+                  </div>
+                  <p className="text-ink-muted mt-3 text-xs">
+                    {t('passkeyPending')}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                    <Button
+                      ref={setupPrimaryButton}
+                      size="lg"
+                      loading={starting === 'passphrase'}
+                      disabled={busy}
+                      onClick={() => void start('passphrase')}
+                    >
+                      {starting === 'passphrase' ? null : (
+                        <IconPassword size={20} aria-hidden />
+                      )}
+                      {t('setup')}
+                    </Button>
+                    <Button
+                      variant="link"
+                      disabled={busy}
+                      onClick={() => void start('passkey')}
+                    >
+                      {t('setupPasskey')}
+                    </Button>
+                  </div>
+                  <p className="text-ink-muted mt-3 text-xs">
+                    {t('passkeyUnavailable')}
+                  </p>
+                </>
+              )}
               <div className="border-hairline mt-6 border-t pt-1">
                 <PopoverBase
                   anchor="bottom-start"
@@ -764,47 +875,32 @@ export function VaultControls({
                     )}
                   </dd>
                 </div>
-                <div className="relative grid min-h-18 content-center gap-1 py-3 pr-16 pl-4">
+                <div className="relative grid min-h-18 content-center gap-1 py-3 pr-20 pl-4">
                   <dt className="text-ink-muted text-xs font-medium">
                     {t('recoveryKey')}
                   </dt>
                   <dd>
+                    {/* While hidden, a same-length placeholder sits under the
+                        blur: identical metrics (no reflow on reveal) and no
+                        key material in the DOM until the user reveals it. */}
                     <p
                       className={cn(
-                        'text-sm wrap-anywhere select-all',
-                        setupReveal && 'font-mono break-all',
+                        'font-mono text-sm wrap-anywhere break-all',
+                        setupReveal ? 'select-all' : 'blur-xs select-none',
                       )}
                     >
-                      {setupReveal ? kit : t('kitHidden')}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="mt-1"
-                      onClick={() => setSetupReveal(!setupReveal)}
-                    >
-                      {t(setupReveal ? 'hide' : 'reveal')}
-                    </Button>
-                  </dd>
-                  {kit ? (
-                    <Button
-                      variant="ghost"
-                      iconOnly
-                      pressMotion={false}
-                      className="absolute top-1/2 right-3 -translate-y-1/2"
-                      aria-label={t('copyKey')}
-                      title={t(
-                        copyState === 'copied' ? 'copyKeySuccess' : 'copyKey',
-                      )}
-                      onClick={() => void copyKit()}
-                    >
-                      {copyState === 'copied' ? (
-                        <IconCheck size={18} aria-hidden />
+                      {setupReveal ? (
+                        kit
                       ) : (
-                        <IconCopy size={18} aria-hidden />
+                        <>
+                          <span className="sr-only">{t('kitHidden')}</span>
+                          <span aria-hidden="true">
+                            {kit.replace(/[^.]/g, 'x')}
+                          </span>
+                        </>
                       )}
-                    </Button>
-                  ) : null}
+                    </p>
+                  </dd>
                   <dd
                     role="status"
                     className={
@@ -816,6 +912,42 @@ export function VaultControls({
                     {copyState === 'copied' && t('copyKeySuccess')}
                     {copyState === 'failed' && t('copyKeyFailed')}
                   </dd>
+                  <div className="absolute top-1/2 right-2 flex -translate-y-1/2 flex-col gap-2">
+                    <Button
+                      variant="ghost"
+                      iconOnly
+                      size="sm"
+                      pressMotion={false}
+                      aria-label={t(setupReveal ? 'hide' : 'reveal')}
+                      title={t(setupReveal ? 'hide' : 'reveal')}
+                      onClick={() => setSetupReveal(!setupReveal)}
+                    >
+                      {setupReveal ? (
+                        <IconEyeOff size={18} aria-hidden />
+                      ) : (
+                        <IconEye size={18} aria-hidden />
+                      )}
+                    </Button>
+                    {kit ? (
+                      <Button
+                        variant="ghost"
+                        iconOnly
+                        size="sm"
+                        pressMotion={false}
+                        aria-label={t('copyKey')}
+                        title={t(
+                          copyState === 'copied' ? 'copyKeySuccess' : 'copyKey',
+                        )}
+                        onClick={() => void copyKit()}
+                      >
+                        {copyState === 'copied' ? (
+                          <IconCheck size={18} aria-hidden />
+                        ) : (
+                          <IconCopy size={18} aria-hidden />
+                        )}
+                      </Button>
+                    ) : null}
+                  </div>
                 </div>
               </dl>
               <p className="text-ink-muted text-sm leading-relaxed">
@@ -843,8 +975,15 @@ export function VaultControls({
           ) : (
             <div className="space-y-5">
               <div className="grid gap-2">
-                <div className="border-hairline flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2">
-                  <span className="flex items-center gap-2 text-sm font-medium">
+                <div
+                  className="border-hairline overflow-hidden rounded-lg border"
+                  role="group"
+                  aria-labelledby={primaryHeadingId}
+                >
+                  <div
+                    id={primaryHeadingId}
+                    className="flex min-h-11 items-center gap-2 px-3 py-2 text-sm font-medium"
+                  >
                     {candidate?.primaryChecked ? (
                       <IconCheck
                         size={18}
@@ -855,25 +994,76 @@ export function VaultControls({
                       <PrimaryIcon size={18} aria-hidden />
                     )}
                     {primaryLabel}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    loading={busy}
-                    disabled={
-                      Boolean(candidate?.primaryChecked) ||
-                      (!entry && setupMethod !== 'passkey')
-                    }
-                    onClick={() => void verify('primary')}
-                  >
-                    {t(
-                      candidate?.primaryChecked
-                        ? 'primaryVerified'
-                        : 'verifyPrimary',
+                  </div>
+                  {/* Height animates via grid-template-rows 0fr to 1fr. Closed
+                      bodies carry visibility:hidden (excluded from role
+                      queries and the accessibility tree once collapsed) plus
+                      inert, which already covers the collapse window. */}
+                  <div
+                    className={cn(
+                      'grid grid-rows-[0fr] transition-[grid-template-rows,visibility] duration-200 motion-reduce:transition-none',
+                      pending === 'primary' ? 'grid-rows-[1fr]' : 'invisible',
                     )}
-                  </Button>
+                  >
+                    <div
+                      className="min-h-0 overflow-hidden"
+                      inert={pending !== 'primary'}
+                    >
+                      <div className="space-y-3 px-3 pb-3">
+                        {setupMethod === 'passphrase' ? (
+                          <div className={secretFieldClass}>
+                            <Input
+                              autoComplete="off"
+                              type={reveal ? 'text' : 'password'}
+                              value={entry}
+                              onChange={(event) => setEntry(event.target.value)}
+                              aria-label={primaryLabel}
+                              className={cn('pr-11', secretInputClass)}
+                            />
+                            <Button
+                              variant="ghost"
+                              iconOnly
+                              size="sm"
+                              pressMotion={false}
+                              aria-label={t(reveal ? 'hide' : 'reveal')}
+                              title={t(reveal ? 'hide' : 'reveal')}
+                              className="absolute top-1/2 right-1 -translate-y-1/2"
+                              onClick={() => setReveal(!reveal)}
+                            >
+                              {reveal ? (
+                                <IconEyeOff size={18} aria-hidden />
+                              ) : (
+                                <IconEye size={18} aria-hidden />
+                              )}
+                            </Button>
+                          </div>
+                        ) : null}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={busy}
+                            disabled={setupMethod === 'passphrase' && !entry}
+                            onClick={() => void verify('primary')}
+                          >
+                            {setupMethod === 'passkey'
+                              ? t('verifyPasskey')
+                              : t('verifyPrimary')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="border-hairline flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2">
-                  <span className="flex items-center gap-2 text-sm font-medium">
+                <div
+                  className="border-hairline overflow-hidden rounded-lg border"
+                  role="group"
+                  aria-labelledby={recoveryHeadingId}
+                >
+                  <div
+                    id={recoveryHeadingId}
+                    className="flex min-h-11 items-center gap-2 px-3 py-2 text-sm font-medium"
+                  >
                     {candidate?.recoveryChecked ? (
                       <IconCheck
                         size={18}
@@ -884,33 +1074,61 @@ export function VaultControls({
                       <IconKey size={18} aria-hidden />
                     )}
                     {t('recoveryKey')}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    loading={busy}
-                    disabled={Boolean(candidate?.recoveryChecked) || !entry}
-                    onClick={() => void verify('recovery')}
-                  >
-                    {t(
-                      candidate?.recoveryChecked
-                        ? 'recoveryVerified'
-                        : 'verifyRecovery',
+                  </div>
+                  <div
+                    className={cn(
+                      'grid grid-rows-[0fr] transition-[grid-template-rows,visibility] duration-200 motion-reduce:transition-none',
+                      pending === 'recovery' ? 'grid-rows-[1fr]' : 'invisible',
                     )}
-                  </Button>
+                  >
+                    <div
+                      className="min-h-0 overflow-hidden"
+                      inert={pending !== 'recovery'}
+                    >
+                      <div className="space-y-3 px-3 pb-3">
+                        <div className={secretFieldClass}>
+                          <Input
+                            ref={verifyEntry}
+                            autoComplete="off"
+                            type={reveal ? 'text' : 'password'}
+                            value={entry}
+                            onChange={(event) => setEntry(event.target.value)}
+                            aria-label={t('recoveryKey')}
+                            className={cn('pr-11', secretInputClass)}
+                          />
+                          <Button
+                            variant="ghost"
+                            iconOnly
+                            size="sm"
+                            pressMotion={false}
+                            aria-label={t(reveal ? 'hide' : 'reveal')}
+                            title={t(reveal ? 'hide' : 'reveal')}
+                            className="absolute top-1/2 right-1 -translate-y-1/2"
+                            onClick={() => setReveal(!reveal)}
+                          >
+                            {reveal ? (
+                              <IconEyeOff size={18} aria-hidden />
+                            ) : (
+                              <IconEye size={18} aria-hidden />
+                            )}
+                          </Button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            loading={busy}
+                            disabled={!entry}
+                            onClick={() => void verify('recovery')}
+                          >
+                            {t('verifyRecovery')}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              <label className="block space-y-2">
-                <span>{t('confirmationEntry')}</span>
-                <Input
-                  autoComplete="off"
-                  type={reveal ? 'text' : 'password'}
-                  value={entry}
-                  onChange={(event) => setEntry(event.target.value)}
-                />
-              </label>
-              <Button variant="ghost" onClick={() => setReveal(!reveal)}>
-                {t(reveal ? 'hide' : 'reveal')}
-              </Button>
               <p className="sr-only" role="status">
                 {t('checksComplete', {
                   done:
@@ -918,25 +1136,18 @@ export function VaultControls({
                     Number(Boolean(candidate?.recoveryChecked)),
                 })}
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button
+                  ref={activateButton}
                   loading={busy}
                   disabled={
                     !candidate?.primaryChecked || !candidate?.recoveryChecked
                   }
                   onClick={() => void submit()}
                 >
+                  {busy ? null : <IconShieldCheck size={20} aria-hidden />}
                   {t(candidate?.submitted ? 'retrySetup' : 'activate')}
                 </Button>
-                {canReturnToKit ? (
-                  <Button
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => setAtVerify(false)}
-                  >
-                    {t('back')}
-                  </Button>
-                ) : null}
                 {candidate?.submitted ? (
                   <Button
                     variant="secondary"
@@ -953,7 +1164,7 @@ export function VaultControls({
                     disabled={busy}
                     onClick={discardCandidate}
                   >
-                    {t('restart')}
+                    <IconRefresh size={18} aria-hidden /> {t('restart')}
                   </Button>
                 )}
               </div>
@@ -995,21 +1206,38 @@ export function VaultControls({
         </Button>
       </div>
       {!replacementDraft && (recovery || purpose !== 'passkey') ? (
-        <>
-          <label className="block space-y-2">
-            <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
+        <div className="space-y-2">
+          <span className="block">
+            {t(recovery ? 'recoveryKey' : 'passphrase')}
+          </span>
+          <div className={secretFieldClass}>
             <Input
               ref={credentialEntry}
               autoComplete="off"
               type={reveal ? 'text' : 'password'}
               value={entry}
               onChange={(event) => setEntry(event.target.value)}
+              aria-label={t(recovery ? 'recoveryKey' : 'passphrase')}
+              className={cn('pr-11', secretInputClass)}
             />
-          </label>
-          <Button variant="ghost" onClick={() => setReveal(!reveal)}>
-            {t(reveal ? 'hide' : 'reveal')}
-          </Button>
-        </>
+            <Button
+              variant="ghost"
+              iconOnly
+              size="sm"
+              pressMotion={false}
+              aria-label={t(reveal ? 'hide' : 'reveal')}
+              title={t(reveal ? 'hide' : 'reveal')}
+              className="absolute top-1/2 right-1 -translate-y-1/2"
+              onClick={() => setReveal(!reveal)}
+            >
+              {reveal ? (
+                <IconEyeOff size={18} aria-hidden />
+              ) : (
+                <IconEye size={18} aria-hidden />
+              )}
+            </Button>
+          </div>
+        </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Button
@@ -1082,16 +1310,36 @@ export function VaultControls({
       <p className="text-ink-muted text-sm">{t('replacementConfirmHelp')}</p>
       {phrase ? <p className="font-mono break-words">{phrase}</p> : null}
       {replacementDraft.primaryWrapper.purpose !== 'passkey' ? (
-        <label className="block space-y-2">
-          <span>{t('replacementConfirmation')}</span>
-          <Input
-            ref={confirmationEntry}
-            autoComplete="off"
-            type={reveal ? 'text' : 'password'}
-            value={entry}
-            onChange={(event) => setEntry(event.target.value)}
-          />
-        </label>
+        <div className="space-y-2">
+          <span className="block">{t('replacementConfirmation')}</span>
+          <div className={secretFieldClass}>
+            <Input
+              ref={confirmationEntry}
+              autoComplete="off"
+              type={reveal ? 'text' : 'password'}
+              value={entry}
+              onChange={(event) => setEntry(event.target.value)}
+              aria-label={t('replacementConfirmation')}
+              className={cn('pr-11', secretInputClass)}
+            />
+            <Button
+              variant="ghost"
+              iconOnly
+              size="sm"
+              pressMotion={false}
+              aria-label={t(reveal ? 'hide' : 'reveal')}
+              title={t(reveal ? 'hide' : 'reveal')}
+              className="absolute top-1/2 right-1 -translate-y-1/2"
+              onClick={() => setReveal(!reveal)}
+            >
+              {reveal ? (
+                <IconEyeOff size={18} aria-hidden />
+              ) : (
+                <IconEye size={18} aria-hidden />
+              )}
+            </Button>
+          </div>
+        </div>
       ) : null}
       <div className="flex flex-wrap gap-2">
         <Button
@@ -1133,16 +1381,36 @@ export function VaultControls({
           <div className="space-y-3">
             <p className="text-ink-muted text-sm">{t('replacementHelp')}</p>
             {active && purpose !== 'passkey' ? (
-              <label className="block space-y-2">
-                <span>{t('passphrase')}</span>
-                <Input
-                  ref={credentialEntry}
-                  autoComplete="off"
-                  type={reveal ? 'text' : 'password'}
-                  value={entry}
-                  onChange={(event) => setEntry(event.target.value)}
-                />
-              </label>
+              <div className="space-y-2">
+                <span className="block">{t('passphrase')}</span>
+                <div className={secretFieldClass}>
+                  <Input
+                    ref={credentialEntry}
+                    autoComplete="off"
+                    type={reveal ? 'text' : 'password'}
+                    value={entry}
+                    onChange={(event) => setEntry(event.target.value)}
+                    aria-label={t('passphrase')}
+                    className={cn('pr-11', secretInputClass)}
+                  />
+                  <Button
+                    variant="ghost"
+                    iconOnly
+                    size="sm"
+                    pressMotion={false}
+                    aria-label={t(reveal ? 'hide' : 'reveal')}
+                    title={t(reveal ? 'hide' : 'reveal')}
+                    className="absolute top-1/2 right-1 -translate-y-1/2"
+                    onClick={() => setReveal(!reveal)}
+                  >
+                    {reveal ? (
+                      <IconEyeOff size={18} aria-hidden />
+                    ) : (
+                      <IconEye size={18} aria-hidden />
+                    )}
+                  </Button>
+                </div>
+              </div>
             ) : null}
             <div className="flex flex-wrap gap-2">
               <Button
@@ -1164,11 +1432,6 @@ export function VaultControls({
                 {t('replacePasskey')}
               </Button>
             </div>
-            {active && purpose !== 'passkey' ? (
-              <Button variant="ghost" onClick={() => setReveal(!reveal)}>
-                {t(reveal ? 'hide' : 'reveal')}
-              </Button>
-            ) : null}
           </div>
         ) : (
           <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>

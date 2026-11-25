@@ -88,19 +88,24 @@ async function prepareEnrollment(page: Page) {
   await page.goto('/en/collection/encrypted')
   await page.getByRole('button', {name: v.setupPasskey, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.verifyPrimary, exact: true}),
+    page.getByRole('button', {name: v.continueToVerify, exact: true}),
   ).toBeVisible()
   await page.getByRole('button', {name: v.reveal, exact: true}).click()
   const kit = await page.locator('p.font-mono').last().innerText()
-  await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
+  await page
+    .getByRole('button', {name: v.continueToVerify, exact: true})
+    .click()
+  await page.getByRole('button', {name: v.verifyPasskey, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.primaryVerified, exact: true}),
-  ).toBeVisible()
-  await page.getByLabel(v.confirmationEntry, {exact: true}).fill(kit)
+    page
+      .getByRole('group', {name: v.passkeyLabel, exact: true})
+      .getByRole('button', {name: v.verifyPasskey, exact: true}),
+  ).toBeHidden()
+  await page.getByRole('textbox', {name: v.recoveryKey, exact: true}).fill(kit)
   await page.getByRole('button', {name: v.verifyRecovery, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.recoveryVerified, exact: true}),
-  ).toBeVisible()
+    page.getByRole('button', {name: v.verifyRecovery, exact: true}),
+  ).toBeHidden()
   return kit
 }
 
@@ -684,7 +689,12 @@ test('missing authenticator PRF cannot activate a vault and offers generated pas
     const phrase = await page.locator('p.font-mono').first().innerText()
     await page.getByRole('button', {name: v.reveal, exact: true}).click()
     const kit = await page.locator('p.font-mono').last().innerText()
-    await page.getByLabel(v.confirmationEntry, {exact: true}).fill(phrase)
+    await page
+      .getByRole('button', {name: v.continueToVerify, exact: true})
+      .click()
+    await page
+      .getByRole('textbox', {name: v.passphraseLabel, exact: true})
+      .fill(phrase)
     // A sibling-tab lock also clears revealed provisional setup material.
     await page.evaluate((ownerId) => {
       window.dispatchEvent(
@@ -695,22 +705,28 @@ test('missing authenticator PRF cannot activate a vault and offers generated pas
       )
     }, noteApp.ownerId)
     await expect(
-      page.getByLabel(v.confirmationEntry, {exact: true}),
+      page.getByRole('textbox', {name: v.passphraseLabel, exact: true}),
     ).toHaveValue('')
     await expect(page.getByText(phrase, {exact: true})).not.toBeVisible()
     await expect(page.getByText(kit, {exact: true})).not.toBeVisible()
-    await page.getByLabel(v.confirmationEntry, {exact: true}).fill(phrase)
+    await page
+      .getByRole('textbox', {name: v.passphraseLabel, exact: true})
+      .fill(phrase)
     await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
     await expect(
-      page.getByRole('button', {name: v.primaryVerified, exact: true}),
-    ).toBeVisible()
-    await page.getByLabel(v.confirmationEntry, {exact: true}).fill(kit)
+      page
+        .getByRole('group', {name: v.passphraseLabel, exact: true})
+        .getByRole('button', {name: v.verifyPrimary, exact: true}),
+    ).toBeHidden()
+    await page
+      .getByRole('textbox', {name: v.recoveryKey, exact: true})
+      .fill(kit)
     await page
       .getByRole('button', {name: v.verifyRecovery, exact: true})
       .click()
     await expect(
-      page.getByRole('button', {name: v.recoveryVerified, exact: true}),
-    ).toBeVisible()
+      page.getByRole('button', {name: v.verifyRecovery, exact: true}),
+    ).toBeHidden()
     await page.getByRole('button', {name: v.activate, exact: true}).click()
     await page.getByLabel(v.passphrase, {exact: true}).fill(phrase)
     await page.getByRole('button', {name: v.unlock, exact: true}).click()

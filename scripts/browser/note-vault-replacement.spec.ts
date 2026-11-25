@@ -18,16 +18,25 @@ async function prepareSetup(page: Page) {
   const phrase = await page.locator('p.font-mono').first().innerText()
   await page.getByRole('button', {name: v.reveal, exact: true}).click()
   const recovery = await page.locator('p.font-mono').last().innerText()
-  await page.getByLabel(v.confirmationEntry, {exact: true}).fill(phrase)
+  await page
+    .getByRole('button', {name: v.continueToVerify, exact: true})
+    .click()
+  await page
+    .getByRole('textbox', {name: v.passphraseLabel, exact: true})
+    .fill(phrase)
   await page.getByRole('button', {name: v.verifyPrimary, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.primaryVerified, exact: true}),
-  ).toBeVisible()
-  await page.getByLabel(v.confirmationEntry, {exact: true}).fill(recovery)
+    page
+      .getByRole('group', {name: v.passphraseLabel, exact: true})
+      .getByRole('button', {name: v.verifyPrimary, exact: true}),
+  ).toBeHidden()
+  await page
+    .getByRole('textbox', {name: v.recoveryKey, exact: true})
+    .fill(recovery)
   await page.getByRole('button', {name: v.verifyRecovery, exact: true}).click()
   await expect(
-    page.getByRole('button', {name: v.recoveryVerified, exact: true}),
-  ).toBeVisible()
+    page.getByRole('button', {name: v.verifyRecovery, exact: true}),
+  ).toBeHidden()
   return {phrase, recovery}
 }
 

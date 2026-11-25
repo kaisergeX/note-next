@@ -21,13 +21,25 @@ async function enroll(page: Page, locale: 'en' | 'vi' = 'en') {
   const phrase = await page.locator('p.font-mono').first().innerText()
   await button(vault.reveal).click()
   const recovery = await page.locator('p.font-mono').nth(1).innerText()
-  const confirmation = page.getByLabel(vault.confirmationEntry, {exact: true})
-  await confirmation.fill(phrase)
+  await button(vault.continueToVerify).click()
+  const primaryEntry = page.getByRole('textbox', {
+    name: vault.passphraseLabel,
+    exact: true,
+  })
+  const recoveryEntry = page.getByRole('textbox', {
+    name: vault.recoveryKey,
+    exact: true,
+  })
+  await primaryEntry.fill(phrase)
   await button(vault.verifyPrimary).click()
-  await expect(button(vault.primaryVerified)).toBeVisible()
-  await confirmation.fill(recovery)
+  await expect(
+    page
+      .getByRole('group', {name: vault.passphraseLabel, exact: true})
+      .getByRole('button', {name: vault.verifyPrimary, exact: true}),
+  ).toBeHidden()
+  await recoveryEntry.fill(recovery)
   await button(vault.verifyRecovery).click()
-  await expect(button(vault.recoveryVerified)).toBeVisible()
+  await expect(button(vault.verifyRecovery)).toBeHidden()
   await button(vault.activate).click()
   await unlock(page, phrase, messages)
   return phrase

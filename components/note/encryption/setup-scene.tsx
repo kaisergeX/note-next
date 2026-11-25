@@ -3,6 +3,7 @@ import {
   IconFingerprint,
   IconKey,
   IconLock,
+  IconPassword,
 } from '@tabler/icons-react'
 import {useId} from 'react'
 
@@ -60,12 +61,6 @@ export default function SetupScene({
   recoveryChecked?: boolean
 }) {
   const clip = useId()
-  const PrimaryIcon = primaryChecked
-    ? IconCheck
-    : method === 'passkey'
-      ? IconFingerprint
-      : IconKey
-  const RecoveryIcon = recoveryChecked ? IconCheck : IconKey
 
   return (
     <div
@@ -103,23 +98,39 @@ export default function SetupScene({
           )}
           {stage === 'verify' && (
             <>
-              <PrimaryIcon
-                x={82}
-                y={77}
-                size={117}
-                stroke={1.2}
-                className={primaryChecked ? 'text-success' : undefined}
-              />
-              <RecoveryIcon
-                x={198}
-                y={108}
-                size={107}
-                stroke={1.2}
-                className={recoveryChecked ? 'text-success' : undefined}
-              />
+              {method === 'passkey' ? (
+                <IconFingerprint x={107} y={59} size={64} stroke={1.3} />
+              ) : (
+                <IconPassword x={107} y={59} size={64} stroke={1.3} />
+              )}
+              <IconKey x={220} y={97} size={64} stroke={1.3} />
             </>
           )}
         </g>
+        {stage === 'verify' && primaryChecked && (
+          <g className="text-success">
+            <circle cx={184} cy={44} r={15} fill="currentColor" />
+            <IconCheck
+              x={174}
+              y={34}
+              size={20}
+              stroke={2.5}
+              className="text-paper"
+            />
+          </g>
+        )}
+        {stage === 'verify' && recoveryChecked && (
+          <g className="text-success">
+            <circle cx={304} cy={69} r={15} fill="currentColor" />
+            <IconCheck
+              x={294}
+              y={59}
+              size={20}
+              stroke={2.5}
+              className="text-paper"
+            />
+          </g>
+        )}
       </svg>
     </div>
   )
