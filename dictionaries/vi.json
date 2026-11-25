@@ -486,7 +486,10 @@
       "loading": "Đang mở kho…",
       "offline": "Đang ngoại tuyến. Chỉ có thể xem các bản đã lưu trên trình duyệt này.",
       "unlockToOpen": "Mở khóa kho để mở ghi chú này.",
-      "back": "Đóng ghi chú"
+      "back": "Đóng ghi chú",
+      "collectionLocked": "Ghi chú mã hóa đang khóa",
+      "collectionUnlocked": "Ghi chú mã hóa đã mở khóa",
+      "openLocked": "Mở khóa ghi chú mã hóa và mở ghi chú này"
     },
     "encryptedEditor": {
       "recoveryDamagedTitle": "Không đọc được tiêu đề mã hóa",
@@ -542,6 +545,26 @@
     },
 
     "vault": {
+      "setupHint": "Chọn cách bạn sẽ mở khóa nhóm ghi chú này.",
+      "backupTitle": "Lưu bộ khôi phục",
+      "backupHint": "Hãy sao lưu ở nơi an toàn trước khi rời tab này.",
+      "verifyTitle": "Kiểm tra các khóa đã lưu",
+      "verifyHint": "Xác nhận bạn có thể mở ghi chú bằng cả hai cách.",
+      "privacyTrigger": "Điều gì vẫn riêng tư?",
+      "privacy": "Thiết bị của bạn mã hóa tiêu đề và nội dung. Dịch vụ vẫn thấy mã ghi chú, kích thước, ngày, màu và trạng thái thùng rác.",
+      "copyKey": "Sao chép khóa khôi phục",
+      "copyKeySuccess": "Đã sao chép khóa",
+      "copyKeyFailed": "Hãy chọn khóa và sao chép thủ công.",
+      "continueToVerify": "Tiếp tục xác minh",
+      "changeMethod": "Đổi cách thiết lập",
+      "lossWarning": "Nếu mất cả cách mở khóa chính và khóa khôi phục, bạn sẽ mất quyền truy cập các ghi chú này.",
+      "passkeyLabel": "Passkey",
+      "passphraseLabel": "Cụm mật khẩu được tạo",
+      "passkeySaved": "Đã lưu trên thiết bị hoặc nhà cung cấp thông tin xác thực của bạn",
+      "lockedHint": "Tiêu đề và nội dung vẫn ẩn cho đến khi bạn mở khóa.",
+      "back": "Quay lại",
+      "checksComplete": "Đã xác minh {done}/2 bước",
+      "unlockHeading": "Mở khóa ghi chú mã hóa",
       "replacementHelp": "Nhập lại cụm mật khẩu hoặc khóa khôi phục hiện tại, hoặc xác nhận passkey hiện tại để đổi cách mở khóa chính. Khóa khôi phục vẫn giữ nguyên.",
       "replacementConfirmHelp": "Lưu cách mở khóa mới rồi xác nhận bên dưới. Khóa khôi phục vẫn giữ nguyên.",
       "replacementConfirmation": "Xác nhận cách mở khóa mới",
@@ -595,9 +618,9 @@
       "recoveryVerified": "Đã xác minh khôi phục",
       "verifyRecovery": "Xác minh khóa khôi phục",
       "retrySetup": "Thử lại đúng thiết lập",
-      "activate": "Kích hoạt kho đã xác minh",
+      "activate": "Kích hoạt ghi chú mã hóa",
       "restart": "Bỏ bộ tạm và bắt đầu lại",
-      "setup": "Thiết lập bằng cụm mật khẩu",
+      "setup": "Dùng cụm mật khẩu",
       "disabled": "Đã tắt đăng ký kho mới."
     },
     "emptyNote": "Ghi chú trống",
@@ -610,7 +633,7 @@
       "close": "Đóng tìm kiếm",
       "loadMore": "Tải thêm kết quả",
       "searching": "Đang tìm ghi chú…",
-      "noResults": "Không có ghi chú phù hợp.",
+      "noResults": "Không có ghi chú phù hợp. Ghi chú mã hóa không nằm trong phạm vi tìm kiếm.",
       "count": "{count, number} ghi chú phù hợp",
       "loadedCount": "Đã tải {count, number} ghi chú phù hợp",
       "failed": "Không thể tìm ghi chú. Vui lòng thử lại.",
@@ -621,6 +644,7 @@
     },
     "collections": {
       "all": "Tất cả ghi chú",
+      "encrypted": "Ghi chú mã hóa",
       "deleted": "Đã xóa gần đây"
     },
     "accessibility": {
@@ -649,7 +673,6 @@
       "moving": "Đang chuyển vào thùng rác…"
     },
     "editor": {
-      "encryptedNotes": "Ghi chú mã hóa",
       "read": "Đọc",
       "edit": "Chỉnh sửa",
       "readingMode": "Chế độ đọc",

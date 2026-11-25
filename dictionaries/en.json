@@ -486,7 +486,10 @@
       "loading": "Opening vault…",
       "offline": "Offline. Only versions saved in this browser are available.",
       "unlockToOpen": "Unlock your vault to open this note.",
-      "back": "Close note"
+      "back": "Close note",
+      "collectionLocked": "Encrypted notes are locked",
+      "collectionUnlocked": "Encrypted notes are unlocked",
+      "openLocked": "Unlock encrypted notes and open this note"
     },
     "encryptedEditor": {
       "recoveryDamagedTitle": "Unreadable encrypted title",
@@ -542,6 +545,26 @@
     },
 
     "vault": {
+      "setupHint": "Choose how you’ll unlock this collection.",
+      "backupTitle": "Save your recovery kit",
+      "backupHint": "Keep a copy somewhere safe before you leave this tab.",
+      "verifyTitle": "Check your saved keys",
+      "verifyHint": "Confirm you can open your notes both ways.",
+      "privacyTrigger": "What stays private?",
+      "privacy": "Your device encrypts titles and text. The service can see a note’s ID, size, dates, color, and Trash status.",
+      "copyKey": "Copy recovery key",
+      "copyKeySuccess": "Key copied",
+      "copyKeyFailed": "Select the key and copy it manually.",
+      "continueToVerify": "Continue to verification",
+      "changeMethod": "Change method",
+      "lossWarning": "If you lose both your primary method and recovery key, you lose access to these notes.",
+      "passkeyLabel": "Passkey",
+      "passphraseLabel": "Generated passphrase",
+      "passkeySaved": "Stored in your device or credential provider",
+      "lockedHint": "Your titles and writing stay hidden until you unlock.",
+      "back": "Back",
+      "checksComplete": "{done} of 2 checks complete",
+      "unlockHeading": "Unlock encrypted notes",
       "replacementHelp": "Re-enter your current passphrase or recovery key, or confirm your current passkey, to change your primary unlock method. Your recovery key stays the same.",
       "replacementConfirmHelp": "Save your new unlock method, then confirm it below. Your recovery key stays the same.",
       "replacementConfirmation": "Confirm new unlock method",
@@ -595,9 +618,9 @@
       "recoveryVerified": "Recovery verified",
       "verifyRecovery": "Verify recovery key",
       "retrySetup": "Retry exact setup",
-      "activate": "Activate verified vault",
+      "activate": "Activate encrypted notes",
       "restart": "Discard provisional kit and restart",
-      "setup": "Set up with passphrase",
+      "setup": "Use a passphrase",
       "disabled": "New vault enrollment is disabled."
     },
     "emptyNote": "Empty note",
@@ -610,7 +633,7 @@
       "close": "Close search",
       "loadMore": "Load more matches",
       "searching": "Searching notes…",
-      "noResults": "No matching notes.",
+      "noResults": "No matching notes. Encrypted notes are excluded from search.",
       "count": "{count, plural, one {# matching note} other {# matching notes}}",
       "loadedCount": "{count, plural, one {# matching note loaded} other {# matching notes loaded}}",
       "failed": "Could not search your notes. Please try again.",
@@ -621,6 +644,7 @@
     },
     "collections": {
       "all": "All notes",
+      "encrypted": "Encrypted",
       "deleted": "Recently deleted"
     },
     "accessibility": {
@@ -649,7 +673,6 @@
       "moving": "Moving to Trash…"
     },
     "editor": {
-      "encryptedNotes": "Encrypted notes",
       "read": "Read",
       "edit": "Edit",
       "readingMode": "Reading mode",

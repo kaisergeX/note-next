@@ -1,6 +1,7 @@
 import {test, expect} from './fixtures'
 
-test.use({deviceScaleFactor: 2})
+// Allow normal Serwist registration when observing page errors.
+test.use({deviceScaleFactor: 2, serviceWorkers: 'allow'})
 
 test('the note grid stays within the viewport without overlapping as the sidebar toggles', async ({
   page,

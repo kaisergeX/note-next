@@ -5,7 +5,12 @@ import {cn} from 'cn'
 import {useLocale, useTranslations} from 'next-intl'
 import {useRouter, useSelectedLayoutSegments} from 'next/navigation'
 import {useSession} from 'next-auth/react'
-import {IconChevronDown, IconHistory, IconNotebook} from '@tabler/icons-react'
+import {
+  IconChevronDown,
+  IconHistory,
+  IconLock,
+  IconNotebook,
+} from '@tabler/icons-react'
 import {buttonClass} from '~/components/ui/button'
 import MenuCustom from '~/components/ui/menu'
 import NoteSidebar from './note-sidebar'
@@ -73,15 +78,36 @@ export default function NoteCollectionLayout({
     segments[1] === 'drafts'
   const isTrash =
     section === 'collection' && segments.length === 2 && segments[1] === 'trash'
+  const isEncrypted =
+    section === 'collection' &&
+    segments.length === 2 &&
+    segments[1] === 'encrypted'
   const isNoteList = section === 'eton' && segments.length === 1
-  if (!isDrafts && !isTrash && !isNoteList) return children
+  if (!isDrafts && !isTrash && !isEncrypted && !isNoteList) return children
 
   const isNotes = section === 'eton' || isDrafts
-  const currentLabel = isNotes ? t('collections.all') : t('collections.deleted')
-  const currentHref = isNotes ? '/eton' : '/collection/trash'
-  const CurrentIcon = isNotes ? IconNotebook : IconHistory
+  const currentLabel = isNotes
+    ? t('collections.all')
+    : isEncrypted
+      ? t('collections.encrypted')
+      : t('collections.deleted')
+  const currentHref = isNotes
+    ? '/eton'
+    : isEncrypted
+      ? '/collection/encrypted'
+      : '/collection/trash'
+  const CurrentIcon = isNotes
+    ? IconNotebook
+    : isEncrypted
+      ? IconLock
+      : IconHistory
   const collections = [
     {href: '/eton', label: t('collections.all'), Icon: IconNotebook},
+    {
+      href: '/collection/encrypted',
+      label: t('collections.encrypted'),
+      Icon: IconLock,
+    },
     {
       href: '/collection/trash',
       label: t('collections.deleted'),
@@ -97,7 +123,7 @@ export default function NoteCollectionLayout({
     >
       <div className="flex min-h-0 flex-1 flex-col p-4 lg:p-6">
         {isNoteList && <h1 className="sr-only">{currentLabel}</h1>}
-        {isNoteList && (
+        {(isNoteList || isEncrypted) && (
           <header
             className={cn(
               'mb-2 flex min-h-10 shrink-0 flex-wrap items-center justify-between gap-2 lg:hidden',

@@ -1,10 +1,10 @@
 # Encrypted notes UI handoff
 
-The owner approved the Collections preview on November 21, 2026. The next change is to implement its interaction design in the authenticated encrypted workspace. The preview runs on synthetic data in memory. Release readiness and permission to accept real notes are tracked separately. [Release evidence](note-encryption-release-readiness.md)
+The owner approved the Collections preview on November 21, 2026. Continue with local implementation in the authenticated app. Deployment and rollout are out of scope. [Release evidence](note-encryption-release-readiness.md)
 
-## Walk through the approved design
+## Approved design
 
-Run `pnpm dev` and open [Set up](http://localhost:3000/en/preview/encrypted-notes?screen=setup). The preview is development-only and needs no sign-in. The **Screen** picker is a shortcut for reviewing individual states.
+The development-only [preview](http://localhost:3000/en/preview/encrypted-notes?screen=setup) runs on synthetic data and needs no sign-in. Use the **Screen** picker to reference individual states.
 
 | Step | What the user sees and does |
 | --- | --- |
@@ -24,4 +24,4 @@ The setup illustrations borrow the staggered proportions and pastel colors of th
 
 ## Checks at handoff
 
-TypeScript and ESLint passed with `pnpm lint`. Both the Next.js and Serwist production builds passed with `pnpm build`. All 26 tests in `pnpm test:notes:encryption` passed. During design iteration, a desktop browser check confirmed the centered copy icon, a stable heading position when opening the privacy popover, and navigation from activation to the collection. The owner stopped the subsequent preview review before a verdict.
+TypeScript and ESLint passed with `pnpm lint`. Both the Next.js and Serwist production builds passed with `pnpm build`. All 26 tests in `pnpm test:notes:encryption` passed. During design iteration, a desktop browser check confirmed the centered copy icon, a stable heading position when opening the privacy popover, and navigation from activation to the collection.

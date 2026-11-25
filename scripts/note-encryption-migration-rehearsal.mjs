@@ -17,15 +17,18 @@ await mkdir(root, {recursive: true})
 const oldMigrations = await mkdtemp(join(root, 'release-migrations-'))
 const preAuthorization = await mkdtemp(join(root, 'authorization-migrations-'))
 try {
-  for (const name of await readdir('drizzle')) {
-    if (/^\d{14}_/.test(name) && name < '20261117165118') {
+  const migrations = (await readdir('drizzle', {withFileTypes: true}))
+    .filter((entry) => entry.isDirectory() && /^\d{14}_/.test(entry.name))
+    .map((entry) => entry.name)
+  for (const name of migrations) {
+    if (name < '20261117165118') {
       await mkdir(join(preAuthorization, name))
       await copyFile(
         join('drizzle', name, 'migration.sql'),
         join(preAuthorization, name, 'migration.sql'),
       )
     }
-    if (!/^\d{14}_/.test(name) || name >= '20261110154137') continue
+    if (name >= '20261110154137') continue
     await mkdir(join(oldMigrations, name))
     await copyFile(
       join('drizzle', name, 'migration.sql'),
@@ -97,12 +100,38 @@ try {
       await migrate(db, {migrationsFolder: preAuthorization})
       const vaultId = randomUUID()
       const setupId = randomUUID()
+      const rpId = 'localhost'
       const [originalVault] = await client`INSERT INTO note_vaults
         (id, owner_id, setup_id, last_operation_id, primary_wrapper, recovery_wrapper)
         VALUES (${vaultId}, ${owner.id}, ${setupId}, ${setupId},
-          ${JSON.stringify({sentinel: 'original primary bytes'})},
+          ${JSON.stringify({passkeyBinding: [rpId, 'installed'], sentinel: 'original primary bytes'})},
           ${JSON.stringify({sentinel: 'original recovery bytes'})}) RETURNING *`
+      await client`INSERT INTO note_passkeys
+        (credential_id, owner_id, vault_id, rp_id, public_key, counter, transports, verified_at)
+        VALUES
+          ('installed', ${owner.id}, ${vaultId}, ${rpId}, 'installed-key', 4, '[]', null),
+          ('verified', ${owner.id}, ${vaultId}, ${rpId}, 'verified-key', 7, '["internal"]', now()),
+          ('abandoned', ${owner.id}, ${vaultId}, ${rpId}, 'abandoned-key', 0, '[]', null)`
+      const originalPasskeys =
+        await client`SELECT * FROM note_passkeys ORDER BY credential_id`
+      const [{now: migrationStart}] =
+        await client`SELECT clock_timestamp()::text AS now`
       await migrate(db, {migrationsFolder: './drizzle'})
+      const passkeys =
+        await client`SELECT * FROM note_passkeys ORDER BY credential_id`
+      assert.deepEqual(
+        passkeys.map(({provisional_expires_at, ...credential}) => {
+          if (credential.credential_id !== 'abandoned')
+            assert.equal(provisional_expires_at, null)
+          return credential
+        }),
+        [...originalPasskeys],
+      )
+      const [{expires_in_one_day: expiresInOneDay}] = await client`
+        SELECT provisional_expires_at BETWEEN ${migrationStart}::timestamptz + interval '24 hours'
+          AND clock_timestamp() + interval '24 hours' AS expires_in_one_day
+        FROM note_passkeys WHERE credential_id = 'abandoned'`
+      assert.equal(expiresInOneDay, true)
       const [upgradedVault] =
         await client`SELECT * FROM note_vaults WHERE id = ${vaultId}`
       const {authorization_version, authorization, ...preservedVault} =
@@ -168,11 +197,15 @@ try {
       )
       const count = (await client`SELECT * FROM drizzle.__drizzle_migrations`)
         .length
-      assert.equal(count, migrationsBefore.length + 5)
+      assert.equal(count, migrations.length)
       await migrate(db, {migrationsFolder: './drizzle'})
       assert.equal(
         (await client`SELECT * FROM drizzle.__drizzle_migrations`).length,
         count,
+      )
+      assert.deepEqual(
+        [...(await client`SELECT * FROM note_passkeys ORDER BY credential_id`)],
+        [...passkeys],
       )
       // Previous ordinary clients still write their known columns on the new schema.
       await client`UPDATE notes SET content = '<p>Old client ordinary edit</p>' WHERE id = ${rows[0].id}`
@@ -198,6 +231,7 @@ try {
           oldColumnWrite: true,
           legacyVaultBytesPreserved: true,
           legacyAuthorizationVersion: 0,
+          passkeyLifecycleBackfill: true,
           pinnedStateRollbackChecks: 6,
         }),
       )

@@ -2,6 +2,7 @@
 
 import {
   IconHistory,
+  IconLock,
   IconNotebook,
   IconLayoutSidebarLeftCollapse,
   IconLayoutSidebarLeftExpand,
@@ -19,7 +20,7 @@ export default function NoteSidebar({
   onToggle,
 }: {
   children: ReactNode
-  currentHref: '/eton' | '/collection/trash'
+  currentHref: '/eton' | '/collection/trash' | '/collection/encrypted'
   expanded: boolean
   onToggle: () => void
 }) {
@@ -30,6 +31,11 @@ export default function NoteSidebar({
   }
   const collections = [
     {href: '/eton', label: t('collections.all'), Icon: IconNotebook},
+    {
+      href: '/collection/encrypted',
+      label: t('collections.encrypted'),
+      Icon: IconLock,
+    },
     {
       href: '/collection/trash',
       label: t('collections.deleted'),

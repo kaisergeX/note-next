@@ -2,8 +2,17 @@
 
 import {useEffect, useRef, useState} from 'react'
 import {useTranslations} from 'next-intl'
-import Button from '~/components/ui/button'
+import {
+  IconCheck,
+  IconCopy,
+  IconFingerprint,
+  IconInfoCircle,
+  IconKey,
+} from '@tabler/icons-react'
+import {cn} from 'cn'
+import Button, {buttonClass} from '~/components/ui/button'
 import {Input} from '~/components/ui/input'
+import PopoverBase from '~/components/ui/popover'
 import {assertPasskey} from '~/lib/notes/encryption/passkey'
 import {
   createVaultCandidate,
@@ -22,7 +31,6 @@ import {
 import {
   activateVault,
   currentVaultEpoch,
-  lockVault,
   useVaultUnlocked,
   type ConfirmedVault,
 } from '~/lib/notes/encryption/runtime'
@@ -41,6 +49,7 @@ import {
   getReplacementIntent,
   clearReplacementIntent,
 } from '~/lib/notes/encryption/storage'
+import SetupScene, {type SetupStage} from './setup-scene'
 // An earlier client may have submitted a replacement before writes closed.
 const replacementSchema = z.strictObject({
   operationId: canonicalIdSchema,
@@ -54,13 +63,16 @@ export function VaultControls({
   vault,
   enrollmentEnabled,
   onRefresh,
-  compact = false,
+  onActivated,
+  focusRequest = 0,
 }: {
   ownerId: string
   vault: ConfirmedVault | null
   enrollmentEnabled: boolean
-  compact?: boolean
   onRefresh: (requireOnline?: boolean) => Promise<ConfirmedVault | null>
+  onActivated?: () => void
+  /** Increment to move focus to the unlock controls after a locked note. */
+  focusRequest?: number
 }) {
   const t = useTranslations('note.vault')
   const [candidate, setCandidate] = useState<VaultCandidate | null>(null)
@@ -73,6 +85,10 @@ export function VaultControls({
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(''),
     [message, setMessage] = useState('')
+  const [atVerify, setAtVerify] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'failed'>(
+    'idle',
+  )
   const [replacement, setReplacement] = useState<z.infer<
     typeof replacementSchema
   > | null>(null)
@@ -96,6 +112,8 @@ export function VaultControls({
   const replacePasskeyButton = useRef<HTMLButtonElement>(null)
   const unlockButton = useRef<HTMLButtonElement>(null)
   const methodButton = useRef<HTMLButtonElement>(null)
+  const setupHeading = useRef<HTMLHeadingElement>(null)
+  const previousStage = useRef<SetupStage | undefined>(undefined)
   const storageKey = `eton-provisional-vault:${ownerId}`
   function save(next: VaultCandidate) {
     sessionStorage.setItem(storageKey, JSON.stringify(next))
@@ -115,6 +133,8 @@ export function VaultControls({
       setKit('')
       setReveal(false)
       setSetupReveal(false)
+      setAtVerify(false)
+      setCopyState('idle')
       try {
         const stored = sessionStorage.getItem(storageKey)
         if (stored) {
@@ -159,6 +179,7 @@ export function VaultControls({
       setEntry('')
       setReveal(false)
       setSetupReveal(false)
+      setCopyState('idle')
     }
     document.addEventListener('visibilitychange', clear)
     window.addEventListener('eton-vault-invalidated', invalidate)
@@ -195,6 +216,29 @@ export function VaultControls({
     const control = button && !button.disabled ? button : fallback
     control?.focus()
   }, [busy, replacementDraft, signedReplacement])
+  const setupStage: SetupStage = !candidate
+    ? 'setup'
+    : candidate.submitted ||
+        atVerify ||
+        candidate.primaryChecked ||
+        candidate.recoveryChecked ||
+        (!phrase && !kit)
+      ? 'verify'
+      : 'backup'
+  useEffect(() => {
+    if (previousStage.current === undefined) {
+      previousStage.current = setupStage
+      return
+    }
+    if (previousStage.current !== setupStage)
+      setupHeading.current?.focus({preventScroll: true})
+    previousStage.current = setupStage
+  }, [setupStage])
+  useEffect(() => {
+    if (!focusRequest || active || document.hidden) return
+    const control = credentialEntry.current ?? unlockButton.current
+    control?.focus()
+  }, [focusRequest, active])
   async function run(work: (version: number) => Promise<void>) {
     if (inFlight.current) return
     inFlight.current = true
@@ -236,6 +280,8 @@ export function VaultControls({
       const created = await createVaultCandidate(ownerId, method)
       check(version)
       setSetupReveal(false)
+      setAtVerify(false)
+      setCopyState('idle')
       save(created.candidate)
       setPhrase(created.passphrase)
       setKit(created.recoveryKit)
@@ -260,6 +306,7 @@ export function VaultControls({
       save(checked)
       setPhrase('')
       setKit('')
+      setCopyState('idle')
       setMessage(t('verified'))
     })
   function matchesSetup(current: ConfirmedVault, candidate: VaultCandidate) {
@@ -309,7 +356,21 @@ export function VaultControls({
     setCandidate(null)
     setPhrase('')
     setKit('')
+    setAtVerify(false)
+    setCopyState('idle')
     setMessage(t(message))
+    onActivated?.()
+  }
+  function discardCandidate() {
+    sessionStorage.removeItem(storageKey)
+    focusSetupAction.current = true
+    setCandidate(null)
+    setPhrase('')
+    setKit('')
+    setEntry('')
+    setAtVerify(false)
+    setCopyState('idle')
+    setError('')
   }
   const submit = () =>
     run(async (version) => {
@@ -328,6 +389,7 @@ export function VaultControls({
       check(version)
       if (result.status === 'passkey_unavailable') {
         save({...pending, submitted: false, primaryChecked: false})
+        setAtVerify(true)
         focusSetupAction.current = true
         setError(t('setupPasskeyExpired'))
         return
@@ -574,347 +636,553 @@ export function VaultControls({
         raw.fill(0)
       }
     })
-  const controls = (
-    <>
-      <p className="text-ink-muted text-sm">{t('disclosure')}</p>
-      <p className="text-ink-muted text-sm">{t('passkeyPending')}</p>
-      {vault ? (
-        <>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              ref={methodButton}
-              variant="secondary"
-              disabled={busy || !!replacementDraft}
-              onClick={() => {
-                setRecovery(!recovery)
-                setReveal(false)
-                setEntry('')
-              }}
-            >
-              {t(
-                recovery
-                  ? vault.primaryWrapper.purpose === 'passkey'
-                    ? 'usePasskey'
-                    : 'usePassphrase'
-                  : 'useRecovery',
-              )}
-            </Button>
-          </div>
-          {!replacementDraft &&
-            (recovery || vault.primaryWrapper.purpose !== 'passkey') && (
-              <>
-                <label className="block space-y-2">
-                  <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
-                  <Input
-                    ref={credentialEntry}
-                    autoComplete="off"
-                    type={reveal ? 'text' : 'password'}
-                    value={entry}
-                    onChange={(e) => setEntry(e.target.value)}
-                  />
-                </label>
-                <Button variant="ghost" onClick={() => setReveal(!reveal)}>
-                  {t(reveal ? 'hide' : 'reveal')}
-                </Button>
-              </>
-            )}
-          <Button
-            ref={unlockButton}
-            loading={busy}
-            onClick={() => void unlock()}
-            disabled={
-              active ||
-              !!replacementDraft ||
-              (!entry &&
-                (recovery || vault.primaryWrapper.purpose !== 'passkey'))
-            }
-          >
-            {t('unlock')}
-          </Button>
-          {vault.authorizationVersion === 1 &&
-          authorizationSchema.safeParse(vault.authorization).success ? (
-            <div className="space-y-2">
-              <p className="text-ink-muted text-sm">
-                {t(
-                  replacementDraft
-                    ? 'replacementConfirmHelp'
-                    : 'replacementHelp',
-                )}
-              </p>
-              {phrase && replacementDraft ? (
-                <p className="font-mono break-words">{phrase}</p>
-              ) : null}
-              {replacementDraft ? (
-                <>
-                  {replacementDraft.primaryWrapper.purpose !== 'passkey' && (
-                    <label className="block space-y-2">
-                      <span>{t('replacementConfirmation')}</span>
-                      <Input
-                        ref={confirmationEntry}
-                        autoComplete="off"
-                        type={reveal ? 'text' : 'password'}
-                        value={entry}
-                        onChange={(event) => setEntry(event.target.value)}
-                      />
-                    </label>
-                  )}
-                  <Button
-                    ref={confirmButton}
-                    loading={busy}
-                    disabled={
-                      !entry &&
-                      replacementDraft.primaryWrapper.purpose !== 'passkey'
-                    }
-                    onClick={() => void submitReplacement()}
-                  >
-                    {t('confirmReplacement')}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => {
-                      replacementFocus.current =
-                        replacementDraft.primaryWrapper.purpose === 'passkey'
-                          ? 'passkey'
-                          : 'passphrase'
-                      setReplacementDraft(null)
-                      setReveal(false)
-                      setPhrase('')
-                      setEntry('')
-                    }}
-                  >
-                    {t('cancelReplacement')}
-                  </Button>
-                </>
-              ) : !signedReplacement ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    ref={replacePassphraseButton}
-                    variant="secondary"
-                    loading={busy}
-                    disabled={
-                      !entry &&
-                      (recovery || vault.primaryWrapper.purpose !== 'passkey')
-                    }
-                    onClick={() => void beginReplacement('passphrase')}
-                  >
-                    {t('replacePassphrase')}
-                  </Button>
-                  <Button
-                    ref={replacePasskeyButton}
-                    variant="secondary"
-                    loading={busy}
-                    disabled={
-                      !entry &&
-                      (recovery || vault.primaryWrapper.purpose !== 'passkey')
-                    }
-                    onClick={() => void beginReplacement('passkey')}
-                  >
-                    {t('replacePasskey')}
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-          ) : (
-            <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>
-          )}
-          {signedReplacement && (
-            <div className="space-y-2">
-              <p>{t('replacementPending')}</p>
-              <Button
-                variant="secondary"
-                loading={busy}
-                onClick={() =>
-                  void run((version) =>
-                    sendReplacement(signedReplacement, version),
-                  )
-                }
-              >
-                {t('retryReplacement')}
-              </Button>
-              <Button
-                variant="secondary"
-                loading={busy}
-                onClick={() => void reconcile()}
-              >
-                {t('reconcile')}
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={busy}
-                onClick={() =>
-                  void run(async (version) => {
-                    await onRefresh(true)
-                    check(version)
-                    await clearReplacementIntent(ownerId, signedReplacement)
-                    check(version)
-                    setSignedReplacement(null)
-                    setMessage(t('replacementForgotten'))
-                  })
-                }
-              >
-                {t('forgetReplacement')}
-              </Button>
-            </div>
-          )}
-          {(replacement || candidate?.submitted) && (
-            <>
-              {replacement && <p>{t('replacementCheck')}</p>}
-              <Button
-                variant="secondary"
-                loading={busy}
-                onClick={() => void reconcile()}
-              >
-                {t('reconcile')}
-              </Button>
-            </>
-          )}
-        </>
-      ) : candidate ? (
-        <>
-          <p className="text-sm">{t('saveKit')}</p>
-          {phrase ? <p className="font-mono break-words">{phrase}</p> : null}
-          {kit ? (
-            <p className="font-mono break-all">
-              {setupReveal ? kit : t('kitHidden')}
-            </p>
-          ) : null}
-          <Button
-            variant="secondary"
-            onClick={() => setSetupReveal(!setupReveal)}
-          >
-            {t(setupReveal ? 'hide' : 'reveal')}
-          </Button>
-          <label className="block space-y-2">
-            <span>{t('confirmationEntry')}</span>
-            <Input
-              autoComplete="off"
-              type={setupReveal ? 'text' : 'password'}
-              value={entry}
-              onChange={(e) => setEntry(e.target.value)}
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="secondary"
-              loading={busy}
-              disabled={
-                !entry && candidate.primaryWrapper.purpose !== 'passkey'
-              }
-              onClick={() => void verify('primary')}
-            >
-              {t(
-                candidate.primaryChecked ? 'primaryVerified' : 'verifyPrimary',
-              )}
-            </Button>
-            <Button
-              variant="secondary"
-              loading={busy}
-              disabled={!entry}
-              onClick={() => void verify('recovery')}
-            >
-              {t(
-                candidate.recoveryChecked
-                  ? 'recoveryVerified'
-                  : 'verifyRecovery',
-              )}
-            </Button>
-          </div>
-          <Button
-            loading={busy}
-            disabled={!candidate.primaryChecked || !candidate.recoveryChecked}
-            onClick={() => void submit()}
-          >
-            {t(candidate.submitted ? 'retrySetup' : 'activate')}
-          </Button>
-          {candidate.submitted ? (
-            <Button
-              variant="secondary"
-              loading={busy}
-              onClick={() => void reconcile()}
-            >
-              {t('reconcile')}
-            </Button>
-          ) : (
-            <Button
-              ref={restartButton}
-              variant="ghost"
-              disabled={busy}
-              onClick={() => {
-                sessionStorage.removeItem(storageKey)
-                focusSetupAction.current = true
-                setCandidate(null)
-                setPhrase('')
-                setKit('')
-                setEntry('')
-                setError('')
-              }}
-            >
-              {t('restart')}
-            </Button>
-          )}
-        </>
-      ) : enrollmentEnabled ? (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            ref={setupPasskeyButton}
-            loading={busy}
-            onClick={() => void start('passkey')}
-          >
-            {t('setupPasskey')}
-          </Button>
-          <Button
-            variant="secondary"
-            loading={busy}
-            onClick={() => void start('passphrase')}
-          >
-            {t('setup')}
-          </Button>
-        </div>
-      ) : (
-        <p>{t('disabled')}</p>
-      )}
-    </>
+  async function copyKit() {
+    if (!kit) return
+    try {
+      await navigator.clipboard.writeText(kit)
+      setCopyState('copied')
+    } catch {
+      setCopyState('failed')
+    }
+  }
+  const setupMethod =
+    candidate?.primaryWrapper.purpose === 'passkey' ? 'passkey' : 'passphrase'
+  const primaryLabel = t(
+    setupMethod === 'passkey' ? 'passkeyLabel' : 'passphraseLabel',
   )
-  return (
-    <section
-      className="border-hairline bg-paper-raised space-y-4 rounded-lg border p-4"
-      aria-label={t('heading')}
-    >
-      <div
-        className={
-          compact && active ? 'flex flex-wrap items-center gap-2' : 'space-y-4'
-        }
-      >
-        <h2 className="font-semibold">{t('heading')}</h2>
-        {vault && <p role="status">{t(active ? 'unlocked' : 'locked')}</p>}
-        {active && (
-          <Button variant="secondary" onClick={() => void lockVault(ownerId)}>
-            {t('lock')}
-          </Button>
-        )}
-      </div>
-      {compact && active ? (
-        <details className="space-y-4">
-          <summary className="min-h-10 cursor-pointer content-center text-sm">
-            {t('credentialSettings')}
-          </summary>
-          {controls}
-        </details>
-      ) : (
-        controls
-      )}
+  const PrimaryIcon = setupMethod === 'passkey' ? IconFingerprint : IconKey
+  const setupViews: Record<SetupStage, {title: string; hint: string}> = {
+    setup: {title: t('heading'), hint: t('setupHint')},
+    backup: {title: t('backupTitle'), hint: t('backupHint')},
+    verify: {title: t('verifyTitle'), hint: t('verifyHint')},
+  }
+  const setupView = setupViews[setupStage]
+  const canReturnToKit =
+    setupStage === 'verify' &&
+    !candidate?.primaryChecked &&
+    !candidate?.recoveryChecked &&
+    Boolean(phrase || kit)
+  const messages = (
+    <>
       {error ? (
         <p role="alert" className="text-destructive text-sm">
           {error}
         </p>
       ) : null}
       {message ? (
-        <p role="status" className="text-sm">
+        <p role="status" className="text-ink-muted text-sm">
           {message}
         </p>
       ) : null}
+    </>
+  )
+  if (!vault) {
+    const disabled = !candidate && !enrollmentEnabled
+    return (
+      <section
+        aria-label={t('heading')}
+        className="grid gap-y-5 md:grid-cols-2 md:gap-x-12 lg:gap-x-16"
+      >
+        <div className="min-w-0 md:col-start-2 md:row-start-1 md:self-end">
+          <h1
+            ref={setupHeading}
+            tabIndex={-1}
+            className="font-serif text-4xl font-normal tracking-tight outline-none sm:text-5xl"
+          >
+            {setupView.title}
+          </h1>
+          {!disabled && (
+            <p className="text-ink-muted mt-2 text-base leading-relaxed">
+              {setupView.hint}
+            </p>
+          )}
+        </div>
+        {!disabled && (
+          <SetupScene
+            stage={setupStage}
+            method={setupMethod}
+            primaryChecked={candidate?.primaryChecked}
+            recoveryChecked={candidate?.recoveryChecked}
+          />
+        )}
+        <div className="min-w-0 md:col-start-2 md:row-start-2">
+          {disabled ? (
+            <p className="text-ink-muted text-sm">{t('disabled')}</p>
+          ) : setupStage === 'setup' ? (
+            <>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                <Button
+                  ref={setupPasskeyButton}
+                  size="lg"
+                  loading={busy}
+                  onClick={() => void start('passkey')}
+                >
+                  <IconFingerprint size={20} aria-hidden /> {t('setupPasskey')}
+                </Button>
+                <Button
+                  variant="link"
+                  disabled={busy}
+                  onClick={() => void start('passphrase')}
+                >
+                  {t('setup')}
+                </Button>
+              </div>
+              <p className="text-ink-muted mt-3 text-xs">
+                {t('passkeyPending')}
+              </p>
+              <div className="border-hairline mt-6 border-t pt-1">
+                <PopoverBase
+                  anchor="bottom-start"
+                  trigger={
+                    <>
+                      <IconInfoCircle size={16} aria-hidden />{' '}
+                      {t('privacyTrigger')}
+                    </>
+                  }
+                  triggerClassName={cn(
+                    buttonClass({variant: 'ghost'}),
+                    'text-ink-muted px-1',
+                  )}
+                  className="border-hairline bg-paper-raised text-ink shadow-sheet max-w-72 rounded-lg border p-4 text-sm leading-relaxed"
+                >
+                  {t('privacy')}
+                </PopoverBase>
+              </div>
+            </>
+          ) : setupStage === 'backup' ? (
+            <div className="space-y-5">
+              <dl className="bg-paper-raised border-hairline divide-hairline divide-y rounded-lg border">
+                <div className="space-y-1 p-4">
+                  <dt className="text-ink-muted text-xs font-medium">
+                    {primaryLabel}
+                  </dt>
+                  <dd className="text-sm break-words">
+                    {phrase ? (
+                      <p className="font-mono break-words">{phrase}</p>
+                    ) : (
+                      t('passkeySaved')
+                    )}
+                  </dd>
+                </div>
+                <div className="relative grid min-h-18 content-center gap-1 py-3 pr-16 pl-4">
+                  <dt className="text-ink-muted text-xs font-medium">
+                    {t('recoveryKey')}
+                  </dt>
+                  <dd>
+                    <p
+                      className={cn(
+                        'text-sm wrap-anywhere select-all',
+                        setupReveal && 'font-mono break-all',
+                      )}
+                    >
+                      {setupReveal ? kit : t('kitHidden')}
+                    </p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="mt-1"
+                      onClick={() => setSetupReveal(!setupReveal)}
+                    >
+                      {t(setupReveal ? 'hide' : 'reveal')}
+                    </Button>
+                  </dd>
+                  {kit ? (
+                    <Button
+                      variant="ghost"
+                      iconOnly
+                      pressMotion={false}
+                      className="absolute top-1/2 right-3 -translate-y-1/2"
+                      aria-label={t('copyKey')}
+                      title={t(
+                        copyState === 'copied' ? 'copyKeySuccess' : 'copyKey',
+                      )}
+                      onClick={() => void copyKit()}
+                    >
+                      {copyState === 'copied' ? (
+                        <IconCheck size={18} aria-hidden />
+                      ) : (
+                        <IconCopy size={18} aria-hidden />
+                      )}
+                    </Button>
+                  ) : null}
+                  <dd
+                    role="status"
+                    className={
+                      copyState === 'failed'
+                        ? 'text-ink-muted text-xs'
+                        : 'sr-only'
+                    }
+                  >
+                    {copyState === 'copied' && t('copyKeySuccess')}
+                    {copyState === 'failed' && t('copyKeyFailed')}
+                  </dd>
+                </div>
+              </dl>
+              <p className="text-ink-muted text-sm leading-relaxed">
+                {t('lossWarning')}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  disabled={busy}
+                  onClick={() => {
+                    setAtVerify(true)
+                    setSetupReveal(false)
+                  }}
+                >
+                  {t('continueToVerify')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={discardCandidate}
+                >
+                  {t('changeMethod')}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="grid gap-2">
+                <div className="border-hairline flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {candidate?.primaryChecked ? (
+                      <IconCheck
+                        size={18}
+                        className="text-success"
+                        aria-hidden
+                      />
+                    ) : (
+                      <PrimaryIcon size={18} aria-hidden />
+                    )}
+                    {primaryLabel}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    loading={busy}
+                    disabled={
+                      Boolean(candidate?.primaryChecked) ||
+                      (!entry && setupMethod !== 'passkey')
+                    }
+                    onClick={() => void verify('primary')}
+                  >
+                    {t(
+                      candidate?.primaryChecked
+                        ? 'primaryVerified'
+                        : 'verifyPrimary',
+                    )}
+                  </Button>
+                </div>
+                <div className="border-hairline flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-lg border px-3 py-2">
+                  <span className="flex items-center gap-2 text-sm font-medium">
+                    {candidate?.recoveryChecked ? (
+                      <IconCheck
+                        size={18}
+                        className="text-success"
+                        aria-hidden
+                      />
+                    ) : (
+                      <IconKey size={18} aria-hidden />
+                    )}
+                    {t('recoveryKey')}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    loading={busy}
+                    disabled={Boolean(candidate?.recoveryChecked) || !entry}
+                    onClick={() => void verify('recovery')}
+                  >
+                    {t(
+                      candidate?.recoveryChecked
+                        ? 'recoveryVerified'
+                        : 'verifyRecovery',
+                    )}
+                  </Button>
+                </div>
+              </div>
+              <label className="block space-y-2">
+                <span>{t('confirmationEntry')}</span>
+                <Input
+                  autoComplete="off"
+                  type={reveal ? 'text' : 'password'}
+                  value={entry}
+                  onChange={(event) => setEntry(event.target.value)}
+                />
+              </label>
+              <Button variant="ghost" onClick={() => setReveal(!reveal)}>
+                {t(reveal ? 'hide' : 'reveal')}
+              </Button>
+              <p className="sr-only" role="status">
+                {t('checksComplete', {
+                  done:
+                    Number(Boolean(candidate?.primaryChecked)) +
+                    Number(Boolean(candidate?.recoveryChecked)),
+                })}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  loading={busy}
+                  disabled={
+                    !candidate?.primaryChecked || !candidate?.recoveryChecked
+                  }
+                  onClick={() => void submit()}
+                >
+                  {t(candidate?.submitted ? 'retrySetup' : 'activate')}
+                </Button>
+                {canReturnToKit ? (
+                  <Button
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={() => setAtVerify(false)}
+                  >
+                    {t('back')}
+                  </Button>
+                ) : null}
+                {candidate?.submitted ? (
+                  <Button
+                    variant="secondary"
+                    loading={busy}
+                    onClick={() => void reconcile()}
+                  >
+                    {t('reconcile')}
+                  </Button>
+                ) : null}
+                {!candidate?.submitted && (
+                  <Button
+                    ref={restartButton}
+                    variant="ghost"
+                    disabled={busy}
+                    onClick={discardCandidate}
+                  >
+                    {t('restart')}
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+          {messages}
+        </div>
+      </section>
+    )
+  }
+  const purpose = vault.primaryWrapper.purpose
+  const replacementOpen =
+    vault.authorizationVersion === 1 &&
+    authorizationSchema.safeParse(vault.authorization).success
+  const unlockPanel = !active ? (
+    <section
+      aria-label={t('unlockHeading')}
+      className="border-hairline bg-paper-raised space-y-4 rounded-lg border p-4"
+    >
+      <p className="text-ink-muted text-sm">{t('lockedHint')}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          ref={methodButton}
+          variant="secondary"
+          disabled={busy || Boolean(replacementDraft)}
+          onClick={() => {
+            setRecovery(!recovery)
+            setReveal(false)
+            setEntry('')
+          }}
+        >
+          {t(
+            recovery
+              ? purpose === 'passkey'
+                ? 'usePasskey'
+                : 'usePassphrase'
+              : 'useRecovery',
+          )}
+        </Button>
+      </div>
+      {!replacementDraft && (recovery || purpose !== 'passkey') ? (
+        <>
+          <label className="block space-y-2">
+            <span>{t(recovery ? 'recoveryKey' : 'passphrase')}</span>
+            <Input
+              ref={credentialEntry}
+              autoComplete="off"
+              type={reveal ? 'text' : 'password'}
+              value={entry}
+              onChange={(event) => setEntry(event.target.value)}
+            />
+          </label>
+          <Button variant="ghost" onClick={() => setReveal(!reveal)}>
+            {t(reveal ? 'hide' : 'reveal')}
+          </Button>
+        </>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          ref={unlockButton}
+          loading={busy}
+          onClick={() => void unlock()}
+          disabled={
+            active ||
+            Boolean(replacementDraft) ||
+            (!entry && (recovery || purpose !== 'passkey'))
+          }
+        >
+          {t('unlock')}
+        </Button>
+      </div>
     </section>
+  ) : null
+  const pendingBlock = signedReplacement ? (
+    <div className="space-y-2">
+      <p className="text-sm">{t('replacementPending')}</p>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          variant="secondary"
+          loading={busy}
+          onClick={() =>
+            void run((version) => sendReplacement(signedReplacement, version))
+          }
+        >
+          {t('retryReplacement')}
+        </Button>
+        <Button
+          variant="secondary"
+          loading={busy}
+          onClick={() => void reconcile()}
+        >
+          {t('reconcile')}
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={busy}
+          onClick={() =>
+            void run(async (version) => {
+              await onRefresh(true)
+              check(version)
+              await clearReplacementIntent(ownerId, signedReplacement)
+              check(version)
+              setSignedReplacement(null)
+              setMessage(t('replacementForgotten'))
+            })
+          }
+        >
+          {t('forgetReplacement')}
+        </Button>
+      </div>
+    </div>
+  ) : replacement ? (
+    <div className="space-y-2">
+      <p className="text-sm">{t('replacementCheck')}</p>
+      <Button
+        variant="secondary"
+        loading={busy}
+        onClick={() => void reconcile()}
+      >
+        {t('reconcile')}
+      </Button>
+    </div>
+  ) : null
+  const draftBlock = replacementDraft ? (
+    <div className="border-hairline space-y-3 rounded-lg border p-4">
+      <p className="text-ink-muted text-sm">{t('replacementConfirmHelp')}</p>
+      {phrase ? <p className="font-mono break-words">{phrase}</p> : null}
+      {replacementDraft.primaryWrapper.purpose !== 'passkey' ? (
+        <label className="block space-y-2">
+          <span>{t('replacementConfirmation')}</span>
+          <Input
+            ref={confirmationEntry}
+            autoComplete="off"
+            type={reveal ? 'text' : 'password'}
+            value={entry}
+            onChange={(event) => setEntry(event.target.value)}
+          />
+        </label>
+      ) : null}
+      <div className="flex flex-wrap gap-2">
+        <Button
+          ref={confirmButton}
+          loading={busy}
+          disabled={
+            !entry && replacementDraft.primaryWrapper.purpose !== 'passkey'
+          }
+          onClick={() => void submitReplacement()}
+        >
+          {t('confirmReplacement')}
+        </Button>
+        <Button
+          variant="ghost"
+          disabled={busy}
+          onClick={() => {
+            replacementFocus.current =
+              replacementDraft.primaryWrapper.purpose === 'passkey'
+                ? 'passkey'
+                : 'passphrase'
+            setReplacementDraft(null)
+            setReveal(false)
+            setPhrase('')
+            setEntry('')
+          }}
+        >
+          {t('cancelReplacement')}
+        </Button>
+      </div>
+    </div>
+  ) : (
+    <details className="border-hairline rounded-lg border p-4">
+      <summary className="min-h-10 cursor-pointer content-center text-sm">
+        {t('credentialSettings')}
+      </summary>
+      <div className="space-y-4 pt-3">
+        <p className="text-ink-muted text-sm">{t('disclosure')}</p>
+        {replacementOpen && !signedReplacement ? (
+          <div className="space-y-3">
+            <p className="text-ink-muted text-sm">{t('replacementHelp')}</p>
+            {active && purpose !== 'passkey' ? (
+              <label className="block space-y-2">
+                <span>{t('passphrase')}</span>
+                <Input
+                  ref={credentialEntry}
+                  autoComplete="off"
+                  type={reveal ? 'text' : 'password'}
+                  value={entry}
+                  onChange={(event) => setEntry(event.target.value)}
+                />
+              </label>
+            ) : null}
+            <div className="flex flex-wrap gap-2">
+              <Button
+                ref={replacePassphraseButton}
+                variant="secondary"
+                loading={busy}
+                disabled={!entry && (recovery || purpose !== 'passkey')}
+                onClick={() => void beginReplacement('passphrase')}
+              >
+                {t('replacePassphrase')}
+              </Button>
+              <Button
+                ref={replacePasskeyButton}
+                variant="secondary"
+                loading={busy}
+                disabled={!entry && (recovery || purpose !== 'passkey')}
+                onClick={() => void beginReplacement('passkey')}
+              >
+                {t('replacePasskey')}
+              </Button>
+            </div>
+            {active && purpose !== 'passkey' ? (
+              <Button variant="ghost" onClick={() => setReveal(!reveal)}>
+                {t(reveal ? 'hide' : 'reveal')}
+              </Button>
+            ) : null}
+          </div>
+        ) : (
+          <p className="text-ink-muted text-sm">{t('replacementClosed')}</p>
+        )}
+      </div>
+    </details>
+  )
+  return (
+    <>
+      {unlockPanel}
+      {pendingBlock}
+      {draftBlock}
+      {messages}
+    </>
   )
 }
 export default VaultControls
